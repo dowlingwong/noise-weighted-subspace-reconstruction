@@ -1,6 +1,9 @@
 import numpy as np
 
-import reusable.empca_TCY_optimized as empca_mod
+try:
+    from . import empca_TCY_optimized as empca_mod
+except ImportError:  # pragma: no cover - direct module import fallback
+    import empca_TCY_optimized as empca_mod
 
 
 def baseline_correct(X, pretrigger=4000):

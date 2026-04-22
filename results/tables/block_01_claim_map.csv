@@ -1,0 +1,10 @@
+manuscript_claim,section_label,support_regime,metrics,acceptance_criterion,artifact_path
+one-objective hierarchy support,02_unified_objective,theorem-support,hierarchy table completeness; preprocessing invariants frozen,all required fields populated,results/tables/block_01_claim_map.csv
+OF estimator / CRB / resolution support,03_optimal_filter,real-support,Fisher info; CRB; calibrated sigma; residual diagnostics,finite fisher; variance reported; residual diagnostics saved,results/tables/block_03_of_summary.json
+rank-1 OF vs EMPCA equivalence support,04_empca,real-support,weighted cosine; amplitude gap; residual KS statistic,"cosine ~ 1, low amplitude gap, non-pathological KS",results/tables/block_03_rank1_comparison.csv
+synthetic theorem verification,04_empca,theorem-support,planted subspace recovery; amplitude bias/variance,recovery improves with sample size; no systematic bias trend,results/tables/block_04_synthetic_grid.csv
+EMPCA vs linear-AE bridge support,05_linear_ae,theorem-support,principal angles; residual gap; native-vs-whitened consistency,tiny principal angles and residual mismatch,results/tables/block_05_bridge_summary.json
+convergence / initialization / rank-selection support,06_convergence,real-support,objective traces; seed stability; held-out residual saturation,stable decrease and identifiable k knee,results/tables/block_06_rank_selection.csv
+noise-aware-vs-isotropic support,07_experiments,real-support,held-out weighted residual; chi2 proxy; rank saturation,weighted objective outperforms isotropic under colored noise,results/tables/block_07_ablation.csv
+PC interpretation support,08_discussion,real-support,weighted overlaps and coefficient correlations,interpretation reported conservatively with stability notes,results/tables/block_08_pc_metrics.csv
+structured-noise robustness support,07_experiments,robustness-support,degradation by perturbation family,relative degradation summarized without theorem claims,results/tables/block_09_robustness.csv

@@ -6,7 +6,7 @@
     },
     {
       "setting": "sampling_frequency",
-      "value": 1.0
+      "value": 250000.0
     },
     {
       "setting": "trace_len",
@@ -15,10 +15,6 @@
     {
       "setting": "pretrigger",
       "value": 4000
-    },
-    {
-      "setting": "baseline_method",
-      "value": "mean"
     },
     {
       "setting": "split_train",
@@ -34,60 +30,43 @@
     },
     {
       "setting": "empirical_rank_max",
-      "value": 6
+      "value": 8
     },
     {
       "setting": "default_empca_iter",
-      "value": 80
+      "value": 60
     },
     {
       "setting": "default_empca_patience",
       "value": 12
     },
     {
-      "setting": "default_savgol_window",
-      "value": 15
-    },
-    {
-      "setting": "default_savgol_polyord",
-      "value": 3
-    },
-    {
       "setting": "default_psd_floor_quantile",
       "value": 0.01
     },
     {
-      "setting": "real_dataset_candidates",
-      "value": [
-        "data/sample/k_alpha_traces.h5",
-        "data/sample/traces.h5",
-        "k_alpha_traces.h5"
-      ]
+      "setting": "real_train_cap",
+      "value": 512
     },
     {
-      "setting": "template_candidates",
-      "value": [
-        "PC_interpretation/template_K_alpha_tight.npy",
-        "decoder/make_template/outputs/QP_template_smooth.npy",
-        "decoder/make_template/outputs/QP_template_std.npy"
-      ]
+      "setting": "real_eval_cap",
+      "value": 384
     },
     {
-      "setting": "psd_candidates",
-      "value": [
-        "data/weight/noise_psd_pink.npy",
-        "data/weight/noise_psd_white.npy",
-        "noise_module/tutorial_custom_psd.npy"
-      ]
+      "setting": "sim_events_small",
+      "value": 128
     },
     {
-      "setting": "real_trace_keys",
-      "value": [
-        "traces",
-        "trace",
-        "traces_clean",
-        "traces_MMC"
-      ]
+      "setting": "sim_events_medium",
+      "value": 160
+    },
+    {
+      "setting": "sim_events_large",
+      "value": 192
+    },
+    {
+      "setting": "crb_replicates",
+      "value": 1200
     },
     {
       "setting": "results_tables_dir",
@@ -100,50 +79,52 @@
     {
       "setting": "results_manifests_dir",
       "value": "results/manifests"
+    },
+    {
+      "setting": "results_notebooks_dir",
+      "value": "results/notebooks"
+    },
+    {
+      "setting": "real_trace_path",
+      "value": "data/k_alpha_traces.h5"
+    },
+    {
+      "setting": "real_rq_path",
+      "value": "data/k_alpha_rqs.h5"
+    },
+    {
+      "setting": "template_path",
+      "value": "data/template_K_alpha_tight.npy"
+    },
+    {
+      "setting": "canonical_psd_path",
+      "value": "data/weight/noise_psd_pink.npy"
     }
   ],
   "naming_rules": [
     {
-      "frozen_value": "baseline_mean__rfft__psd_weighted",
-      "name": "preprocessing_variant"
+      "name": "preprocessing",
+      "value": "baseline_mean__rfft__one_sided_psd"
     },
     {
-      "frozen_value": "one_sided_of_weight",
-      "name": "weight_variant"
+      "name": "simulator_rank1",
+      "value": "QPSimulator aligned arrivals + external stationary noise"
     },
     {
-      "frozen_value": "k{integer}",
-      "name": "rank_label"
+      "name": "simulator_family",
+      "value": "QPSimulator controlled tau/t0/n_QP family"
     },
     {
-      "frozen_value": "seed_{integer}",
-      "name": "seed_label"
+      "name": "rank_label",
+      "value": "k{integer}"
     },
     {
-      "frozen_value": "train_val_test__seed_fixed",
-      "name": "split_label"
+      "name": "seed_label",
+      "value": "seed_{integer}"
     },
     {
-      "frozen_value": "rank1_phase_sign_aligned_to_reference",
-      "name": "gauge_label"
-    },
-    {
-      "frozen_value": "empca_no_smoothing or empca_savgol",
-      "name": "smoothing_label"
-    }
-  ],
-  "regime_rules": [
-    {
-      "rule": "Only matched assumptions, stationary Gaussian noise, no out-of-model artifacts.",
-      "support_regime": "theorem-support"
-    },
-    {
-      "rule": "Measured or local real traces under the same preprocessing for all compared methods.",
-      "support_regime": "real-support"
-    },
-    {
-      "rule": "Out-of-model perturbations used to quantify degradation, not to prove equivalence.",
-      "support_regime": "robustness-support"
+      "name": "result_notebook",
+      "value": "results/notebooks/block_XX_*.ipynb"
     }
   ]
 }

@@ -6,7 +6,7 @@
     },
     {
       "setting": "sampling_frequency",
-      "value": 1.0
+      "value": 250000.0
     },
     {
       "setting": "trace_len",
@@ -15,10 +15,6 @@
     {
       "setting": "pretrigger",
       "value": 4000
-    },
-    {
-      "setting": "baseline_method",
-      "value": "mean"
     },
     {
       "setting": "split_train",
@@ -34,60 +30,43 @@
     },
     {
       "setting": "empirical_rank_max",
-      "value": 6
+      "value": 8
     },
     {
       "setting": "default_empca_iter",
-      "value": 80
+      "value": 60
     },
     {
       "setting": "default_empca_patience",
       "value": 12
     },
     {
-      "setting": "default_savgol_window",
-      "value": 15
-    },
-    {
-      "setting": "default_savgol_polyord",
-      "value": 3
-    },
-    {
       "setting": "default_psd_floor_quantile",
       "value": 0.01
     },
     {
-      "setting": "real_dataset_candidates",
-      "value": [
-        "data/sample/k_alpha_traces.h5",
-        "data/sample/traces.h5",
-        "k_alpha_traces.h5"
-      ]
+      "setting": "real_train_cap",
+      "value": 512
     },
     {
-      "setting": "template_candidates",
-      "value": [
-        "PC_interpretation/template_K_alpha_tight.npy",
-        "decoder/make_template/outputs/QP_template_smooth.npy",
-        "decoder/make_template/outputs/QP_template_std.npy"
-      ]
+      "setting": "real_eval_cap",
+      "value": 384
     },
     {
-      "setting": "psd_candidates",
-      "value": [
-        "data/weight/noise_psd_pink.npy",
-        "data/weight/noise_psd_white.npy",
-        "noise_module/tutorial_custom_psd.npy"
-      ]
+      "setting": "sim_events_small",
+      "value": 128
     },
     {
-      "setting": "real_trace_keys",
-      "value": [
-        "traces",
-        "trace",
-        "traces_clean",
-        "traces_MMC"
-      ]
+      "setting": "sim_events_medium",
+      "value": 160
+    },
+    {
+      "setting": "sim_events_large",
+      "value": 192
+    },
+    {
+      "setting": "crb_replicates",
+      "value": 1200
     },
     {
       "setting": "results_tables_dir",
@@ -100,6 +79,26 @@
     {
       "setting": "results_manifests_dir",
       "value": "results/manifests"
+    },
+    {
+      "setting": "results_notebooks_dir",
+      "value": "results/notebooks"
+    },
+    {
+      "setting": "real_trace_path",
+      "value": "data/k_alpha_traces.h5"
+    },
+    {
+      "setting": "real_rq_path",
+      "value": "data/k_alpha_rqs.h5"
+    },
+    {
+      "setting": "template_path",
+      "value": "data/template_K_alpha_tight.npy"
+    },
+    {
+      "setting": "canonical_psd_path",
+      "value": "data/weight/noise_psd_pink.npy"
     }
   ],
   "expected_artifacts": [
@@ -114,27 +113,27 @@
       "exists": true
     },
     {
-      "artifact_relpath": "results/manifests/block_03_of_summary.json",
+      "artifact_relpath": "results/tables/block_03_e12_real_summary.csv",
       "block_id": "block_03",
       "exists": true
     },
     {
-      "artifact_relpath": "results/tables/block_04_synthetic_grid.csv",
+      "artifact_relpath": "results/tables/block_04_e4_crb.csv",
       "block_id": "block_04",
       "exists": true
     },
     {
-      "artifact_relpath": "results/manifests/block_05_bridge_summary.json",
+      "artifact_relpath": "results/tables/block_05_e2_bridge.csv",
       "block_id": "block_05",
       "exists": true
     },
     {
-      "artifact_relpath": "results/tables/block_06_rank_selection.csv",
+      "artifact_relpath": "results/tables/block_06_e9_convergence.csv",
       "block_id": "block_06",
       "exists": true
     },
     {
-      "artifact_relpath": "results/tables/block_07_ablation.csv",
+      "artifact_relpath": "results/tables/block_07_e6_ablation.csv",
       "block_id": "block_07",
       "exists": true
     },
@@ -144,7 +143,7 @@
       "exists": true
     },
     {
-      "artifact_relpath": "results/tables/block_09_robustness.csv",
+      "artifact_relpath": "results/tables/block_09_e10_nonstationary.csv",
       "block_id": "block_09",
       "exists": true
     }
@@ -164,7 +163,15 @@
     },
     {
       "kind": "manifest",
+      "path": "results/manifests/block_03_real_summary.json"
+    },
+    {
+      "kind": "manifest",
       "path": "results/manifests/block_04_synthetic_summary.json"
+    },
+    {
+      "kind": "manifest",
+      "path": "results/manifests/block_04_theorem_summary.json"
     },
     {
       "kind": "manifest",
@@ -196,11 +203,39 @@
     },
     {
       "kind": "table",
+      "path": "results/tables/block_02_data_sources.csv"
+    },
+    {
+      "kind": "table",
       "path": "results/tables/block_02_psd_audit.csv"
     },
     {
       "kind": "table",
+      "path": "results/tables/block_03_e12_real_summary.csv"
+    },
+    {
+      "kind": "table",
       "path": "results/tables/block_03_rank1_comparison.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_03_real_bridge.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_03_real_rank1_amplitudes.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_04_e1_rank1_summary.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_04_e4_crb.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_04_e5_resolution.csv"
     },
     {
       "kind": "table",
@@ -212,11 +247,39 @@
     },
     {
       "kind": "table",
+      "path": "results/tables/block_05_e2_bridge.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_06_e3_monotonicity.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_06_e9_convergence.csv"
+    },
+    {
+      "kind": "table",
       "path": "results/tables/block_06_rank_selection.csv"
     },
     {
       "kind": "table",
       "path": "results/tables/block_07_ablation.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_07_e6_ablation.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_07_e7_bias_curve.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_07_e7_mismatch.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_07_e8_time_shift.csv"
     },
     {
       "kind": "table",
@@ -228,7 +291,67 @@
     },
     {
       "kind": "table",
+      "path": "results/tables/block_09_e10_nonstationary.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_09_e11_artifacts.csv"
+    },
+    {
+      "kind": "table",
+      "path": "results/tables/block_09_multichannel_summary.csv"
+    },
+    {
+      "kind": "table",
       "path": "results/tables/block_09_robustness.csv"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_02_psd_audit.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_03_real_amplitude_histogram.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_03_real_rank1_scatter.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_04_e5_resolution_scaling.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_05_bridge_cosines.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_06_convergence.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_06_rank_saturation.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_07_e6_ablation.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_07_e7_mismatch_curve.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_08_pc_overlap_matrix.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_09_e10_nonstationary.png"
+    },
+    {
+      "kind": "figure",
+      "path": "results/figures/block_09_e11_artifacts.png"
     }
   ]
 }

@@ -311,7 +311,7 @@ def main() -> None:
 
     requested_exps = set(args.exps.lower().split(",")) if args.exps != "all" else set(EXP_MAP.keys())
     seeds = [int(s) for s in args.seeds.split(",")]
-    n_events = args.n_events if args.n_events is not None else 300
+    n_events = args.n_events if args.n_events is not None else 1000
 
     h5_path = Path(args.output)
     h5_path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,0 +1,6 @@
+experiment,title,design,metrics,goal
+A,Metric Ablation,"PCA vs EMPCA under white, pink, brownian, MMC PSD",weighted residual; reconstruction MSE; principal angle; amplitude resolution,Synthetic traces with colored Gaussian noise
+B,Coverage Ablation,Full latent coverage vs timing/position/shape restricted training,amplitude RMSE; timing RMSE; position RMSE; weighted residual,"Train restricted, test always full"
+C,NFPA vs EMPCA,Separable vs non-separable multichannel signals,weighted residual; reconstruction error; subspace angle,Tests channel-time factorization
+D,Architecture Bias,Linear AE vs CNN AE vs Transformer AE,weighted residual; reconstruction RMSE; unseen position/shape generalization,Identical Mahalanobis objective
+E,Prewhitened Transformer,raw/prewhitened x MSE/Mahalanobis,weighted residual; amplitude/timing resolution; generalization,Attention in detector geometry

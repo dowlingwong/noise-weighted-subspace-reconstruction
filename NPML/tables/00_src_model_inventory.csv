@@ -1,0 +1,12 @@
+experiment,model_family,path,status,runnable_now,notes
+A,PCA baseline,implementation.notebook_support exact_isotropic_subspace,ready,True,Exact isotropic SVD baseline exists in implementation helpers.
+A/B,EMPCA,src/EMPCA/empca_TCY_optimized.py,ready,True,Weighted EMPCA solver is importable and already wired into implementation.notebook_support.
+C,NFPA demo,src/NFPA/nfpa_demo.py,partial,True,"Pure numpy demo is runnable as a script, but it executes on import and hardcodes a plot write side effect."
+D,Linear AE,implementation.notebook_support exact_weighted_subspace,partial,True,"Exact weighted SVD gives the linear-AE optimum, but there is no standalone training wrapper under src/."
+D,CNN backbone,src/CNN/resnet_1d.py,blocked,False,"Torch installed? False. Local norm dependency present? False. File defines a ResNet backbone, not a reconstruction autoencoder or trainer."
+D/E,model_original,src/transformer/model_original.py,blocked,False,"Requires torch and reconstruction.training.muon; torch installed=False, muon module present=False. These files also define transformer backbones only, not end-to-end reconstruction experiments."
+D/E,model_pairwise,src/transformer/model_pairwise.py,blocked,False,"Requires torch and reconstruction.training.muon; torch installed=False, muon module present=False. These files also define transformer backbones only, not end-to-end reconstruction experiments."
+D/E,model_pairwise_channel_masking,src/transformer/model_pairwise_channel_masking.py,blocked,False,"Requires torch and reconstruction.training.muon; torch installed=False, muon module present=False. These files also define transformer backbones only, not end-to-end reconstruction experiments."
+D/E,model_triangular_pairwise,src/transformer/model_triangular_pairwise.py,blocked,False,"Requires torch and reconstruction.training.muon; torch installed=False, muon module present=False. These files also define transformer backbones only, not end-to-end reconstruction experiments."
+A,Measured MMC PSD,data/weight/noise_psd_MMC.npy,blocked,False,The PDF asks for measured MMC PSD. The repo has qp_snr2_weight_MMC.npy but no explicit noise_psd_MMC.npy.
+B/D/E,Position-aware simulator,QP_simulator/QPSimulator.py,partial,True,"Current simulator exposes amplitude, tau_decay, and t0. There is no native detector-position latent, so coverage notebooks must synthesize a position-like distortion."

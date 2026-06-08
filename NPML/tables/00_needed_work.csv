@@ -1,0 +1,8 @@
+experiment,need
+A,Add measured MMC PSD file if you want the fourth noise condition exactly as written in the PDF.
+B,Implement a native position latent in the simulator if you want physically grounded position RMSE rather than a proxy distortion.
+C,Refactor src/NFPA/nfpa_demo.py into callable functions if you want it reusable outside a demo script.
+D,"Add a reconstruction training stack: linear AE wrapper, CNN AE wrapper, shared Mahalanobis loss, and evaluation harness."
+D,Install torch and provide the missing local dependency used by src/CNN/resnet_1d.py.
+E,"Install torch, provide reconstruction.training.muon, and add transformer reconstruction heads plus a whitening pipeline."
+E,"Add four controlled training configs: raw+mse, raw+mahalanobis, whitened+mse, whitened+mahalanobis."

@@ -1,0 +1,45 @@
+experiment:
+  name: experiment_d_linear_prewhite_mahalanobis
+  seed: 314159
+
+data:
+  trace_path: data/k_alpha_traces.h5
+  rq_path: data/k_alpha_rqs.h5
+  trace_len: 32768
+  n_channels: 1
+  batch_size: 32
+  pretrigger: 4000
+  baseline_correct: true
+  max_events: 2048
+  num_workers: 0
+  pin_memory: false
+  train_fraction: 0.70
+  val_fraction: 0.15
+  test_fraction: 0.15
+  seed: 314159
+
+preprocessing:
+  input_mode: prewhitened
+  psd_path: data/weight/noise_psd_pink.npy
+
+loss:
+  mode: mahalanobis
+
+model:
+  family: linear_ae
+  latent_dim: 64
+  patch_len: 128
+  patch_stride: 128
+
+optimizer:
+  name: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+
+training:
+  epochs: 40
+  grad_clip: 1.0
+  early_stop_patience: 8
+
+evaluation:
+  metrics: [weighted_residual, reconstruction_mse, amplitude_rmse, timing_rmse]

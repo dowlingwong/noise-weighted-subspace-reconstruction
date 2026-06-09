@@ -93,8 +93,8 @@ def load_reconstruction_dataset(cfg: DatasetConfig) -> ReconstructionDataset:
 
     Current implementation targets the available K-alpha single-channel files:
 
-    - `data/k_alpha_traces.h5` with dataset `traces` of shape `(N, T)`
-    - `data/k_alpha_rqs.h5` with dataset `rqs`
+    - `data/k_alpha/k_alpha_traces.h5` with dataset `traces` of shape `(N, T)`
+    - `data/k_alpha/k_alpha_rqs.h5` with dataset `rqs`
     """
     with h5py.File(cfg.trace_path, "r") as handle:
         if "traces" not in handle:

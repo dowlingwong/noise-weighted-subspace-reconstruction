@@ -11,9 +11,6 @@ Run every available Paper 2 experiment on a CUDA server:
 
     PYTHONPATH=. python scripts/run_paper2_training_suite.py \
       --suite all \
-      --trace-path /data/k_alpha_traces.h5 \
-      --rq-path /data/k_alpha_rqs.h5 \
-      --psd-path data/weight/noise_psd_pink.npy \
       --require-cuda \
       --num-workers 4 \
       --pin-memory \
@@ -23,9 +20,10 @@ Run only the transformer 2x2 ablation:
 
     PYTHONPATH=. python scripts/run_paper2_training_suite.py \
       --suite transformer_2x2 \
-      --trace-path /data/k_alpha_traces.h5 \
-      --rq-path /data/k_alpha_rqs.h5 \
       --require-cuda
+
+If the data live outside the repository, override the defaults with
+`--trace-path`, `--rq-path`, and `--psd-path`.
 """
 
 from __future__ import annotations
@@ -298,6 +296,59 @@ def validate_config(raw: dict[str, Any], spec: RunSpec) -> list[str]:
         errors.append(f"{spec.run_id}: missing rq_path {rq_path}")
     if psd_path is None or not psd_path.exists():
         errors.append(f"{spec.run_id}: missing psd_path {psd_path}")
+    if not errors:
+        errors.extend(validate_hdf5_schema(raw, spec, trace_path, rq_path))
+    return errors
+
+
+def validate_hdf5_schema(
+    raw: dict[str, Any],
+    spec: RunSpec,
+    trace_path: Path | None,
+    rq_path: Path | None,
+) -> list[str]:
+    errors: list[str] = []
+    try:
+        import h5py
+    except Exception:
+        return errors
+
+    if trace_path is not None:
+        try:
+            with h5py.File(trace_path, "r") as handle:
+                if "traces" not in handle:
+                    errors.append(f"{spec.run_id}: {trace_path} has no 'traces' dataset")
+                else:
+                    traces = handle["traces"]
+                    expected_len = int(raw["data"]["trace_len"])
+                    if len(traces.shape) != 2:
+                        errors.append(
+                            f"{spec.run_id}: traces must have shape (N, T), got {traces.shape}"
+                        )
+                    elif int(traces.shape[1]) != expected_len:
+                        errors.append(
+                            f"{spec.run_id}: trace_len={expected_len}, but traces shape is {traces.shape}"
+                        )
+        except Exception as exc:
+            errors.append(f"{spec.run_id}: failed to inspect {trace_path}: {exc}")
+
+    if rq_path is not None:
+        try:
+            with h5py.File(rq_path, "r") as handle:
+                if "rqs" not in handle:
+                    errors.append(f"{spec.run_id}: {rq_path} has no 'rqs' dataset")
+                else:
+                    rqs = handle["rqs"]
+                    names = set(rqs.dtype.names or ())
+                    required = {"A", "time_shift", "OF_ampl_0", "OF_time_0", "trace_index"}
+                    missing = sorted(required - names)
+                    if missing:
+                        errors.append(
+                            f"{spec.run_id}: rqs dataset is missing required field(s): {missing}"
+                        )
+        except Exception as exc:
+            errors.append(f"{spec.run_id}: failed to inspect {rq_path}: {exc}")
+
     return errors
 
 

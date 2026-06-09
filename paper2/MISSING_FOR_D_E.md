@@ -12,7 +12,7 @@ model, loss, and trainer interfaces. The remaining blockers are:
 ## Data-scope blockers
 
 1. The currently available K-alpha dataset is single-channel:
-   - `data/k_alpha_traces.h5` has shape `(4358, 32768)`
+   - `data/k_alpha/k_alpha_traces.h5` has shape `(4358, 32768)`
    - therefore Experiment E is currently runnable only in a single-channel
      reconstruction form
 2. There is no native detector-position label in the current HDF5 files, so
@@ -35,9 +35,9 @@ model, loss, and trainer interfaces. The remaining blockers are:
 ## Evaluation gaps
 
 1. No latent-probe evaluation for amplitude / timing RMSE is implemented yet.
-2. No generalized experiment-suite runner exists yet for:
-   - Experiment D model sweep
-   - Experiment E transformer `2x2` sweep
+2. The generalized server runner exists at
+   `scripts/run_paper2_training_suite.py`, but no Experiment D/E run has been
+   executed yet.
 3. No figure-generation scripts exist yet under `paper2/` for:
    - 2x2 matrix summary plots
    - architecture-bias comparison plots

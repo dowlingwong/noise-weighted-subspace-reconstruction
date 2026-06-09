@@ -174,7 +174,8 @@ def audit_src_models() -> pd.DataFrame:
     torch_ok = _torch_available()
     muon_present = bool(list(REPO_ROOT.rglob("muon.py")))
     norm_present = bool(list(REPO_ROOT.rglob("norm.py")))
-    mmc_psd_present = (REPO_ROOT / "data" / "weight" / "noise_psd_MMC.npy").exists()
+    mmc_psd_path = REPO_ROOT / "data" / "Noise_PSD" / "noise_psd_from_MMC.npy"
+    mmc_psd_present = mmc_psd_path.exists()
 
     rows: list[dict[str, Any]] = []
 
@@ -251,10 +252,10 @@ def audit_src_models() -> pd.DataFrame:
         {
             "experiment": "A",
             "model_family": "Measured MMC PSD",
-            "path": "data/weight/noise_psd_MMC.npy",
+            "path": "data/Noise_PSD/noise_psd_from_MMC.npy",
             "status": "blocked" if not mmc_psd_present else "ready",
             "runnable_now": mmc_psd_present,
-            "notes": "The PDF asks for measured MMC PSD. The repo has qp_snr2_weight_MMC.npy but no explicit noise_psd_MMC.npy.",
+            "notes": "The measured MMC PSD is available in the new data/Noise_PSD layout.",
         }
     )
     rows.append(

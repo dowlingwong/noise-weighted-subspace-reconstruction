@@ -19,6 +19,7 @@ def train_one_epoch(
     optimizer,
     whitener: WhiteningOperator,
     device,
+    grad_clip: float | None = None,
 ) -> dict[str, float]:
     require_torch()
     model.train()
@@ -34,6 +35,8 @@ def train_one_epoch(
         output = model(batch.x)
         loss_out = criterion(output, batch, whitener)
         loss_out.total.backward()
+        if grad_clip is not None and grad_clip > 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
         optimizer.step()
         total_loss += float(loss_out.total.detach().cpu())
         n_batches += 1

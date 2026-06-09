@@ -193,12 +193,21 @@ def run_experiment(config_path: str | Path) -> None:
 
     n_epochs = int(cfg.raw["training"]["epochs"])
     patience = int(cfg.raw["training"].get("early_stop_patience", 10))
+    grad_clip = cfg.raw["training"].get("grad_clip")
+    grad_clip = None if grad_clip is None else float(grad_clip)
     history: list[dict[str, float]] = []
     best_metrics: dict[str, float] | None = None
     best_val = float("inf")
     stale = 0
 
+    print(
+        f"[paper2] {cfg.experiment_name}: device={device}, "
+        f"epochs={n_epochs}, output={output_dir}",
+        flush=True,
+    )
+
     for epoch in range(1, n_epochs + 1):
+        should_stop = False
         train_metrics = train_one_epoch(
             model=model,
             loader=loaders["train"],
@@ -206,6 +215,7 @@ def run_experiment(config_path: str | Path) -> None:
             optimizer=optimizer,
             whitener=whitener,
             device=device,
+            grad_clip=grad_clip,
         )
         val_metrics = evaluate(
             model=model,
@@ -234,8 +244,21 @@ def run_experiment(config_path: str | Path) -> None:
         else:
             stale += 1
             if stale >= patience:
-                break
+                should_stop = True
+        print(
+            "[paper2] "
+            f"{cfg.experiment_name} epoch={epoch:03d} "
+            f"train_loss={train_metrics['train_loss']:.6g} "
+            f"val_loss={val_metrics['eval_loss']:.6g} "
+            f"val_weighted={val_metrics['weighted_residual_mean']:.6g} "
+            f"val_mse={val_metrics['reconstruction_mse']:.6g} "
+            f"best_val={best_val:.6g} stale={stale}",
+            flush=True,
+        )
+        if should_stop:
+            break
 
     if best_metrics is None:
         raise RuntimeError("Training finished without producing validation metrics.")
     save_run_artifacts(output_dir, cfg, history, best_metrics)
+    print(f"[paper2] {cfg.experiment_name}: complete best_val={best_val:.6g}", flush=True)

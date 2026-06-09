@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from pathlib import Path
 np.random.seed(42)
 
 # ── 1. PARAMETERS ─────────────────────────────────────────────────────────────
@@ -396,10 +397,10 @@ fig.suptitle(
     fontsize=10, fontweight='bold'
 )
 
-out_path = '/sessions/bold-youthful-clarke/mnt/A-Unified-Maximum-Likelihood-Framework/nfpa_demo_results.png'
+out_path = Path(__file__).with_name('nfpa_demo_results.png')
 fig.savefig(out_path, bbox_inches='tight', dpi=120)
 plt.close(fig)
-print(f"\nFigure saved → nfpa_demo_results.png")
+print(f"\nFigure saved: {out_path}")
 
 # ── 13. NUMERICAL SUMMARY ─────────────────────────────────────────────────────
 print("\n" + "="*55)

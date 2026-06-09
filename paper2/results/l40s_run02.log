@@ -1,0 +1,249 @@
+[suite] torch=2.5.1+cu121 cuda_available=True
+[suite] cuda_device=NVIDIA L40S cuda_version=12.1
+
+[suite] Training plan
+  01. nfpa_demo | phase=nfpa | model=NFPA, EMPCA, raw-MSE factored AE, raw PCA | input=prewhitened | loss=chi2_als
+      dataset: Synthetic two-channel Brownian-noise pulse dataset generated inside src/NFPA/nfpa_demo.py: C=2, T=256, N_train=800, N_test=300.
+      purpose: Current Paper 2 proof-of-concept: metric reversal, restricted Kronecker bridge, rank-one NFPA to OF check.
+  02. ae_raw_mse | phase=ae_2x2 | model=small convolutional reconstruction AE | input=raw | loss=mse
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Nonlinear AE baseline with raw input and misspecified isotropic MSE.
+  03. ae_raw_mahalanobis | phase=ae_2x2 | model=small convolutional reconstruction AE | input=raw | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Separates loss geometry from input whitening: raw input, Mahalanobis loss.
+  04. ae_prewhite_mse | phase=ae_2x2 | model=small convolutional reconstruction AE | input=prewhitened | loss=mse
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Tests whether prewhitened encoder input alone changes the learned solution.
+  05. ae_prewhite_mahalanobis | phase=ae_2x2 | model=small convolutional reconstruction AE | input=prewhitened | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Geometry-first AE reference: prewhitened encoder input and Mahalanobis loss.
+  06. transformer_raw_mse | phase=transformer_2x2 | model=token-preserving transformer reconstruction AE | input=raw | loss=mse
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Wrong metric / raw-token transformer baseline.
+  07. transformer_raw_mahalanobis | phase=transformer_2x2 | model=token-preserving transformer reconstruction AE | input=raw | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Tests whether Mahalanobis loss helps without prewhitening attention input.
+  08. transformer_prewhite_mse | phase=transformer_2x2 | model=token-preserving transformer reconstruction AE | input=prewhitened | loss=mse
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Tests attention on prewhitened tokens with isotropic native-output MSE.
+  09. transformer_prewhite_mahalanobis | phase=transformer_2x2 | model=token-preserving transformer reconstruction AE | input=prewhitened | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Strongest current transformer config: prewhitened tokens and Mahalanobis loss.
+  10. experiment_d_linear_prewhite_mahalanobis | phase=architecture | model=patch-linear reconstruction AE | input=prewhitened | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Fixed geometry architecture-bias baseline.
+  11. experiment_d_cnn_prewhite_mahalanobis | phase=architecture | model=small convolutional reconstruction AE | input=prewhitened | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Fixed geometry CNN/locality inductive-bias comparison.
+  12. experiment_d_transformer_prewhite_mahalanobis | phase=architecture | model=token-preserving transformer reconstruction AE | input=prewhitened | loss=mahalanobis
+      dataset: HDF5 detector traces from data.trace_path plus optional RQ labels from data.rq_path; PSD from preprocessing.psd_path.
+      purpose: Fixed geometry attention inductive-bias comparison.
+
+[suite] manifest=/ceph/dwong/noise-weighted-subspace-reconstruction/paper2/results/_suite_runs/20260609_145035/manifest.json
+
+[suite] START nfpa_demo
+[suite] nfpa_demo log=/ceph/dwong/noise-weighted-subspace-reconstruction/paper2/results/_suite_runs/20260609_145035/logs/nfpa_demo.log
+[suite] END nfpa_demo status=completed seconds=17.327
+
+[suite] START ae_raw_mse
+[paper2] ae_raw_mse_l40s_run02: device=cuda, epochs=80, output=paper2/results/ae_raw_mse_l40s_run02
+[paper2] ae_raw_mse_l40s_run02 epoch=001 train_loss=4.34558e+06 val_loss=160183 val_weighted=3.15247e+08 val_mse=160183 best_val=160183 stale=0
+[paper2] ae_raw_mse_l40s_run02 epoch=002 train_loss=147953 val_loss=71411.5 val_weighted=8.07044e+08 val_mse=71411.5 best_val=71411.5 stale=0
+[paper2] ae_raw_mse_l40s_run02 epoch=003 train_loss=129661 val_loss=216408 val_weighted=1.02844e+08 val_mse=216408 best_val=71411.5 stale=1
+[paper2] ae_raw_mse_l40s_run02 epoch=004 train_loss=120290 val_loss=13355 val_weighted=6.74592e+06 val_mse=13355 best_val=13355 stale=0
+[paper2] ae_raw_mse_l40s_run02 epoch=005 train_loss=107487 val_loss=76265.4 val_weighted=1.23305e+07 val_mse=76265.4 best_val=13355 stale=1
+[paper2] ae_raw_mse_l40s_run02 epoch=006 train_loss=105678 val_loss=81978 val_weighted=1.15752e+07 val_mse=81978 best_val=13355 stale=2
+[paper2] ae_raw_mse_l40s_run02 epoch=007 train_loss=102434 val_loss=143299 val_weighted=2.33604e+07 val_mse=143299 best_val=13355 stale=3
+[paper2] ae_raw_mse_l40s_run02 epoch=008 train_loss=97146.2 val_loss=13578.6 val_weighted=2.91949e+07 val_mse=13578.6 best_val=13355 stale=4
+[paper2] ae_raw_mse_l40s_run02 epoch=009 train_loss=84458.5 val_loss=95840.3 val_weighted=1.38834e+07 val_mse=95840.3 best_val=13355 stale=5
+[paper2] ae_raw_mse_l40s_run02 epoch=010 train_loss=87056.4 val_loss=95569.9 val_weighted=5.72454e+07 val_mse=95569.9 best_val=13355 stale=6
+[paper2] ae_raw_mse_l40s_run02 epoch=011 train_loss=80157.3 val_loss=134582 val_weighted=1.80591e+07 val_mse=134582 best_val=13355 stale=7
+[paper2] ae_raw_mse_l40s_run02 epoch=012 train_loss=82761.5 val_loss=12922.5 val_weighted=2.3834e+07 val_mse=12922.5 best_val=12922.5 stale=0
+[paper2] ae_raw_mse_l40s_run02 epoch=013 train_loss=72497.7 val_loss=95441.1 val_weighted=1.45977e+07 val_mse=95441.1 best_val=12922.5 stale=1
+[paper2] ae_raw_mse_l40s_run02 epoch=014 train_loss=70803.9 val_loss=74140.5 val_weighted=1.15744e+07 val_mse=74140.5 best_val=12922.5 stale=2
+[paper2] ae_raw_mse_l40s_run02 epoch=015 train_loss=75009.1 val_loss=101469 val_weighted=1.58933e+07 val_mse=101469 best_val=12922.5 stale=3
+[paper2] ae_raw_mse_l40s_run02 epoch=016 train_loss=67455.4 val_loss=23081.9 val_weighted=5.05724e+06 val_mse=23081.9 best_val=12922.5 stale=4
+[paper2] ae_raw_mse_l40s_run02 epoch=017 train_loss=70090.7 val_loss=73830.8 val_weighted=1.06102e+07 val_mse=73830.8 best_val=12922.5 stale=5
+[paper2] ae_raw_mse_l40s_run02 epoch=018 train_loss=62136.1 val_loss=52033.9 val_weighted=8.7587e+06 val_mse=52033.9 best_val=12922.5 stale=6
+[paper2] ae_raw_mse_l40s_run02 epoch=019 train_loss=65317.3 val_loss=136244 val_weighted=1.67777e+07 val_mse=136244 best_val=12922.5 stale=7
+[paper2] ae_raw_mse_l40s_run02 epoch=020 train_loss=63073.9 val_loss=31529.7 val_weighted=7.23129e+06 val_mse=31529.7 best_val=12922.5 stale=8
+[paper2] ae_raw_mse_l40s_run02 epoch=021 train_loss=60229 val_loss=52070.2 val_weighted=7.66498e+06 val_mse=52070.2 best_val=12922.5 stale=9
+[paper2] ae_raw_mse_l40s_run02 epoch=022 train_loss=60594.4 val_loss=59092.9 val_weighted=9.60685e+06 val_mse=59092.9 best_val=12922.5 stale=10
+[paper2] ae_raw_mse_l40s_run02: complete best_val=12922.5
+[suite] END ae_raw_mse status=completed seconds=180.749
+
+[suite] START ae_raw_mahalanobis
+[paper2] ae_raw_mahalanobis_l40s_run02: device=cuda, epochs=80, output=paper2/results/ae_raw_mahalanobis_l40s_run02
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=001 train_loss=9.05286e+08 val_loss=1.58893e+08 val_weighted=1.58893e+08 val_mse=7.12596e+07 best_val=1.58893e+08 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=002 train_loss=1.18256e+08 val_loss=7.40043e+07 val_weighted=7.40043e+07 val_mse=8.13728e+07 best_val=7.40043e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=003 train_loss=8.9592e+07 val_loss=1.09327e+08 val_weighted=1.09327e+08 val_mse=8.51784e+07 best_val=7.40043e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=004 train_loss=8.04422e+07 val_loss=3.41638e+07 val_weighted=3.41638e+07 val_mse=8.61063e+07 best_val=3.41638e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=005 train_loss=8.81533e+07 val_loss=9.10227e+07 val_weighted=9.10227e+07 val_mse=8.49638e+07 best_val=3.41638e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=006 train_loss=6.29105e+07 val_loss=2.98243e+07 val_weighted=2.98243e+07 val_mse=8.40991e+07 best_val=2.98243e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=007 train_loss=6.4457e+07 val_loss=5.81413e+07 val_weighted=5.81413e+07 val_mse=8.15606e+07 best_val=2.98243e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=008 train_loss=4.53305e+07 val_loss=2.55493e+07 val_weighted=2.55493e+07 val_mse=7.89025e+07 best_val=2.55493e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=009 train_loss=4.04003e+07 val_loss=4.47106e+07 val_weighted=4.47106e+07 val_mse=7.65159e+07 best_val=2.55493e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=010 train_loss=3.53064e+07 val_loss=3.11747e+07 val_weighted=3.11747e+07 val_mse=7.34303e+07 best_val=2.55493e+07 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=011 train_loss=3.11483e+07 val_loss=2.6787e+07 val_weighted=2.6787e+07 val_mse=7.06437e+07 best_val=2.55493e+07 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=012 train_loss=2.85016e+07 val_loss=2.35696e+07 val_weighted=2.35696e+07 val_mse=6.78435e+07 best_val=2.35696e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=013 train_loss=2.8076e+07 val_loss=2.49436e+07 val_weighted=2.49436e+07 val_mse=6.49967e+07 best_val=2.35696e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=014 train_loss=2.28543e+07 val_loss=1.83052e+07 val_weighted=1.83052e+07 val_mse=6.16422e+07 best_val=1.83052e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=015 train_loss=2.09405e+07 val_loss=2.05304e+07 val_weighted=2.05304e+07 val_mse=6.0028e+07 best_val=1.83052e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=016 train_loss=1.9302e+07 val_loss=1.73047e+07 val_weighted=1.73047e+07 val_mse=5.71264e+07 best_val=1.73047e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=017 train_loss=1.76247e+07 val_loss=1.49737e+07 val_weighted=1.49737e+07 val_mse=5.55502e+07 best_val=1.49737e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=018 train_loss=1.7415e+07 val_loss=1.3621e+07 val_weighted=1.3621e+07 val_mse=5.30134e+07 best_val=1.3621e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=019 train_loss=1.55127e+07 val_loss=1.39284e+07 val_weighted=1.39284e+07 val_mse=5.10373e+07 best_val=1.3621e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=020 train_loss=1.4216e+07 val_loss=1.24493e+07 val_weighted=1.24493e+07 val_mse=4.91887e+07 best_val=1.24493e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=021 train_loss=1.29101e+07 val_loss=1.11078e+07 val_weighted=1.11078e+07 val_mse=4.77816e+07 best_val=1.11078e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=022 train_loss=1.21826e+07 val_loss=1.14861e+07 val_weighted=1.14861e+07 val_mse=4.60793e+07 best_val=1.11078e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=023 train_loss=1.23822e+07 val_loss=1.03453e+07 val_weighted=1.03453e+07 val_mse=4.46739e+07 best_val=1.03453e+07 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=024 train_loss=1.08116e+07 val_loss=1.16101e+07 val_weighted=1.16101e+07 val_mse=4.3223e+07 best_val=1.03453e+07 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=025 train_loss=1.10642e+07 val_loss=9.51788e+06 val_weighted=9.51788e+06 val_mse=4.18265e+07 best_val=9.51788e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=026 train_loss=9.61099e+06 val_loss=8.15669e+06 val_weighted=8.15669e+06 val_mse=4.09699e+07 best_val=8.15669e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=027 train_loss=9.50945e+06 val_loss=9.73913e+06 val_weighted=9.73913e+06 val_mse=3.98867e+07 best_val=8.15669e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=028 train_loss=8.48326e+06 val_loss=5.58162e+06 val_weighted=5.58162e+06 val_mse=3.88648e+07 best_val=5.58162e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=029 train_loss=8.75333e+06 val_loss=7.80164e+06 val_weighted=7.80164e+06 val_mse=3.77767e+07 best_val=5.58162e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=030 train_loss=7.71461e+06 val_loss=5.17009e+06 val_weighted=5.17009e+06 val_mse=3.71384e+07 best_val=5.17009e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=031 train_loss=4.16264e+07 val_loss=1.39803e+07 val_weighted=1.39803e+07 val_mse=3.33836e+07 best_val=5.17009e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=032 train_loss=1.37066e+07 val_loss=7.09772e+06 val_weighted=7.09772e+06 val_mse=3.32577e+07 best_val=5.17009e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=033 train_loss=5.98203e+06 val_loss=5.55121e+06 val_weighted=5.55121e+06 val_mse=3.29385e+07 best_val=5.17009e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=034 train_loss=5.60696e+06 val_loss=7.08624e+06 val_weighted=7.08624e+06 val_mse=3.26412e+07 best_val=5.17009e+06 stale=4
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=035 train_loss=5.47701e+06 val_loss=4.26931e+06 val_weighted=4.26931e+06 val_mse=3.22415e+07 best_val=4.26931e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=036 train_loss=5.28564e+06 val_loss=7.79248e+06 val_weighted=7.79248e+06 val_mse=3.19123e+07 best_val=4.26931e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=037 train_loss=5.44213e+06 val_loss=3.77117e+06 val_weighted=3.77117e+06 val_mse=3.15008e+07 best_val=3.77117e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=038 train_loss=7.16325e+06 val_loss=6.93365e+06 val_weighted=6.93365e+06 val_mse=3.10384e+07 best_val=3.77117e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=039 train_loss=5.14814e+06 val_loss=3.84169e+06 val_weighted=3.84169e+06 val_mse=3.06258e+07 best_val=3.77117e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=040 train_loss=5.66582e+06 val_loss=5.6879e+06 val_weighted=5.6879e+06 val_mse=3.02222e+07 best_val=3.77117e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=041 train_loss=4.61851e+06 val_loss=3.5768e+06 val_weighted=3.5768e+06 val_mse=2.98686e+07 best_val=3.5768e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=042 train_loss=4.57537e+06 val_loss=6.97133e+06 val_weighted=6.97133e+06 val_mse=2.96462e+07 best_val=3.5768e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=043 train_loss=4.55521e+06 val_loss=4.60842e+06 val_weighted=4.60842e+06 val_mse=2.92315e+07 best_val=3.5768e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=044 train_loss=4.08318e+06 val_loss=5.40681e+06 val_weighted=5.40681e+06 val_mse=2.8925e+07 best_val=3.5768e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=045 train_loss=4.20925e+06 val_loss=2.84707e+06 val_weighted=2.84707e+06 val_mse=2.86162e+07 best_val=2.84707e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=046 train_loss=4.35861e+06 val_loss=6.78361e+06 val_weighted=6.78361e+06 val_mse=2.8304e+07 best_val=2.84707e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=047 train_loss=6.25524e+06 val_loss=3.63085e+06 val_weighted=3.63085e+06 val_mse=2.79102e+07 best_val=2.84707e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=048 train_loss=5.15774e+06 val_loss=5.86594e+06 val_weighted=5.86594e+06 val_mse=2.75798e+07 best_val=2.84707e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=049 train_loss=4.31826e+06 val_loss=3.52459e+06 val_weighted=3.52459e+06 val_mse=2.72912e+07 best_val=2.84707e+06 stale=4
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=050 train_loss=7.11981e+06 val_loss=8.96982e+07 val_weighted=8.96982e+07 val_mse=2.80797e+07 best_val=2.84707e+06 stale=5
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=051 train_loss=1.44483e+07 val_loss=1.22929e+07 val_weighted=1.22929e+07 val_mse=2.6282e+07 best_val=2.84707e+06 stale=6
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=052 train_loss=4.85853e+06 val_loss=3.48207e+06 val_weighted=3.48207e+06 val_mse=2.61629e+07 best_val=2.84707e+06 stale=7
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=053 train_loss=3.47067e+06 val_loss=2.40502e+06 val_weighted=2.40502e+06 val_mse=2.59701e+07 best_val=2.40502e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=054 train_loss=3.3737e+06 val_loss=4.19541e+06 val_weighted=4.19541e+06 val_mse=2.58041e+07 best_val=2.40502e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=055 train_loss=3.43208e+06 val_loss=1.84822e+06 val_weighted=1.84822e+06 val_mse=2.56117e+07 best_val=1.84822e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=056 train_loss=3.47036e+06 val_loss=5.12586e+06 val_weighted=5.12586e+06 val_mse=2.54497e+07 best_val=1.84822e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=057 train_loss=4.48836e+06 val_loss=3.62447e+06 val_weighted=3.62447e+06 val_mse=2.52276e+07 best_val=1.84822e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=058 train_loss=3.2648e+06 val_loss=3.82993e+06 val_weighted=3.82993e+06 val_mse=2.50771e+07 best_val=1.84822e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=059 train_loss=3.22755e+06 val_loss=1.99399e+06 val_weighted=1.99399e+06 val_mse=2.48667e+07 best_val=1.84822e+06 stale=4
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=060 train_loss=3.11791e+06 val_loss=3.81067e+06 val_weighted=3.81067e+06 val_mse=2.47393e+07 best_val=1.84822e+06 stale=5
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=061 train_loss=3.13563e+06 val_loss=1.90401e+06 val_weighted=1.90401e+06 val_mse=2.45231e+07 best_val=1.84822e+06 stale=6
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=062 train_loss=3.09145e+06 val_loss=2.69608e+06 val_weighted=2.69608e+06 val_mse=2.43683e+07 best_val=1.84822e+06 stale=7
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=063 train_loss=2.9203e+06 val_loss=1.99943e+06 val_weighted=1.99943e+06 val_mse=2.42401e+07 best_val=1.84822e+06 stale=8
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=064 train_loss=2.91391e+06 val_loss=3.62238e+06 val_weighted=3.62238e+06 val_mse=2.40617e+07 best_val=1.84822e+06 stale=9
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=065 train_loss=3.0325e+06 val_loss=1.64439e+06 val_weighted=1.64439e+06 val_mse=2.39316e+07 best_val=1.64439e+06 stale=0
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=066 train_loss=4.15846e+06 val_loss=5.92069e+06 val_weighted=5.92069e+06 val_mse=2.37957e+07 best_val=1.64439e+06 stale=1
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=067 train_loss=3.6625e+06 val_loss=1.94895e+06 val_weighted=1.94895e+06 val_mse=2.36648e+07 best_val=1.64439e+06 stale=2
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=068 train_loss=3.86159e+06 val_loss=3.153e+06 val_weighted=3.153e+06 val_mse=2.35544e+07 best_val=1.64439e+06 stale=3
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=069 train_loss=2.74002e+06 val_loss=1.70305e+06 val_weighted=1.70305e+06 val_mse=2.34912e+07 best_val=1.64439e+06 stale=4
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=070 train_loss=2.96735e+06 val_loss=3.54663e+06 val_weighted=3.54663e+06 val_mse=2.35293e+07 best_val=1.64439e+06 stale=5
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=071 train_loss=3.84785e+06 val_loss=3.29606e+06 val_weighted=3.29606e+06 val_mse=2.34823e+07 best_val=1.64439e+06 stale=6
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=072 train_loss=2.65118e+06 val_loss=2.1759e+06 val_weighted=2.1759e+06 val_mse=2.34686e+07 best_val=1.64439e+06 stale=7
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=073 train_loss=3.64516e+07 val_loss=1.14324e+07 val_weighted=1.14324e+07 val_mse=2.32729e+07 best_val=1.64439e+06 stale=8
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=074 train_loss=5.779e+06 val_loss=2.84266e+06 val_weighted=2.84266e+06 val_mse=2.32508e+07 best_val=1.64439e+06 stale=9
+[paper2] ae_raw_mahalanobis_l40s_run02 epoch=075 train_loss=2.61035e+06 val_loss=2.29079e+06 val_weighted=2.29079e+06 val_mse=2.32936e+07 best_val=1.64439e+06 stale=10
+[paper2] ae_raw_mahalanobis_l40s_run02: complete best_val=1.64439e+06
+[suite] END ae_raw_mahalanobis status=completed seconds=925.967
+
+[suite] START ae_prewhite_mse
+[paper2] ae_prewhite_mse_l40s_run02: device=cuda, epochs=80, output=paper2/results/ae_prewhite_mse_l40s_run02
+[paper2] ae_prewhite_mse_l40s_run02 epoch=001 train_loss=7.44461e+06 val_loss=46465.4 val_weighted=3.36376e+08 val_mse=46465.4 best_val=46465.4 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=002 train_loss=38543.8 val_loss=46565.2 val_weighted=1.06305e+08 val_mse=46565.2 best_val=46465.4 stale=1
+[paper2] ae_prewhite_mse_l40s_run02 epoch=003 train_loss=43650 val_loss=77129.2 val_weighted=8.95405e+07 val_mse=77129.2 best_val=46465.4 stale=2
+[paper2] ae_prewhite_mse_l40s_run02 epoch=004 train_loss=115472 val_loss=108689 val_weighted=6.8964e+07 val_mse=108689 best_val=46465.4 stale=3
+[paper2] ae_prewhite_mse_l40s_run02 epoch=005 train_loss=88431 val_loss=137764 val_weighted=1.74159e+08 val_mse=137764 best_val=46465.4 stale=4
+[paper2] ae_prewhite_mse_l40s_run02 epoch=006 train_loss=81995.3 val_loss=7598.75 val_weighted=9.94148e+07 val_mse=7598.75 best_val=7598.75 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=007 train_loss=28952.6 val_loss=4873.74 val_weighted=1.12957e+07 val_mse=4873.74 best_val=4873.74 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=008 train_loss=30950.8 val_loss=7481.23 val_weighted=6.31235e+06 val_mse=7481.23 best_val=4873.74 stale=1
+[paper2] ae_prewhite_mse_l40s_run02 epoch=009 train_loss=40693.6 val_loss=35970.8 val_weighted=1.89013e+08 val_mse=35970.8 best_val=4873.74 stale=2
+[paper2] ae_prewhite_mse_l40s_run02 epoch=010 train_loss=11566.5 val_loss=21720.4 val_weighted=5.57848e+06 val_mse=21720.4 best_val=4873.74 stale=3
+[paper2] ae_prewhite_mse_l40s_run02 epoch=011 train_loss=8921.84 val_loss=5882.53 val_weighted=2.16496e+06 val_mse=5882.53 best_val=4873.74 stale=4
+[paper2] ae_prewhite_mse_l40s_run02 epoch=012 train_loss=9955.28 val_loss=3959.26 val_weighted=3.23169e+06 val_mse=3959.26 best_val=3959.26 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=013 train_loss=8239.75 val_loss=1832.05 val_weighted=1.28814e+06 val_mse=1832.05 best_val=1832.05 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=014 train_loss=11222 val_loss=8946.19 val_weighted=2.67849e+06 val_mse=8946.19 best_val=1832.05 stale=1
+[paper2] ae_prewhite_mse_l40s_run02 epoch=015 train_loss=9549.51 val_loss=421.168 val_weighted=1.09822e+06 val_mse=421.168 best_val=421.168 stale=0
+[paper2] ae_prewhite_mse_l40s_run02 epoch=016 train_loss=13712.6 val_loss=9640.88 val_weighted=1.47938e+07 val_mse=9640.88 best_val=421.168 stale=1
+[paper2] ae_prewhite_mse_l40s_run02 epoch=017 train_loss=7822.63 val_loss=3536.11 val_weighted=1.31487e+06 val_mse=3536.11 best_val=421.168 stale=2
+[paper2] ae_prewhite_mse_l40s_run02 epoch=018 train_loss=9246.19 val_loss=4733.18 val_weighted=3.3633e+06 val_mse=4733.18 best_val=421.168 stale=3
+[paper2] ae_prewhite_mse_l40s_run02 epoch=019 train_loss=7908.39 val_loss=1651.58 val_weighted=942404 val_mse=1651.58 best_val=421.168 stale=4
+[paper2] ae_prewhite_mse_l40s_run02 epoch=020 train_loss=9138.21 val_loss=7152.39 val_weighted=1.38764e+06 val_mse=7152.39 best_val=421.168 stale=5
+[paper2] ae_prewhite_mse_l40s_run02 epoch=021 train_loss=8229.86 val_loss=1097.43 val_weighted=825723 val_mse=1097.43 best_val=421.168 stale=6
+[paper2] ae_prewhite_mse_l40s_run02 epoch=022 train_loss=8578.96 val_loss=10035.4 val_weighted=3.01146e+06 val_mse=10035.4 best_val=421.168 stale=7
+[paper2] ae_prewhite_mse_l40s_run02 epoch=023 train_loss=9183.36 val_loss=674.711 val_weighted=3.43474e+06 val_mse=674.711 best_val=421.168 stale=8
+[paper2] ae_prewhite_mse_l40s_run02 epoch=024 train_loss=7460.36 val_loss=10840.6 val_weighted=2.4029e+06 val_mse=10840.6 best_val=421.168 stale=9
+[paper2] ae_prewhite_mse_l40s_run02 epoch=025 train_loss=9281.69 val_loss=826.31 val_weighted=2.97006e+06 val_mse=826.31 best_val=421.168 stale=10
+[paper2] ae_prewhite_mse_l40s_run02: complete best_val=421.168
+[suite] END ae_prewhite_mse status=completed seconds=233.86
+
+[suite] START ae_prewhite_mahalanobis
+[paper2] ae_prewhite_mahalanobis_l40s_run02: device=cuda, epochs=80, output=paper2/results/ae_prewhite_mahalanobis_l40s_run02
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=001 train_loss=8.90861e+08 val_loss=1.21544e+08 val_weighted=1.21544e+08 val_mse=7.49342e+07 best_val=1.21544e+08 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=002 train_loss=8.03775e+07 val_loss=6.76368e+07 val_weighted=6.76368e+07 val_mse=9.04486e+07 best_val=6.76368e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=003 train_loss=4.55226e+07 val_loss=3.1785e+07 val_weighted=3.1785e+07 val_mse=9.64812e+07 best_val=3.1785e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=004 train_loss=3.91571e+07 val_loss=4.2274e+07 val_weighted=4.2274e+07 val_mse=9.8532e+07 best_val=3.1785e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=005 train_loss=2.91763e+07 val_loss=2.24463e+07 val_weighted=2.24463e+07 val_mse=9.993e+07 best_val=2.24463e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=006 train_loss=2.41991e+07 val_loss=2.94436e+07 val_weighted=2.94436e+07 val_mse=1.00638e+08 best_val=2.24463e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=007 train_loss=2.26741e+07 val_loss=2.05466e+07 val_weighted=2.05466e+07 val_mse=1.00879e+08 best_val=2.05466e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=008 train_loss=2.1317e+07 val_loss=2.56036e+07 val_weighted=2.56036e+07 val_mse=1.01034e+08 best_val=2.05466e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=009 train_loss=2.09022e+07 val_loss=2.18688e+07 val_weighted=2.18688e+07 val_mse=1.01013e+08 best_val=2.05466e+07 stale=2
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=010 train_loss=1.9914e+07 val_loss=2.15098e+07 val_weighted=2.15098e+07 val_mse=1.0099e+08 best_val=2.05466e+07 stale=3
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=011 train_loss=1.92724e+07 val_loss=2.18066e+07 val_weighted=2.18066e+07 val_mse=1.00834e+08 best_val=2.05466e+07 stale=4
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=012 train_loss=1.88804e+07 val_loss=1.82973e+07 val_weighted=1.82973e+07 val_mse=1.00582e+08 best_val=1.82973e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=013 train_loss=1.81291e+07 val_loss=2.26251e+07 val_weighted=2.26251e+07 val_mse=1.00221e+08 best_val=1.82973e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=014 train_loss=1.75648e+07 val_loss=1.48459e+07 val_weighted=1.48459e+07 val_mse=9.96076e+07 best_val=1.48459e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=015 train_loss=1.71582e+07 val_loss=2.24362e+07 val_weighted=2.24362e+07 val_mse=9.86421e+07 best_val=1.48459e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=016 train_loss=1.63452e+07 val_loss=1.22316e+07 val_weighted=1.22316e+07 val_mse=9.72973e+07 best_val=1.22316e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=017 train_loss=1.54245e+07 val_loss=2.22306e+07 val_weighted=2.22306e+07 val_mse=9.54723e+07 best_val=1.22316e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=018 train_loss=1.50661e+07 val_loss=1.05951e+07 val_weighted=1.05951e+07 val_mse=9.27941e+07 best_val=1.05951e+07 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=019 train_loss=1.46995e+07 val_loss=2.13664e+07 val_weighted=2.13664e+07 val_mse=8.93791e+07 best_val=1.05951e+07 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=020 train_loss=1.41073e+07 val_loss=8.45596e+06 val_weighted=8.45596e+06 val_mse=8.48869e+07 best_val=8.45596e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=021 train_loss=1.39959e+07 val_loss=1.84178e+07 val_weighted=1.84178e+07 val_mse=7.95886e+07 best_val=8.45596e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=022 train_loss=1.73508e+07 val_loss=1.47711e+07 val_weighted=1.47711e+07 val_mse=7.20407e+07 best_val=8.45596e+06 stale=2
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=023 train_loss=1.24888e+07 val_loss=1.24478e+07 val_weighted=1.24478e+07 val_mse=6.67235e+07 best_val=8.45596e+06 stale=3
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=024 train_loss=9.14461e+06 val_loss=6.47835e+06 val_weighted=6.47835e+06 val_mse=6.30187e+07 best_val=6.47835e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=025 train_loss=7.34039e+06 val_loss=9.71387e+06 val_weighted=9.71387e+06 val_mse=6.05736e+07 best_val=6.47835e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=026 train_loss=6.68844e+06 val_loss=6.05831e+06 val_weighted=6.05831e+06 val_mse=5.71759e+07 best_val=6.05831e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=027 train_loss=6.28691e+06 val_loss=6.31374e+06 val_weighted=6.31374e+06 val_mse=5.52647e+07 best_val=6.05831e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=028 train_loss=7.0895e+06 val_loss=5.92872e+06 val_weighted=5.92872e+06 val_mse=5.19396e+07 best_val=5.92872e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=029 train_loss=5.72091e+06 val_loss=6.29009e+06 val_weighted=6.29009e+06 val_mse=5.03579e+07 best_val=5.92872e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=030 train_loss=5.0001e+06 val_loss=4.64404e+06 val_weighted=4.64404e+06 val_mse=4.82687e+07 best_val=4.64404e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=031 train_loss=4.67171e+06 val_loss=5.04961e+06 val_weighted=5.04961e+06 val_mse=4.65139e+07 best_val=4.64404e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=032 train_loss=4.35907e+06 val_loss=5.02366e+06 val_weighted=5.02366e+06 val_mse=4.47837e+07 best_val=4.64404e+06 stale=2
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=033 train_loss=4.84636e+06 val_loss=2.00408e+07 val_weighted=2.00408e+07 val_mse=4.49002e+07 best_val=4.64404e+06 stale=3
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=034 train_loss=6.13069e+06 val_loss=4.01037e+06 val_weighted=4.01037e+06 val_mse=4.14974e+07 best_val=4.01037e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=035 train_loss=3.74776e+06 val_loss=4.4445e+06 val_weighted=4.4445e+06 val_mse=3.99904e+07 best_val=4.01037e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=036 train_loss=3.53819e+06 val_loss=3.30541e+06 val_weighted=3.30541e+06 val_mse=3.88037e+07 best_val=3.30541e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=037 train_loss=3.36567e+06 val_loss=3.93317e+06 val_weighted=3.93317e+06 val_mse=3.76038e+07 best_val=3.30541e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=038 train_loss=3.25174e+06 val_loss=3.22762e+06 val_weighted=3.22762e+06 val_mse=3.65408e+07 best_val=3.22762e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=039 train_loss=3.09969e+06 val_loss=3.19514e+06 val_weighted=3.19514e+06 val_mse=3.55277e+07 best_val=3.19514e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=040 train_loss=3.06932e+06 val_loss=3.35023e+06 val_weighted=3.35023e+06 val_mse=3.45334e+07 best_val=3.19514e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=041 train_loss=3.20294e+06 val_loss=2.27669e+06 val_weighted=2.27669e+06 val_mse=3.36698e+07 best_val=2.27669e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=042 train_loss=8.37392e+07 val_loss=6.70647e+06 val_weighted=6.70647e+06 val_mse=2.97407e+07 best_val=2.27669e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=043 train_loss=2.84701e+06 val_loss=2.44181e+06 val_weighted=2.44181e+06 val_mse=2.94393e+07 best_val=2.27669e+06 stale=2
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=044 train_loss=2.29154e+06 val_loss=2.89049e+06 val_weighted=2.89049e+06 val_mse=2.92278e+07 best_val=2.27669e+06 stale=3
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=045 train_loss=2.27594e+06 val_loss=1.66759e+06 val_weighted=1.66759e+06 val_mse=2.89746e+07 best_val=1.66759e+06 stale=0
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=046 train_loss=2.37105e+06 val_loss=3.37906e+06 val_weighted=3.37906e+06 val_mse=2.87357e+07 best_val=1.66759e+06 stale=1
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=047 train_loss=2.49683e+06 val_loss=1.70938e+06 val_weighted=1.70938e+06 val_mse=2.84544e+07 best_val=1.66759e+06 stale=2
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=048 train_loss=2.22213e+06 val_loss=2.98535e+06 val_weighted=2.98535e+06 val_mse=2.81905e+07 best_val=1.66759e+06 stale=3
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=049 train_loss=2.25728e+06 val_loss=1.83532e+06 val_weighted=1.83532e+06 val_mse=2.7916e+07 best_val=1.66759e+06 stale=4
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=050 train_loss=2.0331e+06 val_loss=2.38788e+06 val_weighted=2.38788e+06 val_mse=2.76278e+07 best_val=1.66759e+06 stale=5
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=051 train_loss=2.01474e+06 val_loss=2.05207e+06 val_weighted=2.05207e+06 val_mse=2.73055e+07 best_val=1.66759e+06 stale=6
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=052 train_loss=1.9783e+06 val_loss=2.13735e+06 val_weighted=2.13735e+06 val_mse=2.69799e+07 best_val=1.66759e+06 stale=7
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=053 train_loss=1.93492e+06 val_loss=2.13675e+06 val_weighted=2.13675e+06 val_mse=2.66799e+07 best_val=1.66759e+06 stale=8
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=054 train_loss=1.89055e+06 val_loss=2.04218e+06 val_weighted=2.04218e+06 val_mse=2.63572e+07 best_val=1.66759e+06 stale=9
+[paper2] ae_prewhite_mahalanobis_l40s_run02 epoch=055 train_loss=1.8299e+06 val_loss=1.77289e+06 val_weighted=1.77289e+06 val_mse=2.60632e+07 best_val=1.66759e+06 stale=10
+[paper2] ae_prewhite_mahalanobis_l40s_run02: complete best_val=1.66759e+06
+[suite] END ae_prewhite_mahalanobis status=completed seconds=564.538
+
+[suite] START transformer_raw_mse
+[paper2] transformer_raw_mse_l40s_run02: device=cuda, epochs=80, output=paper2/results/transformer_raw_mse_l40s_run02
+[paper2] transformer_raw_mse_l40s_run02 epoch=001 train_loss=2.99138e+07 val_loss=2.70283e+07 val_weighted=2.59079e+09 val_mse=2.70283e+07 best_val=2.70283e+07 stale=0
+[paper2] transformer_raw_mse_l40s_run02 epoch=002 train_loss=1.92666e+07 val_loss=9.88291e+06 val_weighted=1.98238e+09 val_mse=9.88291e+06 best_val=9.88291e+06 stale=0
+[suite] FAILED transformer_raw_mse: RuntimeError: The total norm of order 2.0 for gradients from `parameters` is non-finite, so it cannot be clipped. To disable this error and scale the gradients by the non-finite norm anyway, set `error_if_nonfinite=False`

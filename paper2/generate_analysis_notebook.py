@@ -39,8 +39,14 @@ import pandas as pd
 from IPython.display import Image, display
 
 ROOT = Path.cwd().resolve()
+while not (ROOT / "paper2" / "__init__.py").exists() and ROOT != ROOT.parent:
+    ROOT = ROOT.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+for module_name in list(sys.modules):
+    if module_name == "paper2" or module_name.startswith("paper2."):
+        del sys.modules[module_name]
 
 from paper2.analysis.reporting import analyze_results_tree, discover_runs
 """
@@ -50,7 +56,7 @@ PARAMETERS = """
 # Edit these paths before running on the server if needed.
 RESULTS_DIR = Path("/ceph/dwong/noise-weighted-subspace-reconstruction/paper2/results")
 OUTPUT_DIR = RESULTS_DIR / "_analysis" / "latest"
-TEMPLATE_PATH = Path("data/k_alpha/template_K_alpha_tight.npy")
+TEMPLATE_PATH = ROOT / "data" / "k_alpha" / "template_K_alpha_tight.npy"
 
 # Use "checkpoints" to regenerate predictions/metrics from checkpoint_best.pt.
 # Use "metrics-only" if you only want to reuse existing metrics.json / analysis_metrics.json.

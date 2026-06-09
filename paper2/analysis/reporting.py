@@ -270,7 +270,9 @@ def _run_optimum_filter(
             "trace_len": int(traces.shape[-1]),
         }
 
-    psd_path = cfg_raw["preprocessing"]["psd_path"]
+    psd_path = Path(cfg_raw["preprocessing"]["psd_path"])
+    if not psd_path.is_absolute():
+        psd_path = REPO_ROOT / psd_path
     psd = load_one_sided_psd(psd_path)
     OptimumFilter = _load_optimum_filter_class()
     optimum_filter = OptimumFilter(template, psd, sampling_frequency)
@@ -369,6 +371,32 @@ def _write_predictions_file(
         handle.attrs["metrics_json"] = json.dumps(metrics, sort_keys=True)
 
 
+def _load_compatible_state_dict(model, state_dict: dict[str, Any]) -> None:
+    """Load checkpoints across small architecture bookkeeping changes."""
+
+    patch_norm_keys = {
+        "encoder.patch_norm.weight",
+        "encoder.patch_norm.bias",
+    }
+    model_state = model.state_dict()
+    if patch_norm_keys.issubset(model_state):
+        missing_patch_norm = patch_norm_keys - set(state_dict)
+    else:
+        missing_patch_norm = set()
+    if missing_patch_norm:
+        if missing_patch_norm == {
+            "encoder.patch_norm.weight",
+            "encoder.patch_norm.bias",
+        }:
+            state_dict = dict(state_dict)
+            state_dict["encoder.patch_norm.weight"] = model_state["encoder.patch_norm.weight"]
+            state_dict["encoder.patch_norm.bias"] = model_state["encoder.patch_norm.bias"]
+        else:
+            raise RuntimeError(f"Partial patch_norm checkpoint state is not supported: {missing_patch_norm}")
+
+    model.load_state_dict(state_dict)
+
+
 def evaluate_checkpoint_run(
     run: RunRecord,
     *,
@@ -399,7 +427,7 @@ def evaluate_checkpoint_run(
     whitener = build_whitener(cfg).to(device)
     model = build_model(cfg, whitener).to(device)
     state_dict = torch.load(run.checkpoint_path, map_location=device)
-    model.load_state_dict(state_dict)
+    _load_compatible_state_dict(model, state_dict)
     model.eval()
     criterion = build_criterion(cfg)
     loaders = build_dataloaders(cfg)

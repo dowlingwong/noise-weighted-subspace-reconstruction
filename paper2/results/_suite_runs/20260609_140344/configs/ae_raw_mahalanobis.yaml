@@ -1,0 +1,46 @@
+experiment:
+  name: ae_raw_mahalanobis
+  seed: 314159
+data:
+  trace_path: data/k_alpha/k_alpha_traces.h5
+  rq_path: data/k_alpha/k_alpha_rqs.h5
+  trace_len: 32768
+  n_channels: 1
+  batch_size: 16
+  pretrigger: 4000
+  baseline_correct: true
+  max_events: 2048
+  num_workers: 0
+  pin_memory: false
+  train_fraction: 0.7
+  val_fraction: 0.15
+  test_fraction: 0.15
+  seed: 314159
+preprocessing:
+  input_mode: raw
+  psd_path: data/Noise_PSD/noise_psd_from_MMC.npy
+loss:
+  mode: mahalanobis
+model:
+  family: ae
+  latent_dim: 256
+  hidden_channels:
+  - 32
+  - 64
+  - 128
+  kernel_size: 7
+  stride: 2
+optimizer:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.0001
+training:
+  epochs: 80
+  grad_clip: 1.0
+  early_stop_patience: 10
+evaluation:
+  metrics:
+  - weighted_residual
+  - reconstruction_mse
+  - amplitude_rmse
+  - timing_rmse

@@ -27,6 +27,9 @@ from paper2.models.transformer_reconstruction import (
 from paper2.trainers.loops import evaluate, train_one_epoch
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
 @dataclass(slots=True)
 class ExperimentConfig:
     raw: dict[str, Any]
@@ -34,6 +37,12 @@ class ExperimentConfig:
     @property
     def experiment_name(self) -> str:
         return str(self.raw["experiment"]["name"])
+
+    def resolve_path(self, value: str | Path | None) -> Path | None:
+        if value is None:
+            return None
+        path = Path(value)
+        return path if path.is_absolute() else REPO_ROOT / path
 
 
 @dataclass(slots=True)
@@ -67,7 +76,7 @@ def build_whitener(cfg: ExperimentConfig) -> WhiteningOperator:
     data = cfg.raw["data"]
     return WhiteningOperator(
         WhiteningConfig(
-            psd_path=preprocess["psd_path"],
+            psd_path=str(cfg.resolve_path(preprocess["psd_path"])),
             trace_len=int(data["trace_len"]),
             n_channels=int(data["n_channels"]),
         )
@@ -250,7 +259,11 @@ def finish_wandb(wandb_run: Any | None, exit_code: int) -> None:
 
 def build_dataloaders(cfg: ExperimentConfig):
     require_torch()
-    dataset_cfg = DatasetConfig(**cfg.raw["data"])
+    data_cfg = dict(cfg.raw["data"])
+    data_cfg["trace_path"] = str(cfg.resolve_path(data_cfg["trace_path"]))
+    if data_cfg.get("rq_path") is not None:
+        data_cfg["rq_path"] = str(cfg.resolve_path(data_cfg["rq_path"]))
+    dataset_cfg = DatasetConfig(**data_cfg)
     dataset = load_reconstruction_dataset(dataset_cfg)
     split = make_split_indices(
         n_samples=len(dataset),

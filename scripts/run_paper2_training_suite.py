@@ -22,6 +22,17 @@ Run only the transformer 2x2 ablation:
       --suite transformer_2x2 \
       --require-cuda
 
+Run the geometry-first suite for the paper/slides with W&B logging:
+
+    PYTHONPATH=. python scripts/run_paper2_training_suite.py \
+      --suite best \
+      --require-cuda \
+      --wandb \
+      --wandb-project NPML_Paper2 \
+      --num-workers 4 \
+      --pin-memory \
+      --run-suffix l40s_best01
+
 If the data live outside the repository, override the defaults with
 `--trace-path`, `--rq-path`, and `--psd-path`.
 """
@@ -171,11 +182,45 @@ ARCHITECTURE = [
     ),
 ]
 
+BEST_COMBO = [
+    cfg_run(
+        "ae_prewhite_mahalanobis",
+        "best_combo",
+        "small convolutional reconstruction AE",
+        "Best current AE geometry: prewhitened encoder input and Mahalanobis loss.",
+    ),
+    cfg_run(
+        "transformer_prewhite_mahalanobis",
+        "best_combo",
+        "token-preserving transformer reconstruction AE",
+        "Best current transformer geometry: prewhitened tokens and Mahalanobis loss.",
+    ),
+    cfg_run(
+        "experiment_d_linear_prewhite_mahalanobis",
+        "best_combo",
+        "patch-linear reconstruction AE",
+        "Geometry-fixed linear baseline for paper/slides.",
+    ),
+    cfg_run(
+        "experiment_d_cnn_prewhite_mahalanobis",
+        "best_combo",
+        "small convolutional reconstruction AE",
+        "Geometry-fixed CNN/locality comparison for paper/slides.",
+    ),
+    cfg_run(
+        "experiment_d_transformer_prewhite_mahalanobis",
+        "best_combo",
+        "token-preserving transformer reconstruction AE",
+        "Geometry-fixed attention comparison for paper/slides.",
+    ),
+]
+
 SUITES: dict[str, list[RunSpec]] = {
     "nfpa": [NFPA_RUN],
     "ae_2x2": AE_2X2,
     "transformer_2x2": TRANSFORMER_2X2,
     "architecture": ARCHITECTURE,
+    "best": BEST_COMBO,
     "all": [NFPA_RUN, *AE_2X2, *TRANSFORMER_2X2, *ARCHITECTURE],
 }
 
@@ -204,6 +249,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=None)
     parser.add_argument("--num-workers", type=int, default=None)
     parser.add_argument("--pin-memory", action="store_true")
+    parser.add_argument(
+        "--transformer-optimizer",
+        choices=["adamw", "adamw_muon"],
+        default=None,
+        help="Override optimizer.name for transformer configs only.",
+    )
+    parser.add_argument(
+        "--wandb",
+        action="store_true",
+        help="Enable W&B logging for Paper 2 config runs.",
+    )
+    parser.add_argument("--wandb-project", default="NPML_Paper2")
+    parser.add_argument("--wandb-entity", default=None)
+    parser.add_argument("--wandb-group", default=None)
+    parser.add_argument(
+        "--wandb-mode",
+        choices=["online", "offline", "disabled"],
+        default="online",
+    )
+    parser.add_argument(
+        "--wandb-tags",
+        default=None,
+        help="Comma-separated W&B tags to attach to each run.",
+    )
+    parser.add_argument(
+        "--wandb-watch",
+        action="store_true",
+        help="Enable wandb.watch(model). This is noisier and slower than scalar logging.",
+    )
     parser.add_argument(
         "--run-suffix",
         default=None,
@@ -282,6 +356,31 @@ def apply_overrides(raw: dict[str, Any], args: argparse.Namespace) -> dict[str, 
         raw["data"]["pin_memory"] = True
     if args.run_suffix:
         raw["experiment"]["name"] = f"{raw['experiment']['name']}_{args.run_suffix}"
+    if args.transformer_optimizer and raw["model"].get("family") == "transformer":
+        raw["optimizer"]["name"] = args.transformer_optimizer
+        if args.transformer_optimizer == "adamw_muon":
+            raw["optimizer"].setdefault("adamw_lr", raw["optimizer"].get("lr", 3.0e-5))
+            raw["optimizer"].setdefault("muon_lr", raw["optimizer"].get("lr", 3.0e-5))
+            raw["optimizer"].setdefault("muon_momentum", 0.95)
+            raw["optimizer"].setdefault("muon_weight_decay", 0.0)
+            raw["optimizer"].setdefault("nesterov", True)
+            raw["optimizer"].setdefault("ns_steps", 5)
+    if args.wandb:
+        group = args.wandb_group or getattr(args, "resolved_run_label", None)
+        raw.setdefault("logging", {})["wandb"] = {
+            "enabled": True,
+            "project": args.wandb_project,
+            "entity": args.wandb_entity,
+            "group": group,
+            "name": raw["experiment"]["name"],
+            "mode": args.wandb_mode,
+            "tags": [
+                item.strip()
+                for item in (args.wandb_tags or "").split(",")
+                if item.strip()
+            ],
+            "watch_model": bool(args.wandb_watch),
+        }
     return raw
 
 
@@ -352,7 +451,7 @@ def validate_hdf5_schema(
     return errors
 
 
-def dependency_errors(specs: list[RunSpec], require_cuda: bool) -> list[str]:
+def dependency_errors(specs: list[RunSpec], require_cuda: bool, use_wandb: bool) -> list[str]:
     errors: list[str] = []
     need_torch = any(spec.kind == "paper2_config" for spec in specs)
     need_nfpa = any(spec.run_id == "nfpa_demo" for spec in specs)
@@ -361,6 +460,8 @@ def dependency_errors(specs: list[RunSpec], require_cuda: bool) -> list[str]:
             errors.append(f"Missing Python module: {module_name}")
     if need_nfpa and importlib.util.find_spec("matplotlib") is None:
         errors.append("Missing Python module for NFPA demo: matplotlib")
+    if use_wandb and importlib.util.find_spec("wandb") is None:
+        errors.append("W&B logging was requested, but Python module `wandb` is missing.")
     if need_torch:
         for module_name in ["h5py", "yaml"]:
             if importlib.util.find_spec(module_name) is None:
@@ -421,6 +522,12 @@ def prepare_manifest(
                     "max_events": raw["data"].get("max_events"),
                     "epochs": raw["training"].get("epochs"),
                     "batch_size": raw["data"].get("batch_size"),
+                    "optimizer": raw["optimizer"].get("name"),
+                    "wandb": bool(
+                        raw.get("logging", {})
+                        .get("wandb", {})
+                        .get("enabled", False)
+                    ),
                 }
             )
         else:
@@ -460,7 +567,8 @@ def print_plan(manifest: list[dict[str, Any]]) -> None:
         print(
             f"  {idx:02d}. {row['run_id']} | phase={row['phase']} | "
             f"model={row['model']} | input={row.get('input_mode')} | "
-            f"loss={row.get('loss_mode')}",
+            f"loss={row.get('loss_mode')} | optimizer={row.get('optimizer')} | "
+            f"wandb={row.get('wandb')}",
             flush=True,
         )
         print(f"      dataset: {row['dataset']}", flush=True)
@@ -507,11 +615,12 @@ def main() -> int:
     args = parse_args()
     specs = selected_specs(args)
     run_label = args.run_label or dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    args.resolved_run_label = run_label
     run_dir = RESULTS_DIR / "_suite_runs" / run_label
     run_dir.mkdir(parents=True, exist_ok=True)
 
     if not args.dry_run:
-        dep_errors = dependency_errors(specs, args.require_cuda)
+        dep_errors = dependency_errors(specs, args.require_cuda, args.wandb)
         if dep_errors:
             for error in dep_errors:
                 print(f"[suite] ERROR: {error}", file=sys.stderr)

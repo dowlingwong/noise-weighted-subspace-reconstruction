@@ -32,12 +32,14 @@ class TransformerEncoder(nn.Module):
         super().__init__()
         self.cfg = cfg
         self.patch_embed = nn.Linear(cfg.patch_len, cfg.d_model)
+        self.patch_norm = nn.LayerNorm(cfg.d_model)
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=cfg.d_model,
             nhead=cfg.n_head,
             dim_feedforward=cfg.d_ff,
             dropout=cfg.dropout,
             batch_first=True,
+            norm_first=True,
         )
         self.temporal_encoder = nn.TransformerEncoder(
             encoder_layer,
@@ -51,7 +53,7 @@ class TransformerEncoder(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         patches = self.patchify(x)
         bsz, n_channels, n_patch, patch_len = patches.shape
-        tokens = self.patch_embed(patches)
+        tokens = self.patch_norm(self.patch_embed(patches))
         tokens = tokens.view(bsz * n_channels, n_patch, self.cfg.d_model)
         tokens = self.temporal_encoder(tokens)
         return tokens.view(bsz, n_channels, n_patch, self.cfg.d_model)

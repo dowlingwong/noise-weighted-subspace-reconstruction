@@ -36,6 +36,27 @@ class ExperimentConfig:
         return str(self.raw["experiment"]["name"])
 
 
+@dataclass(slots=True)
+class OptimizerBundle:
+    """Small adapter for runs that use both AdamW and Muon."""
+
+    optimizers: dict[str, Any]
+
+    def zero_grad(self, set_to_none: bool = True) -> None:
+        for optimizer in self.optimizers.values():
+            optimizer.zero_grad(set_to_none=set_to_none)
+
+    def step(self) -> None:
+        for optimizer in self.optimizers.values():
+            optimizer.step()
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            name: optimizer.state_dict()
+            for name, optimizer in self.optimizers.items()
+        }
+
+
 def load_experiment_config(path: str | Path) -> ExperimentConfig:
     with Path(path).open("r", encoding="utf-8") as handle:
         return ExperimentConfig(raw=yaml.safe_load(handle))
@@ -117,13 +138,114 @@ def build_optimizer(cfg: ExperimentConfig, model) -> Any:
     require_torch()
     optim_cfg = cfg.raw["optimizer"]
     name = optim_cfg["name"].lower()
-    if name != "adamw":
-        raise ValueError(f"Unsupported optimizer: {optim_cfg['name']}")
-    return torch.optim.AdamW(
-        model.parameters(),
-        lr=float(optim_cfg["lr"]),
-        weight_decay=float(optim_cfg.get("weight_decay", 0.0)),
+    if name == "adamw":
+        return torch.optim.AdamW(
+            model.parameters(),
+            lr=float(optim_cfg["lr"]),
+            weight_decay=float(optim_cfg.get("weight_decay", 0.0)),
+            eps=float(optim_cfg.get("eps", 1e-8)),
+        )
+    if name in {"adamw_muon", "muon"}:
+        return build_adamw_muon_optimizer(optim_cfg, model)
+    raise ValueError(f"Unsupported optimizer: {optim_cfg['name']}")
+
+
+def build_adamw_muon_optimizer(optim_cfg: dict[str, Any], model) -> OptimizerBundle:
+    from paper2.trainers.muon import Muon
+
+    adamw_params = []
+    muon_params = []
+    for param_name, param in model.named_parameters():
+        if not param.requires_grad:
+            continue
+        if param_name.startswith("encoder.temporal_encoder.") and param.ndim >= 2:
+            muon_params.append(param)
+        else:
+            adamw_params.append(param)
+    if not muon_params:
+        raise ValueError("Muon requested, but no transformer matrix parameters were found.")
+    adamw = torch.optim.AdamW(
+        adamw_params,
+        lr=float(optim_cfg.get("adamw_lr", optim_cfg.get("lr", 3e-5))),
+        weight_decay=float(
+            optim_cfg.get("adamw_weight_decay", optim_cfg.get("weight_decay", 0.0))
+        ),
+        eps=float(optim_cfg.get("eps", 1e-8)),
     )
+    muon = Muon(
+        muon_params,
+        lr=float(optim_cfg.get("muon_lr", optim_cfg.get("lr", 3e-5))),
+        weight_decay=float(optim_cfg.get("muon_weight_decay", 0.0)),
+        momentum=float(optim_cfg.get("muon_momentum", 0.95)),
+        nesterov=bool(optim_cfg.get("nesterov", True)),
+        ns_steps=int(optim_cfg.get("ns_steps", 5)),
+    )
+    return OptimizerBundle({"adamw": adamw, "muon": muon})
+
+
+def _as_tags(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return [str(item) for item in value]
+
+
+def init_wandb(cfg: ExperimentConfig, output_dir: Path, model) -> Any | None:
+    wandb_cfg = cfg.raw.get("logging", {}).get("wandb", {})
+    if not bool(wandb_cfg.get("enabled", False)):
+        return None
+    try:
+        import wandb
+    except Exception as exc:  # pragma: no cover - server dependency check
+        raise RuntimeError("W&B logging requested, but `wandb` is not installed.") from exc
+
+    init_kwargs: dict[str, Any] = {
+        "project": wandb_cfg.get("project", "NPML_Paper2"),
+        "name": wandb_cfg.get("name", cfg.experiment_name),
+        "group": wandb_cfg.get("group"),
+        "tags": _as_tags(wandb_cfg.get("tags")),
+        "config": cfg.raw,
+        "dir": str(output_dir),
+        "mode": wandb_cfg.get("mode", "online"),
+    }
+    if wandb_cfg.get("entity"):
+        init_kwargs["entity"] = wandb_cfg["entity"]
+    run = wandb.init(**init_kwargs)
+    if bool(wandb_cfg.get("watch_model", False)):
+        wandb.watch(
+            model,
+            log=wandb_cfg.get("watch_log", "gradients"),
+            log_freq=int(wandb_cfg.get("watch_log_freq", 100)),
+        )
+    return run
+
+
+def log_wandb_epoch(
+    wandb_run: Any | None,
+    epoch: int,
+    row: dict[str, float],
+    best_val: float,
+    stale: int,
+) -> None:
+    if wandb_run is None:
+        return
+    payload = {
+        key: value
+        for key, value in row.items()
+        if isinstance(value, (int, float))
+    }
+    payload["best_val"] = best_val
+    payload["stale_epochs"] = stale
+    wandb_run.log(payload, step=epoch)
+
+
+def finish_wandb(wandb_run: Any | None, exit_code: int) -> None:
+    if wandb_run is not None:
+        try:
+            wandb_run.finish(exit_code=exit_code)
+        except TypeError:
+            wandb_run.finish()
 
 
 def build_dataloaders(cfg: ExperimentConfig):
@@ -205,60 +327,71 @@ def run_experiment(config_path: str | Path) -> None:
         f"epochs={n_epochs}, output={output_dir}",
         flush=True,
     )
+    wandb_run = init_wandb(cfg, output_dir, model)
+    completed = False
+    try:
+        for epoch in range(1, n_epochs + 1):
+            should_stop = False
+            train_metrics = train_one_epoch(
+                model=model,
+                loader=loaders["train"],
+                criterion=criterion,
+                optimizer=optimizer,
+                whitener=whitener,
+                device=device,
+                grad_clip=grad_clip,
+            )
+            val_metrics = evaluate(
+                model=model,
+                loader=loaders["val"],
+                criterion=criterion,
+                whitener=whitener,
+                device=device,
+            )
+            row = {"epoch": epoch, **train_metrics, **val_metrics}
+            history.append(row)
 
-    for epoch in range(1, n_epochs + 1):
-        should_stop = False
-        train_metrics = train_one_epoch(
-            model=model,
-            loader=loaders["train"],
-            criterion=criterion,
-            optimizer=optimizer,
-            whitener=whitener,
-            device=device,
-            grad_clip=grad_clip,
-        )
-        val_metrics = evaluate(
-            model=model,
-            loader=loaders["val"],
-            criterion=criterion,
-            whitener=whitener,
-            device=device,
-        )
-        row = {"epoch": epoch, **train_metrics, **val_metrics}
-        history.append(row)
+            if val_metrics["eval_loss"] < best_val:
+                best_val = val_metrics["eval_loss"]
+                stale = 0
+                best_metrics = {
+                    **row,
+                    **evaluate(
+                        model=model,
+                        loader=loaders["test"],
+                        criterion=criterion,
+                        whitener=whitener,
+                        device=device,
+                    ),
+                }
+                torch.save(model.state_dict(), output_dir / "checkpoint_best.pt")
+            else:
+                stale += 1
+                if stale >= patience:
+                    should_stop = True
+            print(
+                "[paper2] "
+                f"{cfg.experiment_name} epoch={epoch:03d} "
+                f"train_loss={train_metrics['train_loss']:.6g} "
+                f"val_loss={val_metrics['eval_loss']:.6g} "
+                f"val_weighted={val_metrics['weighted_residual_mean']:.6g} "
+                f"val_mse={val_metrics['reconstruction_mse']:.6g} "
+                f"best_val={best_val:.6g} stale={stale}",
+                flush=True,
+            )
+            log_wandb_epoch(wandb_run, epoch, row, best_val, stale)
+            if should_stop:
+                break
 
-        if val_metrics["eval_loss"] < best_val:
-            best_val = val_metrics["eval_loss"]
-            stale = 0
-            best_metrics = {
-                **row,
-                **evaluate(
-                    model=model,
-                    loader=loaders["test"],
-                    criterion=criterion,
-                    whitener=whitener,
-                    device=device,
-                ),
-            }
-            torch.save(model.state_dict(), output_dir / "checkpoint_best.pt")
-        else:
-            stale += 1
-            if stale >= patience:
-                should_stop = True
-        print(
-            "[paper2] "
-            f"{cfg.experiment_name} epoch={epoch:03d} "
-            f"train_loss={train_metrics['train_loss']:.6g} "
-            f"val_loss={val_metrics['eval_loss']:.6g} "
-            f"val_weighted={val_metrics['weighted_residual_mean']:.6g} "
-            f"val_mse={val_metrics['reconstruction_mse']:.6g} "
-            f"best_val={best_val:.6g} stale={stale}",
-            flush=True,
-        )
-        if should_stop:
-            break
-
-    if best_metrics is None:
-        raise RuntimeError("Training finished without producing validation metrics.")
-    save_run_artifacts(output_dir, cfg, history, best_metrics)
+        if best_metrics is None:
+            raise RuntimeError("Training finished without producing validation metrics.")
+        save_run_artifacts(output_dir, cfg, history, best_metrics)
+        if wandb_run is not None:
+            wandb_run.summary["best_val"] = best_val
+            for key, value in best_metrics.items():
+                if isinstance(value, (int, float)):
+                    wandb_run.summary[f"best/{key}"] = value
+        completed = True
+    finally:
+        finish_wandb(wandb_run, exit_code=0 if completed else 1)
     print(f"[paper2] {cfg.experiment_name}: complete best_val={best_val:.6g}", flush=True)

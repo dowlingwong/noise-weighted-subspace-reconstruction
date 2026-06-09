@@ -29,6 +29,7 @@ def train_one_epoch(
     require_torch()
     model.train()
     total_loss = 0.0
+    total_grad_norm = 0.0
     n_batches = 0
     for batch_idx, batch in enumerate(loader):
         meta = {
@@ -44,15 +45,19 @@ def train_one_epoch(
         _require_finite(f"train batch {batch_idx} loss", loss_out.total)
         loss_out.total.backward()
         if grad_clip is not None and grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(
+            grad_norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(),
                 grad_clip,
                 error_if_nonfinite=True,
             )
+            total_grad_norm += float(grad_norm.detach().cpu())
         optimizer.step()
         total_loss += float(loss_out.total.detach().cpu())
         n_batches += 1
-    return {"train_loss": total_loss / max(n_batches, 1)}
+    metrics = {"train_loss": total_loss / max(n_batches, 1)}
+    if grad_clip is not None and grad_clip > 0:
+        metrics["train_grad_norm"] = total_grad_norm / max(n_batches, 1)
+    return metrics
 
 
 @torch.no_grad() if torch is not None else (lambda fn: fn)

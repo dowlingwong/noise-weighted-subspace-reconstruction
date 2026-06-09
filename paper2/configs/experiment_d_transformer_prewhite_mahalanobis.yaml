@@ -7,7 +7,7 @@ data:
   rq_path: data/k_alpha/k_alpha_rqs.h5
   trace_len: 32768
   n_channels: 1
-  batch_size: 8
+  batch_size: 4
   pretrigger: 4000
   baseline_correct: true
   max_events: 2048
@@ -38,12 +38,13 @@ model:
 
 optimizer:
   name: adamw
-  lr: 3.0e-4
+  lr: 3.0e-5
   weight_decay: 1.0e-4
+  eps: 1.0e-6
 
 training:
   epochs: 40
-  grad_clip: 1.0
+  grad_clip: 0.25
   early_stop_patience: 8
 
 evaluation:

@@ -16,6 +16,7 @@ class WhiteningConfig:
     trace_len: int
     n_channels: int
     eps: float = 1e-12
+    max_weight_ratio: float = 1e6
 
 
 def load_one_sided_psd(psd_path: str | Path) -> np.ndarray:
@@ -23,19 +24,39 @@ def load_one_sided_psd(psd_path: str | Path) -> np.ndarray:
     return np.load(path).astype(np.float64).reshape(-1)
 
 
-def build_one_sided_weights(psd_one_sided: np.ndarray, trace_len: int) -> np.ndarray:
+def build_one_sided_weights(
+    psd_one_sided: np.ndarray,
+    trace_len: int,
+    eps: float = 1e-12,
+    max_weight_ratio: float = 1e6,
+) -> np.ndarray:
     psd = np.asarray(psd_one_sided, dtype=np.float64)
     n_rfft = trace_len // 2 + 1
     if psd.shape[0] != n_rfft:
         raise ValueError(f"PSD length {psd.shape[0]} does not match rfft bins {n_rfft}")
 
+    finite_positive = psd[np.isfinite(psd) & (psd > 0.0)]
+    if finite_positive.size == 0:
+        raise ValueError("PSD must contain at least one finite positive bin")
+    floor = max(float(np.nanpercentile(finite_positive, 1.0)) * eps, eps)
+    psd = np.where(np.isfinite(psd) & (psd > floor), psd, floor)
+
     w = np.zeros_like(psd)
     w[0] = 0.0
     if trace_len % 2 == 0:
-        w[1:-1] = 2.0 / np.maximum(psd[1:-1], np.finfo(float).eps)
-        w[-1] = 1.0 / max(psd[-1], np.finfo(float).eps)
+        w[1:-1] = 2.0 / psd[1:-1]
+        w[-1] = 1.0 / psd[-1]
     else:
-        w[1:] = 2.0 / np.maximum(psd[1:], np.finfo(float).eps)
+        w[1:] = 2.0 / psd[1:]
+
+    positive = w[np.isfinite(w) & (w > 0.0)]
+    if positive.size == 0:
+        raise ValueError("PSD produced no finite positive precision weights")
+    median = float(np.median(positive))
+    if max_weight_ratio > 0:
+        w = np.clip(w, 0.0, median * max_weight_ratio)
+    positive = w[np.isfinite(w) & (w > 0.0)]
+    w = w / max(float(np.mean(positive)), eps)
     return w
 
 
@@ -46,7 +67,12 @@ class WhiteningOperator(nn.Module):
         require_torch()
         super().__init__()
         psd = load_one_sided_psd(cfg.psd_path)
-        weights = build_one_sided_weights(psd, cfg.trace_len)
+        weights = build_one_sided_weights(
+            psd,
+            cfg.trace_len,
+            eps=cfg.eps,
+            max_weight_ratio=cfg.max_weight_ratio,
+        )
         sqrt_w = np.sqrt(np.maximum(weights, 0.0))
         inv_sqrt_w = np.zeros_like(sqrt_w)
         mask = sqrt_w > cfg.eps
@@ -72,4 +98,4 @@ class WhiteningOperator(nn.Module):
     def mahalanobis_energy(self, residual_native: Tensor) -> Tensor:
         residual_f = torch.fft.rfft(residual_native, dim=-1)
         weighted = torch.abs(residual_f) ** 2 * self.weights_one_sided
-        return weighted.sum(dim=-1).mean(dim=-1)
+        return weighted.mean(dim=-1).mean(dim=-1)

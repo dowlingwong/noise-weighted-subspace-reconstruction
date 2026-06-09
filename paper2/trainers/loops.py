@@ -12,6 +12,11 @@ from paper2.losses.metrics import summarize_reconstruction_metrics
 from paper2.models.base import BaseReconstructionModel
 
 
+def _require_finite(name: str, value) -> None:
+    if not torch.isfinite(value).all():
+        raise FloatingPointError(f"Non-finite tensor detected: {name}")
+
+
 def train_one_epoch(
     model: BaseReconstructionModel,
     loader,
@@ -25,18 +30,25 @@ def train_one_epoch(
     model.train()
     total_loss = 0.0
     n_batches = 0
-    for batch in loader:
+    for batch_idx, batch in enumerate(loader):
         meta = {
             key: value.to(device) if hasattr(value, "to") else value
             for key, value in batch.meta.items()
         }
         batch = ReconstructionBatch(x=batch.x.to(device), meta=meta)
+        _require_finite(f"train batch {batch_idx} input", batch.x)
         optimizer.zero_grad(set_to_none=True)
         output = model(batch.x)
+        _require_finite(f"train batch {batch_idx} output", output.x_hat)
         loss_out = criterion(output, batch, whitener)
+        _require_finite(f"train batch {batch_idx} loss", loss_out.total)
         loss_out.total.backward()
         if grad_clip is not None and grad_clip > 0:
-            torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
+            torch.nn.utils.clip_grad_norm_(
+                model.parameters(),
+                grad_clip,
+                error_if_nonfinite=True,
+            )
         optimizer.step()
         total_loss += float(loss_out.total.detach().cpu())
         n_batches += 1
@@ -57,14 +69,17 @@ def evaluate(
     weighted_total = 0.0
     mse_total = 0.0
     n_batches = 0
-    for batch in loader:
+    for batch_idx, batch in enumerate(loader):
         meta = {
             key: value.to(device) if hasattr(value, "to") else value
             for key, value in batch.meta.items()
         }
         batch = ReconstructionBatch(x=batch.x.to(device), meta=meta)
+        _require_finite(f"eval batch {batch_idx} input", batch.x)
         output = model(batch.x)
+        _require_finite(f"eval batch {batch_idx} output", output.x_hat)
         loss_out = criterion(output, batch, whitener)
+        _require_finite(f"eval batch {batch_idx} loss", loss_out.total)
         metrics = summarize_reconstruction_metrics(batch.x, output.x_hat, whitener)
         loss_total += float(loss_out.total.detach().cpu())
         weighted_total += metrics.weighted_residual_mean

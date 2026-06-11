@@ -31,6 +31,7 @@ def train_one_epoch(
     total_loss = 0.0
     total_grad_norm = 0.0
     n_batches = 0
+    n_examples = 0
     for batch_idx, batch in enumerate(loader):
         meta = {
             key: value.to(device) if hasattr(value, "to") else value
@@ -52,9 +53,11 @@ def train_one_epoch(
             )
             total_grad_norm += float(grad_norm.detach().cpu())
         optimizer.step()
-        total_loss += float(loss_out.total.detach().cpu())
+        batch_n = int(batch.x.shape[0])
+        total_loss += float(loss_out.total.detach().cpu()) * batch_n
         n_batches += 1
-    metrics = {"train_loss": total_loss / max(n_batches, 1)}
+        n_examples += batch_n
+    metrics = {"train_loss": total_loss / max(n_examples, 1)}
     if grad_clip is not None and grad_clip > 0:
         metrics["train_grad_norm"] = total_grad_norm / max(n_batches, 1)
     return metrics
@@ -74,6 +77,7 @@ def evaluate(
     weighted_total = 0.0
     mse_total = 0.0
     n_batches = 0
+    n_examples = 0
     for batch_idx, batch in enumerate(loader):
         meta = {
             key: value.to(device) if hasattr(value, "to") else value
@@ -86,11 +90,13 @@ def evaluate(
         loss_out = criterion(output, batch, whitener)
         _require_finite(f"eval batch {batch_idx} loss", loss_out.total)
         metrics = summarize_reconstruction_metrics(batch.x, output.x_hat, whitener)
-        loss_total += float(loss_out.total.detach().cpu())
-        weighted_total += metrics.weighted_residual_mean
-        mse_total += metrics.reconstruction_mse
+        batch_n = int(batch.x.shape[0])
+        loss_total += float(loss_out.total.detach().cpu()) * batch_n
+        weighted_total += metrics.weighted_residual_mean * batch_n
+        mse_total += metrics.reconstruction_mse * batch_n
         n_batches += 1
-    denom = max(n_batches, 1)
+        n_examples += batch_n
+    denom = max(n_examples, 1)
     return {
         "eval_loss": loss_total / denom,
         "weighted_residual_mean": weighted_total / denom,

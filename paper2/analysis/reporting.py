@@ -441,6 +441,7 @@ def evaluate_checkpoint_run(
     weighted_total = 0.0
     mse_total = 0.0
     n_batches = 0
+    n_examples = 0
 
     with torch.no_grad():
         for batch in loaders["test"]:
@@ -449,10 +450,12 @@ def evaluate_checkpoint_run(
             loss_out = criterion(output, batch_device, whitener)
             metrics = summarize_reconstruction_metrics(batch_device.x, output.x_hat, whitener)
 
-            loss_total += float(loss_out.total.detach().cpu())
-            weighted_total += metrics.weighted_residual_mean
-            mse_total += metrics.reconstruction_mse
+            batch_n = int(batch_device.x.shape[0])
+            loss_total += float(loss_out.total.detach().cpu()) * batch_n
+            weighted_total += metrics.weighted_residual_mean * batch_n
+            mse_total += metrics.reconstruction_mse * batch_n
             n_batches += 1
+            n_examples += batch_n
 
             x_true_batches.append(batch_device.x.detach().cpu().numpy())
             x_hat_batches.append(output.x_hat.detach().cpu().numpy())
@@ -483,7 +486,7 @@ def evaluate_checkpoint_run(
     else:
         of_meta = {"of_metrics_status": "disabled"}
 
-    denom = max(n_batches, 1)
+    denom = max(n_examples, 1)
     analysis_metrics: dict[str, Any] = {
         "eval_loss": loss_total / denom,
         "weighted_residual_mean": weighted_total / denom,

@@ -23,12 +23,11 @@ data:
   coverage_quantile_high: 0.80
 
 preprocessing:
-  input_mode: prewhitened
+  input_mode: raw
   psd_path: data/Noise_PSD/noise_psd_from_MMC.npy
 
 loss:
   mode: mahalanobis
-  scale: 1.0e-3
 
 model:
   family: ae
@@ -39,14 +38,13 @@ model:
 
 optimizer:
   name: adamw
-  lr: 3.0e-5
+  lr: 3.0e-4
   weight_decay: 1.0e-4
 
 training:
   epochs: 40
   grad_clip: 1.0
   early_stop_patience: 8
-  selection_metric: weighted_residual_mean
 
 evaluation:
   metrics: [weighted_residual, reconstruction_mse, amplitude_rmse, timing_rmse]

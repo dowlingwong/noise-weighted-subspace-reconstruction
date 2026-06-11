@@ -28,7 +28,6 @@ preprocessing:
 
 loss:
   mode: mse
-  scale: 1.0
 
 model:
   family: ae
@@ -46,7 +45,6 @@ training:
   epochs: 40
   grad_clip: 1.0
   early_stop_patience: 8
-  selection_metric: weighted_residual_mean
 
 evaluation:
   metrics: [weighted_residual, reconstruction_mse, amplitude_rmse, timing_rmse]

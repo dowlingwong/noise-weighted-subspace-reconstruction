@@ -30,5 +30,6 @@ Interpretation
 - Coverage effect is real in both metrics: restricted training worsens held-out performance.
 - Weighted residual degrades by 2.19x under Mahalanobis and 1.42x under MSE.
 - Reconstruction MSE degrades by 0.11x under Mahalanobis and 2.25x under MSE.
-- In this particular run set, MSE achieved a lower weighted residual than Mahalanobis, so the plot supports the coverage claim much more cleanly than the metric-correctness claim.
-- That means this figure is strongest as evidence that missing latent coverage hurts learning even on a real experiment.
+- Full-coverage weighted residual is essentially tied across losses: MSE / Mahalanobis = 1.003x.
+- The clean slide claim is therefore the coverage claim: restricting the latent training range hurts held-out reconstruction.
+- The metric axis should be described as the scoring/optimization geometry, not as a standalone win claim from this matrix.

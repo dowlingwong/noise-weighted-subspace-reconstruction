@@ -23,5 +23,11 @@ The code here is a concrete implementation spec:
 - runtime logic is deliberately light until `torch` and training dependencies
   are installed
 
+Useful entry points:
+
+- `python -m paper2.trainers.run_experiment_suite d`
+- `python -m paper2.trainers.run_experiment_suite e`
+- `python -m paper2.analysis.real_metric_coverage_matrix --train --analyze`
+
 See [IMPLEMENTATION_SPEC.md](/Users/wongdowling/Documents/noise-weighted-subspace-reconstruction/paper2/IMPLEMENTATION_SPEC.md)
 for the pre-implementation checklist.

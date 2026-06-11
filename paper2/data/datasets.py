@@ -36,6 +36,10 @@ class DatasetConfig:
     val_fraction: float = 0.15
     test_fraction: float = 0.15
     seed: int = 314159
+    coverage_mode: str = "full"
+    coverage_fields: list[str] | None = None
+    coverage_quantile_low: float = 0.20
+    coverage_quantile_high: float = 0.80
 
 
 class ReconstructionDataset:

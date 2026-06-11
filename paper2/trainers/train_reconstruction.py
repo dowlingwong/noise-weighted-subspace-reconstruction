@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
 
 from paper2._torch import require_torch, torch
@@ -272,7 +273,12 @@ def build_dataloaders(cfg: ExperimentConfig):
         test_fraction=dataset_cfg.test_fraction,
         seed=dataset_cfg.seed,
     )
-    train_ds = torch.utils.data.Subset(dataset, split.train.tolist())
+    train_indices, coverage_summary = apply_train_coverage_filter(
+        dataset=dataset,
+        train_indices=split.train,
+        cfg=dataset_cfg,
+    )
+    train_ds = torch.utils.data.Subset(dataset, train_indices.tolist())
     val_ds = torch.utils.data.Subset(dataset, split.val.tolist())
     test_ds = torch.utils.data.Subset(dataset, split.test.tolist())
     loader_kwargs = {
@@ -287,6 +293,7 @@ def build_dataloaders(cfg: ExperimentConfig):
         "test": torch.utils.data.DataLoader(test_ds, shuffle=False, **loader_kwargs),
         "split": split,
         "dataset": dataset,
+        "coverage_summary": coverage_summary,
     }
 
 
@@ -302,17 +309,79 @@ def save_run_artifacts(
     cfg: ExperimentConfig,
     history: list[dict[str, float]],
     best_metrics: dict[str, float],
+    coverage_summary: dict[str, Any] | None = None,
 ) -> None:
     with (output_dir / "config.yaml").open("w", encoding="utf-8") as handle:
         yaml.safe_dump(cfg.raw, handle, sort_keys=False)
     with (output_dir / "metrics.json").open("w", encoding="utf-8") as handle:
         json.dump(best_metrics, handle, indent=2, sort_keys=True)
+    if coverage_summary is not None:
+        with (output_dir / "coverage_summary.json").open("w", encoding="utf-8") as handle:
+            json.dump(coverage_summary, handle, indent=2, sort_keys=True)
     with (output_dir / "curves.csv").open("w", encoding="utf-8") as handle:
         if history:
             columns = list(history[0].keys())
             handle.write(",".join(columns) + "\n")
             for row in history:
                 handle.write(",".join(str(row[col]) for col in columns) + "\n")
+
+
+def apply_train_coverage_filter(
+    dataset,
+    train_indices,
+    cfg: DatasetConfig,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    train_indices = np.asarray(train_indices, dtype=np.int64)
+    fields = list(cfg.coverage_fields or ["amplitude", "t0"])
+    summary: dict[str, Any] = {
+        "coverage_mode": cfg.coverage_mode,
+        "coverage_fields": fields,
+        "coverage_quantile_low": float(cfg.coverage_quantile_low),
+        "coverage_quantile_high": float(cfg.coverage_quantile_high),
+        "train_n_before": int(train_indices.size),
+    }
+    if cfg.coverage_mode == "full":
+        summary["train_n_after"] = int(train_indices.size)
+        return train_indices, summary
+    if cfg.coverage_mode != "restricted":
+        raise ValueError(f"Unsupported coverage_mode: {cfg.coverage_mode}")
+
+    metadata = getattr(dataset, "metadata", {})
+    mask = np.ones(train_indices.shape[0], dtype=bool)
+    per_field: dict[str, dict[str, float]] = {}
+    q_low = float(cfg.coverage_quantile_low)
+    q_high = float(cfg.coverage_quantile_high)
+    if not (0.0 <= q_low < q_high <= 1.0):
+        raise ValueError(
+            "coverage quantiles must satisfy 0 <= low < high <= 1; "
+            f"got low={q_low}, high={q_high}"
+        )
+
+    for field in fields:
+        if field not in metadata:
+            raise KeyError(
+                f"Coverage restriction requires metadata field '{field}', "
+                f"but dataset only has: {sorted(metadata)}"
+            )
+        values = np.asarray(metadata[field])[train_indices]
+        low_value = float(np.quantile(values, q_low))
+        high_value = float(np.quantile(values, q_high))
+        field_mask = (values >= low_value) & (values <= high_value)
+        mask &= field_mask
+        per_field[field] = {
+            "quantile_low_value": low_value,
+            "quantile_high_value": high_value,
+            "mean_before": float(np.mean(values)),
+            "std_before": float(np.std(values)),
+        }
+
+    filtered = train_indices[mask]
+    if filtered.size == 0:
+        raise RuntimeError("Coverage restriction removed every training example.")
+    summary["fields"] = per_field
+    summary["train_n_after"] = int(filtered.size)
+    summary["train_fraction_retained"] = float(filtered.size / max(train_indices.size, 1))
+    return filtered, summary
 
 
 def run_experiment(config_path: str | Path) -> None:
@@ -398,7 +467,13 @@ def run_experiment(config_path: str | Path) -> None:
 
         if best_metrics is None:
             raise RuntimeError("Training finished without producing validation metrics.")
-        save_run_artifacts(output_dir, cfg, history, best_metrics)
+        save_run_artifacts(
+            output_dir,
+            cfg,
+            history,
+            best_metrics,
+            coverage_summary=loaders.get("coverage_summary"),
+        )
         if wandb_run is not None:
             wandb_run.summary["best_val"] = best_val
             for key, value in best_metrics.items():

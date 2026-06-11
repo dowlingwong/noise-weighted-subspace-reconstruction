@@ -17,19 +17,19 @@ Training coverage summary
 Weighted residual matrix
                      full    restricted
 metric_mode                            
-mahalanobis  1.606179e+06  3.510338e+06
-mse          1.610196e+06  2.283643e+06
+mahalanobis  4.103356e+06  4.292079e+06
+mse          1.807636e+08  1.995647e+07
 
 Reconstruction MSE matrix
                      full    restricted
 metric_mode                            
-mahalanobis  3.591658e+07  3.880159e+06
-mse          3.756773e+03  8.434620e+03
+mahalanobis  1.240684e+07  4.700222e+07
+mse          4.328484e+03  8.175917e+02
 
 Interpretation
-- Coverage effect is real in both metrics: restricted training worsens held-out performance.
-- Weighted residual degrades by 2.19x under Mahalanobis and 1.42x under MSE.
-- Reconstruction MSE degrades by 0.11x under Mahalanobis and 2.25x under MSE.
-- Full-coverage weighted residual is essentially tied across losses: MSE / Mahalanobis = 1.003x.
-- The clean slide claim is therefore the coverage claim: restricting the latent training range hurts held-out reconstruction.
-- The metric axis should be described as the scoring/optimization geometry, not as a standalone win claim from this matrix.
+- Mahalanobis row: restricted/full = 1.05x weighted residual and 3.79x reconstruction MSE.
+- MSE row: restricted/full = 0.11x weighted residual and 0.19x reconstruction MSE.
+- Full-coverage weighted residual strongly favors Mahalanobis: MSE / Mahalanobis = 44.05x.
+- This run does not provide a clean coverage-failure slide: restricted training improves both reported metrics for the MSE-trained AE.
+- Use this figure as a diagnostic/backup, not as evidence for the latent-coverage claim unless a rerun produces amplitude RMSE or a monotonic held-out degradation.
+- The defensible positive claim from this run is metric-specific: Mahalanobis loss gives far lower Mahalanobis residual than MSE under full coverage.

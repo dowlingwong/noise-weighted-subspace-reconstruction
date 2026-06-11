@@ -91,6 +91,10 @@ def _write_summary(summary: pd.DataFrame, output_path: Path) -> None:
     wr = _load_matrix("weighted_residual_mean")
     mse = _load_matrix("reconstruction_mse")
     full_metric_ratio = wr.loc["mse", "full"] / max(wr.loc["mahalanobis", "full"], 1e-12)
+    mah_wr_ratio = wr.loc["mahalanobis", "restricted"] / max(wr.loc["mahalanobis", "full"], 1e-12)
+    mse_wr_ratio = wr.loc["mse", "restricted"] / max(wr.loc["mse", "full"], 1e-12)
+    mah_recon_ratio = mse.loc["mahalanobis", "restricted"] / max(mse.loc["mahalanobis", "full"], 1e-12)
+    mse_recon_ratio = mse.loc["mse", "restricted"] / max(mse.loc["mse", "full"], 1e-12)
 
     lines = [
         "Real metric x coverage experiment",
@@ -122,12 +126,12 @@ def _write_summary(summary: pd.DataFrame, output_path: Path) -> None:
             mse.to_string(),
             "",
             "Interpretation",
-            "- Coverage effect is real in both metrics: restricted training worsens held-out performance.",
-            f"- Weighted residual degrades by {wr.loc['mahalanobis','restricted']/wr.loc['mahalanobis','full']:.2f}x under Mahalanobis and {wr.loc['mse','restricted']/wr.loc['mse','full']:.2f}x under MSE.",
-            f"- Reconstruction MSE degrades by {mse.loc['mahalanobis','restricted']/mse.loc['mahalanobis','full']:.2f}x under Mahalanobis and {mse.loc['mse','restricted']/mse.loc['mse','full']:.2f}x under MSE.",
-            f"- Full-coverage weighted residual is essentially tied across losses: MSE / Mahalanobis = {full_metric_ratio:.3f}x.",
-            "- The clean slide claim is therefore the coverage claim: restricting the latent training range hurts held-out reconstruction.",
-            "- The metric axis should be described as the scoring/optimization geometry, not as a standalone win claim from this matrix.",
+            f"- Mahalanobis row: restricted/full = {mah_wr_ratio:.2f}x weighted residual and {mah_recon_ratio:.2f}x reconstruction MSE.",
+            f"- MSE row: restricted/full = {mse_wr_ratio:.2f}x weighted residual and {mse_recon_ratio:.2f}x reconstruction MSE.",
+            f"- Full-coverage weighted residual strongly favors Mahalanobis: MSE / Mahalanobis = {full_metric_ratio:.2f}x.",
+            "- This run does not provide a clean coverage-failure slide: restricted training improves both reported metrics for the MSE-trained AE.",
+            "- Use this figure as a diagnostic/backup, not as evidence for the latent-coverage claim unless a rerun produces amplitude RMSE or a monotonic held-out degradation.",
+            "- The defensible positive claim from this run is metric-specific: Mahalanobis loss gives far lower Mahalanobis residual than MSE under full coverage.",
         ]
     )
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

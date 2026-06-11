@@ -136,19 +136,50 @@ def build_summary_frame() -> pd.DataFrame:
     return pd.DataFrame.from_records(records)
 
 
-def ensure_complete_suite(frame: pd.DataFrame) -> None:
-    required_metrics = ["weighted_residual_mean", "amplitude_rmse"]
-    missing_rows = frame[frame[required_metrics].isna().any(axis=1)]
-    if missing_rows.empty:
-        return
-    descriptions = [
-        f"{row.experiment_name} (metric={row.metric_mode}, coverage={row.coverage_mode})"
-        for row in missing_rows.itertuples(index=False)
-    ]
+def _missing_cells(frame: pd.DataFrame, metric_name: str) -> list[tuple[str, str]]:
+    matrix = _matrix_from_frame(frame, metric_name=metric_name)
+    missing = matrix.isnull().to_numpy()
+    cells: list[tuple[str, str]] = []
+    for row_idx, col_idx in zip(*np.where(missing)):
+        cells.append((str(matrix.index[row_idx]), str(matrix.columns[col_idx])))
+    return cells
+
+
+def suite_status(frame: pd.DataFrame) -> dict[str, Any]:
+    metric_names = ["amplitude_rmse", "weighted_residual_mean", "reconstruction_mse"]
+    status: dict[str, Any] = {
+        "runs_present": {},
+        "metrics": {},
+    }
+    for row in frame.itertuples(index=False):
+        status["runs_present"][row.experiment_name] = {
+            "metric_mode": row.metric_mode,
+            "coverage_mode": row.coverage_mode,
+            "has_weighted_residual_mean": pd.notna(row.weighted_residual_mean),
+            "has_amplitude_rmse": pd.notna(row.amplitude_rmse),
+            "has_reconstruction_mse": pd.notna(row.reconstruction_mse),
+        }
+    for metric_name in metric_names:
+        missing = _missing_cells(frame, metric_name)
+        status["metrics"][metric_name] = {
+            "complete": len(missing) == 0,
+            "missing_cells": missing,
+        }
+    return status
+
+
+def ensure_renderable_suite(frame: pd.DataFrame) -> dict[str, Any]:
+    status = suite_status(frame)
+    if any(item["complete"] for item in status["metrics"].values()):
+        return status
+    parts = []
+    for metric_name, item in status["metrics"].items():
+        cells = ", ".join([f"{row}/{col}" for row, col in item["missing_cells"]]) or "none"
+        parts.append(f"{metric_name}: missing {cells}")
     raise RuntimeError(
-        "Real metric-coverage matrix is incomplete. Missing analyzed outputs for: "
-        + ", ".join(descriptions)
-        + ". Run this script with `--train --analyze` on a machine with torch."
+        "Real metric-coverage matrix has no fully renderable metric. "
+        + " | ".join(parts)
+        + ". Run `--train --analyze` to create the missing outputs."
     )
 
 
@@ -222,17 +253,25 @@ def render_outputs(frame: pd.DataFrame) -> None:
             "Real NPML Matrix: AE Mahalanobis residual\n(actual K-alpha runs; lower is better)",
             figures_dir / "real_metric_coverage_matrix_weighted_residual.png",
         ),
+        (
+            "reconstruction_mse",
+            "Real NPML Matrix: AE reconstruction MSE\n(actual K-alpha runs; lower is better)",
+            figures_dir / "real_metric_coverage_matrix_reconstruction_mse.png",
+        ),
     ]
+    status = suite_status(frame)
     manifest: dict[str, Any] = {
         "results_dir": str(RESULTS_DIR),
         "suite_experiments": [spec["experiment_name"] for spec in SUITE],
         "figures": [],
+        "status": status,
     }
     for metric_name, title, output_path in metric_specs:
         matrix = _matrix_from_frame(frame, metric_name=metric_name)
         matrix.to_csv(tables_dir / f"{metric_name}_matrix.csv")
-        _plot_matrix(matrix, metric_name=metric_name, title=title, output_path=output_path)
-        manifest["figures"].append(output_path.name)
+        if status["metrics"][metric_name]["complete"]:
+            _plot_matrix(matrix, metric_name=metric_name, title=title, output_path=output_path)
+            manifest["figures"].append(output_path.name)
 
     with (OUTPUT_DIR / "manifest.json").open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
@@ -274,8 +313,11 @@ def main(argv: list[str] | None = None) -> int:
         run_analysis_suite(force=args.force, sampling_frequency=args.sampling_frequency)
 
     frame = build_summary_frame()
-    ensure_complete_suite(frame)
+    status = ensure_renderable_suite(frame)
     render_outputs(frame)
+    for metric_name, item in status["metrics"].items():
+        state = "complete" if item["complete"] else f"missing {item['missing_cells']}"
+        print(f"[metric-coverage] {metric_name}: {state}", flush=True)
     print(f"[metric-coverage] wrote outputs to {OUTPUT_DIR}", flush=True)
     return 0
 

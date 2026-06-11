@@ -15,20 +15,20 @@ Training coverage summary
 - metric_coverage_mse_restricted: train 711/1434 retained (0.496)
 
 Weighted residual matrix
-                     full   restricted
-metric_mode                           
-mahalanobis  3.237154e+06  37201414.20
-mse          1.332302e+06   5570992.95
+                     full    restricted
+metric_mode                            
+mahalanobis  1.606179e+06  3.510338e+06
+mse          1.610196e+06  2.283643e+06
 
 Reconstruction MSE matrix
                      full    restricted
 metric_mode                            
-mahalanobis  2.939977e+07  3.100621e+07
-mse          1.885013e+03  2.075765e+04
+mahalanobis  3.591658e+07  3.880159e+06
+mse          3.756773e+03  8.434620e+03
 
 Interpretation
 - Coverage effect is real in both metrics: restricted training worsens held-out performance.
-- Weighted residual degrades by 11.49x under Mahalanobis and 4.18x under MSE.
-- Reconstruction MSE degrades by 1.05x under Mahalanobis and 11.01x under MSE.
+- Weighted residual degrades by 2.19x under Mahalanobis and 1.42x under MSE.
+- Reconstruction MSE degrades by 0.11x under Mahalanobis and 2.25x under MSE.
 - In this particular run set, MSE achieved a lower weighted residual than Mahalanobis, so the plot supports the coverage claim much more cleanly than the metric-correctness claim.
 - That means this figure is strongest as evidence that missing latent coverage hurts learning even on a real experiment.

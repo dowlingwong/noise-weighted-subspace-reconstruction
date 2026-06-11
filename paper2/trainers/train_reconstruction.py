@@ -141,7 +141,11 @@ def build_model(cfg: ExperimentConfig, whitener: WhiteningOperator):
 
 
 def build_criterion(cfg: ExperimentConfig) -> ReconstructionCriterion:
-    return ReconstructionCriterion(loss_mode=cfg.raw["loss"]["mode"])
+    loss_cfg = cfg.raw["loss"]
+    return ReconstructionCriterion(
+        loss_mode=loss_cfg["mode"],
+        scale=float(loss_cfg.get("scale", 1.0)),
+    )
 
 
 def build_optimizer(cfg: ExperimentConfig, model) -> Any:
@@ -403,6 +407,7 @@ def run_experiment(config_path: str | Path) -> None:
     best_metrics: dict[str, float] | None = None
     best_val = float("inf")
     stale = 0
+    selection_metric = str(cfg.raw["training"].get("selection_metric", "eval_loss"))
 
     print(
         f"[paper2] {cfg.experiment_name}: device={device}, "
@@ -433,8 +438,15 @@ def run_experiment(config_path: str | Path) -> None:
             row = {"epoch": epoch, **train_metrics, **val_metrics}
             history.append(row)
 
-            if val_metrics["eval_loss"] < best_val:
-                best_val = val_metrics["eval_loss"]
+            if selection_metric not in val_metrics:
+                raise KeyError(
+                    f"selection_metric={selection_metric!r} not found in validation metrics: "
+                    f"{sorted(val_metrics)}"
+                )
+            selection_value = float(val_metrics[selection_metric])
+
+            if selection_value < best_val:
+                best_val = selection_value
                 stale = 0
                 best_metrics = {
                     **row,
@@ -458,7 +470,8 @@ def run_experiment(config_path: str | Path) -> None:
                 f"val_loss={val_metrics['eval_loss']:.6g} "
                 f"val_weighted={val_metrics['weighted_residual_mean']:.6g} "
                 f"val_mse={val_metrics['reconstruction_mse']:.6g} "
-                f"best_val={best_val:.6g} stale={stale}",
+                f"select_{selection_metric}={selection_value:.6g} "
+                f"best_select={best_val:.6g} stale={stale}",
                 flush=True,
             )
             log_wandb_epoch(wandb_run, epoch, row, best_val, stale)
@@ -476,10 +489,15 @@ def run_experiment(config_path: str | Path) -> None:
         )
         if wandb_run is not None:
             wandb_run.summary["best_val"] = best_val
+            wandb_run.summary["selection_metric"] = selection_metric
             for key, value in best_metrics.items():
                 if isinstance(value, (int, float)):
                     wandb_run.summary[f"best/{key}"] = value
         completed = True
     finally:
         finish_wandb(wandb_run, exit_code=0 if completed else 1)
-    print(f"[paper2] {cfg.experiment_name}: complete best_val={best_val:.6g}", flush=True)
+    print(
+        f"[paper2] {cfg.experiment_name}: complete "
+        f"best_{selection_metric}={best_val:.6g}",
+        flush=True,
+    )

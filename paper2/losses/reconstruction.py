@@ -36,10 +36,11 @@ def mahalanobis_raw(
 class ReconstructionCriterion(nn.Module):
     """Shared criterion for AE and transformer reconstruction."""
 
-    def __init__(self, loss_mode: LossMode) -> None:
+    def __init__(self, loss_mode: LossMode, scale: float = 1.0) -> None:
         require_torch()
         super().__init__()
         self.loss_mode = loss_mode
+        self.scale = float(scale)
 
     def forward(
         self,
@@ -53,4 +54,11 @@ class ReconstructionCriterion(nn.Module):
             total = mahalanobis_raw(batch.x, output.x_hat, whitener)
         else:
             raise ValueError(f"Unsupported loss mode: {self.loss_mode}")
-        return LossOutput(total=total, terms={"reconstruction": total})
+        scaled_total = total * self.scale
+        return LossOutput(
+            total=scaled_total,
+            terms={
+                "reconstruction": total,
+                "scale": torch.as_tensor(self.scale, device=total.device, dtype=total.dtype),
+            },
+        )

@@ -1,0 +1,34 @@
+Real metric x coverage experiment
+
+Definition
+- Model family: AE
+- Input mode: raw
+- Metric axis: Mahalanobis vs MSE loss
+- Coverage axis: full vs restricted
+- Restricted means training only on the central amplitude/t0 quantile box
+- Validation/test remain on the full held-out distribution
+
+Training coverage summary
+- metric_coverage_mahalanobis_full: train 1434/1434 retained (1.000)
+- metric_coverage_mahalanobis_restricted: train 711/1434 retained (0.496)
+- metric_coverage_mse_full: train 1434/1434 retained (1.000)
+- metric_coverage_mse_restricted: train 711/1434 retained (0.496)
+
+Weighted residual matrix
+                     full   restricted
+metric_mode                           
+mahalanobis  3.237154e+06  37201414.20
+mse          1.332302e+06   5570992.95
+
+Reconstruction MSE matrix
+                     full    restricted
+metric_mode                            
+mahalanobis  2.939977e+07  3.100621e+07
+mse          1.885013e+03  2.075765e+04
+
+Interpretation
+- Coverage effect is real in both metrics: restricted training worsens held-out performance.
+- Weighted residual degrades by 11.49x under Mahalanobis and 4.18x under MSE.
+- Reconstruction MSE degrades by 1.05x under Mahalanobis and 11.01x under MSE.
+- In this particular run set, MSE achieved a lower weighted residual than Mahalanobis, so the plot supports the coverage claim much more cleanly than the metric-correctness claim.
+- That means this figure is strongest as evidence that missing latent coverage hurts learning even on a real experiment.

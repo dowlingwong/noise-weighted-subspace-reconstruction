@@ -14,6 +14,7 @@ The stack is intentionally split into:
 - `models/`: AE, transformer encoder/decoder wrappers, shared interfaces
 - `trainers/`: training loop, evaluation loop, experiment runner
 - `configs/`: exact experiment YAMLs
+- `npml/`: NPML talk notebooks, support code, slide-ready tables, and figures
 
 The code here is a concrete implementation spec:
 
@@ -28,6 +29,7 @@ Useful entry points:
 - `python -m paper2.trainers.run_experiment_suite d`
 - `python -m paper2.trainers.run_experiment_suite e`
 - `python -m paper2.analysis.real_metric_coverage_matrix --train --analyze`
+- `PYTHONPATH=. python paper2/npml/generate_npml_notebooks.py`
 
-See [IMPLEMENTATION_SPEC.md](/Users/wongdowling/Documents/noise-weighted-subspace-reconstruction/paper2/IMPLEMENTATION_SPEC.md)
+See [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md)
 for the pre-implementation checklist.

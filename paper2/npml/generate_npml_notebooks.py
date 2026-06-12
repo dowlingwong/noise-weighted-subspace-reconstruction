@@ -6,7 +6,10 @@ from textwrap import dedent
 import nbformat as nbf
 from nbclient import NotebookClient
 
-from npml_support import NPML_DIR, ensure_npml_dirs
+try:
+    from .npml_support import NPML_DIR, ensure_npml_dirs
+except ImportError:  # pragma: no cover - direct script execution
+    from npml_support import NPML_DIR, ensure_npml_dirs
 
 
 def md(text: str):

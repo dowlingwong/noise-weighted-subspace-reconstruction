@@ -1,11 +1,18 @@
 # NPML Talk Notebooks
 
-Generated notebooks live directly in this folder.
+Generated notebooks live directly in this folder. This is the former root
+`NPML/` workspace, now kept with the Paper 2 reconstruction stack.
 
 Outputs used by the notebooks:
 
-- figures: `NPML/figures/`
-- tables: `NPML/tables/`
+- figures: `paper2/npml/figures/`
+- tables: `paper2/npml/tables/`
+
+Regenerate the notebook set and outputs from the repository root with:
+
+```bash
+PYTHONPATH=. python paper2/npml/generate_npml_notebooks.py
+```
 
 Notebook set:
 

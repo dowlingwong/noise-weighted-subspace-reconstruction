@@ -2,12 +2,12 @@
 
 The implementation notebooks are organized around two concrete data sources:
 
-- real K-alpha traces in ``data/k_alpha_traces.h5`` with companion RQs;
+- real K-alpha traces in ``data/k_alpha/k_alpha_traces.h5`` with companion RQs;
 - controlled synthetic families generated with ``QP_simulator/QPSimulator.py``.
 
 The goal of this module is not to hide the experiment logic. It provides a
 small, explicit analysis contract so the notebooks can stay short, readable,
-and consistent with ``experiment_checklist.md``.
+and consistent with ``plan/experiment_checklist.md``.
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def _discover_repo_root() -> Path:
 
     for candidate in candidates:
         if (
-            (candidate / "experiment_checklist.md").exists()
+            (candidate / "plan" / "experiment_checklist.md").exists()
             and (candidate / "src").exists()
             and (candidate / "QP_simulator").exists()
             and (candidate / "implementation").exists()
@@ -46,8 +46,9 @@ def _discover_repo_root() -> Path:
 
 REPO_ROOT = _discover_repo_root()
 SRC_DIR = REPO_ROOT / "src"
+EMPCA_DIR = SRC_DIR / "EMPCA"
 QP_DIR = REPO_ROOT / "QP_simulator"
-for path in (REPO_ROOT, SRC_DIR, QP_DIR):
+for path in (REPO_ROOT, SRC_DIR, EMPCA_DIR, QP_DIR):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
@@ -91,8 +92,8 @@ class CanonicalConfig:
     results_figures_dir: str = "results/figures"
     results_manifests_dir: str = "results/manifests"
     results_notebooks_dir: str = "results/notebooks"
-    real_trace_path: str = "data/k_alpha_traces.h5"
-    real_rq_path: str = "data/k_alpha_rqs.h5"
+    real_trace_path: str = "data/k_alpha/k_alpha_traces.h5"
+    real_rq_path: str = "data/k_alpha/k_alpha_rqs.h5"
     template_path: str = "data/template_K_alpha_tight.npy"
     canonical_psd_path: str = "data/weight/noise_psd_pink.npy"
 

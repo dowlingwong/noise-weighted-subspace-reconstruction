@@ -24,7 +24,7 @@ def _find_repo_root() -> Path:
 
 
 REPO_ROOT = _find_repo_root()
-NPML_DIR = REPO_ROOT / "NPML"
+NPML_DIR = Path(__file__).resolve().parent
 FIG_DIR = NPML_DIR / "figures"
 TABLE_DIR = NPML_DIR / "tables"
 

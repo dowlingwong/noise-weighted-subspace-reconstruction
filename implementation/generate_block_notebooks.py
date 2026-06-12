@@ -22,7 +22,7 @@ COMMON_SETUP = dedent(
 
     def find_repo_root(start: Path) -> Path:
         for candidate in [start, *start.parents]:
-            if (candidate / "experiment_checklist.md").exists() and (candidate / "implementation").exists():
+            if (candidate / "plan" / "experiment_checklist.md").exists() and (candidate / "implementation").exists():
                 return candidate
         raise RuntimeError("Could not locate repo root for notebook execution.")
 

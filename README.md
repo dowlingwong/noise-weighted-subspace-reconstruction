@@ -12,6 +12,53 @@ This codebase supports three core claims from the paper:
 2. **Rank-1 EMPCA and OF equivalence** when weighting, preprocessing, and gauge conventions are matched.
 3. **EMPCA as a noise-aware linear subspace method** (and its relation to weighted linear autoencoder formulations).
 
+It also hosts the experiment code for the nonlinear follow-up (Paper 2) under `paper2/`.
+
+## Datasets
+
+This project uses three data sources plus supporting measured spectra. Summary:
+
+| Dataset | Location | Real / simulated | Channels | Key features | Open-source status |
+|---|---|---|---|---|---|
+| K-alpha calibration traces | `data/k_alpha/` | Real detector data | 1 | Real colored noise, measured PSD, ground-truth line energy | Internal; large `.h5` files not committed |
+| TraceSimulator | `TraceSimulator/` | Simulated (full detector physics) | Multi | Position-dependent multichannel tracesets, quanta statistics, PSD noise | **Closed source — copyright not ours; do not redistribute** |
+| QP simulator + enhanced noise module | `QP_simulator/` | Simulated (lightweight, controllable) | 1 to multi | Clean/noisy pairs; non-stationary, non-Gaussian, correlated multichannel noise | Ours; open-sourceable |
+| Measured noise spectra | `noise_sample/`, `data/Noise_PSD/`, `data/weight/` | Measured component spectra | — | SQUID/Johnson/TD/Er ASDs, total noise, signal template, SNR² weights | Small files committed |
+
+### 1. K-alpha calibration traces (real data)
+
+Single-channel K-alpha X-ray calibration pulses from a cryogenic microcalorimeter. Used for the paper's real-data experiments (OF–EMPCA equivalence, Bridge Theorem check, rank-k behavior).
+
+- Expected files (not committed due to size): `data/k_alpha/k_alpha_traces.h5` (dataset `traces`, shape `(4358, 32768)`) and `data/k_alpha/k_alpha_rqs.h5` (dataset `rqs`); loader contract in `paper2/data/datasets.py`.
+- Committed: pulse template `data/k_alpha/template_K_alpha_tight.npy`.
+- Features: **real** pulses with real colored detector noise; noise PSD measurable from noise traces (`src/PSDCalculator.py`; precomputed PSDs in `data/Noise_PSD/`, SNR² weights in `data/weight/`); fixed calibration energy gives a ground-truth amplitude scale; approximately stationary noise; natural timing jitter and pulse-shape variation.
+
+### 2. TraceSimulator (multichannel DELight trace simulator) — closed source
+
+Full detector-physics simulator under `TraceSimulator/`: energy partitioning into phonon/triplet/UV/IR quanta (`DELightSignalFormation`), position-dependent collection-efficiency maps (`SimulationMap`), channel geometry binning (`CylindricalBinning`, `PolygonBinning`), Poisson/multinomial quanta statistics, template shaping, and PSD-based stationary noise (`NoiseGenerator`).
+
+- Produces physically realistic **multichannel** tracesets with position-dependent pulse-shape variation — the only source here of detector-realistic cross-channel signal correlations.
+- **Copyright is not held by this project. It must not be open-sourced or redistributed from this repository.** Before any public release of this repo, remove `TraceSimulator/` (or replace it with a pointer/submodule to the upstream private repo).
+- Requires input maps available on the `kalinka` system; see `TraceSimulator/README.md`.
+
+### 3. QP simulator + enhanced noise module (ours, open)
+
+Lightweight, fully controllable simulation stack under `QP_simulator/`:
+
+- `QPSimulator.py`: standalone clean quasiparticle traces from explicit QP arrival times (no dependency on TraceSimulator); rise/decay template, calibrated gain.
+- `noise_module/`: composable noise pipeline (`NoiseGenerator` → `TemporalNoiseWrapper` → `ArtifactInjector` → `MultiChannelNoiseGenerator`):
+  - `NoiseGenerator`: stationary Gaussian core; analytic white/pink/Brownian/blue/violet PSDs or custom tabulated PSD (can inject measured detector spectra).
+  - `TemporalNoiseWrapper`: **non-stationary** noise — piecewise-stationary segments, slow drift, local variance modulation.
+  - `ArtifactInjector`: **non-Gaussian** contamination — spectral lines, glitches, bursts, sparse heavy-tailed impulses.
+  - `MultiChannelNoiseGenerator`: independent, shared+private, or low-rank-correlated channels.
+- Features: ground-truth clean/noisy pairs and signal masks; every assumption of the linear Gaussian theory (stationarity, Gaussianity, channel independence) can be violated in a controlled, ablatable way. Unit-tested (`noise_module/tests/`), with tutorials (`qp_simulator_tutorial.ipynb`, `noise_module_tutorial.ipynb`).
+
+### 4. Measured noise spectra (supporting data)
+
+- `noise_sample/Al2O3_Al_athermal/`: measured component amplitude spectral densities (SQUID, Johnson, thermodynamic, athermal-excess) plus total noise and signal template — inputs for the noise-budget Studies A/B (paper Appendix F.8/G).
+- `data/Noise_PSD/*.npy`: precomputed noise PSDs (white/pink/Brownian/blue/violet/MMC).
+- `data/weight/*.npy`: PSD and SNR² weights used by the OF/EMPCA pipelines.
+
 ## Repository Layout
 
 - `src/noise_weighted_sr/`
@@ -63,9 +110,12 @@ Example categories:
 ```bash
 conda env create -f environment.yml
 conda activate nwsr
-pip install -e .[dev]
-PYTHONPATH=src pytest -q tests
+# the repo is used via PYTHONPATH (there is no installable pyproject yet)
+PYTHONPATH=. pytest -q tests
 ```
+
+Smoke-test notebook (imports, rank-1 OF≡EMPCA equivalence, rank-k fast-vs-full
+solver, PSD normalization round-trip): `notebooks/smoke_test_code_validation.ipynb`.
 
 ## Running Current Pipelines
 

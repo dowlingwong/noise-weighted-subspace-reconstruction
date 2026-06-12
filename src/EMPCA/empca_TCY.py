@@ -133,6 +133,16 @@ class EMPCA:
         self.solver = None
 
     def fit(self, X, weights, n_iter=50, window=15, polyord=3, deriv=0, patience=5, mode='fast', verbose=False):
+        """Fit EMPCA.
+
+        WARNING: this method applies a Savitzky-Golay filter (`smooth`) to the
+        eigenvectors at every iteration. That regularization is NOT part of the
+        maximum-likelihood EMPCA objective analyzed in the paper; it changes the
+        fixed point. For paper-grade equivalence results use
+        `src/EMPCA/empca_equivalence_utils.fit_empca_no_smoothing`, which skips
+        smoothing entirely. Any result produced with this method should be
+        labeled as the smoothed variant.
+        """
         _patience = patience
         chi2s = []
         if self.solver is None:

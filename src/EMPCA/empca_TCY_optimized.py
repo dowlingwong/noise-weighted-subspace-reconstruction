@@ -72,6 +72,31 @@ def random_orthonormals(n_comp, n_var, seed=1):
     return orthonormalize(np.random.normal(size=(n_comp, n_var)))
 
 
+def w_orthonormalize(A, w):
+    """Gram-Schmidt in the weighted metric <a,b>_w = sum conj(a)*b*w.
+
+    Enforces the Bridge-Theorem gauge P^dagger Sigma^{-1} P = I_k
+    (rows of A become w-orthonormal). Use on a converged basis when
+    comparing against the tied linear-AE / Bridge-Theorem convention;
+    the default `orthonormalize` is Euclidean and corresponds to a
+    different (equally valid) gauge of the same subspace.
+    """
+    A = np.array(A, copy=True)
+    w = np.asarray(w, dtype=np.float64)
+    n_comp = A.shape[0]
+
+    def _inner(a, b):
+        return np.sum(np.conjugate(a) * b * w)
+
+    for i in range(n_comp):
+        for j in range(i):
+            A[i] -= _inner(A[j], A[i]) * A[j]
+        nrm = np.sqrt(np.real(_inner(A[i], A[i])))
+        if nrm > 0:
+            A[i] /= nrm
+    return A
+
+
 def smooth(A, window=15, polyord=3, deriv=1):
     # Smooth real/imag independently (same as original behavior)
     return savgol_filter(np.real(A), window, polyord, deriv) + 1j * savgol_filter(
@@ -224,10 +249,38 @@ class empca_solver:
         return orthonormalize(self.eigvec)
 
     def solve_eigvec_full(self, data=None):
-        # Original full solve retained for compatibility with non-diagonal weights.
+        """Exact M-step including the off-diagonal C^dagger C coupling.
+
+        For weights shared across observations the weighted normal equations
+        (C^dagger C) (x) W  vec(Phi) = vec(W X^T C*) factorize, and on every
+        bin with nonzero weight the solution is
+
+            Phi = (C^dagger C)^{-1} C^dagger X
+
+        i.e. the weights cancel bin-wise. Bins with zero weight (e.g. the DC
+        bin in the OF convention) do not enter the objective; we set those
+        eigvec entries to 0. This path now supports 1D/diagonal weights,
+        which previously crashed (the dense-matrix code assumed
+        `self.weights` was an (n_var, n_var) matrix).
+        """
         if data is None:
             data = self.data
         data = np.asarray(data)
+
+        if self._weights_are_diag:
+            C = np.asarray(self.coeff)
+            G = C.conj().T @ C  # (n_comp, n_comp) coupling matrix
+            rhs = C.conj().T @ data  # (n_comp, n_var)
+            try:
+                eig = scipy.linalg.solve(G, rhs, check_finite=False)
+            except Exception:
+                eig = scipy.linalg.lstsq(
+                    G, rhs, lapack_driver="gelsy", check_finite=False
+                )[0]
+            w = np.asarray(self.w_vec)
+            eig[:, w == 0] = 0.0
+            self.eigvec = eig
+            return orthonormalize(self.eigvec)
 
         BigW = np.zeros([self.n_comp * self.n_var, self.n_comp * self.n_var], dtype=complex)
         for n in range(self.n_comp):

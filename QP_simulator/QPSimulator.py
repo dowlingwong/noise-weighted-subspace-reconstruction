@@ -330,7 +330,13 @@ class QPSimulator:
 
         # One-sided PSD: multiply by 2 to fold negative frequencies, then
         # normalise by (N * fs) so the integral over positive freqs = power.
+        # The DC and Nyquist bins are NOT doubled (each appears once in the
+        # two-sided spectrum), matching the docstring, PSDCalculator, and the
+        # OptimumFilter unfolding convention.
         J_k = mean_spectrum * 2.0 / (N * fs)
+        J_k[0] /= 2.0
+        if N % 2 == 0:
+            J_k[-1] /= 2.0
 
         frequencies = np.fft.rfftfreq(N, d=1.0 / fs)
         return frequencies, J_k

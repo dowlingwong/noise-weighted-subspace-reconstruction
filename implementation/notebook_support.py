@@ -53,7 +53,7 @@ for path in (REPO_ROOT, SRC_DIR, EMPCA_DIR, QP_DIR):
         sys.path.insert(0, str(path))
 
 from OptimumFilter import OptimumFilter  # noqa: E402
-from empca_TCY_optimized import empca_solver, orthonormalize, smooth  # noqa: E402
+from empca_TCY_optimized import empca_solver, orthonormalize, smooth, w_orthonormalize  # noqa: E402
 from empca_equivalence_utils import (  # noqa: E402
     build_of_one_sided_weights,
     phase_align_basis,
@@ -300,7 +300,16 @@ def fit_weighted_empca(
     template_f: np.ndarray | None = None,
     smoothing: bool = False,
     seed: int | None = None,
+    mode: str = "fast",
 ) -> dict[str, Any]:
+    """Fit weighted EMPCA.
+
+    ``mode='fast'`` uses the decoupled M-step (weights cancel per component);
+    it is exact only at k=1. ``mode='full'`` solves the coupled normal
+    equations including the off-diagonal C^dagger C terms and is required for
+    correct rank-k (k>=2) subspaces — the fast-mode decoupling is the suspect
+    behind the draft's Fig 15/16 contradictions (see EXPERIMENT_PLAN.md, G2).
+    """
     X_f = np.asarray(X_f, dtype=np.complex128)
     weights = np.asarray(weights, dtype=np.float64)
     if seed is not None:
@@ -326,7 +335,7 @@ def fit_weighted_empca(
     stale = 0
 
     for _ in range(n_iter):
-        eigvec = solver.solve_eigvec(mode="fast")
+        eigvec = solver.solve_eigvec(mode=mode)
         if smoothing:
             eigvec = smooth(eigvec, window=15, polyord=3, deriv=0)
         solver.eigvec = orthonormalize(eigvec)
@@ -1535,4 +1544,717 @@ def run_block09_robustness_suite(cfg: CanonicalConfig) -> dict[str, Any]:
         "nonstationary_df": nonstationary_df,
         "artifact_df": artifact_df,
         "multichannel_df": multichannel_df,
+    }
+
+
+# ======================================================================
+# PSD unit conventions (G2 repair) and blocks 11-12
+# ======================================================================
+#
+# Two PSD conventions coexist in this repository:
+#
+# 1. *Physical* one-sided PSD, units A^2/Hz, normalised so that
+#    sum(J_k) * fs / N equals the mean noise power. This is what
+#    ``QPSimulator.estimate_psd`` returns and what ``OptimumFilter``
+#    expects as input (its internal fft/fs scaling assumes it).
+#
+# 2. *DFT-power* spectrum, J_dft[k] = E|rfft(noise)[k]|^2, which is what
+#    ``NoiseGenerator.build_psd`` returns. For raw-``np.fft.rfft`` data,
+#    OF-convention weights MUST be built from THIS convention:
+#    with w = build_of_one_sided_weights(J_dft, N), the GLS amplitude
+#    satisfies Var(A_hat) = 1 / N_Phi with N_Phi = <s, s>_w exactly
+#    (verified empirically to ~1% for white/pink/Brownian).
+#
+# The two differ by the exact factor  J_dft = J_phys * (N * fs / 2).
+# Mixing them (physical-PSD weights with raw-rfft data) inflates a
+# predicted sigma by sqrt(N*fs/2); the draft's Fig 7 "Brownian 184x"
+# is consistent with such a convention mix (184^2 ~ 2N for N = 16384).
+# All block-11/12 code states explicitly which convention each array is in.
+
+
+def psd_physical_to_dft(J_phys: np.ndarray, trace_len: int, fs: float) -> np.ndarray:
+    """Physical one-sided PSD (A^2/Hz) -> DFT-power convention E|rfft|^2."""
+    return np.asarray(J_phys, dtype=np.float64) * (trace_len * fs / 2.0)
+
+
+def psd_dft_to_physical(J_dft: np.ndarray, trace_len: int, fs: float) -> np.ndarray:
+    """DFT-power convention E|rfft|^2 -> physical one-sided PSD (A^2/Hz)."""
+    return np.asarray(J_dft, dtype=np.float64) / (trace_len * fs / 2.0)
+
+
+def raw_mse_from_freq_residual(resid_f: np.ndarray, trace_len: int) -> np.ndarray:
+    """Per-trace time-domain MSE from an rfft-domain residual (Parseval)."""
+    resid_f = np.atleast_2d(np.asarray(resid_f))
+    mag2 = np.abs(resid_f) ** 2
+    total = mag2[:, 0].copy()
+    if trace_len % 2 == 0:
+        total += 2.0 * np.sum(mag2[:, 1:-1], axis=1) + mag2[:, -1]
+    else:
+        total += 2.0 * np.sum(mag2[:, 1:], axis=1)
+    return total / (trace_len ** 2)
+
+
+def amplitude_basis_from_subspace(
+    basis: np.ndarray,
+    template_f: np.ndarray,
+    weights: np.ndarray,
+) -> np.ndarray:
+    """Rotate a rank-k basis so row 0 is the w-normalized projection of the
+    template onto span(basis); remaining rows complete a w-orthonormal set.
+
+    The GLS coefficient on row 0 is then the physically meaningful
+    'amplitude at rank k' (PC2..k absorb shape variation w-orthogonally)."""
+    U = np.atleast_2d(np.asarray(basis, dtype=np.complex128))
+    w = np.asarray(weights, dtype=np.float64)
+    coeff = project_gls(np.asarray(template_f)[None, :], U, w, return_complex=True)
+    proj = np.asarray(coeff).reshape(-1) @ U
+    proj = normalize_basis_weighted_unit(proj, w)
+    proj = phase_align_basis(proj, np.asarray(template_f), w)
+    stacked = np.vstack([proj[None, :], U])
+    ortho = w_orthonormalize(stacked, w)
+    norms = np.sqrt(np.abs(np.array([np.real(weighted_inner(row, row, w)) for row in ortho])))
+    keep = ortho[norms > 1e-6]
+    return keep[: U.shape[0]]
+
+
+def template_unit_amplitudes(
+    X_f: np.ndarray,
+    basis_amp: np.ndarray,
+    template_f: np.ndarray,
+    weights: np.ndarray,
+) -> np.ndarray:
+    """GLS amplitude in TEMPLATE units from a w-orthonormal amplitude basis.
+
+    Row 0 of ``basis_amp`` is w-normalized, so its raw GLS coefficient is in
+    w-norm units; dividing by gamma = Re<u1, s>_w converts to the same units
+    as the OF amplitude (template-peak ADC)."""
+    coeff = np.atleast_2d(
+        rankk_gls_coefficients(X_f, basis_amp, weights, return_complex=False)
+    )
+    gamma = float(np.real(weighted_inner(basis_amp[0], np.asarray(template_f), weights)))
+    if abs(gamma) < 1e-30:
+        raise ValueError("amplitude basis has no overlap with template")
+    return coeff[:, 0] / gamma
+
+
+def simulate_jitter_family(
+    cfg: CanonicalConfig,
+    n_events: int,
+    noise_type: str,
+    noise_power: float,
+    seed: int,
+    jitter_ns: float = 2e5,
+    n_qp: int = 5000,
+    trigger_sample: int | None = None,
+    n_null: int | None = None,
+) -> dict[str, Any]:
+    """Fixed-amplitude, timing-jittered pulse family (the paper's Exp E set).
+
+    All QPs arrive simultaneously (fixed shape), n_qp fixed (fixed true
+    amplitude), t0 ~ Uniform(-jitter, +jitter) -> genuinely 2-D signal family
+    (mean pulse + timing derivative). Trigger placed after cfg.pretrigger so
+    baseline windows stay signal-free. Returns clean/noisy/null traces, a
+    unit-peak template, and the PSD in BOTH conventions."""
+    rng = np.random.default_rng(seed)
+    if trigger_sample is None:
+        trigger_sample = cfg.pretrigger + 500
+    if trigger_sample >= cfg.trace_len:
+        raise ValueError("trigger_sample beyond trace end")
+    dt_ns = 1e9 / cfg.sampling_frequency
+    trigger_ns = trigger_sample * dt_ns
+    base_sim = QPSimulator(
+        sampling_frequency=cfg.sampling_frequency,
+        trace_samples=cfg.trace_len,
+        trigger_time=trigger_ns,
+    )
+    t0_shifts = rng.uniform(-jitter_ns, jitter_ns, size=n_events)
+    clean = np.empty((n_events, cfg.trace_len), dtype=np.float64)
+    amp_true = float(n_qp) * base_sim.qp_amplitude
+    for i in range(n_events):
+        ev_sim = QPSimulator(
+            sampling_frequency=cfg.sampling_frequency,
+            trace_samples=cfg.trace_len,
+            trigger_time=trigger_ns + float(t0_shifts[i]),
+        )
+        clean[i] = ev_sim.generate(np.zeros(n_qp, dtype=float))
+    template_time = base_sim.generate(np.zeros(n_qp, dtype=float)) / amp_true
+
+    ng = NoiseGenerator(
+        {"noise_type": noise_type, "noise_power": float(noise_power),
+         "sampling_frequency": cfg.sampling_frequency},
+        rng=rng,
+    )
+    _, J_dft = ng.build_psd(cfg.trace_len)
+    J_phys = psd_dft_to_physical(J_dft, cfg.trace_len, cfg.sampling_frequency)
+    noise = np.stack([ng.generate_noise(cfg.trace_len) for _ in range(n_events)], axis=0)
+    n_null = n_events if n_null is None else int(n_null)
+    null_noise = np.stack([ng.generate_noise(cfg.trace_len) for _ in range(n_null)], axis=0)
+    return {
+        "clean": clean,
+        "noisy": clean + noise,
+        "null_noise": null_noise,
+        "template_time": template_time,
+        "t0_shift_ns": t0_shifts,
+        "amp_true": amp_true,
+        "J_dft": J_dft,
+        "J_phys": J_phys,
+        "seed": int(seed),
+        "noise_type": noise_type,
+        "noise_power": float(noise_power),
+    }
+
+
+def _split_two_way(n: int, train_frac: float, seed: int) -> tuple[np.ndarray, np.ndarray]:
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(n)
+    n_train = int(round(train_frac * n))
+    return np.sort(order[:n_train]), np.sort(order[n_train:])
+
+
+def run_block11_crb_units(cfg: CanonicalConfig, n_replicates: int | None = None,
+                          noise_types: tuple[str, ...] = ("white", "pink", "brownian")) -> pd.DataFrame:
+    """E4 repair: CRB attainment with explicitly consistent PSD conventions.
+
+    For each noise color, compares the empirical OF amplitude variance with
+    (i) 1/N_Phi from DFT-convention weights, (ii) 1/kernel_normalization from
+    OptimumFilter fed the physical PSD, and (iii) the WRONG mixed-convention
+    prediction, whose error factor ~ N*fs/2 documents the draft's Fig 7 bug."""
+    n_replicates = cfg.crb_replicates if n_replicates is None else int(n_replicates)
+    dt_ns = 1e9 / cfg.sampling_frequency
+    sim = QPSimulator(
+        sampling_frequency=cfg.sampling_frequency,
+        trace_samples=cfg.trace_len,
+        trigger_time=(cfg.pretrigger + 500) * dt_ns,
+    )
+    clean = sim.generate(np.zeros(5000, dtype=float))
+    amp_true = 5000.0 * sim.qp_amplitude
+    template = clean / amp_true
+    template_f = np.fft.rfft(template)
+    rows = []
+    _ALL_TYPES = ("white", "pink", "brownian")
+    for noise_type in noise_types:
+        type_idx = _ALL_TYPES.index(noise_type)
+        ng = NoiseGenerator(
+            {"noise_type": noise_type, "noise_power": 1.0,
+             "sampling_frequency": cfg.sampling_frequency},
+            seed=cfg.seed + 7919 * type_idx,  # decorrelate colors
+        )
+        _, J_dft = ng.build_psd(cfg.trace_len)
+        J_phys = psd_dft_to_physical(J_dft, cfg.trace_len, cfg.sampling_frequency)
+        w_dft = build_of_one_sided_weights(J_dft, cfg.trace_len)
+        w_phys_wrong = build_of_one_sided_weights(J_phys, cfg.trace_len)
+        of = OptimumFilter(template, J_phys, cfg.sampling_frequency)
+        amps = np.empty(n_replicates, dtype=np.float64)
+        for r in range(n_replicates):
+            amps[r] = of.fit(clean + ng.generate_noise(cfg.trace_len))[0]
+        var_emp = float(np.var(amps, ddof=1))
+        nphi_dft = float(np.real(weighted_inner(template_f, template_f, w_dft)))
+        nphi_mixed = float(np.real(weighted_inner(template_f, template_f, w_phys_wrong)))
+        kern = float(of._kernel_normalization)
+        rows.append({
+            "noise_type": noise_type,
+            "n_replicates": n_replicates,
+            "amp_true": amp_true,
+            "amp_mean": float(np.mean(amps)),
+            "var_emp": var_emp,
+            "var_pred_dft_weights": 1.0 / nphi_dft,
+            "var_pred_of_kernel": 1.0 / kern,
+            "var_pred_mixed_WRONG": 1.0 / nphi_mixed,
+            "rel_err_dft": abs(var_emp - 1.0 / nphi_dft) * nphi_dft,
+            "rel_err_kernel": abs(var_emp - 1.0 / kern) * kern,
+            "mixed_error_factor": (1.0 / nphi_mixed) / var_emp,
+            "expected_mix_factor_N_fs_over_2": cfg.trace_len * cfg.sampling_frequency / 2.0,
+        })
+    return pd.DataFrame(rows)
+
+
+def run_block11_sigma_scaling(
+    cfg: CanonicalConfig,
+    noise_powers: tuple[float, ...] = (0.1, 0.5, 1.0, 5.0, 10.0, 50.0),
+    n_events: int = 400,
+) -> pd.DataFrame:
+    """E5 repair: sigma_E vs noise power, consistent conventions, GLS amplitudes."""
+    dt_ns = 1e9 / cfg.sampling_frequency
+    sim = QPSimulator(
+        sampling_frequency=cfg.sampling_frequency,
+        trace_samples=cfg.trace_len,
+        trigger_time=(cfg.pretrigger + 500) * dt_ns,
+    )
+    clean = sim.generate(np.zeros(5000, dtype=float))
+    amp_true = 5000.0 * sim.qp_amplitude
+    template_f = np.fft.rfft(clean / amp_true)
+    rows = []
+    for power in noise_powers:
+        ng = NoiseGenerator(
+            {"noise_type": "pink", "noise_power": float(power),
+             "sampling_frequency": cfg.sampling_frequency},
+            seed=cfg.seed + int(round(float(power) * 1000)),  # decorrelate sweep points
+        )
+        _, J_dft = ng.build_psd(cfg.trace_len)
+        w = build_of_one_sided_weights(J_dft, cfg.trace_len)
+        noisy = np.stack([clean + ng.generate_noise(cfg.trace_len) for _ in range(n_events)], axis=0)
+        amps = project_gls(rfft_traces(noisy), template_f, w, return_complex=False)
+        nphi = float(np.real(weighted_inner(template_f, template_f, w)))
+        rows.append({
+            "noise_power": float(power),
+            "sigma_emp": float(np.std(amps, ddof=1)),
+            "sigma_pred": float(1.0 / np.sqrt(nphi)),
+        })
+    df = pd.DataFrame(rows)
+    df["relative_error"] = np.abs(df["sigma_emp"] - df["sigma_pred"]) / df["sigma_pred"]
+    return df
+
+
+def run_block11_rank_study(
+    cfg: CanonicalConfig,
+    n_seeds: int = 8,
+    n_events: int = 240,
+    ranks: tuple[int, ...] = (1, 2, 3, 4, 5),
+    noise_types: tuple[str, ...] = ("white", "pink", "brownian"),
+    noise_power: float = 1.0,
+    jitter_ns: float = 2e5,
+    empca_mode: str = "full",
+) -> dict[str, Any]:
+    """Exp E repair (Figs 7/15/16): sigma_E(k)/sigma_OF, amplitude bias at
+    k=1 vs k=2 under timing jitter, and residual-whiteness KS p versus rank
+    with a Monte-Carlo noise-only null (instead of an analytic chi^2 null).
+
+    Uses mode='full' EMPCA (exact coupled M-step) by default."""
+    rank_rows = []
+    amp_samples = {nt: {1: [], 2: []} for nt in noise_types}
+    amp_true_by_type: dict[str, float] = {}
+    for noise_type in noise_types:
+        for s in range(n_seeds):
+            seed = cfg.seed + 1000 * s
+            fam = simulate_jitter_family(
+                cfg, n_events=n_events, noise_type=noise_type,
+                noise_power=noise_power, seed=seed, jitter_ns=jitter_ns,
+            )
+            amp_true_by_type[noise_type] = fam["amp_true"]
+            w = build_of_one_sided_weights(fam["J_dft"], cfg.trace_len)
+            template_f = np.fft.rfft(fam["template_time"])
+            X_f = rfft_traces(baseline_correct(fam["noisy"], cfg.pretrigger))
+            null_f = rfft_traces(baseline_correct(fam["null_noise"], cfg.pretrigger))
+            tmpl_f = np.fft.rfft(
+                baseline_correct(fam["template_time"][None, :], cfg.pretrigger)[0]
+            )
+            train_idx, test_idx = _split_two_way(n_events, 0.6, seed)
+            # --- OF baseline (zero-shift GLS == OF amplitude) ---
+            amp_of = project_gls(X_f[test_idx], tmpl_f, w, return_complex=False)
+            sigma_of = float(np.std(amp_of, ddof=1))
+            bias_of = float(np.mean(amp_of) - fam["amp_true"]) / fam["amp_true"]
+            for k in ranks:
+                fit = fit_weighted_empca(
+                    X_f[train_idx], w, k=k,
+                    n_iter=cfg.default_empca_iter, patience=cfg.default_empca_patience,
+                    init="template", template_f=tmpl_f, seed=seed, mode=empca_mode,
+                )
+                basis_amp = amplitude_basis_from_subspace(fit["basis"], tmpl_f, w)
+                amp_k = template_unit_amplitudes(X_f[test_idx], basis_amp, tmpl_f, w)
+                resid_test = residual_energy_per_trace(
+                    X_f[test_idx], basis_amp,
+                    rankk_gls_coefficients(X_f[test_idx], basis_amp, w, return_complex=True), w,
+                )
+                resid_null = residual_energy_per_trace(
+                    null_f, basis_amp,
+                    rankk_gls_coefficients(null_f, basis_amp, w, return_complex=True), w,
+                )
+                ks = stats.ks_2samp(resid_test, resid_null)
+                rank_rows.append({
+                    "noise_type": noise_type,
+                    "seed": seed,
+                    "k": int(k),
+                    "sigma_E": float(np.std(amp_k, ddof=1)),
+                    "sigma_OF": sigma_of,
+                    "sigma_ratio": float(np.std(amp_k, ddof=1) / sigma_of),
+                    "bias_rel": float(np.mean(amp_k) - fam["amp_true"]) / fam["amp_true"],
+                    "bias_rel_OF": bias_of,
+                    "ks_stat": float(ks.statistic),
+                    "ks_pvalue": float(ks.pvalue),
+                    "resid_test_mean": float(np.mean(resid_test)),
+                    "resid_null_mean": float(np.mean(resid_null)),
+                    "empca_iters": int(fit["n_iter_used"]),
+                    "empca_mode": empca_mode,
+                })
+                if k in (1, 2):
+                    amp_samples[noise_type][k].append(np.asarray(amp_k, dtype=np.float64))
+    rank_df = pd.DataFrame(rank_rows)
+    agg_df = (
+        rank_df.groupby(["noise_type", "k"])
+        .agg(
+            sigma_ratio_mean=("sigma_ratio", "mean"),
+            sigma_ratio_std=("sigma_ratio", "std"),
+            bias_rel_mean=("bias_rel", "mean"),
+            bias_rel_std=("bias_rel", "std"),
+            bias_rel_OF_mean=("bias_rel_OF", "mean"),
+            ks_pvalue_median=("ks_pvalue", "median"),
+            ks_pvalue_min=("ks_pvalue", "min"),
+            ks_pvalue_max=("ks_pvalue", "max"),
+        )
+        .reset_index()
+    )
+    amp_pooled = {
+        nt: {k: (np.concatenate(v) if len(v) else np.array([])) for k, v in d.items()}
+        for nt, d in amp_samples.items()
+    }
+    return {
+        "rank_df": rank_df,
+        "agg_df": agg_df,
+        "amp_pooled": amp_pooled,
+        "amp_true": amp_true_by_type,
+    }
+
+
+def run_block11_reversal_rank_sweep(
+    cfg: CanonicalConfig,
+    n_seeds: int = 8,
+    n_train: int = 400,
+    n_test: int = 200,
+    ranks: tuple[int, ...] = (1, 2, 3),
+    noise_types: tuple[str, ...] = ("white", "pink", "brownian"),
+    noise_power: float = 1.0,
+    empca_mode: str = "full",
+) -> pd.DataFrame:
+    """Table 4 / Table 7 reconciliation: isotropic PCA vs weighted EMPCA,
+    rank sweep, with BOTH Delta-chi^2 definitions reported explicitly:
+
+    - delta_chi2_vs_iso(k)  = (chi2_iso(k) - chi2_emp(k)) / chi2_iso(k)
+      [Table 4's quantity at k=1]
+    - delta_chi2_vs_rank1(k) = (chi2_emp(1) - chi2_emp(k)) / chi2_emp(1)
+      [Table 7's quantity]
+    The draft conflated the two (-0.23% vs -0.03%); they are different.
+
+    Isotropic PCA is fitted in the time domain (uncentered SVD, the raw-MSE
+    objective); weighted EMPCA in the rfft domain with DFT-convention weights."""
+    rows = []
+    n_events = n_train + n_test
+    for noise_type in noise_types:
+        for s in range(n_seeds):
+            seed = cfg.seed + 1000 * s
+            fam = simulate_jitter_family(
+                cfg, n_events=n_events, noise_type=noise_type,
+                noise_power=noise_power, seed=seed, n_null=8,
+            )
+            w = build_of_one_sided_weights(fam["J_dft"], cfg.trace_len)
+            X_time = baseline_correct(fam["noisy"], cfg.pretrigger)
+            X_f = rfft_traces(X_time)
+            tmpl_f = np.fft.rfft(
+                baseline_correct(fam["template_time"][None, :], cfg.pretrigger)[0]
+            )
+            train_idx, test_idx = _split_two_way(n_events, n_train / n_events, seed)
+            # isotropic PCA, time domain, uncentered
+            _, _, vh = np.linalg.svd(X_time[train_idx], full_matrices=False)
+            vh = vh.copy()
+            tmpl_t0 = baseline_correct(fam["template_time"][None, :], cfg.pretrigger)[0]
+            if float(vh[0] @ tmpl_t0) < 0:
+                vh[0] *= -1.0
+            chi2_emp_k1 = None
+            for k in ranks:
+                iso_basis_t = vh[:k]
+                coeff_iso = X_time[test_idx] @ iso_basis_t.T
+                recon_iso = coeff_iso @ iso_basis_t
+                mse_iso = float(np.mean((X_time[test_idx] - recon_iso) ** 2))
+                iso_basis_f = rfft_traces(iso_basis_t)
+                resid_iso_f = X_f[test_idx] - rfft_traces(recon_iso)
+                chi2_iso = float(np.mean(np.sum((np.abs(resid_iso_f) ** 2) * w[None, :], axis=1)))
+
+                fit = fit_weighted_empca(
+                    X_f[train_idx], w, k=k,
+                    n_iter=cfg.default_empca_iter, patience=cfg.default_empca_patience,
+                    init="template", template_f=tmpl_f, seed=seed, mode=empca_mode,
+                )
+                coeff_emp = rankk_gls_coefficients(X_f[test_idx], fit["basis"], w, return_complex=True)
+                resid_emp = residual_energy_per_trace(X_f[test_idx], fit["basis"], coeff_emp, w)
+                chi2_emp = float(np.mean(resid_emp))
+                recon_f = np.atleast_2d(coeff_emp) @ np.atleast_2d(fit["basis"])
+                mse_emp = float(np.mean(raw_mse_from_freq_residual(X_f[test_idx] - recon_f, cfg.trace_len)))
+                if k == min(ranks):
+                    chi2_emp_k1 = chi2_emp
+                cosines, angles = principal_angles_weighted(fit["basis"], iso_basis_f, w)
+                # sigma_E for both methods (amplitude = template-aligned component)
+                basis_amp = amplitude_basis_from_subspace(fit["basis"], tmpl_f, w)
+                amp_emp = template_unit_amplitudes(X_f[test_idx], basis_amp, tmpl_f, w)
+                tmpl_t = baseline_correct(fam["template_time"][None, :], cfg.pretrigger)[0]
+                gamma_iso = float(iso_basis_t[0] @ tmpl_t)
+                amp_iso = coeff_iso[:, 0] / gamma_iso if abs(gamma_iso) > 1e-30 else coeff_iso[:, 0]
+                rows.append({
+                    "noise_type": noise_type,
+                    "seed": seed,
+                    "k": int(k),
+                    "mse_iso": mse_iso,
+                    "mse_empca": mse_emp,
+                    "delta_mse_iso_advantage": (mse_emp - mse_iso) / mse_iso,
+                    "chi2_iso": chi2_iso,
+                    "chi2_empca": chi2_emp,
+                    "delta_chi2_vs_iso": (chi2_iso - chi2_emp) / chi2_iso,
+                    "delta_chi2_vs_rank1": (chi2_emp_k1 - chi2_emp) / chi2_emp_k1,
+                    "theta_w_first_deg": float(angles[0]),
+                    "theta_w_last_deg": float(angles[-1]),
+                    "sigma_E_empca": float(np.std(amp_emp, ddof=1)),
+                    "sigma_E_iso_pc1": float(np.std(amp_iso, ddof=1)),
+                    "bias_rel_empca": float(np.mean(amp_emp) - fam["amp_true"]) / fam["amp_true"],
+                    "bias_rel_iso": float(np.mean(amp_iso) - fam["amp_true"]) / fam["amp_true"],
+                    "empca_mode": empca_mode,
+                })
+    return pd.DataFrame(rows)
+
+
+# ----------------------------------------------------------------------
+# Block 12: G1 real-data isotropic-vs-weighted metric reversal (K-alpha)
+# ----------------------------------------------------------------------
+
+def load_real_lean(cfg: CanonicalConfig, chunk: int = 256) -> dict[str, Any]:
+    """Memory-lean K-alpha loader (float32 time, complex64 rfft).
+
+    The full-precision ``load_real_bundle`` needs ~3.4 GB; this variant stays
+    under ~1.3 GB so the full 4358x32768 dataset fits in small-RAM workers.
+    complex64 gives ~1e-7 relative precision: ample for MSE/chi^2/sigma_E
+    (it is NOT sufficient for the 1e-8-level equivalence checks of block 03)."""
+    trace_path = REPO_ROOT / cfg.real_trace_path
+    rq_path = REPO_ROOT / cfg.real_rq_path
+    template_path = REPO_ROOT / "data/k_alpha/template_K_alpha_tight.npy"
+    if not template_path.exists():
+        template_path = REPO_ROOT / cfg.template_path
+
+    with h5py.File(rq_path, "r") as handle:
+        rqs = pd.DataFrame.from_records(handle["rqs"][:])
+
+    with h5py.File(trace_path, "r") as handle:
+        dset = handle["traces"]
+        n, d = dset.shape
+        assert d == cfg.trace_len, (d, cfg.trace_len)
+        X_time = np.empty((n, d), dtype=np.float32)
+        X_freq = np.empty((n, d // 2 + 1), dtype=np.complex64)
+        pre = np.empty((n, cfg.pretrigger), dtype=np.float32)
+        for lo in range(0, n, chunk):
+            hi = min(lo + chunk, n)
+            block = np.asarray(dset[lo:hi], dtype=np.float64)
+            base = np.mean(block[:, : cfg.pretrigger], axis=1, keepdims=True)
+            pre[lo:hi] = (block[:, : cfg.pretrigger] - base).astype(np.float32)
+            block -= base
+            X_time[lo:hi] = block.astype(np.float32)
+            X_freq[lo:hi] = np.fft.rfft(block, axis=1).astype(np.complex64)
+    template_time = normalize_template_peak(
+        np.load(template_path).astype(np.float64).reshape(-1), cfg.pretrigger
+    )
+    return {
+        "X_time": X_time,
+        "X_freq": X_freq,
+        "pretrigger_traces": pre,
+        "template_time": template_time,
+        "template_freq": np.fft.rfft(template_time),
+        "rqs": rqs,
+        "n_events": int(n),
+    }
+
+
+def estimate_real_psd_segments(
+    pretrigger_traces: np.ndarray,
+    cfg: CanonicalConfig,
+) -> dict[str, np.ndarray]:
+    """Physical one-sided PSD from pre-trigger noise, interpolated onto the
+    full-trace frequency grid (log-log), with DC handled by extension.
+
+    Avoids the tiling artifact of ``estimate_real_psd_from_pretrigger`` (the
+    tiled copy imposes spurious periodicity at fs/pretrigger harmonics)."""
+    seg = np.asarray(pretrigger_traces, dtype=np.float64)
+    seg = seg - np.mean(seg, axis=1, keepdims=True)
+    freqs_seg, J_seg = QPSimulator.estimate_psd(seg, cfg.sampling_frequency)
+    freqs_full = np.fft.rfftfreq(cfg.trace_len, d=1.0 / cfg.sampling_frequency)
+    pos = freqs_seg > 0
+    logJ = np.interp(
+        np.log(np.maximum(freqs_full, freqs_seg[pos][0])),
+        np.log(freqs_seg[pos]),
+        np.log(np.maximum(J_seg[pos], 1e-300)),
+    )
+    J_full = np.exp(logJ)
+    J_full[0] = J_full[1]
+    floor = np.quantile(J_full[1:], cfg.default_psd_floor_quantile)
+    J_full = np.maximum(J_full, floor)
+    return {
+        "freqs_seg": freqs_seg,
+        "J_seg_phys": J_seg,
+        "freqs_full": freqs_full,
+        "J_phys": J_full,
+        "J_dft": psd_physical_to_dft(J_full, cfg.trace_len, cfg.sampling_frequency),
+    }
+
+
+def _fit_empca_lean(
+    X_f: np.ndarray,
+    weights: np.ndarray,
+    k: int,
+    n_iter: int,
+    patience: int,
+    template_f: np.ndarray,
+    mode: str = "full",
+    seed: int | None = None,
+) -> dict[str, Any]:
+    """EMPCA fit that preserves the input dtype (complex64-safe), template+SVD
+    init, no smoothing. Mirrors fit_weighted_empca but without the complex128
+    upcast of the full data matrix."""
+    if seed is not None:
+        np.random.seed(seed)
+    solver = empca_solver(k, X_f, np.asarray(weights, dtype=np.float64))
+    base = normalize_basis_weighted_unit(
+        np.asarray(template_f, dtype=np.complex128), weights
+    )[None, :]
+    if k > 1:
+        # SVD of the whitened data via Gram trick (lean)
+        sqrt_w = safe_sqrt_weights(weights).astype(np.float32)
+        Xw = X_f * sqrt_w[None, :]
+        G = (Xw @ Xw.conj().T).astype(np.complex128)
+        vals, vecs = np.linalg.eigh(G)
+        order = np.argsort(vals)[::-1][: k]
+        comps = (vecs[:, order].T.conj() @ Xw).astype(np.complex128)
+        mask = sqrt_w > 0
+        comps[:, mask] /= sqrt_w[mask][None, :]
+        comps = normalize_basis_weighted_unit(comps, weights)
+        base = np.vstack([base, comps[1:k]])
+    solver.eigvec = orthonormalize(base.copy())
+    solver.coeff = solver.solve_coeff()
+    chi2_trace: list[float] = []
+    best, stale = np.inf, 0
+    for _ in range(n_iter):
+        solver.eigvec = orthonormalize(solver.solve_eigvec(mode=mode))
+        solver.coeff = solver.solve_coeff()
+        chi2 = float(solver.chi2())
+        chi2_trace.append(chi2)
+        if chi2 + 1e-12 < best:
+            best, stale = chi2, 0
+        else:
+            stale += 1
+            if stale >= patience:
+                break
+    return {
+        "basis": np.asarray(solver.eigvec, dtype=np.complex128),
+        "chi2_trace": np.asarray(chi2_trace),
+        "n_iter_used": len(chi2_trace),
+    }
+
+
+def run_block12_real_reversal(
+    cfg: CanonicalConfig,
+    ranks: tuple[int, ...] = (1, 2, 3, 4, 5),
+    kalpha_line_ev: float | None = 5895.0,
+    empca_mode: str = "full",
+    n_iter: int | None = None,
+) -> dict[str, Any]:
+    """G1: isotropic PCA vs Sigma-weighted EMPCA on real K-alpha pulses.
+
+    Fits both methods on identical training pulses; evaluates on held-out
+    pulses: raw time-domain MSE (isotropic's objective), weighted residual
+    chi^2 (the detector likelihood), and the energy resolution sigma_E at the
+    calibration line. Also returns the whitened angle theta_w between the two
+    learned bases, the OF baseline, the E12 amplitude histogram inputs, and
+    the real-PSD audit arrays (replacement for placeholder Fig 21).
+
+    ``kalpha_line_ev``: line energy used to express sigma_E in eV
+    (default Mn K-alpha 5895 eV — CONFIRM for this detector); relative
+    resolution is always reported and is line-independent."""
+    n_iter = cfg.default_empca_iter if n_iter is None else int(n_iter)
+    data = load_real_lean(cfg)
+    psd = estimate_real_psd_segments(data["pretrigger_traces"], cfg)
+    w = build_of_one_sided_weights(psd["J_dft"], cfg.trace_len)
+    split = deterministic_split_indices(data["n_events"], cfg)
+    train_idx, test_idx = split["train"], split["test"]
+    X_time, X_freq = data["X_time"], data["X_freq"]
+    tmpl_f = data["template_freq"]
+
+    # ---------------- OF baseline (canonical OptimumFilter, physical PSD) ---
+    of = OptimumFilter(data["template_time"], psd["J_phys"], cfg.sampling_frequency)
+    amp_of = np.array(
+        [of.fit(np.asarray(X_time[i], dtype=np.float64))[0] for i in test_idx]
+    )
+    amp_of_all = np.array(
+        [of.fit(np.asarray(X_time[i], dtype=np.float64))[0] for i in range(data["n_events"])]
+    )
+    rq_of = data["rqs"]["OF_ampl_0"].to_numpy(dtype=np.float64)
+    of_cross_corr = float(np.corrcoef(amp_of_all, rq_of)[0, 1])
+
+    # ---------------- isotropic PCA via Gram trick (time domain, uncentered)
+    Xtr = X_time[train_idx]
+    G = (Xtr @ Xtr.T).astype(np.float64)
+    vals, vecs = np.linalg.eigh(G)
+    order = np.argsort(vals)[::-1][: max(ranks)]
+    iso_basis = (vecs[:, order].T @ Xtr).astype(np.float64)
+    iso_basis /= np.linalg.norm(iso_basis, axis=1, keepdims=True)
+    # sign-align PC1 to template
+    if float(iso_basis[0] @ data["template_time"]) < 0:
+        iso_basis[0] *= -1.0
+
+    rows = []
+    fits: dict[int, dict[str, Any]] = {}
+    Xtr_f = X_freq[train_idx]
+    Xte_f = np.asarray(X_freq[test_idx], dtype=np.complex128)
+    Xte_t = np.asarray(X_time[test_idx], dtype=np.float64)
+    for k in ranks:
+        fit = _fit_empca_lean(
+            Xtr_f, w, k=k, n_iter=n_iter, patience=cfg.default_empca_patience,
+            template_f=tmpl_f, mode=empca_mode, seed=cfg.seed,
+        )
+        fits[k] = fit
+        # EMPCA held-out metrics
+        coeff_emp = rankk_gls_coefficients(Xte_f, fit["basis"], w, return_complex=True)
+        resid_emp_f = Xte_f - np.atleast_2d(coeff_emp) @ np.atleast_2d(fit["basis"])
+        chi2_emp = float(np.mean(np.sum((np.abs(resid_emp_f) ** 2) * w[None, :], axis=1)))
+        mse_emp = float(np.mean(raw_mse_from_freq_residual(resid_emp_f, cfg.trace_len)))
+        basis_amp = amplitude_basis_from_subspace(fit["basis"], tmpl_f, w)
+        amp_emp = template_unit_amplitudes(Xte_f, basis_amp, tmpl_f, w)
+        # isotropic held-out metrics
+        iso_k = iso_basis[:k]
+        coeff_iso = Xte_t @ iso_k.T
+        resid_iso_t = Xte_t - coeff_iso @ iso_k
+        mse_iso = float(np.mean(resid_iso_t ** 2))
+        resid_iso_f = np.fft.rfft(resid_iso_t, axis=1)
+        chi2_iso = float(np.mean(np.sum((np.abs(resid_iso_f) ** 2) * w[None, :], axis=1)))
+        gamma_iso = float(iso_k[0] @ data["template_time"])
+        amp_iso = coeff_iso[:, 0] / gamma_iso if abs(gamma_iso) > 1e-30 else coeff_iso[:, 0]
+        iso_f = np.fft.rfft(iso_k, axis=1)
+        cosines, angles = principal_angles_weighted(fit["basis"], iso_f, w)
+
+        def _res(amp):
+            mu = float(np.mean(amp))
+            sd = float(np.std(amp, ddof=1))
+            return mu, sd, sd / abs(mu)
+
+        mu_e, sd_e, rel_e = _res(amp_emp)
+        mu_i, sd_i, rel_i = _res(amp_iso)
+        mu_o, sd_o, rel_o = _res(amp_of)
+        rows.append({
+            "k": int(k),
+            "mse_iso": mse_iso, "mse_empca": mse_emp,
+            "delta_mse_iso_advantage": (mse_emp - mse_iso) / mse_iso,
+            "chi2_iso": chi2_iso, "chi2_empca": chi2_emp,
+            "delta_chi2_vs_iso": (chi2_iso - chi2_emp) / chi2_iso,
+            "sigma_E_rel_empca": rel_e, "sigma_E_rel_iso": rel_i, "sigma_E_rel_of": rel_o,
+            "sigma_E_ev_empca": rel_e * kalpha_line_ev if kalpha_line_ev else np.nan,
+            "sigma_E_ev_iso": rel_i * kalpha_line_ev if kalpha_line_ev else np.nan,
+            "sigma_E_ev_of": rel_o * kalpha_line_ev if kalpha_line_ev else np.nan,
+            "theta_w_first_deg": float(angles[0]),
+            "theta_w_last_deg": float(angles[-1]),
+            "empca_iters": int(fit["n_iter_used"]),
+        })
+    reversal_df = pd.DataFrame(rows)
+
+    # ---------------- E12 extras: amplitude histogram + CRB comparison -----
+    nphi = float(np.real(weighted_inner(tmpl_f, tmpl_f, w)))
+    sigma_crb = 1.0 / np.sqrt(nphi)
+    sh_stat, sh_p = stats.shapiro(amp_of_all[: min(len(amp_of_all), 4999)])
+    e12 = {
+        "amp_of_all": amp_of_all,
+        "rq_of_ampl": rq_of,
+        "of_cross_corr": of_cross_corr,
+        "sigma_A_obs": float(np.std(amp_of_all, ddof=1)),
+        "sigma_A_crb": float(sigma_crb),
+        "crb_ratio": float(np.std(amp_of_all, ddof=1) / sigma_crb),
+        "shapiro_stat": float(sh_stat),
+        "shapiro_p": float(sh_p),
+    }
+    return {
+        "reversal_df": reversal_df,
+        "psd": psd,
+        "e12": e12,
+        "split_sizes": {k_: int(v.shape[0]) for k_, v in split.items()},
+        "kalpha_line_ev": kalpha_line_ev,
     }

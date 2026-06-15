@@ -146,15 +146,26 @@ class NoiseGenerator:
         amplitude = np.sqrt(np.clip(psd, a_min=0.0, a_max=None))
         spectrum = np.zeros_like(amplitude, dtype=complex)
 
+        # True complex-Gaussian bins (E|eta_k|^2 = psd_k, Rayleigh modulus).
+        # The previous implementation used CONSTANT-modulus random-phase bins
+        # (eta_k = sqrt(psd_k) e^{i phi}): correct second-order statistics,
+        # but every trace then has identical per-bin power, so any
+        # distributional statistic built from weighted residual energies
+        # (chi^2 goodness-of-fit, KS residual-whiteness tests) is degenerate
+        # and meaningless. Gaussian bins are required for those tests and
+        # match the Gaussian-ML assumptions of the framework.
         if len(amplitude) > 0:
-            spectrum[0] = amplitude[0]
+            spectrum[0] = amplitude[0] * self.rng.standard_normal()
         if len(amplitude) > 2:
-            phases = self.rng.uniform(0.0, 2.0 * np.pi, len(amplitude) - 2)
-            spectrum[1:-1] = amplitude[1:-1] * np.exp(1j * phases)
+            re = self.rng.standard_normal(len(amplitude) - 2)
+            im = self.rng.standard_normal(len(amplitude) - 2)
+            spectrum[1:-1] = amplitude[1:-1] * (re + 1j * im) / np.sqrt(2.0)
         if len(amplitude) > 1:
-            spectrum[-1] = amplitude[-1] if N % 2 == 0 else amplitude[-1] * np.exp(
-                1j * self.rng.uniform(0.0, 2.0 * np.pi)
-            )
+            if N % 2 == 0:
+                spectrum[-1] = amplitude[-1] * self.rng.standard_normal()
+            else:
+                re, im = self.rng.standard_normal(2)
+                spectrum[-1] = amplitude[-1] * (re + 1j * im) / np.sqrt(2.0)
 
         signal = irfft(spectrum, n=N)
         if not return_metadata:

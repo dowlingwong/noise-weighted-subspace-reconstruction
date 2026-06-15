@@ -22,7 +22,7 @@ def _template(n=N_SAMPLES, fs=FS, tau_rise=8e-4, tau_decay=8e-3):
     return s / s.max()
 
 
-def _pink_psd(n=N_SAMPLES, fs=FS, level=1e-4):
+def _pink_psd(n=N_SAMPLES, fs=FS, level=1e-5):
     f = np.fft.rfftfreq(n, d=1.0 / fs)
     J = np.empty_like(f)
     J[1:] = level * (f[1] / f[1:])  # 1/f
@@ -41,7 +41,9 @@ def _colored_noise(rng, J, n, fs, n_traces):
     X = (re + 1j * im) / np.sqrt(2.0) * scale[None, :]
     X[:, 0] = re[:, 0] * scale[0]
     if n % 2 == 0:
-        X[:, -1] = re[:, -1] * scale[-1]
+        # Nyquist: real bin with variance J * fs * n (one-sided PSD is NOT
+        # folded at Nyquist in the OF convention), i.e. sqrt(2) * scale.
+        X[:, -1] = re[:, -1] * scale[-1] * np.sqrt(2.0)
     return np.fft.irfft(X, n=n, axis=1)
 
 

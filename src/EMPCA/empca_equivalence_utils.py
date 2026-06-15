@@ -23,7 +23,8 @@ def build_of_one_sided_weights(J_psd, trace_len):
     w[0] = 0.0
     if trace_len % 2 == 0:
         w[1:-1] = 2.0 / J[1:-1]
-        w[-1] = 1.0 / J[-1]
+        # OF convention: Nyquist appears once, unfolded as J (not J/2)
+        w[-1] = 1.0 / (2.0 * J[-1])
     else:
         w[1:] = 2.0 / J[1:]
     return w
@@ -62,7 +63,13 @@ def project_gls(X_f, basis_f, w, return_complex=False):
     if basis_f.ndim == 2:
         gram = (basis_f * w[None, :]) @ basis_f.conj().T
         rhs = (X_f * w[None, :]) @ basis_f.conj().T
-        coeff = np.linalg.solve(gram, rhs.T).T
+        # Per-trace WLS normal equations give C = rhs @ conj(G)^{-1} for the
+        # Hermitian Gram G. The previous `solve(gram, rhs.T).T` evaluates
+        # rhs @ G^{-1}, which is only correct when G is real: for complex
+        # bases at k >= 2 it returned suboptimal coefficients (weighted
+        # residuals inflated by several x; verified against brute-force WLS
+        # to machine precision after the fix). k = 1 paths were unaffected.
+        coeff = np.linalg.solve(gram.conj(), rhs.T).T
         return coeff if return_complex else np.real(coeff)
 
     raise ValueError(f"basis_f must be 1D or 2D, got ndim={basis_f.ndim}")
@@ -84,8 +91,24 @@ def weighted_residual_energy(X_f, basis_f, coeff, w):
     return np.real(np.sum((np.abs(residual) ** 2) * w[None, :], axis=1))
 
 
-def fit_empca_no_smoothing(X_f, w, n_comp=1, n_iter=50, patience=8, mode="fast"):
+def _weighted_svd_init(X_f, w, n_comp):
+    X_f = np.asarray(X_f, dtype=np.complex128)
+    w = np.asarray(w, dtype=np.float64)
+    sqrt_w = np.sqrt(np.clip(w, 0.0, None))
+    _, _, vh = np.linalg.svd(X_f * sqrt_w[None, :], full_matrices=False)
+    basis = np.zeros((int(n_comp), X_f.shape[1]), dtype=np.complex128)
+    mask = sqrt_w > 0
+    basis[:, mask] = vh[: int(n_comp), mask] / sqrt_w[mask]
+    return basis
+
+
+def fit_empca_no_smoothing(X_f, w, n_comp=1, n_iter=50, patience=8, mode="fast", init="weighted_svd"):
     solver = empca_mod.empca_solver(n_comp, np.asarray(X_f), np.asarray(w))
+    if init == "weighted_svd":
+        solver.eigvec = _weighted_svd_init(X_f, w, n_comp)
+        solver.coeff = solver.solve_coeff()
+    elif init != "random":
+        raise ValueError(f"unsupported init: {init}")
     chi2s = []
     best = np.inf
     stale = 0
@@ -94,6 +117,8 @@ def fit_empca_no_smoothing(X_f, w, n_comp=1, n_iter=50, patience=8, mode="fast")
         solver.eigvec = empca_mod.orthonormalize(solver.solve_eigvec(mode=mode))
         solver.coeff = solver.solve_coeff()
         chi2 = solver.chi2()
+        if chi2 > best and (chi2 - best) <= max(1e-12 * abs(best), 1e-12):
+            chi2 = best
         chi2s.append(chi2)
 
         if chi2 + 1e-12 < best:

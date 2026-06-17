@@ -8,8 +8,15 @@ import numpy as np
 def _orthonormal_rows(basis: np.ndarray, weights: np.ndarray | None = None) -> np.ndarray:
     B = np.asarray(basis, dtype=np.float64)
     if weights is not None:
-        sqrt_w = np.sqrt(np.clip(np.asarray(weights, dtype=np.float64), 0.0, None))
-        B = B * sqrt_w[None, :]
+        w = np.asarray(weights, dtype=np.float64)
+        if w.ndim == 1:
+            B = B * np.sqrt(np.clip(w, 0.0, None))[None, :]
+        elif w.ndim == 2:
+            vals, vecs = np.linalg.eigh(0.5 * (w + w.T))
+            sqrt_metric = (vecs * np.sqrt(np.clip(vals, 0.0, None))[None, :]) @ vecs.T
+            B = B @ sqrt_metric
+        else:
+            raise ValueError("weights must be a vector or square matrix")
     q, _ = np.linalg.qr(B.T)
     return q
 

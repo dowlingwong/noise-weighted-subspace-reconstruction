@@ -48,3 +48,21 @@ def regularize_covariance(cov: np.ndarray, *, floor: float | None = None, shrink
         floor = max(float(np.max(vals)) * 1e-10, np.finfo(float).eps)
     vals = np.clip(vals, float(floor), None)
     return (vecs * vals[None, :]) @ vecs.T
+
+
+def inverse_covariance(cov: np.ndarray, *, floor: float | None = None, shrinkage: float = 0.0) -> np.ndarray:
+    """Return a stable inverse covariance matrix."""
+    C = regularize_covariance(cov, floor=floor, shrinkage=shrinkage)
+    vals, vecs = np.linalg.eigh(C)
+    return (vecs * (1.0 / vals)[None, :]) @ vecs.T
+
+
+def block_covariance(channel_cov: np.ndarray, time_cov: np.ndarray) -> np.ndarray:
+    """Build a separable multichannel covariance ``channel_cov kron time_cov``."""
+    Cc = np.asarray(channel_cov, dtype=np.float64)
+    Ct = np.asarray(time_cov, dtype=np.float64)
+    if Cc.ndim != 2 or Cc.shape[0] != Cc.shape[1]:
+        raise ValueError("channel_cov must be square")
+    if Ct.ndim != 2 or Ct.shape[0] != Ct.shape[1]:
+        raise ValueError("time_cov must be square")
+    return np.kron(Cc, Ct)

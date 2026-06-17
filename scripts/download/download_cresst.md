@@ -6,6 +6,13 @@ confirmed:
 
 https://www.origins-cluster.de/odsl/dark-matter-data-center/available-datasets/cresst
 
-Place raw downloads under `data/external/cresst/` or `data/raw/cresst/`.
+Place raw downloads under `/ceph/dwong/paper1_dataset/cresst/raw/` by
+default. This can be overridden with `PAPER1_DATA_ROOT` or `--data-root`.
 Do not commit downloaded trace archives, `.h5`, `.hdf5`, `.root`, `.npz`, or
 processed arrays.
+
+Use the Python helper to prepare the remote-server cache:
+
+```bash
+uv run python scripts/download/download_cresst.py
+```

@@ -5,5 +5,6 @@ These functions are intentionally lightweight until public-data dependencies
 """
 
 from .smoke import dependency_status
+from .analysis import load_cached_event, run_gwosc_experiment
 
-__all__ = ["dependency_status"]
+__all__ = ["dependency_status", "load_cached_event", "run_gwosc_experiment"]

@@ -30,21 +30,32 @@ def fit_pca(samples: np.ndarray, rank: int, *, center: bool = True) -> SubspaceF
 def fit_weighted_pca(samples: np.ndarray, weights: np.ndarray, rank: int, *, center: bool = True) -> SubspaceFit:
     """Fit PCA in whitened coordinates and map components back to data units.
 
-    This is the diagonal-covariance version of weighted PCA/EMPCA and is the
-    closed-form target for the tied linear AE bridge experiment.
+    ``weights`` may be a diagonal weight vector or a full positive-definite
+    inverse covariance matrix.
     """
     X = np.asarray(samples, dtype=np.float64)
     w = np.asarray(weights, dtype=np.float64)
     if X.shape[1] != w.shape[0]:
         raise ValueError("weights length must match feature dimension")
-    sqrt_w = np.sqrt(np.clip(w, 0.0, None))
     mean = X.mean(axis=0) if center else np.zeros(X.shape[1], dtype=np.float64)
-    Xw = (X - mean[None, :]) * sqrt_w[None, :]
+    Xc = X - mean[None, :]
+    if w.ndim == 1:
+        sqrt_w = np.sqrt(np.clip(w, 0.0, None))
+        Xw = Xc * sqrt_w[None, :]
+        inverse_transform = np.zeros((X.shape[1], X.shape[1]), dtype=np.float64)
+        mask = sqrt_w > 0
+        inverse_transform[mask, mask] = 1.0 / sqrt_w[mask]
+    elif w.ndim == 2 and w.shape[0] == w.shape[1]:
+        vals, vecs = np.linalg.eigh(0.5 * (w + w.T))
+        vals = np.clip(vals, np.finfo(float).eps, None)
+        transform = vecs * np.sqrt(vals)[None, :]
+        inverse_transform = (vecs * (1.0 / np.sqrt(vals))[None, :]).T
+        Xw = Xc @ transform
+    else:
+        raise ValueError("weights must be a vector or square matrix")
     _, s, vh = np.linalg.svd(Xw, full_matrices=False)
     r = int(rank)
-    components = np.zeros((r, X.shape[1]), dtype=np.float64)
-    mask = sqrt_w > 0
-    components[:, mask] = vh[:r, mask] / sqrt_w[mask]
+    components = vh[:r] @ inverse_transform
     return SubspaceFit(components, mean, (s[:r] ** 2) / max(X.shape[0] - 1, 1), w)
 
 
@@ -59,7 +70,13 @@ def project_onto_basis(samples: np.ndarray, basis: np.ndarray, *, weights: np.nd
         rhs = Xc @ B.T
     else:
         w = np.asarray(weights, dtype=np.float64)
-        gram = (B * w[None, :]) @ B.T
-        rhs = (Xc * w[None, :]) @ B.T
+        if w.ndim == 1:
+            gram = (B * w[None, :]) @ B.T
+            rhs = (Xc * w[None, :]) @ B.T
+        elif w.ndim == 2:
+            gram = B @ w @ B.T
+            rhs = Xc @ w @ B.T
+        else:
+            raise ValueError("weights must be a vector or square matrix")
     coeff = np.linalg.solve(gram, rhs.T).T
     return coeff @ B + mu[None, :]

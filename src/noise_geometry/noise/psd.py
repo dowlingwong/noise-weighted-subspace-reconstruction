@@ -25,6 +25,38 @@ def estimate_psd_rfft(traces: np.ndarray, sampling_frequency: float = 1.0) -> tu
     return freqs, psd
 
 
+def estimate_psd_welch(
+    traces: np.ndarray,
+    sampling_frequency: float = 1.0,
+    *,
+    segment_length: int | None = None,
+    overlap: float = 0.5,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Estimate a one-sided PSD using Welch averaging over trace segments."""
+    X = np.asarray(traces, dtype=np.float64)
+    if X.ndim == 1:
+        X = X[None, :]
+    if X.ndim != 2:
+        raise ValueError("traces must have shape (n_traces, n_samples)")
+    n = X.shape[1]
+    if segment_length is None:
+        segment_length = min(n, 1024)
+    segment_length = int(segment_length)
+    if segment_length <= 1 or segment_length > n:
+        raise ValueError("segment_length must be in [2, n_samples]")
+    if not 0.0 <= overlap < 1.0:
+        raise ValueError("overlap must be in [0, 1)")
+    step = max(1, int(segment_length * (1.0 - overlap)))
+    starts = list(range(0, n - segment_length + 1, step))
+    if not starts:
+        starts = [0]
+    window = np.hanning(segment_length)
+    norm = np.mean(window**2)
+    segments = np.concatenate([X[:, s : s + segment_length] * window[None, :] for s in starts], axis=0)
+    freqs, psd = estimate_psd_rfft(segments, sampling_frequency)
+    return freqs, psd / max(norm, np.finfo(float).eps)
+
+
 def regularize_psd(psd: np.ndarray, *, floor_fraction: float = 1e-8, floor: float | None = None) -> np.ndarray:
     """Clip non-positive PSD bins to a stable positive floor."""
     J = np.asarray(psd, dtype=np.float64)

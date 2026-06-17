@@ -1,109 +1,144 @@
 # Noise-Weighted Subspace Reconstruction
 
-Reproducible experiment code for Paper 1:
+Reproducible validation code for Paper 1:
 
-**A Unified Maximum-Likelihood Framework for Signal Reconstruction: From Optimal Filtering to Noise-Aware Linear Autoencoders**
+**A Unified Maximum-Likelihood Framework for Signal Reconstruction: From
+Optimal Filtering to Noise-Aware Linear Autoencoders**
 
-The project tests one organizing claim: structured detector noise defines the
-geometry of reconstruction. For Gaussian noise, the likelihood-aligned objective
-is the Mahalanobis / chi-square residual
+The repository tests the claim that detector noise defines the reconstruction
+geometry. For Gaussian noise the likelihood-aligned objective is
 
 ```text
-chi2(s_hat) = (x - s_hat)^dagger Sigma^{-1} (x - s_hat)
+(x - x_hat)^dagger Sigma^{-1} (x - x_hat)
 ```
 
-Under this metric, optimal filtering is fixed rank-1 maximum-likelihood
-projection, EMPCA is learned rank-k maximum-likelihood projection, and a tied
-linear autoencoder trained with the `Sigma^{-1}`-weighted loss recovers the same
-noise-aware subspace. Ordinary MSE is the correct likelihood only for white
-noise.
+Ordinary MSE is the corresponding likelihood only when the noise is white.
 
-## Repository Structure
+The authoritative experiment status, acceptance gates, dataset contracts, and
+next steps are in
+[`docs/VALIDATION_ROADMAP.md`](docs/VALIDATION_ROADMAP.md).
 
-- `src/noise_geometry/`: reusable Paper 1 package modules.
-- `experiments/synthetic/`: controlled benchmarks for theorem checks and metric reversal.
-- `experiments/gwosc/`: public GWOSC smoke checks and planned real-noise experiments.
-- `experiments/cresst/`: planned CRESST pulse-shape experiments.
-- `experiments/tidmad_optional/`: optional TIDMAD extension.
-- `configs/`: small, reproducible experiment configs.
-- `scripts/download/` and `scripts/preprocess/`: dataset access and preprocessing entry points.
-- `tests/`: fast regression and smoke tests.
-- `docs/`: audit, canonical experiment plan, dataset links, and experiment registry.
-- `data/`: small committed sample inputs only; large raw or processed data are ignored.
-- `results/`: generated figures, tables, summaries, and model outputs; ignored by git.
-- `archive/`: legacy notebooks or code kept for reference.
-- `paper2/`, `NPML/`, `TraceSimulator/`, `QP_simulator/`: prior or adjacent work preserved for now.
+## Status
 
-## Installation
+The config-driven synthetic suite S0-S9 is runnable. GWOSC has cached
+event/injection analysis, and CRESST has a format-tolerant NPZ/HDF5
+reconstruction path. Paper-grade public-data selection and figures still
+require the real files on the remote server. TIDMAD is optional.
+
+## Remote Installation
+
+The primary target is a Linux server opened through VS Code. Use `uv`:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[dev]"
+uv sync --extra dev --extra gwosc
 ```
 
-Optional public-data dependencies for GWOSC work:
+Run commands with `uv run`. Conda is the fallback:
 
 ```bash
-python -m pip install gwosc gwpy
+conda env create -f environment.yml
+conda activate paper1-validation
 ```
+
+## Data Root
+
+Public data are stored outside the repository. The default is:
+
+```text
+/ceph/dwong/paper1_dataset
+```
+
+Resolution order is:
+
+1. CLI `--data-root`
+2. `PAPER1_DATA_ROOT`
+3. config `data_root`
+4. `/ceph/dwong/paper1_dataset`
+
+The expected dataset directories are `gwosc/`, `cresst/`, and `tidmad/`, each
+with `raw/`, `cache/`, and `processed/` subdirectories.
 
 ## Quickstart
 
-Run the fast test suite:
-
 ```bash
-pytest -q
+uv run pytest -q
+uv run python scripts/run_experiment.py \
+  --config configs/synthetic/s0_smoke.yaml
 ```
 
-Run the synthetic OF/rank-1 weighted-subspace smoke test:
+Run the implemented synthetic core:
 
 ```bash
-python experiments/synthetic/of_empca_equivalence/run.py
+uv run python scripts/run_all_core.py
+uv run python scripts/make_tables.py
+uv run python scripts/make_all_figures.py
 ```
 
-Run the metric-reversal smoke script:
+Run one experiment:
 
 ```bash
-python experiments/synthetic/metric_reversal/run.py
+uv run python scripts/run_experiment.py \
+  --config configs/synthetic/s5_metric_reversal.yaml
 ```
 
-Check whether GWOSC optional dependencies are available without downloading data:
+Each run writes a JSON record containing the config, seed, metrics, git commit,
+dataset metadata, preprocessing metadata, and model metadata.
+
+## Public Data
+
+Check or download a short GWOSC event window:
 
 ```bash
-python experiments/gwosc/smoke.py
+uv run python scripts/download/download_gwosc.py
+uv run python scripts/download/download_gwosc.py --download
+uv run python scripts/run_experiment.py \
+  --config configs/gwosc/gw150914_smoke.yaml
 ```
 
-## Data Policy
+Prepare the CRESST cache and print current manual-download instructions:
 
-No large public datasets should be committed. Use these locations:
+```bash
+uv run python scripts/download/download_cresst.py
+uv run python scripts/run_experiment.py \
+  --config configs/cresst/pulse_shape_smoke.yaml
+```
 
-- `data/raw/`: raw local downloads.
-- `data/external/`: public dataset mirrors or manually downloaded archives.
-- `data/interim/`: temporary preprocessing products.
-- `data/processed/`: generated processed arrays.
-- `results/`: generated experiment outputs.
+Both scripts refuse to put large data inside this repository unless
+`--allow-repo-data` is passed explicitly.
 
-The `.gitignore` excludes large data and model artifact types including `.h5`,
-`.hdf5`, `.root`, `.npy`, `.npz`, `.pt`, `.ckpt`, and `.zst`.
+## Repository Structure
+
+- `src/noise_geometry/`: maintained Paper 1 package.
+- `src/OptimumFilter.py`, `src/of.py`, `src/EMPCA/`: preserved canonical and
+  independent legacy implementations used for equivalence checks.
+- `configs/`: config-driven experiment definitions.
+- `scripts/`: experiment, download, preprocessing, figure, and table entry points.
+- `experiments/`: compatibility entry points for earlier smoke experiments.
+- `tests/`: fast theory and regression tests.
+- `docs/`: validation, data, metrics, preprocessing, and figure mapping.
+- `archive/`: reviewed stale material only; legacy directories are otherwise
+  preserved in place.
+- `paper2/`, `NPML/`, `TraceSimulator/`, `QP_simulator/`: adjacent or legacy
+  work, not the default Paper 1 execution surface.
 
 ## Reproducibility
 
-- Synthetic scripts use fixed seeds by default.
-- Config files live under `configs/`.
-- Smoke tests avoid full public-data downloads.
-- Notebooks are retained for exploration only; executable scripts are the
-  reproducibility surface.
-- Generated outputs should be written under `results/`.
+- Synthetic runs are seed-controlled.
+- Public data are cached outside git.
+- Results are generated under `results/`.
+- Notebooks are exploratory; scripts and configs are the reproducibility surface.
+- Raw MSE alone is never the primary success metric under structured noise.
 
-## Dataset Links
+## Dataset Citations
 
-See [docs/dataset_links_and_access.md](docs/dataset_links_and_access.md) for
-canonical GWOSC, CRESST, and optional TIDMAD access notes.
+Use the acknowledgement and citation instructions from GWOSC and the CRESST
+Dark Matter Data Center. TIDMAD must be cited if the optional extension is
+used. See `docs/VALIDATION_ROADMAP.md`.
 
-## Current Status
+## Limitations
 
-This is a preliminary private research codebase, not an official result from any
-experimental collaboration. The synthetic experiment scaffold is runnable; GWOSC
-and CRESST pipelines are documented and scaffolded for implementation without
-large downloads by default.
+Synthetic experiments validate controlled assumptions. GWOSC is intended as a
+public real-noise likelihood-geometry demonstration, not gravitational-wave
+parameter estimation. CRESST is for pulse-shape reconstruction, not a
+dark-matter exclusion analysis. Covariance estimation, nonstationarity, and
+non-Gaussian noise remain explicit robustness questions.

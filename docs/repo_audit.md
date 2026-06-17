@@ -2,6 +2,10 @@
 
 Audit date: 2026-06-16.
 
+> Historical preservation and migration record. For current experiment status
+> and acceptance gates, use
+> [`VALIDATION_ROADMAP.md`](VALIDATION_ROADMAP.md).
+
 ## What Was Found
 
 The repository already contains useful Paper 1 code:
@@ -27,7 +31,8 @@ The repository also contains adjacent or legacy material:
 - `paper2/`, `NPML/`, and `scripts/run_paper2_*`: Paper 2 / nonlinear work.
 - `TraceSimulator/`: detector simulator code marked in README as not
   redistributable without checking ownership.
-- `archive/`: existing legacy notebook archive.
+- No top-level `archive/` directory existed at the audit point despite earlier
+  documentation implying that it did.
 - Large local data: `data/k_alpha/k_alpha_traces.h5`.
 
 The previous `README.md` referenced paths that do not exist in this checkout,
@@ -83,6 +88,8 @@ These should be reviewed before moving:
 | no canonical docs | `docs/*.md` | required audit, plan, links, registry | low | yes |
 | notebook-only experiment logic | `experiments/synthetic/*/run.py` | runnable smoke experiments | low | yes |
 | no public-data scaffold | `scripts/download/`, `scripts/preprocess/`, `configs/` | reproducible dataset pipeline contracts | low | yes |
+| no archive policy | `archive/README.md` and empty category directories | preserve reviewed stale material without aggressive moves | low | yes |
+| repo-local data defaults | `/ceph/dwong/paper1_dataset` data-root policy | remote-server reproducibility and separation from git | low | yes |
 
 ## Hidden Assumptions and Path Risks
 

@@ -32,3 +32,9 @@ def whiten_rfft(X_f: np.ndarray, psd: np.ndarray) -> np.ndarray:
     """Whiten rFFT-domain traces by dividing by ``sqrt(PSD)`` bin-wise."""
     J = regularize_psd(psd)
     return np.asarray(X_f) / np.sqrt(J)[None, :]
+
+
+def unwhiten_rfft(X_f: np.ndarray, psd: np.ndarray) -> np.ndarray:
+    """Undo ``whiten_rfft``."""
+    J = regularize_psd(psd)
+    return np.asarray(X_f) * np.sqrt(J)[None, :]

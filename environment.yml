@@ -1,4 +1,4 @@
-name: nwsr
+name: paper1-validation
 channels:
   - conda-forge
 dependencies:
@@ -8,9 +8,12 @@ dependencies:
   - h5py
   - pandas
   - pyyaml
-  - wandb
-  - numba
   - matplotlib
-  - pytorch
+  - numba
+  - requests
+  - tqdm
   - pytest
   - pip
+  - pip:
+      - gwosc>=0.8
+      - gwpy>=3.0

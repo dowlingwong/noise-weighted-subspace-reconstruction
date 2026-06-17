@@ -1,3 +1,6 @@
-"""CRESST pulse-shape data pipeline placeholders."""
+"""CRESST pulse-shape loading and reconstruction helpers."""
 
-__all__: list[str] = []
+from .analysis import run_cresst_experiment
+from .loader import load_cresst_traces
+
+__all__ = ["load_cresst_traces", "run_cresst_experiment"]

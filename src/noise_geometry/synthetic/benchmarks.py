@@ -8,7 +8,6 @@ import numpy as np
 
 from ..filters import gls_amplitude
 from ..noise import generate_colored_noise, inverse_psd_weights, make_powerlaw_psd
-from ..subspace import fit_weighted_pca, principal_angles
 from .pulses import exponential_pulse
 
 
@@ -46,16 +45,28 @@ def make_rank1_pulse_dataset(
 
 def run_of_empca_equivalence(dataset: Rank1PulseDataset, *, rank: int = 1) -> dict[str, float]:
     """Compute OF amplitudes and a weighted rank-1 subspace check."""
+    from EMPCA.empca_equivalence_utils import (
+        fit_empca_no_smoothing,
+        phase_align_basis,
+        weighted_cosine,
+    )
+
     X_f = np.fft.rfft(dataset.traces, axis=1)
     s_f = np.fft.rfft(dataset.template)
     amp_of = gls_amplitude(X_f, s_f, dataset.weights)
 
-    fit = fit_weighted_pca(X_f.real, dataset.weights, rank=rank, center=False)
-    angles = principal_angles(fit.components[:1], s_f.real[None, :], weights=dataset.weights)
+    eigvec, coeff, chi2s = fit_empca_no_smoothing(X_f, dataset.weights, n_comp=rank, n_iter=100)
+    aligned = phase_align_basis(eigvec[0], s_f, dataset.weights)
+    cosine = weighted_cosine(aligned, s_f, dataset.weights)
+    angle = float(np.degrees(np.arccos(np.clip(cosine, 0.0, 1.0))))
+    coeff_corr = float(np.corrcoef(np.abs(coeff[:, 0]), amp_of)[0, 1])
     corr = float(np.corrcoef(amp_of, dataset.amplitudes)[0, 1])
     return {
         "n_traces": float(dataset.traces.shape[0]),
         "of_truth_corr": corr,
-        "weighted_angle_deg": float(angles[0]),
+        "empca_of_coeff_corr": coeff_corr,
+        "weighted_cosine": cosine,
+        "weighted_angle_deg": angle,
+        "empca_objective_decrease": float(chi2s[0] - chi2s[-1]),
         "amp_rmse": float(np.sqrt(np.mean((amp_of - dataset.amplitudes) ** 2))),
     }

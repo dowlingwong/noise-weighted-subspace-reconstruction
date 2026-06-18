@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+from importlib.metadata import version
 import json
+from math import ceil
 import sys
 from pathlib import Path
 
@@ -17,13 +20,24 @@ from noise_geometry.utils import load_config, resolve_data_root
 from noise_geometry.utils.paths import dataset_root, ensure_dataset_layout, is_within_repo
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
     from gwosc.datasets import event_gps
+    from gwosc.locate import get_urls
     from gwpy.timeseries import TimeSeries
 
     event = args.event or config.get("event", "GW150914")
     detectors = args.detectors or config.get("detectors", ["H1", "L1"])
     duration = float(args.duration or config.get("duration_seconds", 32.0))
+    sample_rate = int(args.sample_rate or config.get("download_sample_rate_hz", 4096))
+    timeout = float(args.timeout or config.get("download_timeout_seconds", 300.0))
     gps = float(event_gps(event))
     start = gps - duration / 2.0
     end = gps + duration / 2.0
@@ -31,12 +45,29 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     written = []
+    source_urls: dict[str, list[str]] = {}
     for detector in detectors:
+        source_urls[detector] = get_urls(
+            detector,
+            int(start),
+            ceil(end),
+            sample_rate=sample_rate,
+            format="hdf5",
+        )
         output = raw_dir / f"{event}_{detector}_{int(duration)}s.npz"
         if output.exists() and not args.force:
             written.append(output)
             continue
-        series = TimeSeries.fetch_open_data(detector, start, end, cache=True)
+        series = TimeSeries.fetch_open_data(
+            detector,
+            start,
+            end,
+            sample_rate=sample_rate,
+            format="hdf5",
+            cache=True,
+            parallel=1,
+            timeout=timeout,
+        )
         import numpy as np
 
         np.savez_compressed(
@@ -57,7 +88,17 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
         "gps": gps,
         "detectors": detectors,
         "duration_seconds": duration,
-        "files": [str(p) for p in written],
+        "requested_sample_rate_hz": sample_rate,
+        "download_timeout_seconds": timeout,
+        "source": {
+            "provider": "Gravitational Wave Open Science Center",
+            "host": "https://gwosc.org",
+            "access_method": "gwpy.timeseries.TimeSeries.fetch_open_data",
+            "gwosc_version": version("gwosc"),
+            "gwpy_version": version("gwpy"),
+            "urls": source_urls,
+        },
+        "files": [{"path": str(path), "sha256": _sha256(path)} for path in written],
     }
     (raw_dir / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return written
@@ -70,6 +111,8 @@ def main() -> None:
     parser.add_argument("--event", default=None)
     parser.add_argument("--detectors", nargs="+", default=None)
     parser.add_argument("--duration", type=float, default=None)
+    parser.add_argument("--sample-rate", type=int, default=None)
+    parser.add_argument("--timeout", type=float, default=None)
     parser.add_argument("--download", action="store_true", help="download the configured event window")
     parser.add_argument("--force", action="store_true", help="overwrite cached .npz event files")
     parser.add_argument("--allow-repo-data", action="store_true", help="allow writing large files inside this repo")

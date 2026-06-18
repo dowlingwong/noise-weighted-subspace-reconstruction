@@ -155,3 +155,68 @@ def rfft_to_weighted_real_features(X_f, w):
         axis=1,
     )
     return feat[0] if squeeze else feat
+
+
+# --------------------------------------------------------------------------- #
+# Central rFFT <-> real representation primitive (Paper 1 item 2)
+#
+# The faithful real representation of a real signal's rFFT stacks the real parts
+# of all bins followed by the imaginary parts of the non-DC bins:
+#
+#     real_features = [Re(X_0), Re(X_1..M), Im(X_1..M)]
+#
+# The DC bin (and, for even length, the Nyquist bin) of a real signal is real,
+# so dropping Im(DC) loses no information. ``real_weight_vector`` expands a
+# one-sided weight vector to match this layout (the imaginary components of bin
+# k carry the same weight w_k as the real component). With those two pieces:
+#
+#     complex_to_real_whitened(X_f, w) == rfft_to_real(X_f) * sqrt(real_weight_vector(w))
+#
+# Euclidean operations on the whitened features are then exactly the weighted
+# Sigma^{-1} operations on the complex rFFT data (verified by tests). Route all
+# rFFT-domain experiments (S1/S2/S5 and real data) through these helpers so the
+# DC/Nyquist/weight conventions live in exactly one place.
+# --------------------------------------------------------------------------- #
+def rfft_to_real(X_f):
+    """Faithful (unweighted) real representation of rFFT data.
+
+    Layout: ``[Re(X_0), Re(X_1..M), Im(X_1..M)]``. Inverse of
+    :func:`real_to_rfft` for the rFFT of a real signal.
+    """
+    X_f = np.asarray(X_f)
+    squeeze = False
+    if X_f.ndim == 1:
+        X_f = X_f[None, :]
+        squeeze = True
+    feat = np.concatenate([X_f.real[:, :1], X_f.real[:, 1:], X_f.imag[:, 1:]], axis=1)
+    return feat[0] if squeeze else feat
+
+
+def real_to_rfft(feat, n_bins):
+    """Invert :func:`rfft_to_real`; reconstruct complex rFFT bins (Im(DC)=0)."""
+    feat = np.asarray(feat)
+    squeeze = False
+    if feat.ndim == 1:
+        feat = feat[None, :]
+        squeeze = True
+    if feat.shape[1] != 2 * n_bins - 1:
+        raise ValueError(f"feature dim {feat.shape[1]} != 2*n_bins-1 = {2 * n_bins - 1}")
+    real = feat[:, :n_bins]
+    imag = np.concatenate([np.zeros((feat.shape[0], 1)), feat[:, n_bins:]], axis=1)
+    X_f = real + 1j * imag
+    return X_f[0] if squeeze else X_f
+
+
+def real_weight_vector(w):
+    """Expand a one-sided weight vector to the :func:`rfft_to_real` layout."""
+    w = np.asarray(w, dtype=np.float64)
+    return np.concatenate([w[:1], w[1:], w[1:]])
+
+
+def complex_to_real_whitened(X_f, w):
+    """Central primitive: whitened real features of rFFT data.
+
+    Equal to ``rfft_to_real(X_f) * sqrt(real_weight_vector(w))``; the Euclidean
+    inner product of the result equals ``Re(<a,b>_w)`` of the complex data.
+    """
+    return rfft_to_weighted_real_features(X_f, w)

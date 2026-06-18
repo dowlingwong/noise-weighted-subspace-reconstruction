@@ -9,9 +9,9 @@ quantify fast-vs-full agreement (relevant to the paper's Experiment E).
 import numpy as np
 import pytest
 
-from src.EMPCA.empca_TCY_optimized import empca_solver, w_orthonormalize
-from src.make_weights import build_of_one_sided_weights
-from src.EMPCA.empca_equivalence_utils import fit_empca_no_smoothing
+from src.canonical.empca_TCY_optimized import empca_solver, w_orthonormalize
+from src.canonical.make_weights import build_of_one_sided_weights
+from src.canonical.empca_equivalence_utils import fit_empca_no_smoothing
 
 
 def _rank2_data(sim_data, jitter_frac=0.05, seed=11):

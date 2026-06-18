@@ -73,20 +73,23 @@ def regularize_psd(psd: np.ndarray, *, floor_fraction: float = 1e-8, floor: floa
 def inverse_psd_weights(psd: np.ndarray, trace_len: int, *, zero_dc: bool = True) -> np.ndarray:
     """Build one-sided inverse-PSD weights for rFFT-domain inner products.
 
-    This matches the OF convention used in the legacy tests: interior positive
-    frequency bins receive ``2 / PSD`` and the Nyquist bin receives ``1 / (2 PSD)``
-    for even-length traces.
+    The OF convention (interior bins ``2 / PSD``, Nyquist ``1 / (2 PSD)`` for
+    even length, DC zeroed) is defined once in
+    :func:`canonical.make_weights.build_of_one_sided_weights`; this wrapper
+    regularizes the PSD, delegates to it, and applies the ``zero_dc`` override so
+    the convention lives in exactly one place.
     """
+    try:  # repo-root on path (pytest)
+        from ...canonical.make_weights import build_of_one_sided_weights
+    except ImportError:  # src on path (scripts/run_experiment.py)
+        from canonical.make_weights import build_of_one_sided_weights
+
     J = regularize_psd(psd)
     n_bins = int(trace_len) // 2 + 1
     if J.shape[0] != n_bins:
         raise ValueError(f"PSD length {J.shape[0]} does not match rfft bins {n_bins}")
-    w = np.zeros_like(J)
-    if trace_len % 2 == 0:
-        w[1:-1] = 2.0 / J[1:-1]
-        w[-1] = 1.0 / (2.0 * J[-1])
-    else:
-        w[1:] = 2.0 / J[1:]
+    w = build_of_one_sided_weights(J, trace_len)
     if not zero_dc:
+        w = w.copy()
         w[0] = 1.0 / J[0]
     return w

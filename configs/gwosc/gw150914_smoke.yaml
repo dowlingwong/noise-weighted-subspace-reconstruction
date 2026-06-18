@@ -5,9 +5,16 @@ detectors:
   - H1
   - L1
 duration_seconds: 32
+download_sample_rate_hz: 4096
+download_timeout_seconds: 300
 analysis_duration_seconds: 4
 injection_snr: 8
 psd_floor_fraction: 1.0e-6
+gwpy_reference:
+  enabled: true
+  fduration_seconds: 1.0
+  highpass_hz: 20.0
+  detrend: constant
 download_by_default: false
 data_root: /ceph/dwong/paper1_dataset
 dataset_dir: /ceph/dwong/paper1_dataset/gwosc

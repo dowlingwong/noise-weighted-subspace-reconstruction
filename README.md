@@ -40,6 +40,16 @@ conda env create -f environment.yml
 conda activate paper1-validation
 ```
 
+Close the remote Stage 0 reproducibility gate from a clean Linux checkout with:
+
+```bash
+python3 scripts/stage0_remote_gate.py
+```
+
+The command runs the complete five-command gate and archives the environment
+and logs under `results/stage0/`. See
+[`docs/STAGE0_REMOTE_GATE.md`](docs/STAGE0_REMOTE_GATE.md).
+
 ## Data Root
 
 Public data are stored outside the repository. The default is:
@@ -91,9 +101,14 @@ Check or download a short GWOSC event window:
 ```bash
 uv run python scripts/download/download_gwosc.py
 uv run python scripts/download/download_gwosc.py --download
+uv run python scripts/preprocess/preprocess_gwosc.py --reference-check
 uv run python scripts/run_experiment.py \
   --config configs/gwosc/gw150914_smoke.yaml
 ```
+
+The preprocessing command compares PSD normalization and held-out whitening
+calibration against GWpy. See
+[`docs/GWOSC_GWPY_REFERENCE.md`](docs/GWOSC_GWPY_REFERENCE.md).
 
 Prepare the CRESST cache and print current manual-download instructions:
 
@@ -109,8 +124,9 @@ Both scripts refuse to put large data inside this repository unless
 ## Repository Structure
 
 - `src/noise_geometry/`: maintained Paper 1 package.
-- `src/OptimumFilter.py`, `src/of.py`, `src/EMPCA/`: preserved canonical and
-  independent legacy implementations used for equivalence checks.
+- `src/canonical/`: canonical OF, PSD, weighting, complex EMPCA, and the
+  independent Bailey WPCA reference used for equivalence checks.
+- `src/of.py`: compact independent GLS reference used for OF cross-checks.
 - `configs/`: config-driven experiment definitions.
 - `scripts/`: experiment, download, preprocessing, figure, and table entry points.
 - `experiments/`: compatibility entry points for earlier smoke experiments.

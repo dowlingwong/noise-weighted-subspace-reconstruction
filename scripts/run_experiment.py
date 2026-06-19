@@ -41,7 +41,11 @@ def main() -> None:
         status = "complete" if metrics.get("status") != "planned" else "planned"
     elif dataset == "gwosc":
         metrics = run_gwosc_experiment(config, data_root)
-        status = "complete"
+        status = (
+            "complete"
+            if bool(metrics.get("acceptance", {}).get("passed", False))
+            else "failed_acceptance"
+        )
     elif dataset == "cresst":
         metrics = run_cresst_experiment(config, data_root)
         status = "complete"

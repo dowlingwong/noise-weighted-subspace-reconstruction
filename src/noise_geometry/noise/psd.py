@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+from scipy.signal import welch
 
 
 def estimate_psd_rfft(traces: np.ndarray, sampling_frequency: float = 1.0) -> tuple[np.ndarray, np.ndarray]:
@@ -55,6 +56,49 @@ def estimate_psd_welch(
     segments = np.concatenate([X[:, s : s + segment_length] * window[None, :] for s in starts], axis=0)
     freqs, psd = estimate_psd_rfft(segments, sampling_frequency)
     return freqs, psd / max(norm, np.finfo(float).eps)
+
+
+def estimate_psd_ensemble(
+    traces: np.ndarray,
+    sampling_frequency: float = 1.0,
+    *,
+    window: str = "hann",
+    average: str = "median",
+    detrend: str | bool = "constant",
+) -> tuple[np.ndarray, np.ndarray]:
+    """Estimate a one-sided PSD from equal-length independent windows.
+
+    Windows are concatenated and passed to :func:`scipy.signal.welch` with one
+    FFT per input row and no overlap, so segment boundaries exactly match the
+    supplied traces. SciPy's ``average="median"`` applies the FINDCHIRP
+    finite-sample median-bias correction.
+    """
+    X = np.asarray(traces, dtype=np.float64)
+    if X.ndim == 1:
+        X = X[None, :]
+    if X.ndim != 2:
+        raise ValueError("traces must have shape (n_traces, n_samples)")
+    if X.shape[0] < 1 or X.shape[1] < 2:
+        raise ValueError("traces must contain at least one window with two samples")
+    if sampling_frequency <= 0:
+        raise ValueError("sampling_frequency must be positive")
+    if average not in {"mean", "median"}:
+        raise ValueError("average must be 'mean' or 'median'")
+
+    n_samples = int(X.shape[1])
+    frequencies, psd = welch(
+        X.reshape(-1),
+        fs=float(sampling_frequency),
+        window=window,
+        nperseg=n_samples,
+        noverlap=0,
+        nfft=n_samples,
+        detrend=detrend,
+        return_onesided=True,
+        scaling="density",
+        average=average,
+    )
+    return np.asarray(frequencies, dtype=np.float64), np.asarray(psd, dtype=np.float64)
 
 
 def regularize_psd(psd: np.ndarray, *, floor_fraction: float = 1e-8, floor: float | None = None) -> np.ndarray:

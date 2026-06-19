@@ -7,12 +7,13 @@ claim astrophysical parameter recovery.
 
 `src/noise_geometry/gwosc/reference.py` performs two distinct checks:
 
-1. **PSD density normalization.** Each off-source calibration window is treated
-   as one rectangular, non-overlapping periodogram. The repository
-   `estimate_psd_rfft` result is compared bin-for-bin with
-   `gwpy.timeseries.TimeSeries.psd(method="welch", window="boxcar")`. Matching
-   estimators are intentional: any discrepancy is then a units, one-sided
-   factor, FFT, or frequency-grid error.
+1. **PSD density normalization.** Each accepted off-source calibration window
+   is treated as one Hann-windowed, non-overlapping periodogram. The
+   repository's bias-corrected median ensemble is compared bin-for-bin with
+   `gwpy.timeseries.TimeSeries.psd(method="median", window="hann")`. Both use
+   the FINDCHIRP finite-sample correction for the median. Matching estimators
+   are intentional: any discrepancy is then a units, one-sided factor, FFT, or
+   frequency-grid error.
 2. **Whitening calibration.** Multiple held-out off-source windows are whitened
    both by the repository's direct rFFT operation and by GWpy's
    inverse-spectrum FIR using the same supplied PSD/ASD. The direct path
@@ -24,6 +25,12 @@ claim astrophysical parameter recovery.
 
 Calibration and evaluation windows are disjoint. The split seed, window
 indices, and starts are persisted in the experiment record.
+
+Before PSD fitting, each calibration candidate receives time-domain RMS,
+crest-factor, and 20–512 Hz Hann-periodogram power diagnostics. Robust
+log-scale z-scores and the configured crest-factor limit identify glitch-like
+windows. Rejected indices and reasons are archived; evaluation windows are
+never filtered.
 
 Injection amplitudes use the repository's full FFT/PSD amplitude variance:
 
@@ -56,6 +63,9 @@ The standalone reference record is written under:
 <data-root>/gwosc/processed/GW150914_gwpy_reference.json
 ```
 
+Each detector entry includes the GWpy comparison, calibration-window quality
+records, and the multi-split null-calibration gate.
+
 The normal experiment runner also includes the same record under each
 detector's `gwpy_reference` field because the default GWOSC config enables it:
 
@@ -78,6 +88,10 @@ uv run python scripts/run_experiment.py \
 - `null_sigma_over_predicted` compares held-out amplitude scatter with the
   PSD-predicted amplitude sigma. Values far from one indicate nonstationarity,
   finite-PSD effects, or an unsuitable window/regularization choice.
+- The default acceptance gate evaluates five deterministic split seeds.
+  Every split must have `null_sigma_over_predicted` in `[0.5, 1.5]`, and the
+  median across splits must be in `[0.8, 1.2]`, independently for H1 and L1.
+  A run that fails is written with status `failed_acceptance`.
 - The two whitened time series need not be pointwise identical on structured
   real noise: GWpy truncates the inverse spectrum into an FIR, while the
   repository path applies the frequency response directly. Their calibration

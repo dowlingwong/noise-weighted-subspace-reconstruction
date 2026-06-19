@@ -8,19 +8,22 @@ from typing import Any
 import numpy as np
 from scipy.signal import detrend as scipy_detrend
 
-from ..noise import estimate_psd_rfft, regularize_psd
+from ..noise import estimate_psd_ensemble, regularize_psd
 
 
 def gwpy_psd_reference(
     traces: np.ndarray,
     sampling_frequency: float,
+    *,
+    window: str = "hann",
+    average: str = "median",
+    detrend: str | bool = "constant",
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Estimate the mean rectangular-window periodogram through GWpy.
+    """Estimate a non-overlapping ensemble PSD through GWpy.
 
-    Each row is passed to :meth:`gwpy.timeseries.TimeSeries.psd` as one complete,
-    non-overlapping Welch segment. This deliberately mirrors
-    :func:`estimate_psd_rfft`, making the comparison a normalization check
-    rather than a comparison of different PSD estimators.
+    Input rows are concatenated, then each row is treated as one complete Welch
+    segment. This deliberately mirrors :func:`estimate_psd_ensemble`, including
+    GWpy/SciPy's FINDCHIRP bias correction for median averaging.
     """
     from gwpy.timeseries import TimeSeries
 
@@ -37,25 +40,21 @@ def gwpy_psd_reference(
         raise ValueError("sampling_frequency must be positive")
 
     duration = samples.shape[1] / float(sampling_frequency)
-    estimates = []
-    frequencies = None
-    for trace in samples:
-        series = TimeSeries(trace, sample_rate=float(sampling_frequency))
-        reference = series.psd(
-            fftlength=duration,
-            overlap=0,
-            window="boxcar",
-            method="welch",
-            detrend=False,
-        )
-        current_frequencies = np.asarray(reference.frequencies.value, dtype=np.float64)
-        if frequencies is None:
-            frequencies = current_frequencies
-        elif not np.array_equal(current_frequencies, frequencies):
-            raise ValueError("GWpy returned inconsistent frequency grids")
-        estimates.append(np.asarray(reference.value, dtype=np.float64))
-    assert frequencies is not None
-    return frequencies, np.mean(estimates, axis=0)
+    if average not in {"mean", "median"}:
+        raise ValueError("average must be 'mean' or 'median'")
+    method = "welch" if average == "mean" else "median"
+    series = TimeSeries(samples.reshape(-1), sample_rate=float(sampling_frequency))
+    reference = series.psd(
+        fftlength=duration,
+        overlap=0,
+        window=window,
+        method=method,
+        detrend=detrend,
+    )
+    return (
+        np.asarray(reference.frequencies.value, dtype=np.float64),
+        np.asarray(reference.value, dtype=np.float64),
+    )
 
 
 def whiten_time_series_rfft(
@@ -150,6 +149,9 @@ def run_gwpy_reference_check(
     highpass_hz: float | None = None,
     detrend: str = "constant",
     floor_fraction: float = 1e-8,
+    psd_window: str = "hann",
+    psd_average: str = "median",
+    psd_detrend: str | bool = "constant",
 ) -> dict[str, Any]:
     """Compare repository PSD/whitening normalization with an independent GWpy path.
 
@@ -167,8 +169,20 @@ def run_gwpy_reference_check(
     if evaluation.shape[0] < 1:
         raise ValueError("at least one evaluation trace is required")
 
-    frequencies, repository_psd = estimate_psd_rfft(calibration, sampling_frequency)
-    reference_frequencies, reference_psd = gwpy_psd_reference(calibration, sampling_frequency)
+    frequencies, repository_psd = estimate_psd_ensemble(
+        calibration,
+        sampling_frequency,
+        window=psd_window,
+        average=psd_average,
+        detrend=psd_detrend,
+    )
+    reference_frequencies, reference_psd = gwpy_psd_reference(
+        calibration,
+        sampling_frequency,
+        window=psd_window,
+        average=psd_average,
+        detrend=psd_detrend,
+    )
     positive = (repository_psd > 0) & (reference_psd > 0)
     if not np.any(positive):
         raise ValueError("PSD comparison has no positive bins")
@@ -232,7 +246,12 @@ def run_gwpy_reference_check(
     return {
         "implementation": {
             "gwpy_version": version("gwpy"),
-            "psd_reference": "TimeSeries.psd(method='welch', window='boxcar', one full segment per trace)",
+            "psd_reference": (
+                "TimeSeries.psd("
+                f"method='{'welch' if psd_average == 'mean' else 'median'}', "
+                f"window='{psd_window}', "
+                "non-overlapping one-window segments)"
+            ),
             "whitening_reference": "TimeSeries.whiten(asd=..., inverse-spectrum FIR)",
         },
         "configuration": {
@@ -244,6 +263,10 @@ def run_gwpy_reference_check(
             "edge_trim_samples_per_side": edge_samples,
             "highpass_hz": highpass_hz,
             "detrend": detrend,
+            "psd_window": psd_window,
+            "psd_average": psd_average,
+            "psd_detrend": psd_detrend,
+            "median_bias_corrected": psd_average == "median",
             "psd_floor_fraction": float(floor_fraction),
         },
         "psd": {

@@ -375,10 +375,14 @@ and documented failure cases. No robustness claim may rely on one seed.
   windows (initial 32 s diagnostic; 256 s rerun required).
 - [x] Freeze the event guard and deterministic disjoint calibration/evaluation
   window split in config; persist split indices and starts.
+- [x] Use Hann-windowed, FINDCHIRP bias-corrected median PSDs; diagnose and
+  archive calibration-window RMS, band-power, crest-factor, and glitch cuts.
 - [ ] Replace the approximate chirp with a documented public waveform or a
   justified generation procedure.
-- [ ] Validate whitening against GWpy over the configured multi-window 256 s
-  rerun (PSD density normalization already agrees to machine precision).
+- [ ] Pass held-out amplitude calibration over five deterministic split seeds:
+  each `null_sigma_over_predicted` in `[0.5, 1.5]`, median in `[0.8, 1.2]`, for
+  both detectors. PSD density normalization already agrees with GWpy to machine
+  precision.
 - [ ] Run event-centered diagnostics and off-source injections over SNRs,
   windows, and PSD choices.
 

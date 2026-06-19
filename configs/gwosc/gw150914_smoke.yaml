@@ -11,10 +11,34 @@ analysis_duration_seconds: 4
 analysis_highpass_hz: 20.0
 injection_snr: 8
 psd_floor_fraction: 1.0e-6
+psd_estimator:
+  window: hann
+  average: median
+  detrend: constant
 psd_calibration_fraction: 0.75
 offsource_split_seed: 150914
 minimum_psd_calibration_windows: 32
 minimum_evaluation_windows: 16
+psd_quality:
+  enabled: true
+  band_min_hz: 20.0
+  band_max_hz: 512.0
+  robust_z_threshold: 6.0
+  crest_factor_threshold: 20.0
+  max_rejected_fraction: 0.25
+null_calibration_validation:
+  split_seeds:
+    - 150914
+    - 150915
+    - 150916
+    - 150917
+    - 150918
+  per_split_ratio_bounds:
+    - 0.5
+    - 1.5
+  median_ratio_bounds:
+    - 0.8
+    - 1.2
 gwpy_reference:
   enabled: true
   fduration_seconds: 1.0

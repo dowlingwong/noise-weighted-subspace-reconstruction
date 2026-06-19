@@ -100,7 +100,7 @@ Check or download a short GWOSC event window:
 
 ```bash
 uv run python scripts/download/download_gwosc.py
-uv run python scripts/download/download_gwosc.py --download
+uv run python scripts/download/download_gwosc.py --download --timeout 900
 uv run python scripts/preprocess/preprocess_gwosc.py --reference-check
 uv run python scripts/run_experiment.py \
   --config configs/gwosc/gw150914_smoke.yaml

@@ -2,7 +2,7 @@
 
 Canonical weighting convention for this repository (matches
 `OptimumFilter._update_state` PSD unfolding and
-`src/EMPCA/empca_equivalence_utils.build_of_one_sided_weights`):
+`src/canonical/empca_equivalence_utils.build_of_one_sided_weights`):
 
 - input is a one-sided PSD `J` with `trace_len // 2 + 1` bins (rfft layout)
 - DC bin gets weight 0 (OF excludes it via an infinite-PSD bin)

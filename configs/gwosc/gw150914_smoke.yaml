@@ -4,16 +4,20 @@ event: GW150914
 detectors:
   - H1
   - L1
-duration_seconds: 32
+duration_seconds: 256
 download_sample_rate_hz: 4096
-download_timeout_seconds: 300
+download_timeout_seconds: 900
 analysis_duration_seconds: 4
+analysis_highpass_hz: 20.0
 injection_snr: 8
 psd_floor_fraction: 1.0e-6
+psd_calibration_fraction: 0.75
+offsource_split_seed: 150914
+minimum_psd_calibration_windows: 32
+minimum_evaluation_windows: 16
 gwpy_reference:
   enabled: true
   fduration_seconds: 1.0
-  highpass_hz: 20.0
   detrend: constant
 download_by_default: false
 data_root: /ceph/dwong/paper1_dataset

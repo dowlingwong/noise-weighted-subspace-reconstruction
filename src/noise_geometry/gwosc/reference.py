@@ -143,7 +143,7 @@ def _relative_l2(reference: np.ndarray, candidate: np.ndarray) -> float:
 
 def run_gwpy_reference_check(
     calibration_traces: np.ndarray,
-    evaluation_trace: np.ndarray,
+    evaluation_traces: np.ndarray,
     sampling_frequency: float,
     *,
     fduration_seconds: float = 1.0,
@@ -151,13 +151,21 @@ def run_gwpy_reference_check(
     detrend: str = "constant",
     floor_fraction: float = 1e-8,
 ) -> dict[str, Any]:
-    """Compare repository PSD/whitening normalization with an independent GWpy path."""
+    """Compare repository PSD/whitening normalization with an independent GWpy path.
+
+    PSDs are estimated only from ``calibration_traces``. Whitening diagnostics
+    are aggregated over one or more independent ``evaluation_traces``.
+    """
     calibration = np.asarray(calibration_traces, dtype=np.float64)
-    evaluation = np.asarray(evaluation_trace, dtype=np.float64)
+    evaluation = np.asarray(evaluation_traces, dtype=np.float64)
     if calibration.ndim != 2:
         raise ValueError("calibration_traces must have shape (n_traces, n_samples)")
-    if evaluation.shape != (calibration.shape[1],):
-        raise ValueError("evaluation_trace must match the calibration trace length")
+    if evaluation.ndim == 1:
+        evaluation = evaluation[None, :]
+    if evaluation.ndim != 2 or evaluation.shape[1] != calibration.shape[1]:
+        raise ValueError("evaluation_traces must match the calibration trace length")
+    if evaluation.shape[0] < 1:
+        raise ValueError("at least one evaluation trace is required")
 
     frequencies, repository_psd = estimate_psd_rfft(calibration, sampling_frequency)
     reference_frequencies, reference_psd = gwpy_psd_reference(calibration, sampling_frequency)
@@ -166,31 +174,60 @@ def run_gwpy_reference_check(
         raise ValueError("PSD comparison has no positive bins")
     ratio = repository_psd[positive] / reference_psd[positive]
 
-    repository_white = whiten_time_series_rfft(
-        evaluation,
-        repository_psd,
-        sampling_frequency,
-        highpass_hz=highpass_hz,
-        detrend=detrend,
-        floor_fraction=floor_fraction,
-    )
-    reference_white = gwpy_whiten_reference(
-        evaluation,
-        reference_psd,
-        sampling_frequency,
-        fduration_seconds=fduration_seconds,
-        highpass_hz=highpass_hz,
-        detrend=detrend,
-        floor_fraction=floor_fraction,
-    )
     edge_samples = int(np.ceil(0.5 * float(fduration_seconds) * float(sampling_frequency)))
-    if 2 * edge_samples >= evaluation.size:
+    if 2 * edge_samples >= evaluation.shape[1]:
         raise ValueError("GWpy whitening filter leaves no uncorrupted interior samples")
-    interior = slice(edge_samples, evaluation.size - edge_samples)
-    repository_interior = repository_white[interior]
-    reference_interior = reference_white[interior]
-    repository_std = float(np.std(repository_interior))
-    reference_std = float(np.std(reference_interior))
+    interior = slice(edge_samples, evaluation.shape[1] - edge_samples)
+    repository_interiors = []
+    reference_interiors = []
+    repository_std_by_window = []
+    reference_std_by_window = []
+    correlation_by_window = []
+    relative_l2_by_window = []
+    for trace in evaluation:
+        repository_white = whiten_time_series_rfft(
+            trace,
+            repository_psd,
+            sampling_frequency,
+            highpass_hz=highpass_hz,
+            detrend=detrend,
+            floor_fraction=floor_fraction,
+        )
+        reference_white = gwpy_whiten_reference(
+            trace,
+            reference_psd,
+            sampling_frequency,
+            fduration_seconds=fduration_seconds,
+            highpass_hz=highpass_hz,
+            detrend=detrend,
+            floor_fraction=floor_fraction,
+        )
+        repository_interior = repository_white[interior]
+        reference_interior = reference_white[interior]
+        repository_interiors.append(repository_interior)
+        reference_interiors.append(reference_interior)
+        repository_std_by_window.append(float(np.std(repository_interior)))
+        reference_std_by_window.append(float(np.std(reference_interior)))
+        correlation_by_window.append(
+            float(np.corrcoef(repository_interior, reference_interior)[0, 1])
+        )
+        relative_l2_by_window.append(
+            _relative_l2(reference_interior, repository_interior)
+        )
+    repository_pooled = np.concatenate(repository_interiors)
+    reference_pooled = np.concatenate(reference_interiors)
+    repository_std = float(np.std(repository_pooled))
+    reference_std = float(np.std(reference_pooled))
+
+    def _distribution(values: list[float]) -> dict[str, Any]:
+        array = np.asarray(values, dtype=np.float64)
+        return {
+            "values": array.tolist(),
+            "mean": float(np.mean(array)),
+            "median": float(np.median(array)),
+            "p05": float(np.quantile(array, 0.05)),
+            "p95": float(np.quantile(array, 0.95)),
+        }
 
     return {
         "implementation": {
@@ -200,6 +237,7 @@ def run_gwpy_reference_check(
         },
         "configuration": {
             "n_calibration_traces": int(calibration.shape[0]),
+            "n_evaluation_traces": int(evaluation.shape[0]),
             "n_samples": int(calibration.shape[1]),
             "sampling_frequency_hz": float(sampling_frequency),
             "fduration_seconds": float(fduration_seconds),
@@ -219,17 +257,21 @@ def run_gwpy_reference_check(
             "max_abs_log10_ratio": float(np.max(np.abs(np.log10(ratio)))),
         },
         "whitening": {
-            "repository_interior_mean": float(np.mean(repository_interior)),
+            "repository_interior_mean": float(np.mean(repository_pooled)),
             "repository_interior_std": repository_std,
-            "gwpy_interior_mean": float(np.mean(reference_interior)),
+            "gwpy_interior_mean": float(np.mean(reference_pooled)),
             "gwpy_interior_std": reference_std,
             "std_ratio_repository_over_gwpy": repository_std
             / max(reference_std, np.finfo(float).tiny),
             "interior_correlation": float(
-                np.corrcoef(repository_interior, reference_interior)[0, 1]
+                np.corrcoef(repository_pooled, reference_pooled)[0, 1]
             ),
             "interior_relative_l2_difference": _relative_l2(
-                reference_interior, repository_interior
+                reference_pooled, repository_pooled
             ),
+            "repository_std_by_window": _distribution(repository_std_by_window),
+            "gwpy_std_by_window": _distribution(reference_std_by_window),
+            "correlation_by_window": _distribution(correlation_by_window),
+            "relative_l2_difference_by_window": _distribution(relative_l2_by_window),
         },
     }

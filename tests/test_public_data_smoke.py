@@ -38,8 +38,17 @@ def test_gwosc_cached_event_smoke(tmp_path):
         },
         tmp_path,
     )
-    assert result["detectors"]["H1"]["n_offsource_windows"] >= 1
-    assert np.isfinite(result["detectors"]["H1"]["event_weighted_residual"])
+    metrics = result["detectors"]["H1"]
+    assert metrics["n_offsource_windows"] >= 2
+    assert metrics["n_psd_calibration_windows"] == 1
+    assert metrics["n_injection_windows"] == 1
+    assert np.isfinite(metrics["event_weighted_residual"])
+    np.testing.assert_allclose(
+        metrics["injection_paired_score_mean"],
+        metrics["injection_target_snr"],
+        rtol=0.0,
+        atol=1e-10,
+    )
 
 
 def test_cresst_npz_reconstruction_smoke(tmp_path):

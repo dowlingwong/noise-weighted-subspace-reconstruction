@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Removed accidental root-level EMPCA duplicates and restored the Paper 2
+  ResNet backbone to `src/CNN/`; canonical Paper 1 implementations remain
+  exclusively under `src/canonical/`.
 - S3: replaced the agreement-by-construction bridge with an independently
   gradient-trained tied weighted linear autoencoder
   (`autoencoders/trained.py`), verified against EMPCA by optimality gap,
@@ -34,6 +37,10 @@
 - Added the GWOSC/GWpy reference path: bin-for-bin one-sided PSD normalization,
   held-out edge-trimmed whitening calibration, cached-run integration, reference
   preprocessing output, and download checksums/tool versions.
+- Corrected GWOSC injection SNR normalization using the FFT/PSD amplitude
+  variance; separated PSD calibration from held-out injection windows; added
+  paired recovery/null diagnostics, multi-window GWpy whitening summaries, and
+  longest-cache selection; expanded the default event cache to 256 seconds.
 
 - Added a config-driven Paper 1 experiment runner and S0-S9 synthetic suite.
 - Added remote-server data-root resolution with default

@@ -176,7 +176,7 @@ TIDMAD is optional and must not delay GWOSC or CRESST. Store it under
 | S7 | Estimated covariance converges to oracle behavior | `configs/synthetic/s7_covariance_robustness.yaml` | Multi-seed; σ/oracle decreases toward 1 with calibration size | Floor/shrinkage sweeps with CIs |
 | S8 | Matched residuals are statistically calibrated | `configs/synthetic/s8_residual_calibration.yaml` | Multi-seed; χ²/dof ≈ 1 (CI ~[0.995, 1.00]) | Residual PSD, autocorrelation, chi-square, and null intervals |
 | S9 | Full covariance handles channel correlation | `configs/synthetic/s9_multichannel_covariance.yaml` | Multi-seed; full beats diagonal under correlation (paired CI excludes 0) | Correlation/channel/gain sweeps |
-| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | GWpy PSD/whitening reference path implemented and fixture-tested; real cache run pending | Reproducible run on cached public data with reference normalization checks |
+| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | Real 32 s cache confirmed PSD normalization to machine precision; whitening under-dispersion exposed insufficient calibration; 256 s disjoint-window rerun prepared | Reproducible run on cached public data with reference normalization checks |
 | GWOSC-B | Injection recovery in off-source real noise | same as GWOSC-A | Pipeline scaffolded | Unbiased recovery over windows/SNRs with stable residual diagnostics |
 | CRESST-A | Cryogenic pulse reconstruction comparison | `configs/cresst/pulse_shape_smoke.yaml` | Loader/pipeline scaffolded | Actual-release schema validation and leakage-free detector-level evaluation |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | Planned | Start only after CRESST acceptance |
@@ -371,12 +371,14 @@ and documented failure cases. No robustness claim may rely on one seed.
 
 - [x] Implement a GWpy PSD/whitening reference path and pin its normalization
   against synthetic cached fixtures.
-- [ ] Confirm the target directory is writable and download reproducible H1/L1
-  windows.
-- [ ] Freeze event, off-source, guard, and PSD windows before evaluating.
+- [x] Confirm the target directory is writable and download reproducible H1/L1
+  windows (initial 32 s diagnostic; 256 s rerun required).
+- [x] Freeze the event guard and deterministic disjoint calibration/evaluation
+  window split in config; persist split indices and starts.
 - [ ] Replace the approximate chirp with a documented public waveform or a
   justified generation procedure.
-- [ ] Validate PSD normalization and whitening against a GWpy/reference path.
+- [ ] Validate whitening against GWpy over the configured multi-window 256 s
+  rerun (PSD density normalization already agrees to machine precision).
 - [ ] Run event-centered diagnostics and off-source injections over SNRs,
   windows, and PSD choices.
 

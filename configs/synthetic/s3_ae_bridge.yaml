@@ -5,4 +5,8 @@ n_traces: 512
 n_features: 128
 rank: 3
 noise_kind: pink
+# Trained tied linear AE bridge: train independently, then compare to EMPCA.
+methods: [direct, whitened]      # direct weighted loss + whitened MSE cross-check
+optimizers: [lbfgs, adam]        # full-batch L-BFGS (float64) + reported Adam pass
+max_iter: 5000
 output: results/metrics/S3_ae_bridge_seed3.json

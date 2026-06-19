@@ -9,15 +9,22 @@ def test_import_src():
 
 
 def test_import_submodules():
-    from src import OptimumFilter, PSDCalculator, metrics, make_weights, of  # noqa: F401
-    from src.EMPCA import empca_TCY, empca_TCY_optimized, empca_equivalence_utils  # noqa: F401
+    from src import metrics  # noqa: F401  (still at src/metrics.py)
+    from src.canonical import (  # noqa: F401  (production-verified home)
+        OptimumFilter,
+        PSDCalculator,
+        empca,
+        empca_TCY_optimized,
+        empca_equivalence_utils,
+        make_weights,
+    )
 
 
 def test_weight_convention_matches_equivalence_utils():
     import numpy as np
 
-    from src.make_weights import build_of_one_sided_weights as w_pkg
-    from src.EMPCA.empca_equivalence_utils import build_of_one_sided_weights as w_utils
+    from src.canonical.make_weights import build_of_one_sided_weights as w_pkg
+    from src.canonical.empca_equivalence_utils import build_of_one_sided_weights as w_utils
 
     n = 1024
     J = np.linspace(1.0, 2.0, n // 2 + 1)
@@ -27,7 +34,7 @@ def test_weight_convention_matches_equivalence_utils():
 def test_clip_psd_for_weights():
     import numpy as np
 
-    from src.make_weights import clip_psd_for_weights, make_inverse_psd_weights
+    from src.canonical.make_weights import clip_psd_for_weights, make_inverse_psd_weights
 
     J = np.array([0.0, 1e-30, 1.0, 2.0])
     Jc = clip_psd_for_weights(J)

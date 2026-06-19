@@ -1,11 +1,34 @@
 # Paper 1 Validation Roadmap
 
-Last reviewed: 2026-06-18.
+Last reviewed: 2026-06-19.
 
 This is the authoritative source for Paper 1 experiment scope, status,
 acceptance criteria, dataset access, preprocessing, metrics, and reporting.
 Other planning files are retained only as compatibility pointers or historical
-records.
+records. The narrative and decision record behind the current status (what was
+built, the phase-DOF and finite-sample findings, and the open decisions) is in
+[`paper1_validation_progress.md`](paper1_validation_progress.md).
+
+## Shared Infrastructure
+
+- **Central rFFT↔real primitive** — `src/canonical/empca_equivalence_utils.py`
+  (`rfft_to_real`, `real_weight_vector`, `complex_to_real_whitened`). All
+  rFFT-domain experiments route the DC/Nyquist/weight conventions through this
+  one tested function.
+- **Canonical EMPCA** — `fit_empca_no_smoothing` (exact, no Savitzky–Golay) is
+  the paper-grade entry point; the smoothed `EMPCA.fit()` is not. Stephen
+  Bailey's `canonical/empca.py` is the independent reference oracle.
+- **Validation harness** — `src/noise_geometry/validation/harness.py` and
+  `scripts/sweep.py` provide seed sweeps, leakage-free held-out splits, and
+  68%/95% bootstrap (and paired) confidence intervals, emitting one-row-per-seed
+  CSV source data. Adopting it on an experiment is a config change.
+- **Remote gate runner** — `scripts/stage0_remote_gate.py` enforces a clean
+  checkout, runs the exact five Stage 0 commands, and archives environment,
+  dependency, git, timing, and command-log evidence.
+- **GWpy reference path** — `noise_geometry/gwosc/reference.py` compares the
+  repository's one-sided PSD normalization bin-for-bin with GWpy and compares
+  direct-rFFT versus inverse-spectrum-FIR whitening on a held-out, edge-trimmed
+  off-source window.
 
 ## Current Stage
 
@@ -144,16 +167,16 @@ TIDMAD is optional and must not delay GWOSC or CRESST. Store it under
 | ID | Claim or purpose | Config | Current status | Required result before validation |
 |---|---|---|---|---|
 | S0 | End-to-end pipeline smoke | `configs/synthetic/s0_smoke.yaml` | Locally verified | Clean remote run with recorded environment |
-| S1 | OF is unbiased and reaches the CRB | `configs/synthetic/s1_of_crb.yaml` | Preliminary | Multi-seed white/pink/Brownian study with CRB intervals and scaling |
-| S2 | Rank-1 EMPCA recovers the OF direction | `configs/synthetic/s2_of_empca.yaml` | Preliminary | Complex-rFFT, held-out, multi-seed equivalence at declared tolerance |
-| S3 | Weighted tied linear AE equals EMPCA | `configs/synthetic/s3_ae_bridge.yaml` | Preliminary; current exact path is not independent enough | Independent exact solution, full-covariance tests, projector agreement |
-| S4 | PCA and EMPCA agree in white noise | `configs/synthetic/s4_white_control.yaml` | Preliminary | Paired multi-seed negative control |
-| S5 | Colored noise can reverse MSE and likelihood rankings | `configs/synthetic/s5_metric_reversal.yaml` | Preliminary | Likelihood-preserving complex representation and paired held-out intervals |
-| S6 | Extra rank helps only for real signal variation | `configs/synthetic/s6_timing_jitter_rank_sweep.yaml` | Demonstration only | Held-out rank sweeps across jitter and shape conditions |
-| S7 | Estimated covariance converges to oracle behavior | `configs/synthetic/s7_covariance_robustness.yaml` | Demonstration only | Repeated covariance estimates, floors, and shrinkage sweeps |
-| S8 | Matched residuals are statistically calibrated | `configs/synthetic/s8_residual_calibration.yaml` | Demonstration only | Residual PSD, autocorrelation, chi-square, and null intervals |
-| S9 | Full covariance handles channel correlation | `configs/synthetic/s9_multichannel_covariance.yaml` | Demonstration only | Correlation/channel sweeps with paired uncertainty |
-| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | Pipeline scaffolded | Reproducible run on cached public data with reference normalization checks |
+| S1 | OF is unbiased and reaches the CRB | `configs/synthetic/s1_of_crb.yaml` | Amplitude routed through central whitened primitive (== OF to machine precision) | Multi-seed white/pink/Brownian study with CRB intervals and scaling |
+| S2 | Rank-1 EMPCA recovers the OF direction | `configs/synthetic/s2_of_empca.yaml` | `amplitude_model` flag added; angle confirmed finite-sample (√N slope ≈ −0.5, tested); equivalence robust to coefficient phase | Multi-seed CRB/scaling report; extend amplitude_model to S6 jitter |
+| S3 | Weighted tied linear AE equals EMPCA | `configs/synthetic/s3_ae_bridge.yaml` | Independent: gradient-trained AE vs EMPCA, optimality gap + angle + orthonormality, diagonal and full covariance | Route through central representation; multi-seed intervals |
+| S4 | PCA and EMPCA agree in white noise | `configs/synthetic/s4_white_control.yaml` | Held-out, multi-seed; angle ~1e-6°, paired residual CI contains 0 (negative control holds) | Predeclare thresholds |
+| S5 | Colored noise can reverse MSE and likelihood rankings | `configs/synthetic/s5_metric_reversal.yaml` | Likelihood-preserving complex representation; held-out paired 95% CIs excluding zero over 20 seeds | Predeclare condition/threshold; archive as final figure source |
+| S6 | Extra rank helps only for real signal variation | `configs/synthetic/s6_timing_jitter_rank_sweep.yaml` | Held-out rank sweep, multi-seed; higher rank lowers residual (paired CI excludes 0) | Separate jitter vs shape conditions; predeclare saturation rank |
+| S7 | Estimated covariance converges to oracle behavior | `configs/synthetic/s7_covariance_robustness.yaml` | Multi-seed; σ/oracle decreases toward 1 with calibration size | Floor/shrinkage sweeps with CIs |
+| S8 | Matched residuals are statistically calibrated | `configs/synthetic/s8_residual_calibration.yaml` | Multi-seed; χ²/dof ≈ 1 (CI ~[0.995, 1.00]) | Residual PSD, autocorrelation, chi-square, and null intervals |
+| S9 | Full covariance handles channel correlation | `configs/synthetic/s9_multichannel_covariance.yaml` | Multi-seed; full beats diagonal under correlation (paired CI excludes 0) | Correlation/channel/gain sweeps |
+| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | GWpy PSD/whitening reference path implemented and fixture-tested; real cache run pending | Reproducible run on cached public data with reference normalization checks |
 | GWOSC-B | Injection recovery in off-source real noise | same as GWOSC-A | Pipeline scaffolded | Unbiased recovery over windows/SNRs with stable residual diagnostics |
 | CRESST-A | Cryogenic pulse reconstruction comparison | `configs/cresst/pulse_shape_smoke.yaml` | Loader/pipeline scaffolded | Actual-release schema validation and leakage-free detector-level evaluation |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | Planned | Start only after CRESST acceptance |
@@ -234,6 +257,7 @@ not scientific acceptance.
 - [x] Install and test locally with `uv`.
 - [x] Resolve all public data outside the repository.
 - [x] Run S0-S9 from configs and generate records, tables, and diagnostics.
+- [x] Provide a clean-checkout gate runner and environment/log capture.
 - [ ] Run the exact acceptance commands on a clean remote Linux checkout.
 - [ ] Record OS, Python, CPU/GPU, dependency versions, and command logs.
 
@@ -254,25 +278,37 @@ resolution/noise slope agrees with theory within its 95% interval.
 
 #### S2: Rank-1 EMPCA and OF
 
-- [ ] Use the full complex rFFT representation.
+- [x] Use the full complex rFFT representation.
+- [x] Explain the finite-sample angle: it scales as 1/√N (log-log slope ≈ −0.5,
+  tested), not a structural gap, and is robust to coefficient phase
+  (`amplitude_model`).
 - [ ] Match centering, PSD floor, frequency-bin handling, gauge, and scale.
 - [ ] Evaluate coefficients and residuals on held-out traces over at least
   10 seeds and three noise colors.
-- [ ] Explain the current approximately 5 degree finite-sample angle.
 
-Accept when weighted cosine is at least `0.9999`, or convergence to 1 is
-demonstrated; held-out coefficient correlation is at least `0.9999`; and
-relative weighted-residual/reconstruction differences are below `1e-3`.
+Accept by **demonstrated convergence to 1** at the theoretical √N rate (the
+single-seed `0.9999` cosine is reachable only at large N); held-out coefficient
+correlation at least `0.9999`; relative weighted-residual/reconstruction
+differences below `1e-3`. For the `complex` amplitude model the headline is the
+template-into-EMPCA-span angle rather than the single-template cosine.
 
 #### S3: EMPCA and Weighted Linear AE
 
-- [ ] Implement an exact solution independently of `fit_weighted_pca`.
-- [ ] Verify `P.T @ Sigma_inv @ P = I`.
-- [ ] Test diagonal and full covariance, multiple seeds, and multiple ranks.
-- [ ] Compare subspaces, projectors, reconstructions, and residual distributions.
+- [x] Implement a solution independently of `fit_weighted_pca` — a gradient-
+  trained tied weighted linear AE (`autoencoders/trained.py`), not the
+  closed-form delegate.
+- [x] Verify `P.T @ Sigma_inv @ P = I` (M-orthonormality of the learned basis).
+- [x] Test diagonal and full covariance.
+- [x] Compare subspaces (principal angle), reconstructions, and the optimality
+  gap against the EMPCA global optimum `L*`.
+- [ ] Route the experiment through the central representation primitive.
+- [ ] Multiple seeds and ranks with intervals (via the harness).
 
-Accept when the maximum principal angle is below `1e-5` degrees and relative
-projector/reconstruction differences are below `1e-8`.
+Accept the **independent closed form** at maximum principal angle below `1e-5`
+degrees and relative projector/reconstruction differences below `1e-8`. For the
+**gradient-trained** AE use a separate, principled gate — relative optimality
+gap `< 1e-6` and principal angle `< 0.05°` (full-batch L-BFGS, float64; a
+first-order Adam pass is reported, not held to this bar).
 
 #### S4-S5: White Control and Metric Reversal
 
@@ -333,6 +369,8 @@ and documented failure cases. No robustness claim may rely on one seed.
 
 ### Stage 3: GWOSC
 
+- [x] Implement a GWpy PSD/whitening reference path and pin its normalization
+  against synthetic cached fixtures.
 - [ ] Confirm the target directory is writable and download reproducible H1/L1
   windows.
 - [ ] Freeze event, off-source, guard, and PSD windows before evaluating.

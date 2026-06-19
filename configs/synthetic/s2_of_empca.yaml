@@ -4,4 +4,8 @@ seed: 7
 n_traces: 512
 n_samples: 1024
 noise_kind: pink
+# Coefficient field: 'real' (fixed-shape pulse, no jitter; headline metric is the
+# rank-1 EMPCA-vs-OF angle, which converges to 0 at the 1/sqrt(N) rate) or
+# 'complex' (amplitude + phase; headline is the template-into-EMPCA-span angle).
+amplitude_model: real
 output: results/metrics/S2_of_empca_seed7.json

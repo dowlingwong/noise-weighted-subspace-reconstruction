@@ -6,12 +6,12 @@ weighting, preprocessing, and gauge conventions are matched.
 
 import numpy as np
 
-from src.OptimumFilter import OptimumFilter
-from src.of import gls_amplitude
-from src.make_weights import build_of_one_sided_weights
-from src.EMPCA.empca_equivalence_utils import (
+from src.canonical.OptimumFilter import OptimumFilter
+from src.canonical.make_weights import build_of_one_sided_weights
+from src.canonical.empca_equivalence_utils import (
     fit_empca_no_smoothing,
     phase_align_basis,
+    project_gls as gls_amplitude,  # of.py removed; rank-1 GLS lives in equivalence utils
     weighted_cosine,
 )
 

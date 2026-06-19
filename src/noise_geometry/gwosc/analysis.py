@@ -13,6 +13,7 @@ from ..filters import gls_amplitude, matched_filter_score
 from ..metrics import mse, weighted_residual
 from ..noise import estimate_psd_rfft, inverse_psd_weights, regularize_psd
 from ..utils.paths import dataset_root
+from .reference import run_gwpy_reference_check
 
 
 def load_cached_event(path: str | Path) -> dict[str, Any]:
@@ -106,5 +107,18 @@ def run_gwosc_experiment(config: dict[str, Any], data_root_path: str | Path) -> 
             "injection_amplitude_bias": float(np.mean(recovered_amp - injection_amp)),
             "injection_score_mean": float(np.mean(recovered_score)),
         }
+        reference_config = config.get("gwpy_reference", {})
+        if bool(reference_config.get("enabled", False)):
+            if offsource.shape[0] < 2:
+                raise ValueError("GWpy reference check needs at least two off-source windows")
+            detector_metrics[detector]["gwpy_reference"] = run_gwpy_reference_check(
+                offsource[:-1],
+                offsource[-1],
+                sample_rate,
+                fduration_seconds=float(reference_config.get("fduration_seconds", 1.0)),
+                highpass_hz=reference_config.get("highpass_hz"),
+                detrend=str(reference_config.get("detrend", "constant")),
+                floor_fraction=float(config.get("psd_floor_fraction", 1e-6)),
+            )
 
     return {"experiment": str(config.get("experiment_id", "P1_GWOSC")), "detectors": detector_metrics}

@@ -6,8 +6,12 @@ from typing import Any
 
 import numpy as np
 
-from ..autoencoders import tied_linear_ae_closed_form
-from ..filters import gls_amplitude, psd_amplitude_variance
+from ..autoencoders import (
+    empca_optimal_loss,
+    train_weighted_linear_ae,
+    train_whitened_linear_ae,
+)
+from ..filters import psd_amplitude_variance
 from ..metrics import amplitude_resolution, gaussian_nll, mse, weighted_residual
 from ..noise import (
     block_covariance,
@@ -21,6 +25,20 @@ from ..noise import (
 from ..subspace import fit_pca, fit_weighted_pca, principal_angles, project_onto_basis
 from ..synthetic import make_rank1_pulse_dataset, run_of_empca_equivalence
 from ..synthetic.pulses import exponential_pulse
+from ..validation import train_test_split_indices
+
+try:  # central rFFT<->real primitive (repo-root on path, e.g. pytest)
+    from ...canonical.empca_equivalence_utils import (
+        complex_to_real_whitened,
+        real_weight_vector,
+        rfft_to_real,
+    )
+except ImportError:  # src on path (scripts/run_experiment.py)
+    from canonical.empca_equivalence_utils import (
+        complex_to_real_whitened,
+        real_weight_vector,
+        rfft_to_real,
+    )
 
 
 def _rankk_signal(
@@ -118,7 +136,13 @@ def run_s1_of_crb(config: dict[str, Any]) -> dict[str, Any]:
     )
     X_f = np.fft.rfft(dataset.traces, axis=1)
     s_f = np.fft.rfft(dataset.template)
-    amp = gls_amplitude(X_f, s_f, dataset.weights)
+    # OF/GLS amplitude as the rank-1 projection in the central whitened-real
+    # representation: a_hat = <whitened x, whitened s> / <whitened s, whitened s>.
+    # Identical to gls_amplitude and OptimumFilter.fit (pinned by tests), but
+    # routed through the one shared primitive instead of a separate inner product.
+    feat_X = complex_to_real_whitened(X_f, dataset.weights)
+    feat_s = complex_to_real_whitened(s_f, dataset.weights)
+    amp = (feat_X @ feat_s) / float(feat_s @ feat_s)
     crb_sigma = float(
         np.sqrt(
             psd_amplitude_variance(
@@ -144,89 +168,210 @@ def run_s1_of_crb(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_s2_of_empca(config: dict[str, Any]) -> dict[str, Any]:
-    cfg = {"seed": 7, "n_traces": 256, "n_samples": 1024, "noise_kind": "pink"} | config
+    cfg = {
+        "seed": 7,
+        "n_traces": 256,
+        "n_samples": 1024,
+        "noise_kind": "pink",
+        "amplitude_model": "real",
+    } | config
+    amplitude_model = str(cfg["amplitude_model"])
     dataset = make_rank1_pulse_dataset(
         n_traces=int(cfg["n_traces"]),
         n_samples=int(cfg["n_samples"]),
         noise_kind=str(cfg["noise_kind"]),
         seed=int(cfg["seed"]),
+        amplitude_model=amplitude_model,
     )
-    summary = run_of_empca_equivalence(dataset)
+    summary = run_of_empca_equivalence(dataset, amplitude_model=amplitude_model)
     summary.update({"experiment": "S2", "noise_kind": str(cfg["noise_kind"])})
     return summary
 
 
-def run_s3_ae_bridge(config: dict[str, Any]) -> dict[str, Any]:
+def make_s3_dataset(config: dict[str, Any]) -> tuple[np.ndarray, np.ndarray, int]:
+    """Build the S3 synthetic dataset deterministically from the config seed.
+
+    Returns ``(X, weights, rank)`` where ``X`` is rank-``k`` signal plus diagonal
+    colored Gaussian noise and ``weights`` is the diagonal inverse-noise metric.
+    Shared by :func:`run_s3_ae_bridge` and ``scripts/train_s3_ae.py`` so the
+    verification and any saved model train on identical data.
+    """
     cfg = {"seed": 3, "n_traces": 512, "n_features": 128, "rank": 3} | config
     rng = np.random.default_rng(int(cfg["seed"]))
-    clean, _ = _rankk_signal(rng, int(cfg["n_traces"]), int(cfg["n_features"]), int(cfg["rank"]))
+    rank = int(cfg["rank"])
+    clean, _ = _rankk_signal(rng, int(cfg["n_traces"]), int(cfg["n_features"]), rank)
     variance = np.geomspace(0.02, 0.5, int(cfg["n_features"]))
     weights = 1.0 / variance
     noise = rng.normal(scale=np.sqrt(variance)[None, :], size=clean.shape)
-    X = clean + noise
-    empca = fit_weighted_pca(X, weights, int(cfg["rank"]))
-    ae = tied_linear_ae_closed_form(X, int(cfg["rank"]), weights=weights)
-    angles = principal_angles(empca.components, ae.components, weights=weights)
+    return clean + noise, weights, rank
+
+
+def run_s3_ae_bridge(config: dict[str, Any]) -> dict[str, Any]:
+    """S3: verify the EMPCA bridge with *independently trained* tied linear AEs.
+
+    Rather than delegating to ``fit_weighted_pca`` (agreement by construction),
+    this trains the tied weighted linear AE by gradient optimisation and checks
+    that it converges to the EMPCA global optimum. Evidence per trained model:
+    the optimality gap against ``L*``, the principal angle to EMPCA in the noise
+    metric, and the M-orthonormality of the learned basis.
+
+    Config keys: ``methods`` (subset of {"direct", "whitened"}), ``optimizers``
+    (subset of {"lbfgs", "adam"}), and ``max_iter``. Defaults run both methods
+    with L-BFGS plus a reported Adam pass on the direct model.
+    """
+    cfg = {
+        "seed": 3,
+        "n_traces": 512,
+        "n_features": 128,
+        "rank": 3,
+        "methods": ["direct", "whitened"],
+        "optimizers": ["lbfgs", "adam"],
+        "max_iter": 5000,
+    } | config
+    X, weights, rank = make_s3_dataset(cfg)
+
+    # EMPCA closed form provides the reference subspace and the global optimum L*.
+    lstar, empca = empca_optimal_loss(X, weights, rank)
     empca_recon = project_onto_basis(X, empca.components, weights=weights, mean=empca.mean)
-    ae_recon = project_onto_basis(X, ae.components, weights=weights, mean=ae.mean)
+
+    trainers = {"direct": train_weighted_linear_ae, "whitened": train_whitened_linear_ae}
+    runs: dict[str, Any] = {}
+    for method in cfg["methods"]:
+        for opt in cfg["optimizers"]:
+            res = trainers[method](
+                X, weights, rank, optimizer=opt, seed=int(cfg["seed"]), max_iter=int(cfg["max_iter"])
+            )
+            ae_recon = project_onto_basis(X, res.components, weights=weights, mean=res.mean)
+            runs[f"{method}_{opt}"] = {
+                "optimizer": res.optimizer,
+                "method": res.method,
+                "final_loss": res.final_loss,
+                "optimality_gap": res.optimality_gap,
+                "relative_gap": res.relative_gap,
+                "max_principal_angle_deg": res.max_principal_angle_deg,
+                "m_orthonormality_error": res.m_orthonormality_error,
+                "reconstruction_rmse_vs_empca": float(np.sqrt(mse(empca_recon, ae_recon))),
+                "n_iter": res.n_iter,
+            }
+
+    # Headline = independently trained direct L-BFGS model; keep legacy keys.
+    headline = runs.get("direct_lbfgs") or next(iter(runs.values()))
     return {
         "experiment": "S3",
-        "max_principal_angle_deg": float(np.max(angles)),
-        "mean_principal_angle_deg": float(np.mean(angles)),
-        "reconstruction_rmse": float(np.sqrt(mse(empca_recon, ae_recon))),
+        "rank": rank,
+        "optimal_loss": lstar,
+        "runs": runs,
+        "max_principal_angle_deg": headline["max_principal_angle_deg"],
+        "mean_principal_angle_deg": headline["max_principal_angle_deg"],
+        "reconstruction_rmse": headline["reconstruction_rmse_vs_empca"],
+        "relative_gap": headline["relative_gap"],
+        "m_orthonormality_error": headline["m_orthonormality_error"],
     }
 
 
 def run_s4_white_control(config: dict[str, Any]) -> dict[str, Any]:
-    cfg = {"seed": 4, "n_traces": 512, "n_features": 128, "rank": 3, "noise_level": 0.05} | config
+    cfg = {
+        "seed": 4,
+        "n_traces": 512,
+        "n_features": 128,
+        "rank": 3,
+        "noise_level": 0.05,
+        "test_frac": 0.0,
+        "split_seed": 0,
+    } | config
     rng = np.random.default_rng(int(cfg["seed"]))
-    clean, _ = _rankk_signal(rng, int(cfg["n_traces"]), int(cfg["n_features"]), int(cfg["rank"]))
+    rank = int(cfg["rank"])
+    clean, _ = _rankk_signal(rng, int(cfg["n_traces"]), int(cfg["n_features"]), rank)
     X = clean + rng.normal(scale=float(cfg["noise_level"]), size=clean.shape)
     weights = np.ones(X.shape[1], dtype=np.float64)
-    pca = fit_pca(X, int(cfg["rank"]))
-    empca = fit_weighted_pca(X, weights, int(cfg["rank"]))
-    pca_recon = project_onto_basis(X, pca.components, mean=pca.mean)
-    empca_recon = project_onto_basis(X, empca.components, weights=weights, mean=empca.mean)
+
+    test_frac = float(cfg["test_frac"])
+    if test_frac > 0.0:
+        train_idx, test_idx = train_test_split_indices(X.shape[0], test_frac, int(cfg["split_seed"]))
+    else:
+        train_idx = test_idx = np.arange(X.shape[0])
+    X_tr, X_te = X[train_idx], X[test_idx]
+
+    pca = fit_pca(X_tr, rank)
+    empca = fit_weighted_pca(X_tr, weights, rank)
+    pca_recon = project_onto_basis(X_te, pca.components, mean=pca.mean)
+    empca_recon = project_onto_basis(X_te, empca.components, weights=weights, mean=empca.mean)
     angles = principal_angles(pca.components, empca.components)
     return {
         "experiment": "S4",
-        "pca_mse": float(mse(X, pca_recon)),
-        "empca_mse": float(mse(X, empca_recon)),
-        "pca_weighted_residual": float(np.mean(weighted_residual(X, pca_recon, weights))),
-        "empca_weighted_residual": float(np.mean(weighted_residual(X, empca_recon, weights))),
+        "held_out": bool(test_frac > 0.0),
+        "n_test": int(test_idx.size),
+        "pca_mse": float(mse(X_te, pca_recon)),
+        "empca_mse": float(mse(X_te, empca_recon)),
+        "pca_weighted_residual": float(np.mean(weighted_residual(X_te, pca_recon, weights))),
+        "empca_weighted_residual": float(np.mean(weighted_residual(X_te, empca_recon, weights))),
         "max_principal_angle_deg": float(np.max(angles)),
     }
 
 
 def run_s5_metric_reversal(config: dict[str, Any]) -> dict[str, Any]:
-    cfg = {"seed": 19, "n_traces": 512, "n_features": 256, "rank": 2} | config
+    cfg = {
+        "seed": 19,
+        "n_traces": 512,
+        "n_features": 256,
+        "rank": 2,
+        "test_frac": 0.0,   # > 0 enables a leakage-free held-out split
+        "split_seed": 0,
+    } | config
     X, clean, weights_f = _metric_reversal_dataset(cfg)
-    X_f = np.fft.rfft(X, axis=1).real
-    clean_f = np.fft.rfft(clean, axis=1).real
     rank = int(cfg["rank"])
-    pca = fit_pca(X_f, rank)
-    wpca = fit_weighted_pca(X_f, weights_f, rank)
-    pca_recon = project_onto_basis(X_f, pca.components, mean=pca.mean)
-    wpca_recon = project_onto_basis(X_f, wpca.components, weights=weights_f, mean=wpca.mean)
-    pca_wr = weighted_residual(X_f, pca_recon, weights_f)
-    wpca_wr = weighted_residual(X_f, wpca_recon, weights_f)
+
+    # Likelihood-preserving complex representation: stack Re and Im of the rFFT
+    # (the previous version kept only the real part, discarding half the
+    # information and breaking the Sigma^{-1} geometry). Route through the
+    # central primitive so DC/Nyquist/weight conventions live in one place.
+    feat_all = rfft_to_real(np.fft.rfft(X, axis=1))
+    clean_all = rfft_to_real(np.fft.rfft(clean, axis=1))
+    w_real = real_weight_vector(weights_f)
+
+    # Held-out evaluation: fit the subspaces on the train split, score residuals
+    # on unseen test traces (test_frac=0 reproduces the in-sample behaviour).
+    test_frac = float(cfg["test_frac"])
+    if test_frac > 0.0:
+        train_idx, test_idx = train_test_split_indices(feat_all.shape[0], test_frac, int(cfg["split_seed"]))
+    else:
+        train_idx = test_idx = np.arange(feat_all.shape[0])
+    feat_tr, feat_te, clean_te = feat_all[train_idx], feat_all[test_idx], clean_all[test_idx]
+
+    pca = fit_pca(feat_tr, rank)
+    wpca = fit_weighted_pca(feat_tr, w_real, rank)
+    pca_recon = project_onto_basis(feat_te, pca.components, mean=pca.mean)
+    wpca_recon = project_onto_basis(feat_te, wpca.components, weights=w_real, mean=wpca.mean)
+    pca_wr = weighted_residual(feat_te, pca_recon, w_real)
+    wpca_wr = weighted_residual(feat_te, wpca_recon, w_real)
     return {
         "experiment": "S5",
         "rank": rank,
-        "pca_raw_residual_to_observed": float(mse(X_f, pca_recon)),
-        "weighted_pca_raw_residual_to_observed": float(mse(X_f, wpca_recon)),
+        "representation": "complex_rfft_real_imag_stacked",
+        "held_out": bool(test_frac > 0.0),
+        "n_test": int(test_idx.size),
+        "pca_raw_residual_to_observed": float(mse(feat_te, pca_recon)),
+        "weighted_pca_raw_residual_to_observed": float(mse(feat_te, wpca_recon)),
         "pca_weighted_residual_to_observed": float(np.mean(pca_wr)),
         "weighted_pca_weighted_residual_to_observed": float(np.mean(wpca_wr)),
-        "pca_nll_mean": float(np.mean(gaussian_nll(X_f, pca_recon, weights_f))),
-        "weighted_pca_nll_mean": float(np.mean(gaussian_nll(X_f, wpca_recon, weights_f))),
-        "pca_clean_mse_diagnostic": float(mse(clean_f, pca_recon)),
-        "weighted_pca_clean_mse_diagnostic": float(mse(clean_f, wpca_recon)),
-        "subspace_angle_deg_max": float(np.max(principal_angles(pca.components, wpca.components, weights=weights_f))),
+        "pca_nll_mean": float(np.mean(gaussian_nll(feat_te, pca_recon, w_real))),
+        "weighted_pca_nll_mean": float(np.mean(gaussian_nll(feat_te, wpca_recon, w_real))),
+        "pca_clean_mse_diagnostic": float(mse(clean_te, pca_recon)),
+        "weighted_pca_clean_mse_diagnostic": float(mse(clean_te, wpca_recon)),
+        "subspace_angle_deg_max": float(np.max(principal_angles(pca.components, wpca.components, weights=w_real))),
     }
 
 
 def run_s6_timing_rank_sweep(config: dict[str, Any]) -> dict[str, Any]:
-    cfg = {"seed": 6, "n_traces": 400, "n_features": 128, "rank_max": 6, "timing_jitter_samples": 3.0} | config
+    cfg = {
+        "seed": 6,
+        "n_traces": 400,
+        "n_features": 128,
+        "rank_max": 6,
+        "timing_jitter_samples": 3.0,
+        "test_frac": 0.0,
+        "split_seed": 0,
+    } | config
     rng = np.random.default_rng(int(cfg["seed"]))
     n_traces = int(cfg["n_traces"])
     n_features = int(cfg["n_features"])
@@ -241,23 +386,33 @@ def run_s6_timing_rank_sweep(config: dict[str, Any]) -> dict[str, Any]:
     metric = inverse_covariance(cov)
     X = clean + rng.multivariate_normal(np.zeros(n_features), cov, size=n_traces)
 
-    amp_of = _gls_time_amplitude(X, template, metric)
+    # Held-out rank sweep: fit each rank on the train split, score on test.
+    test_frac = float(cfg["test_frac"])
+    if test_frac > 0.0:
+        train_idx, test_idx = train_test_split_indices(n_traces, test_frac, int(cfg["split_seed"]))
+    else:
+        train_idx = test_idx = np.arange(n_traces)
+    X_tr, X_te, clean_te = X[train_idx], X[test_idx], clean[test_idx]
+
+    amp_of = _gls_time_amplitude(X_te, template, metric)
     of_recon = amp_of[:, None] * template[None, :]
     ranks = list(range(1, int(cfg["rank_max"]) + 1))
     residuals = []
     clean_errors = []
     for rank in ranks:
-        fit = fit_weighted_pca(X, metric, rank)
-        recon = project_onto_basis(X, fit.components, weights=metric, mean=fit.mean)
-        residuals.append(float(np.mean(weighted_residual(X, recon, metric))))
-        clean_errors.append(float(mse(clean, recon)))
+        fit = fit_weighted_pca(X_tr, metric, rank)
+        recon = project_onto_basis(X_te, fit.components, weights=metric, mean=fit.mean)
+        residuals.append(float(np.mean(weighted_residual(X_te, recon, metric))))
+        clean_errors.append(float(mse(clean_te, recon)))
     return {
         "experiment": "S6",
+        "held_out": bool(test_frac > 0.0),
+        "n_test": int(test_idx.size),
         "ranks": ranks,
         "weighted_residual_by_rank": residuals,
         "clean_mse_by_rank": clean_errors,
-        "of_weighted_residual": float(np.mean(weighted_residual(X, of_recon, metric))),
-        "of_amplitude_bias": float(np.mean(amp_of - amplitudes)),
+        "of_weighted_residual": float(np.mean(weighted_residual(X_te, of_recon, metric))),
+        "of_amplitude_bias": float(np.mean(amp_of - amplitudes[test_idx])),
         "best_rank_by_clean_mse": int(ranks[int(np.argmin(clean_errors))]),
     }
 

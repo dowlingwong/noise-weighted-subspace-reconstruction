@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Removed accidental root-level EMPCA duplicates and restored the Paper 2
+  ResNet backbone to `src/CNN/`; canonical Paper 1 implementations remain
+  exclusively under `src/canonical/`.
 - S3: replaced the agreement-by-construction bridge with an independently
   gradient-trained tied weighted linear autoencoder
   (`autoencoders/trained.py`), verified against EMPCA by optimality gap,

@@ -7,6 +7,7 @@ from src.noise_geometry.gwosc import (
     run_gwosc_experiment,
     run_gwpy_reference_check,
 )
+from src.noise_geometry.gwosc.analysis import _calibration_window_quality
 
 
 pytestmark = pytest.mark.skipif(
@@ -115,3 +116,91 @@ def test_cached_gwosc_runner_records_gwpy_reference(tmp_path):
         abs(metrics["injection_amplitude"]) * 1e-10
     )
     assert metrics["injection_paired_score_std"] < 1e-10
+
+
+def test_calibration_quality_rejects_impulsive_glitch():
+    rng = np.random.default_rng(22)
+    windows = rng.normal(size=(20, 1024))
+    windows[7, 512] = 100.0
+
+    keep, diagnostics = _calibration_window_quality(
+        windows,
+        np.arange(windows.shape[0]),
+        256.0,
+        psd_window="hann",
+        psd_detrend="constant",
+        highpass_hz=20.0,
+        config={
+            "enabled": True,
+            "band_min_hz": 20.0,
+            "band_max_hz": 100.0,
+            "robust_z_threshold": 5.0,
+            "crest_factor_threshold": 20.0,
+            "max_rejected_fraction": 0.25,
+        },
+    )
+
+    assert not keep[7]
+    assert diagnostics["rejected_window_indices"] == [7]
+    assert "crest_factor" in diagnostics["windows"][7]["reasons"]
+
+
+def test_multisplit_null_calibration_passes_stationary_white_noise(tmp_path):
+    sample_rate = 128.0
+    duration = 128.0
+    n = int(sample_rate * duration)
+    start = 2000.0
+    gps = start + duration / 2.0
+    rng = np.random.default_rng(4)
+    raw = tmp_path / "gwosc/raw/GWTEST"
+    raw.mkdir(parents=True)
+    np.savez_compressed(
+        raw / "GWTEST_H1_128s.npz",
+        value=rng.normal(scale=1e-21, size=n),
+        times=start + np.arange(n) / sample_rate,
+        sample_rate=sample_rate,
+        detector="H1",
+        event="GWTEST",
+        gps=gps,
+        start=start,
+        end=start + duration,
+    )
+
+    result = run_gwosc_experiment(
+        {
+            "event": "GWTEST",
+            "detectors": ["H1"],
+            "analysis_duration_seconds": 2.0,
+            "analysis_highpass_hz": 10.0,
+            "psd_calibration_fraction": 0.75,
+            "offsource_split_seed": 1,
+            "minimum_psd_calibration_windows": 24,
+            "minimum_evaluation_windows": 12,
+            "psd_estimator": {
+                "window": "hann",
+                "average": "median",
+                "detrend": "constant",
+            },
+            "psd_quality": {
+                "enabled": True,
+                "band_min_hz": 10.0,
+                "band_max_hz": 60.0,
+                "robust_z_threshold": 6.0,
+                "crest_factor_threshold": 20.0,
+                "max_rejected_fraction": 0.25,
+            },
+            "null_calibration_validation": {
+                "split_seeds": [1, 2, 3, 4, 5],
+                "per_split_ratio_bounds": [0.5, 1.5],
+                "median_ratio_bounds": [0.8, 1.2],
+            },
+            "gwpy_reference": {"enabled": False},
+        },
+        tmp_path,
+    )
+
+    gate = result["detectors"]["H1"]["null_calibration_validation"]
+    assert result["acceptance"]["passed"]
+    assert gate["passed"]
+    assert gate["n_split_seeds"] == 5
+    assert 0.8 <= gate["median_null_sigma_over_predicted"] <= 1.2

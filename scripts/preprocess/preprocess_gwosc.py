@@ -42,7 +42,11 @@ def main() -> None:
     config["gwpy_reference"] = reference_config
     result = run_gwosc_experiment(config, data_root)
     references = {
-        detector: metrics["gwpy_reference"]
+        detector: {
+            "gwpy_reference": metrics["gwpy_reference"],
+            "psd_calibration_quality": metrics["psd_calibration_quality"],
+            "null_calibration_validation": metrics["null_calibration_validation"],
+        }
         for detector, metrics in result["detectors"].items()
     }
     output = args.output or root / "processed" / f"{config.get('event', 'event')}_gwpy_reference.json"

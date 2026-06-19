@@ -41,6 +41,10 @@
   variance; separated PSD calibration from held-out injection windows; added
   paired recovery/null diagnostics, multi-window GWpy whitening summaries, and
   longest-cache selection; expanded the default event cache to 256 seconds.
+- Replaced the GWOSC boxcar mean PSD with Hann-windowed, FINDCHIRP
+  bias-corrected median aggregation matched to GWpy; added robust calibration
+  window glitch diagnostics and a five-split held-out amplitude-calibration
+  acceptance gate that marks failed records as `failed_acceptance`.
 
 - Added a config-driven Paper 1 experiment runner and S0-S9 synthetic suite.
 - Added remote-server data-root resolution with default

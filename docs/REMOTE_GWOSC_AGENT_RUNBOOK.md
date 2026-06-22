@@ -1,12 +1,12 @@
 # Remote GWOSC verification agent runbook
 
-_Controlled execution, evidence capture, and Git synchronization for the Paper 1 GWOSC gate_
+_Controlled local execution and evidence capture for the Paper 1 GWOSC gate_
 
 ---
 
 ## 📋 Agent mandate
 
-Execute the current `main` branch exactly as committed, archive all lightweight evidence in the repository, and push one evidence-only commit to `main`. Do not change source code, configuration, acceptance thresholds, seeds, or data-selection rules during this run.
+Execute the current `main` branch exactly as committed and archive all lightweight evidence in the local repository checkout. Do not commit, fetch, pull, change remotes, authenticate with GitHub, or push after the run. The user will inspect and synchronize the evidence manually.
 
 A failed command or failed scientific acceptance is still a valid result. Preserve it, package the available evidence, and stop. Do not tune the pipeline or repeat the run with altered settings to obtain a pass.
 
@@ -23,17 +23,17 @@ flowchart LR
     package_failure --> scope_check{Only evidence changed?}
     package_result --> scope_check
     scope_check -->|No| stop[❌ Stop and report]
-    scope_check -->|Yes| push_main[📤 Commit and push main]
-    push_main --> local_review([🔍 Pull and verify locally])
+    scope_check -->|Yes| local_handoff[📋 Report local evidence]
+    local_handoff --> manual_review([🔍 User reviews and syncs])
 
     classDef action fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a5f
     classDef decision fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#713f12
     classDef success fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
     classDef danger fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#7f1d1d
 
-    class clean_main,stage_zero,run_gwosc,package_failure,package_result,push_main action
+    class clean_main,stage_zero,run_gwosc,package_failure,package_result,local_handoff action
     class stage_passed,scope_check decision
-    class local_review success
+    class manual_review success
     class stop danger
 ```
 
@@ -47,8 +47,8 @@ flowchart LR
 6. Do not use `--force` when downloading. Existing cached data should be reused and checksummed.
 7. Run Stage 0 before creating `evidence/gwosc/<run-id>/`. Stage 0 requires a clean Git tree.
 8. Preserve both passes and failures. Do not alter thresholds or rerun with different seeds.
-9. Commit only `evidence/gwosc/<run-id>/`.
-10. If `origin/main` changes while the run is executing, do not rebase, merge, or force-push. Stop and report the local evidence commit SHA.
+9. After Step 1 records the clean starting checkout, do not stage, commit, fetch, pull, change remotes, authenticate, or push.
+10. Leave `evidence/gwosc/<run-id>/` uncommitted for manual inspection and synchronization.
 
 ## 📋 Prerequisites
 
@@ -193,7 +193,7 @@ PY
 STAGE0_VERIFY_RC=${PIPESTATUS[0]}
 ```
 
-If either `STAGE0_RC` or `STAGE0_VERIFY_RC` is nonzero, skip Steps 4–7. Continue at Step 8, package all available Stage 0 evidence, commit it, push it, and stop.
+If either `STAGE0_RC` or `STAGE0_VERIFY_RC` is nonzero, skip Steps 4–7. Continue at Step 8, package all available Stage 0 evidence locally, report it, and stop.
 
 ### Step 4: download or validate the cached GWOSC data
 
@@ -364,7 +364,7 @@ PY
 cat "$TMP_RUN_DIR/acceptance_summary.json"
 ```
 
-`status: failed_acceptance` is not an operational failure. Preserve and push it exactly as produced.
+`status: failed_acceptance` is not an operational failure. Preserve it exactly as produced for manual review.
 
 ### Step 8: package lightweight evidence inside the repository
 
@@ -518,45 +518,35 @@ if unexpected:
 PY
 ```
 
-If this check fails, do not stage or commit. Report the unexpected paths.
+If this check fails, do not stage, commit, or synchronize anything. Report the unexpected paths.
 
-### Step 10: commit and push the evidence to `main`
+### Step 10: verify locally and stop
 
-First confirm that `origin/main` did not move during the run:
-
-```bash
-git fetch origin main
-test "$(git rev-parse origin/main)" = "$BASE_COMMIT"
-```
-
-If this comparison fails, stop. Do not rebase, merge, force-push, or create another branch. Report:
-
-- `RUN_ID`
-- `BASE_COMMIT`
-- `git rev-parse origin/main`
-- `git status --short`
-- the local evidence path
-
-If it matches, stage only the evidence directory:
+Verify the evidence bundle without modifying Git state:
 
 ```bash
-git add -- "$EVIDENCE_REL"
-git diff --cached --check
-git diff --cached --name-only
+(
+  cd "$EVIDENCE_DIR"
+  sha256sum --check SHA256SUMS
+)
+
+find "$EVIDENCE_DIR" -maxdepth 3 -type f -print | sort
+git status --short --branch
+
+printf 'RUN_ID=%s\nBASE_COMMIT=%s\nEVIDENCE_DIR=%s\n' \
+  "$RUN_ID" "$BASE_COMMIT" "$EVIDENCE_DIR"
 ```
 
-Every staged path must begin with `evidence/gwosc/$RUN_ID/`.
+The agent must stop here. It must not run any of the following:
 
-Commit and push:
+- `git add`
+- `git commit`
+- `git fetch` or `git pull`
+- `git remote set-url`
+- `gh auth` or any credential setup
+- `git push`
 
-```bash
-git commit -m "Archive GWOSC remote verification $RUN_ID"
-EVIDENCE_COMMIT="$(git rev-parse HEAD)"
-git push origin main
-
-printf 'RUN_ID=%s\nBASE_COMMIT=%s\nEVIDENCE_COMMIT=%s\n' \
-  "$RUN_ID" "$BASE_COMMIT" "$EVIDENCE_COMMIT"
-```
+Leave the complete evidence directory untracked and unchanged so the user can inspect it before deciding whether to synchronize it.
 
 ## ✅ Required final report
 
@@ -564,16 +554,17 @@ Return exactly these items to the user:
 
 1. `RUN_ID`
 2. `BASE_COMMIT`
-3. Evidence commit SHA
-4. Stage 0 accepted: `true` or `false`
-5. GWOSC run status: `complete`, `failed_acceptance`, `not_run`, or `operational_failure`
-6. H1 and L1 median `null_sigma_over_predicted`, if produced
-7. Failed split seeds and ratios, if produced
-8. Evidence directory path
-9. `git push` result
+3. Stage 0 accepted: `true` or `false`
+4. GWOSC run status: `complete`, `failed_acceptance`, `not_run`, or `operational_failure`
+5. H1 and L1 median `null_sigma_over_predicted`, if produced
+6. Failed split seeds and ratios, if produced
+7. Absolute evidence directory path
+8. Evidence checksum verification result
+9. Complete `git status --short --branch` output
 10. Any command that failed, with its exit code
+11. Confirmation that no files were staged, committed, fetched, pulled, or pushed after the run
 
-Do not summarize away a failure. The committed JSON and logs are the source of truth.
+Do not summarize away a failure. The local JSON and logs are the source of truth.
 
 ## 🔧 Failure handling
 
@@ -584,19 +575,17 @@ Do not summarize away a failure. The committed JSON and logs are the source of t
 | Download/network failure | Package logs and metadata if available; do not use `--force` |
 | Raw checksum mismatch | Package metadata and checksum log; do not preprocess |
 | GWpy reference command fails | Package all available evidence; do not tune dependencies ad hoc |
-| Experiment returns `failed_acceptance` | Package and push normally; this is a scientific result |
-| Unexpected Git changes | Do not stage; report paths |
-| `origin/main` moved | Do not rebase or force-push; report and wait |
-| Push rejected | Do not force-push; report the local evidence commit SHA |
+| Experiment returns `failed_acceptance` | Package locally and report normally; this is a scientific result |
+| Unexpected Git changes | Do not stage or synchronize; report paths |
+| Git authentication unavailable | Irrelevant to the run; do not configure credentials or attempt a push |
 
-## 🔄 Local verification handoff
+## 🔄 Manual verification and synchronization
 
-After the evidence commit is pushed, the local operator should run:
+The agent must not execute this section. These commands are for the user after reviewing the agent's final report.
+
+On the execution machine, inspect the local evidence:
 
 ```bash
-git switch main
-git pull --ff-only origin main
-
 RUN_ID="<run-id-from-remote-agent>"
 find "evidence/gwosc/$RUN_ID" -maxdepth 3 -type f -print | sort
 
@@ -606,7 +595,7 @@ find "evidence/gwosc/$RUN_ID" -maxdepth 3 -type f -print | sort
 )
 ```
 
-The local reviewer should inspect, in this order:
+Inspect, in this order:
 
 1. `stage0/summary.json`
 2. `manifest.json`
@@ -616,4 +605,17 @@ The local reviewer should inspect, in this order:
 6. `gwosc/raw_metadata.json`
 7. Console and Stage 0 text logs
 
-The next code change, if any, is decided only after this evidence has been reviewed locally.
+Confirm that `git status --short` lists only the intended evidence directory. If the evidence is valid and you choose to synchronize it manually:
+
+```bash
+RUN_ID="<run-id-from-remote-agent>"
+EVIDENCE_REL="evidence/gwosc/$RUN_ID"
+
+git add -- "$EVIDENCE_REL"
+git diff --cached --check
+git diff --cached --name-only
+git commit -m "Archive GWOSC remote verification $RUN_ID"
+git push origin main
+```
+
+Every staged path must begin with `evidence/gwosc/$RUN_ID/`. Do not force-push. The next code change, if any, is decided only after the evidence has been reviewed.

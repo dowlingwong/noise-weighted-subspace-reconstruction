@@ -1,6 +1,6 @@
 # Verification evidence
 
-_Lightweight, reviewable artifacts produced by controlled remote validation runs_
+_Lightweight, reviewable artifacts produced by controlled local validation runs_
 
 ---
 
@@ -15,6 +15,8 @@ evidence/gwosc/<UTC timestamp>_<tested commit>/
 ```
 
 Each run must contain a `manifest.json` and `SHA256SUMS`. A failed run must be preserved using the same structure as a passing run.
+
+The execution agent leaves each run uncommitted. A user reviews the checksums and contents before manually staging, committing, or synchronizing the evidence.
 
 ## 🛡️ Prohibited content
 

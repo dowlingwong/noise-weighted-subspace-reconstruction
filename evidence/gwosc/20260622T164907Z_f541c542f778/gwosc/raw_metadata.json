@@ -1,0 +1,36 @@
+{
+  "event": "GW150914",
+  "gps": 1126259462.4,
+  "detectors": [
+    "H1",
+    "L1"
+  ],
+  "duration_seconds": 256.0,
+  "requested_sample_rate_hz": 4096,
+  "download_timeout_seconds": 900.0,
+  "source": {
+    "provider": "Gravitational Wave Open Science Center",
+    "host": "https://gwosc.org",
+    "access_method": "gwpy.timeseries.TimeSeries.fetch_open_data",
+    "gwosc_version": "0.8.2",
+    "gwpy_version": "4.0.1",
+    "urls": {
+      "H1": [
+        "https://gwosc.org/archive/data/O1/1126170624/H-H1_LOSC_4_V1-1126256640-4096.hdf5"
+      ],
+      "L1": [
+        "https://gwosc.org/archive/data/O1/1126170624/L-L1_LOSC_4_V1-1126256640-4096.hdf5"
+      ]
+    }
+  },
+  "files": [
+    {
+      "path": "/ceph/dwong/paper1_dataset/gwosc/raw/GW150914/GW150914_H1_256s.npz",
+      "sha256": "19e0230532c2f612915780bc499a9fb78ddb867ad23630fab25fe85edb05e01e"
+    },
+    {
+      "path": "/ceph/dwong/paper1_dataset/gwosc/raw/GW150914/GW150914_L1_256s.npz",
+      "sha256": "fe539c2996d5dd85a195e3266492bd756321b33c7313874fbecd44111de49cd1"
+    }
+  ]
+}

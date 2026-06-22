@@ -28,3 +28,13 @@ Do not commit:
 - Artifacts unrelated to the recorded run
 
 Follow [the remote GWOSC agent runbook](../docs/REMOTE_GWOSC_AGENT_RUNBOOK.md) when producing a new evidence bundle.
+
+## 📊 Archived runs
+
+| Run | Tested commit | Computational status | Scientific status | Interpretation |
+| --- | --- | --- | --- | --- |
+| `20260622T162349Z_b7842451781f` | `b7842451781f` | Stage 0 did not run because `uv` was unavailable | Not run | Infrastructure failure retained for provenance |
+| `20260622T164907Z_f541c542f778` | `f541c542f778` | Stage 0 passed; 89 tests and all GWOSC commands passed | `failed_acceptance` | PSD matched GWpy exactly, but held-out amplitude spread exceeded prediction |
+
+The scientific interpretation of the second run is recorded in
+[`docs/GWOSC_VALIDATION_2026-06-22.md`](../docs/GWOSC_VALIDATION_2026-06-22.md).

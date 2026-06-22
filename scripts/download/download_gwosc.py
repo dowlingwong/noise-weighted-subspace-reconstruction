@@ -31,6 +31,7 @@ def _sha256(path: Path) -> str:
 def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
     from gwosc.datasets import event_gps
     from gwosc.locate import get_urls
+    from gwosc.timeline import get_segments
     from gwpy.timeseries import TimeSeries
 
     event = args.event or config.get("event", "GW150914")
@@ -46,6 +47,7 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
 
     written = []
     source_urls: dict[str, list[str]] = {}
+    data_quality: dict[str, dict[str, object]] = {}
     for detector in detectors:
         source_urls[detector] = get_urls(
             detector,
@@ -54,6 +56,18 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
             sample_rate=sample_rate,
             format="hdf5",
         )
+        data_quality_flag = f"{detector}_DATA"
+        data_quality[detector] = {
+            "flag": data_quality_flag,
+            "segments": [
+                [float(segment_start), float(segment_end)]
+                for segment_start, segment_end in get_segments(
+                    data_quality_flag,
+                    int(start),
+                    ceil(end),
+                )
+            ],
+        }
         output = raw_dir / f"{event}_{detector}_{int(duration)}s.npz"
         if output.exists() and not args.force:
             written.append(output)
@@ -98,6 +112,7 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
             "gwpy_version": version("gwpy"),
             "urls": source_urls,
         },
+        "data_quality": data_quality,
         "files": [{"path": str(path), "sha256": _sha256(path)} for path in written],
     }
     (raw_dir / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")

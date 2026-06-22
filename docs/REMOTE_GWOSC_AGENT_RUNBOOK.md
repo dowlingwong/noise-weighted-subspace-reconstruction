@@ -239,6 +239,11 @@ assert metadata["duration_seconds"] == 256
 assert metadata["requested_sample_rate_hz"] == 4096
 assert set(metadata["detectors"]) == {"H1", "L1"}
 
+for detector in metadata["detectors"]:
+    quality = metadata["data_quality"][detector]
+    assert quality["flag"] == f"{detector}_DATA"
+    assert quality["segments"], f"Missing official DATA segments for {detector}"
+
 for item in metadata["files"]:
     path = Path(item["path"])
     if not path.is_file():
@@ -333,7 +338,7 @@ for detector, metrics in record["metrics"]["detectors"].items():
     reference = metrics.get("gwpy_reference")
     detectors[detector] = {
         "accepted": null_gate["passed"],
-        "split_results": null_gate["split_results"],
+        "split_results": null_gate["splits"],
         "median_null_sigma_over_predicted": (
             null_gate["median_null_sigma_over_predicted"]
         ),
@@ -344,6 +349,11 @@ for detector, metrics in record["metrics"]["detectors"].items():
             null_gate["max_null_sigma_over_predicted"]
         ),
         "psd_calibration_quality": quality,
+        "evaluation_window_quality": metrics["evaluation_window_quality"],
+        "blocked_null_calibration_validation": (
+            metrics["blocked_null_calibration_validation"]
+        ),
+        "data_quality": metrics["data_quality"],
         "gwpy_reference": reference,
     }
 

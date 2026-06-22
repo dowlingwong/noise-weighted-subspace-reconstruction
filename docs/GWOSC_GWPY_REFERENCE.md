@@ -5,7 +5,7 @@ claim astrophysical parameter recovery.
 
 ## What is compared
 
-`src/noise_geometry/gwosc/reference.py` performs two distinct checks:
+`src/noise_geometry/gwosc/reference.py` performs three distinct checks:
 
 1. **PSD density normalization.** Each accepted off-source calibration window
    is treated as one Hann-windowed, non-overlapping periodogram. The
@@ -22,6 +22,11 @@ claim astrophysical parameter recovery.
    `0.5 * fduration` is removed from each edge before pooled and per-window
    means, standard deviations, correlations, and relative differences are
    reported.
+3. **Matched-statistic comparison.** The same template is scored through the
+   repository GLS convention, the repository direct-rFFT whitened path, and
+   GWpy's inverse-spectrum-FIR whitened path. Score arrays, correlations, and
+   relative differences are archived as diagnostics. They are not yet an
+   acceptance gate.
 
 Calibration and evaluation windows are disjoint. The split seed, window
 indices, and starts are persisted in the experiment record.
@@ -29,8 +34,15 @@ indices, and starts are persisted in the experiment record.
 Before PSD fitting, each calibration candidate receives time-domain RMS,
 crest-factor, and 20–512 Hz Hann-periodogram power diagnostics. Robust
 log-scale z-scores and the configured crest-factor limit identify glitch-like
-windows. Rejected indices and reasons are archived; evaluation windows are
-never filtered.
+windows. Held-out evaluation windows are scored against the robust reference
+fitted only on their calibration candidates. Evaluation flags and per-window
+null scores are archived, but the primary acceptance statistic retains every
+held-out window. A quality-filtered value is reported only as a sensitivity
+analysis to avoid post-selection.
+
+The downloader records official GWOSC `H1_DATA` and `L1_DATA` segments. The
+default config requires those records, removes off-source windows that are not
+fully covered, and verifies event-window coverage.
 
 Injection amplitudes use the repository's full FFT/PSD amplitude variance:
 
@@ -64,7 +76,9 @@ The standalone reference record is written under:
 ```
 
 Each detector entry includes the GWpy comparison, calibration-window quality
-records, and the multi-split null-calibration gate.
+records, evaluation-window quality records, random and chronological
+null-calibration gates, official data-quality coverage, and per-window null
+scores.
 
 The normal experiment runner also includes the same record under each
 detector's `gwpy_reference` field because the default GWOSC config enables it:
@@ -92,6 +106,9 @@ uv run python scripts/run_experiment.py \
   Every split must have `null_sigma_over_predicted` in `[0.5, 1.5]`, and the
   median across splits must be in `[0.8, 1.2]`, independently for H1 and L1.
   A run that fails is written with status `failed_acceptance`.
+- Five chronological evaluation blocks use nearest-time calibration windows
+  and the same ratio bounds. The default config requires both the random and
+  chronological gates to pass.
 - The two whitened time series need not be pointwise identical on structured
   real noise: GWpy truncates the inverse spectrum into an FIR, while the
   repository path applies the frequency response directly. Their calibration

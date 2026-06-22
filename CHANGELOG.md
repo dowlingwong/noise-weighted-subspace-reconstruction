@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Archived and documented the first controlled 256-second GW150914 H1/L1
+  verification run. Stage 0 passed remotely with 89 tests, and the repository
+  median-Welch PSD matched GWpy exactly, but the predeclared held-out amplitude
+  calibration failed (H1 median ratio 1.986; L1 1.263).
+- Expanded GWOSC diagnostics without loosening acceptance: official
+  `H1_DATA`/`L1_DATA` segment capture and enforcement, per-split indices and
+  timestamps, per-window null amplitudes/scores, calibration-referenced
+  evaluation quality, five chronological blocked splits with local
+  calibration, and repository/GWpy matched-statistic comparisons.
+- Corrected the remote runbook compact-summary schema from `split_results` to
+  `splits` and added data-quality/blocked-split evidence to the summary.
 - Removed accidental root-level EMPCA duplicates and restored the Paper 2
   ResNet backbone to `src/CNN/`; canonical Paper 1 implementations remain
   exclusively under `src/canonical/`.

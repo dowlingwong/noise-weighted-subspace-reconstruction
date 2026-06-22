@@ -26,6 +26,8 @@ psd_quality:
   robust_z_threshold: 6.0
   crest_factor_threshold: 20.0
   max_rejected_fraction: 0.25
+data_quality:
+  required: true
 null_calibration_validation:
   split_seeds:
     - 150914
@@ -33,6 +35,18 @@ null_calibration_validation:
     - 150916
     - 150917
     - 150918
+  per_split_ratio_bounds:
+    - 0.5
+    - 1.5
+  median_ratio_bounds:
+    - 0.8
+    - 1.2
+blocked_null_calibration_validation:
+  enabled: true
+  required_for_acceptance: true
+  n_splits: 5
+  calibration_windows: 36
+  minimum_evaluation_windows: 8
   per_split_ratio_bounds:
     - 0.5
     - 1.5

@@ -1,6 +1,6 @@
 # Paper 1 Validation — Progress and Decisions
 
-Last updated: 2026-06-19.
+Last updated: 2026-06-22.
 
 This document records the structural-hardening phase of the Paper 1 validation
 program (items 1-3 of the long-run plan: break agreement-by-construction,
@@ -11,6 +11,12 @@ the work, the decisions they imply, and how to reproduce everything.
 The authoritative scope, acceptance gates, and experiment registry remain in
 [`VALIDATION_ROADMAP.md`](VALIDATION_ROADMAP.md); this file is the narrative and
 decision record behind the current status there.
+
+The first controlled 256-second GW150914 H1/L1 run is documented separately in
+[`GWOSC_VALIDATION_2026-06-22.md`](GWOSC_VALIDATION_2026-06-22.md). Stage 0
+passed remotely, while the real-noise held-out amplitude-calibration gate
+failed. That negative result is retained as the baseline for the next
+diagnostic run.
 
 ## 1. What changed
 
@@ -227,9 +233,9 @@ uv run python scripts/sweep.py --config configs/synthetic/s2_of_empca.yaml --see
 | 1. Break S3 agreement-by-construction | Done — independent trained AE + EMPCA/Bailey oracles, tested |
 | 2. Central representation primitive | Done for S1/S5 + weights; S2 amplitude-model decision resolved and tested |
 | 3. Seed-sweep / held-out / CI harness | Done — rolled across S1-S9 with per-gate acceptance tests; held-out in S4/S5/S6 |
-| 4. Stage 0 remote reproducibility gate | Turnkey clean-checkout runner, checklist, environment/dependency capture, and per-command logs added; server execution still owed |
+| 4. Stage 0 remote reproducibility gate | Done — clean Linux run at `f541c542`, all five commands passed, 89 tests passed, environment and logs archived |
 | 5. Each gate a regression test | Followed for all work above; not yet a formal CI rule |
-| 6. Real data (GWOSC → CRESST) | GWOSC/GWpy PSD and held-out whitening reference path started and fixture-tested; real H1/L1 cache run still owed |
+| 6. Real data (GWOSC → CRESST) | In progress — first 256 s H1/L1 run completed; PSD matches GWpy exactly, but held-out calibration failed (H1 median 1.986, L1 1.263) |
 | 7. Scope guard | Done — Paper 2's `resnet_1d.py` remains under `src/CNN/`, outside `canonical/` |
 
 ## 6. Remaining work and open decisions
@@ -245,10 +251,11 @@ uv run python scripts/sweep.py --config configs/synthetic/s2_of_empca.yaml --see
 - **Unify on one EMPCA**: S3's trained-AE oracle is `fit_weighted_pca` (real),
   while S2 uses canonical complex EMPCA; keep the real/complex split deliberate
   (it is the phase-DOF distinction), but document which estimator each gate uses.
-- **Stage 0 remote run**: execute `python3 scripts/stage0_remote_gate.py` on the
-  clean Linux server and archive the emitted `results/stage0/...` directory.
-- **GWOSC real-cache reference run**: download H1/L1 windows on the server, then
-  run `scripts/preprocess/preprocess_gwosc.py --reference-check`; the code path
-  and normalization tests are now in place.
+- **GWOSC diagnostic rerun**: refresh metadata with official `H1_DATA` and
+  `L1_DATA` segments, then rerun with per-window null scores,
+  calibration-referenced evaluation quality, chronological blocked splits,
+  and matched-statistic comparisons through the repository and GWpy paths.
+- **GWOSC waveform**: replace the approximate chirp with a documented public
+  waveform or justified generation procedure before interpreting event scores.
 - **Reproducibility smell**: EMPCA init uses the global `np.random.seed`; migrate
   to a local `np.random.default_rng`.

@@ -8,7 +8,12 @@ from typing import Any
 import numpy as np
 from scipy.signal import detrend as scipy_detrend
 
-from ..noise import estimate_psd_ensemble, regularize_psd
+from ..filters import gls_amplitude, psd_amplitude_variance
+from ..noise import (
+    estimate_psd_ensemble,
+    inverse_psd_weights,
+    regularize_psd,
+)
 
 
 def gwpy_psd_reference(
@@ -152,6 +157,7 @@ def run_gwpy_reference_check(
     psd_window: str = "hann",
     psd_average: str = "median",
     psd_detrend: str | bool = "constant",
+    template: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Compare repository PSD/whitening normalization with an independent GWpy path.
 
@@ -243,7 +249,7 @@ def run_gwpy_reference_check(
             "p95": float(np.quantile(array, 0.95)),
         }
 
-    return {
+    result = {
         "implementation": {
             "gwpy_version": version("gwpy"),
             "psd_reference": (
@@ -298,3 +304,110 @@ def run_gwpy_reference_check(
             "relative_l2_difference_by_window": _distribution(relative_l2_by_window),
         },
     }
+    if template is not None:
+        template_values = np.asarray(template, dtype=np.float64)
+        if template_values.shape != (calibration.shape[1],):
+            raise ValueError("template must match the calibration trace length")
+        template_f = np.fft.rfft(template_values)
+        weights = inverse_psd_weights(repository_psd, template_values.size)
+        if highpass_hz is not None:
+            template_frequencies = np.fft.rfftfreq(
+                template_values.size,
+                d=1.0 / float(sampling_frequency),
+            )
+            weights = weights.copy()
+            weights[template_frequencies < float(highpass_hz)] = 0.0
+        amplitude_sigma = float(
+            np.sqrt(
+                psd_amplitude_variance(
+                    template_f,
+                    repository_psd,
+                    weights,
+                    trace_len=template_values.size,
+                    sampling_frequency=sampling_frequency,
+                )
+            )
+        )
+        gls_scores = np.asarray(
+            gls_amplitude(
+                np.fft.rfft(evaluation, axis=1),
+                template_f,
+                weights,
+            )
+        ) / amplitude_sigma
+        repository_template_white = whiten_time_series_rfft(
+            template_values,
+            repository_psd,
+            sampling_frequency,
+            highpass_hz=highpass_hz,
+            detrend=detrend,
+            floor_fraction=floor_fraction,
+        )[interior]
+        reference_template_white = gwpy_whiten_reference(
+            template_values,
+            reference_psd,
+            sampling_frequency,
+            fduration_seconds=fduration_seconds,
+            highpass_hz=highpass_hz,
+            detrend=detrend,
+            floor_fraction=floor_fraction,
+        )[interior]
+        repository_template_norm = max(
+            float(np.linalg.norm(repository_template_white)),
+            np.finfo(float).tiny,
+        )
+        reference_template_norm = max(
+            float(np.linalg.norm(reference_template_white)),
+            np.finfo(float).tiny,
+        )
+        repository_scores = np.asarray(
+            [
+                float(
+                    np.dot(repository_trace, repository_template_white)
+                    / repository_template_norm
+                )
+                for repository_trace in repository_interiors
+            ]
+        )
+        reference_scores = np.asarray(
+            [
+                float(
+                    np.dot(reference_trace, reference_template_white)
+                    / reference_template_norm
+                )
+                for reference_trace in reference_interiors
+            ]
+        )
+
+        def _safe_correlation(left: np.ndarray, right: np.ndarray) -> float:
+            if left.size < 2 or np.std(left) == 0 or np.std(right) == 0:
+                return float("nan")
+            return float(np.corrcoef(left, right)[0, 1])
+
+        result["matched_filter"] = {
+            "n_evaluation_traces": int(evaluation.shape[0]),
+            "repository_gls_scores": gls_scores.tolist(),
+            "repository_whitened_scores": repository_scores.tolist(),
+            "gwpy_whitened_scores": reference_scores.tolist(),
+            "repository_gls": _distribution(gls_scores.tolist()),
+            "repository_whitened": _distribution(repository_scores.tolist()),
+            "gwpy_whitened": _distribution(reference_scores.tolist()),
+            "correlation_repository_gls_vs_whitened": _safe_correlation(
+                gls_scores,
+                repository_scores,
+            ),
+            "correlation_repository_gls_vs_gwpy": _safe_correlation(
+                gls_scores,
+                reference_scores,
+            ),
+            "correlation_repository_vs_gwpy_whitened": _safe_correlation(
+                repository_scores,
+                reference_scores,
+            ),
+            "relative_l2_repository_gls_vs_gwpy": _relative_l2(
+                gls_scores,
+                reference_scores,
+            ),
+            "used_for_acceptance": False,
+        }
+    return result

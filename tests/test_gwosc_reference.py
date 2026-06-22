@@ -1,4 +1,5 @@
 import importlib.util
+import json
 
 import numpy as np
 import pytest
@@ -8,6 +9,10 @@ from src.noise_geometry.gwosc import (
     run_gwpy_reference_check,
 )
 from src.noise_geometry.gwosc.analysis import _calibration_window_quality
+from src.noise_geometry.gwosc.analysis import (
+    _apply_data_quality,
+    _window_quality_diagnostics,
+)
 
 
 pytestmark = pytest.mark.skipif(
@@ -20,12 +25,15 @@ def test_gwpy_reference_matches_repository_psd_normalization():
     rng = np.random.default_rng(20260619)
     calibration = rng.normal(size=(16, 1024))
     evaluation = rng.normal(size=(4, 1024))
+    time = np.arange(1024) / 256.0
+    template = np.sin(2.0 * np.pi * 40.0 * time) * np.hanning(1024)
 
     result = run_gwpy_reference_check(
         calibration,
         evaluation,
         sampling_frequency=256.0,
         fduration_seconds=0.5,
+        template=template,
     )
 
     assert result["psd"]["frequency_max_abs_difference_hz"] == 0.0
@@ -37,6 +45,12 @@ def test_gwpy_reference_matches_repository_psd_normalization():
     assert 0.9 < result["whitening"]["std_ratio_repository_over_gwpy"] < 1.1
     assert result["whitening"]["interior_correlation"] > 0.98
     assert len(result["whitening"]["repository_std_by_window"]["values"]) == 4
+    matched = result["matched_filter"]
+    assert matched["n_evaluation_traces"] == 4
+    assert len(matched["repository_gls_scores"]) == 4
+    assert matched["correlation_repository_gls_vs_whitened"] > 0.95
+    assert np.isfinite(matched["correlation_repository_gls_vs_gwpy"])
+    assert not matched["used_for_acceptance"]
 
 
 def test_cached_gwosc_runner_records_gwpy_reference(tmp_path):
@@ -74,6 +88,19 @@ def test_cached_gwosc_runner_records_gwpy_reference(tmp_path):
         start=short_start,
         end=short_start + short_duration,
     )
+    (raw / "metadata.json").write_text(
+        json.dumps(
+            {
+                "data_quality": {
+                    "H1": {
+                        "flag": "H1_DATA",
+                        "segments": [[start, start + duration]],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
 
     result = run_gwosc_experiment(
         {
@@ -82,6 +109,7 @@ def test_cached_gwosc_runner_records_gwpy_reference(tmp_path):
             "detectors": ["H1"],
             "analysis_duration_seconds": 2.0,
             "injection_snr": 5.0,
+            "data_quality": {"required": True},
             "gwpy_reference": {
                 "enabled": True,
                 "fduration_seconds": 0.5,
@@ -98,6 +126,8 @@ def test_cached_gwosc_runner_records_gwpy_reference(tmp_path):
     assert np.isfinite(reference["whitening"]["std_ratio_repository_over_gwpy"])
     metrics = result["detectors"]["H1"]
     assert metrics["cache_file"].endswith("GWTEST_H1_16s.npz")
+    assert metrics["data_quality"]["available"]
+    assert metrics["data_quality"]["event_window"]["valid"]
     assert metrics["n_psd_calibration_windows"] >= 1
     assert metrics["n_injection_windows"] >= 2
     assert metrics["event_amplitude_sigma"] > 0
@@ -143,6 +173,74 @@ def test_calibration_quality_rejects_impulsive_glitch():
     assert not keep[7]
     assert diagnostics["rejected_window_indices"] == [7]
     assert "crest_factor" in diagnostics["windows"][7]["reasons"]
+
+
+def test_evaluation_quality_uses_calibration_reference():
+    rng = np.random.default_rng(31)
+    windows = rng.normal(size=(24, 1024))
+    calibration_indices = np.arange(20)
+    evaluation_indices = np.arange(20, 24)
+    windows[22, 512] = 100.0
+
+    _, _, reference = _window_quality_diagnostics(
+        windows,
+        calibration_indices,
+        256.0,
+        psd_window="hann",
+        psd_detrend="constant",
+        highpass_hz=20.0,
+        config={
+            "enabled": True,
+            "band_min_hz": 20.0,
+            "band_max_hz": 100.0,
+            "robust_z_threshold": 5.0,
+            "crest_factor_threshold": 20.0,
+            "max_rejected_fraction": 0.25,
+        },
+        role="calibration",
+        enforce_rejection_limit=True,
+    )
+    keep, diagnostics, _ = _window_quality_diagnostics(
+        windows,
+        evaluation_indices,
+        256.0,
+        psd_window="hann",
+        psd_detrend="constant",
+        highpass_hz=20.0,
+        config={
+            "enabled": True,
+            "band_min_hz": 20.0,
+            "band_max_hz": 100.0,
+            "robust_z_threshold": 5.0,
+            "crest_factor_threshold": 20.0,
+            "max_rejected_fraction": 0.25,
+        },
+        reference=reference,
+        role="evaluation",
+        enforce_rejection_limit=False,
+    )
+
+    assert not keep[2]
+    assert diagnostics["rejected_window_indices"] == [22]
+    assert diagnostics["role"] == "evaluation"
+
+
+def test_data_quality_marks_only_fully_covered_windows():
+    starts = np.asarray([100.0, 104.0, 108.0, 112.0])
+    keep, diagnostics = _apply_data_quality(
+        starts,
+        4.0,
+        {
+            "available": True,
+            "metadata_file": "metadata.json",
+            "flag": "H1_DATA",
+            "segments": [[100.0, 110.0], [112.0, 116.0]],
+        },
+        required=True,
+    )
+
+    assert keep.tolist() == [True, True, False, True]
+    assert diagnostics["invalid_window_indices"] == [2]
 
 
 def test_multisplit_null_calibration_passes_stationary_white_noise(tmp_path):
@@ -194,6 +292,15 @@ def test_multisplit_null_calibration_passes_stationary_white_noise(tmp_path):
                 "per_split_ratio_bounds": [0.5, 1.5],
                 "median_ratio_bounds": [0.8, 1.2],
             },
+            "blocked_null_calibration_validation": {
+                "enabled": True,
+                "required_for_acceptance": False,
+                "n_splits": 5,
+                "calibration_windows": 24,
+                "minimum_evaluation_windows": 8,
+                "per_split_ratio_bounds": [0.4, 2.0],
+                "median_ratio_bounds": [0.7, 1.3],
+            },
             "gwpy_reference": {"enabled": False},
         },
         tmp_path,
@@ -204,3 +311,20 @@ def test_multisplit_null_calibration_passes_stationary_white_noise(tmp_path):
     assert gate["passed"]
     assert gate["n_split_seeds"] == 5
     assert 0.8 <= gate["median_null_sigma_over_predicted"] <= 1.2
+    first_split = gate["splits"][0]
+    assert len(first_split["evaluation_windows"]) == first_split[
+        "n_evaluation_windows"
+    ]
+    assert len(first_split["evaluation_indices"]) == first_split[
+        "n_evaluation_windows"
+    ]
+    assert "null_score" in first_split["evaluation_windows"][0]
+    blocked = result["detectors"]["H1"][
+        "blocked_null_calibration_validation"
+    ]
+    assert blocked["enabled"]
+    assert blocked["n_splits"] == 5
+    assert all(
+        split["split_kind"] == "chronological_block"
+        for split in blocked["splits"]
+    )

@@ -1,6 +1,6 @@
 # Paper 1 Validation Roadmap
 
-Last reviewed: 2026-06-19.
+Last reviewed: 2026-06-22.
 
 This is the authoritative source for Paper 1 experiment scope, status,
 acceptance criteria, dataset access, preprocessing, metrics, and reporting.
@@ -32,8 +32,8 @@ built, the phase-DOF and finite-sample findings, and the open decisions) is in
 
 ## Current Stage
 
-**Stage 0 remote reproducibility gate, followed by Stage 1 synthetic
-validation hardening.**
+**Stage 3 GWOSC diagnostic hardening after a passed Stage 0 remote gate and a
+failed first real-noise calibration run.**
 
 The repository has a working local experiment framework and preliminary
 S0-S9 implementations. This is not equivalent to publication-grade
@@ -45,7 +45,9 @@ Honest current status:
 - controlled synthetic demonstrations: runnable but mostly single-seed or
   compact studies;
 - paper-grade synthetic validation: incomplete;
-- GWOSC validation on downloaded public data: not completed;
+- GWOSC execution on downloaded public data: completed once, but the
+  predeclared held-out calibration gate failed and therefore remains
+  unvalidated;
 - CRESST validation on the selected public release: not completed;
 - overall experimental verification: early-to-middle stage, approximately
   one third of the full validation program.
@@ -176,8 +178,8 @@ TIDMAD is optional and must not delay GWOSC or CRESST. Store it under
 | S7 | Estimated covariance converges to oracle behavior | `configs/synthetic/s7_covariance_robustness.yaml` | Multi-seed; σ/oracle decreases toward 1 with calibration size | Floor/shrinkage sweeps with CIs |
 | S8 | Matched residuals are statistically calibrated | `configs/synthetic/s8_residual_calibration.yaml` | Multi-seed; χ²/dof ≈ 1 (CI ~[0.995, 1.00]) | Residual PSD, autocorrelation, chi-square, and null intervals |
 | S9 | Full covariance handles channel correlation | `configs/synthetic/s9_multichannel_covariance.yaml` | Multi-seed; full beats diagonal under correlation (paired CI excludes 0) | Correlation/channel/gain sweeps |
-| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | Real 32 s cache confirmed PSD normalization to machine precision; whitening under-dispersion exposed insufficient calibration; 256 s disjoint-window rerun prepared | Reproducible run on cached public data with reference normalization checks |
-| GWOSC-B | Injection recovery in off-source real noise | same as GWOSC-A | Pipeline scaffolded | Unbiased recovery over windows/SNRs with stable residual diagnostics |
+| GWOSC-A | Event-centered PSD/whitening/matched-filter diagnostic | `configs/gwosc/gw150914_smoke.yaml` | 256 s clean remote run completed; PSD equals GWpy, but random-split calibration failed (H1 median 1.986, L1 1.263); enhanced DQ/per-window/blocked diagnostics added | Pass unchanged random and chronological held-out bounds with archived per-window records |
+| GWOSC-B | Injection recovery in off-source real noise | same as GWOSC-A | Paired injection algebra verified; empirical SNR only 2.40 H1 and 6.43 L1 under failed null calibration | Unbiased recovery over independent windows/SNRs after null calibration passes |
 | CRESST-A | Cryogenic pulse reconstruction comparison | `configs/cresst/pulse_shape_smoke.yaml` | Loader/pipeline scaffolded | Actual-release schema validation and leakage-free detector-level evaluation |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | Planned | Start only after CRESST acceptance |
 
@@ -258,8 +260,8 @@ not scientific acceptance.
 - [x] Resolve all public data outside the repository.
 - [x] Run S0-S9 from configs and generate records, tables, and diagnostics.
 - [x] Provide a clean-checkout gate runner and environment/log capture.
-- [ ] Run the exact acceptance commands on a clean remote Linux checkout.
-- [ ] Record OS, Python, CPU/GPU, dependency versions, and command logs.
+- [x] Run the exact acceptance commands on a clean remote Linux checkout.
+- [x] Record OS, Python, CPU/GPU, dependency versions, and command logs.
 
 **Accept Stage 0 when** all five commands in Reproducible Execution exit
 successfully on the remote server without source or config edits.
@@ -377,12 +379,21 @@ and documented failure cases. No robustness claim may rely on one seed.
   window split in config; persist split indices and starts.
 - [x] Use Hann-windowed, FINDCHIRP bias-corrected median PSDs; diagnose and
   archive calibration-window RMS, band-power, crest-factor, and glitch cuts.
+- [x] Complete and archive the first 256 s clean remote H1/L1 run. The run
+  passed Stage 0 and PSD/GWpy equivalence but failed the held-out amplitude
+  gate; see [`GWOSC_VALIDATION_2026-06-22.md`](GWOSC_VALIDATION_2026-06-22.md).
+- [x] Add official `H1_DATA`/`L1_DATA` segment metadata, per-window null
+  amplitudes/scores, evaluation-window quality diagnostics, chronological
+  blocked splits, and same-statistic repository/GWpy comparisons for the next
+  run.
 - [ ] Replace the approximate chirp with a documented public waveform or a
   justified generation procedure.
 - [ ] Pass held-out amplitude calibration over five deterministic split seeds:
   each `null_sigma_over_predicted` in `[0.5, 1.5]`, median in `[0.8, 1.2]`, for
   both detectors. PSD density normalization already agrees with GWpy to machine
   precision.
+- [ ] Pass five chronological blocked evaluations with local calibration
+  windows under the same per-split and median bounds.
 - [ ] Run event-centered diagnostics and off-source injections over SNRs,
   windows, and PSD choices.
 

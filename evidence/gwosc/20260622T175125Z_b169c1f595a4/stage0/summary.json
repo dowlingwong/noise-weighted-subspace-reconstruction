@@ -1,0 +1,70 @@
+{
+  "accepted": true,
+  "artifact_directory": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4",
+  "commands": [
+    {
+      "command": "uv sync --extra dev --extra gwosc",
+      "duration_seconds": 119.94129088707268,
+      "finished_at_utc": "2026-06-22T17:53:39.474560+00:00",
+      "log": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4/01_uv_sync.log",
+      "name": "01_uv_sync",
+      "returncode": 0,
+      "started_at_utc": "2026-06-22T17:51:39.533323+00:00"
+    },
+    {
+      "command": "uv run pytest -q",
+      "duration_seconds": 53.98904814990237,
+      "finished_at_utc": "2026-06-22T17:54:33.463835+00:00",
+      "log": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4/02_pytest.log",
+      "name": "02_pytest",
+      "returncode": 0,
+      "started_at_utc": "2026-06-22T17:53:39.474856+00:00"
+    },
+    {
+      "command": "uv run python scripts/run_all_core.py",
+      "duration_seconds": 12.57181962300092,
+      "finished_at_utc": "2026-06-22T17:54:46.035830+00:00",
+      "log": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4/03_run_all_core.log",
+      "name": "03_run_all_core",
+      "returncode": 0,
+      "started_at_utc": "2026-06-22T17:54:33.464083+00:00"
+    },
+    {
+      "command": "uv run python scripts/make_tables.py",
+      "duration_seconds": 2.502898061648011,
+      "finished_at_utc": "2026-06-22T17:54:48.538924+00:00",
+      "log": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4/04_make_tables.log",
+      "name": "04_make_tables",
+      "returncode": 0,
+      "started_at_utc": "2026-06-22T17:54:46.036099+00:00"
+    },
+    {
+      "command": "uv run python scripts/make_all_figures.py",
+      "duration_seconds": 1.0014682486653328,
+      "finished_at_utc": "2026-06-22T17:54:49.540585+00:00",
+      "log": "/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4/05_make_all_figures.log",
+      "name": "05_make_all_figures",
+      "returncode": 0,
+      "started_at_utc": "2026-06-22T17:54:48.539189+00:00"
+    }
+  ],
+  "git": {
+    "branch": "main",
+    "commit": "b169c1f595a46d2701417ff4cbce292330817ad2",
+    "status_after": [],
+    "status_before": []
+  },
+  "requirements": {
+    "all_five_commands_passed": true,
+    "all_five_commands_ran": true,
+    "clean_after": true,
+    "clean_before": true
+  },
+  "runtime_after_sync": {
+    "available": true,
+    "command": "uv run python -c 'import json, platform, sys; print(json.dumps({'\"'\"'version'\"'\"': sys.version, '\"'\"'executable'\"'\"': sys.executable, '\"'\"'platform'\"'\"': platform.platform()}))'",
+    "output": "{\"version\": \"3.13.13 (main, May 10 2026, 19:26:54) [Clang 22.1.3 ]\", \"executable\": \"/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3\", \"platform\": \"Linux-5.14.0-687.5.3.el9_8.x86_64-x86_64-with-glibc2.34\"}",
+    "returncode": 0
+  },
+  "stage": "Stage 0 remote reproducibility"
+}

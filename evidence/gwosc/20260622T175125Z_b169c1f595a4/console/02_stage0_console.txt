@@ -1,0 +1,117 @@
+$ uv sync --extra dev --extra gwosc
+Using CPython 3.13.13
+Creating virtual environment at: .venv
+Resolved 103 packages in 0.86ms
+   Building noise-weighted-subspace-reconstruction @ file:///ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z
+      Built noise-weighted-subspace-reconstruction @ file:///ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z
+Prepared 1 package in 1.62s
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 50 packages in 1m 57s
+ + astropy==8.0.0
+ + astropy-iers-data==0.2026.6.15.15.33.16
+ + certifi==2026.6.17
+ + cffi==2.0.0
+ + charset-normalizer==3.4.7
+ + click==8.4.1
+ + contourpy==1.3.3
+ + cryptography==49.0.0
+ + cycler==0.12.1
+ + dateparser==1.4.1
+ + dqsegdb2==1.3.0
+ + fonttools==4.63.0
+ + gwdatafind==2.1.1
+ + gwosc==0.8.2
+ + gwpy==4.0.1
+ + h5py==3.16.0
+ + idna==3.18
+ + igwn-auth-utils==1.4.0
+ + igwn-segments==2.1.1
+ + iniconfig==2.3.0
+ + kiwisolver==1.5.0
+ + ligotimegps==2.1.0
+ + llvmlite==0.47.0
+ + matplotlib==3.11.0
+ + noise-weighted-subspace-reconstruction==0.1.0 (from file:///ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z)
+ + numba==0.65.1
+ + numpy==2.4.6
+ + packaging==26.2
+ + pandas==3.0.3
+ + pillow==12.2.0
+ + pluggy==1.6.0
+ + pycparser==3.0
+ + pyerfa==2.0.1.5
+ + pygments==2.20.0
+ + pyjwt==2.13.0
+ + pyparsing==3.3.2
+ + pytest==9.1.0
+ + python-dateutil==2.9.0.post0
+ + pytz==2026.2
+ + pyyaml==6.0.3
+ + regex==2026.5.9
+ + requests==2.34.2
+ + safe-netrc==1.0.1
+ + scipy==1.17.1
+ + scitokens==1.9.7
+ + six==1.17.0
+ + tenacity==9.1.4
+ + tqdm==4.68.3
+ + tzlocal==5.4.3
+ + urllib3==2.7.0
+$ uv run pytest -q
+........................................................................ [ 79%]
+...................                                                      [100%]
+=============================== warnings summary ===============================
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+  /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/lib/python3.13/site-packages/gwpy/plot/gps.py:567: PendingDeprecationWarning: The scale 'GPSScale' uses an 'axis' parameter in the constructors. This parameter is pending-deprecated since matplotlib 3.11. It will be fully deprecated in 3.13 and removed in 3.15. Starting with 3.11, 'register_scale()' accepts scales without the *axis* parameter.
+    register_scale(scale_class)
+
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+  /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/lib/python3.13/site-packages/gwpy/plot/gps.py:567: PendingDeprecationWarning: The scale '_gps_scale_factory.<locals>.FixedGPSScale' uses an 'axis' parameter in the constructors. This parameter is pending-deprecated since matplotlib 3.11. It will be fully deprecated in 3.13 and removed in 3.15. Starting with 3.11, 'register_scale()' accepts scales without the *axis* parameter.
+    register_scale(scale_class)
+
+tests/test_gwosc_reference.py::test_gwpy_reference_matches_repository_psd_normalization
+  /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/lib/python3.13/site-packages/gwpy/plot/log.py:194: PendingDeprecationWarning: The scale 'LogScale' uses an 'axis' parameter in the constructors. This parameter is pending-deprecated since matplotlib 3.11. It will be fully deprecated in 3.13 and removed in 3.15. Starting with 3.11, 'register_scale()' accepts scales without the *axis* parameter.
+    register_scale(LogScale)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+91 passed, 11 warnings in 51.39s
+$ uv run python scripts/run_all_core.py
+results/metrics/S0_smoke_seed0.json
+results/metrics/S1_of_crb_seed1.json
+results/metrics/S2_of_empca_seed7.json
+results/metrics/S3_ae_bridge_seed3.json
+results/metrics/S4_white_control_seed4.json
+results/metrics/S5_metric_reversal_seed19.json
+results/metrics/S6_timing_jitter_rank_sweep_seed6.json
+results/metrics/S7_covariance_robustness_seed7.json
+results/metrics/S8_residual_calibration_seed8.json
+results/metrics/S9_multichannel_covariance_seed9.json
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s0_smoke.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s1_of_crb.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s2_of_empca.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s3_ae_bridge.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s4_white_control.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s5_metric_reversal.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s6_timing_jitter_rank_sweep.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s7_covariance_robustness.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s8_residual_calibration.yaml
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/.venv/bin/python3 /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/scripts/run_experiment.py --config /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/configs/synthetic/s9_multichannel_covariance.yaml
+$ uv run python scripts/make_tables.py
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/tables/synthetic_summary.csv
+$ uv run python scripts/make_all_figures.py
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/figures/synthetic_metric_reversal.png
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/figures/synthetic_timing_rank_sweep.png
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/figures/synthetic_covariance_robustness.png
+/ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/figures/synthetic_multichannel_covariance.png
+Stage 0 artifacts: /ceph/dwong/noise-weighted-subspace-reconstruction-20260622T175031Z/results/stage0/20260622T175125Z_b169c1f595a4
+Stage 0 accepted: True

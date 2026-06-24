@@ -1,0 +1,10 @@
+gate,claim,headline_metric,mean,ci95_low,ci95_high,n_seeds,paired_ci95_excludes_zero,interpretation,regression_status
+S1,OF uncertainty agrees with CRB,sigma_over_crb,0.9936975316500088,0.9849817121333515,1.001904878774779,10,,mean and 95% interval,passed
+S2,EMPCA converges to the OF direction,weighted_angle_deg,3.8621744800526043,3.803104177776444,3.9235657941000563,10,,mean angle,passed
+S3,independent tied linear AE reaches EMPCA optimum,relative_gap,1.9527821110182862e-16,9.206975808050304e-17,2.9895528315041024e-16,10,,mean relative objective gap,passed
+S4,PCA and EMPCA agree in white noise,max_principal_angle_deg,1.4849087406945663e-06,1.2598822001652777e-06,1.7059662254281993e-06,10,False,mean held-out angle,passed
+S5,weighted PCA improves the colored-noise metric,pca_weighted_residual_to_observed,48.49041700023018,48.34758780263492,48.64011637577673,10,True,paired interval excludes zero,passed
+S6,timing variability requires rank above one,best_rank_by_clean_mse,4.6,4.2,5.0,10,True,mean best rank,passed
+S7,estimated covariance converges toward oracle,sigma_over_oracle.4,1.0316329624301634,1.0247082592462744,1.039759983772373,10,,largest-calibration mean ratio,passed
+S8,whitened residual chi-square is calibrated,mean_chi2_per_dof,0.9972805292646909,0.9950927966700931,0.9998531326909808,10,,mean chi-square per degree of freedom,passed
+S9,full covariance improves multichannel uncertainty,diagonal_over_full_sigma,1.024907286395959,1.0200452632366985,1.0300281616787448,10,True,mean ratio,passed

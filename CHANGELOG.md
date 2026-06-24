@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added two predeclared GWOSC follow-up experiments. Filtering/statistic
+  equivalence applies one shared GWpy-designed FIR through explicit FFT
+  convolution and GWpy convolution over a frozen FIR-duration/edge-trim grid,
+  first on stationary synthetic noise and then real H1/L1 windows. Time-local
+  noise modelling compares leave-one-out global PSDs with 32/64/96-second
+  local radii and archives chronological, template-projected, and fixed
+  narrow-band diagnostics. The primary local model must cover at least 90% of
+  evaluation windows.
+- Replaced the undocumented approximate chirp in the GWOSC config with the
+  public GW150914 numerical-simulation waveform used by GWpy's injection
+  example; the downloader and run records retain its URL, checksum,
+  resampling, placement, and normalization metadata.
 - Archived and documented the first controlled 256-second GW150914 H1/L1
   verification run. Stage 0 passed remotely with 89 tests, and the repository
   median-Welch PSD matched GWpy exactly, but the predeclared held-out amplitude

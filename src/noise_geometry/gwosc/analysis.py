@@ -8,14 +8,14 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from scipy.signal import chirp, welch
-from scipy.signal.windows import tukey
+from scipy.signal import welch
 
 from ..filters import gls_amplitude, psd_amplitude_variance
 from ..metrics import mse, weighted_residual
 from ..noise import estimate_psd_ensemble, inverse_psd_weights, regularize_psd
 from ..utils.paths import dataset_root
 from .reference import run_gwpy_reference_check
+from .waveforms import build_waveform
 
 
 def load_cached_event(path: str | Path) -> dict[str, Any]:
@@ -431,21 +431,6 @@ def _fit_noise_model(
     }
 
 
-def _approximate_chirp_template(length: int, sample_rate: float) -> np.ndarray:
-    duration = min(0.5, length / sample_rate * 0.5)
-    n_chirp = max(16, min(length, int(duration * sample_rate)))
-    t = np.arange(n_chirp) / sample_rate
-    nyquist = sample_rate / 2.0
-    waveform = chirp(t, f0=min(35.0, nyquist * 0.15), f1=min(250.0, nyquist * 0.8), t1=duration)
-    waveform *= tukey(n_chirp, alpha=0.4)
-    template = np.zeros(length)
-    stop = length // 2 + 1
-    start = max(0, stop - n_chirp)
-    template[start:stop] = waveform[-(stop - start) :]
-    norm = np.max(np.abs(template))
-    return template / max(norm, np.finfo(float).eps)
-
-
 def _load_data_quality_record(
     cache_file: Path,
     detector: str,
@@ -778,7 +763,12 @@ def run_gwosc_experiment(config: dict[str, Any], data_root_path: str | Path) -> 
             "stop_gps": event_stop_gps,
             "valid": bool(event_data_quality_valid),
         }
-        template = _approximate_chirp_template(length, sample_rate)
+        template, waveform_metadata = build_waveform(
+            length,
+            sample_rate,
+            config.get("waveform"),
+            data_root=data_root_path,
+        )
         template_f = np.fft.rfft(template)
         noise_models = {}
         for validation_seed in validation_split_seeds:
@@ -960,6 +950,7 @@ def run_gwosc_experiment(config: dict[str, Any], data_root_path: str | Path) -> 
                 offsource_starts[evaluation_indices] / sample_rate
             ).tolist(),
             "analysis_highpass_hz": highpass_hz,
+            "waveform": waveform_metadata,
             "psd_estimator": model["psd_estimator"],
             "psd_calibration_quality": model["quality"],
             "evaluation_window_quality": model["evaluation_quality"],

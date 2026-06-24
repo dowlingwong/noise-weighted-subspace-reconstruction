@@ -104,11 +104,18 @@ uv run python scripts/download/download_gwosc.py --download --timeout 900
 uv run python scripts/preprocess/preprocess_gwosc.py --reference-check
 uv run python scripts/run_experiment.py \
   --config configs/gwosc/gw150914_smoke.yaml
+uv run python scripts/run_experiment.py \
+  --config configs/gwosc/filter_statistic_equivalence.yaml
+uv run python scripts/run_experiment.py \
+  --config configs/gwosc/time_local_noise.yaml
 ```
 
 The preprocessing command compares PSD normalization and held-out whitening
 calibration against GWpy. See
-[`docs/GWOSC_GWPY_REFERENCE.md`](docs/GWOSC_GWPY_REFERENCE.md).
+[`docs/GWOSC_GWPY_REFERENCE.md`](docs/GWOSC_GWPY_REFERENCE.md). The two
+follow-up experiments use a documented public waveform and predeclared
+filter/local-PSD settings; see
+[`docs/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md`](docs/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md).
 
 Prepare the CRESST cache and print current manual-download instructions:
 

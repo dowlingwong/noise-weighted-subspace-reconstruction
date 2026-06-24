@@ -1,0 +1,35 @@
+{
+  "captured_at_utc": "2026-06-22T16:49:22.339095+00:00",
+  "cpu": {
+    "available": true,
+    "command": "lscpu",
+    "output": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           43 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  128\nOn-line CPU(s) list:                     0-127\nVendor ID:                               AuthenticAMD\nModel name:                              AMD EPYC 7452 32-Core Processor\nCPU family:                              23\nModel:                                   49\nThread(s) per core:                      2\nCore(s) per socket:                      32\nSocket(s):                               2\nStepping:                                0\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      82%\nCPU max MHz:                             3364.3550\nCPU min MHz:                             1500.0000\nBogoMIPS:                                4700.44\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd amd_ppin arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca sev sev_es\nVirtualization:                          AMD-V\nL1d cache:                               2 MiB (64 instances)\nL1i cache:                               2 MiB (64 instances)\nL2 cache:                                32 MiB (64 instances)\nL3 cache:                                256 MiB (16 instances)\nNUMA node(s):                            2\nNUMA node0 CPU(s):                       0-31,64-95\nNUMA node1 CPU(s):                       32-63,96-127\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; untrained return thunk; SMT enabled with STIBP protection\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace",
+    "returncode": 0
+  },
+  "git": {
+    "branch": "main",
+    "commit": "f541c542f778c474432dea4ca812da433ef81e8e",
+    "status_before": []
+  },
+  "gpu": {
+    "available": false,
+    "command": "nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader"
+  },
+  "hostname": "portal1",
+  "machine": "x86_64",
+  "memory": "MemTotal:       1056150792 kB\nMemFree:        310853204 kB\nMemAvailable:   950446652 kB\nBuffers:             556 kB\nCached:         597915380 kB\nSwapCached:       139120 kB\nActive:         142912844 kB\nInactive:       535519428 kB\nActive(anon):   52900484 kB\nInactive(anon): 27656688 kB\nActive(file):   90012360 kB\nInactive(file): 507862740 kB\nUnevictable:        3072 kB\nMlocked:               0 kB\nSwapTotal:      268435452 kB\nSwapFree:       267082684 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:              7952 kB\nWriteback:           408 kB\nAnonPages:      79751428 kB\nMapped:          2588464 kB\nShmem:             41752 kB\nKReclaimable:   51748976 kB\nSlab:           60942960 kB\nSReclaimable:   51748976 kB\nSUnreclaim:      9193984 kB\nKernelStack:      270448 kB\nPageTables:      1117352 kB\nSecPageTables:     19212 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    796510848 kB\nCommitted_AS:   642414216 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:      792480 kB\nVmallocChunk:          0 kB\nPercpu:           425472 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:  30572544 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:         0 kB\nFilePmdMapped:         0 kB\nCmaTotal:              0 kB\nCmaFree:               0 kB\nUnaccepted:            0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      685020 kB\nDirectMap2M:    14905344 kB\nDirectMap1G:    1058013184 kB\n",
+  "os_release": "NAME=\"AlmaLinux\"\nVERSION=\"9.7 (Moss Jungle Cat)\"\nID=\"almalinux\"\nID_LIKE=\"rhel centos fedora\"\nVERSION_ID=\"9.7\"\nPLATFORM_ID=\"platform:el9\"\nPRETTY_NAME=\"AlmaLinux 9.7 (Moss Jungle Cat)\"\nANSI_COLOR=\"0;34\"\nLOGO=\"fedora-logo-icon\"\nCPE_NAME=\"cpe:/o:almalinux:almalinux:9::baseos\"\nHOME_URL=\"https://almalinux.org/\"\nDOCUMENTATION_URL=\"https://wiki.almalinux.org/\"\nBUG_REPORT_URL=\"https://bugs.almalinux.org/\"\n\nALMALINUX_MANTISBT_PROJECT=\"AlmaLinux-9\"\nALMALINUX_MANTISBT_PROJECT_VERSION=\"9.7\"\nREDHAT_SUPPORT_PRODUCT=\"AlmaLinux\"\nREDHAT_SUPPORT_PRODUCT_VERSION=\"9.7\"\nSUPPORT_END=2032-06-01\n",
+  "paper1_data_root": "/ceph/dwong/paper1_dataset",
+  "platform": "Linux-5.14.0-687.5.3.el9_8.x86_64-x86_64-with-glibc2.34",
+  "processor": "x86_64",
+  "python_bootstrap": {
+    "executable": "/usr/bin/python3",
+    "version": "3.9.25 (main, Apr 17 2026, 00:00:00) \n[GCC 11.5.0 20240719 (Red Hat 11.5.0-14)]"
+  },
+  "uv": {
+    "available": true,
+    "command": "uv --version",
+    "output": "uv 0.11.14 (x86_64-unknown-linux-gnu)",
+    "returncode": 0
+  }
+}

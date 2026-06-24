@@ -15,7 +15,11 @@ if str(SRC) not in sys.path:
 
 from noise_geometry.experiments import run_synthetic_experiment
 from noise_geometry.cresst import run_cresst_experiment
-from noise_geometry.gwosc import run_gwosc_experiment
+from noise_geometry.gwosc import (
+    run_filter_statistic_equivalence,
+    run_gwosc_experiment,
+    run_time_local_noise_model,
+)
 from noise_geometry.utils import RunRecord, git_commit_hash, load_config, resolve_data_root, write_run_record
 
 
@@ -41,6 +45,20 @@ def main() -> None:
         status = "complete" if metrics.get("status") != "planned" else "planned"
     elif dataset == "gwosc":
         metrics = run_gwosc_experiment(config, data_root)
+        status = (
+            "complete"
+            if bool(metrics.get("acceptance", {}).get("passed", False))
+            else "failed_acceptance"
+        )
+    elif dataset == "gwosc_filter_equivalence":
+        metrics = run_filter_statistic_equivalence(config, data_root)
+        status = (
+            "complete"
+            if bool(metrics.get("acceptance", {}).get("passed", False))
+            else "failed_acceptance"
+        )
+    elif dataset == "gwosc_time_local_noise":
+        metrics = run_time_local_noise_model(config, data_root)
         status = (
             "complete"
             if bool(metrics.get("acceptance", {}).get("passed", False))

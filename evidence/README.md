@@ -16,7 +16,7 @@ evidence/gwosc/<UTC timestamp>_<tested commit>/
 
 Each run must contain a `manifest.json` and `SHA256SUMS`. A failed run must be preserved using the same structure as a passing run.
 
-The execution agent leaves each run uncommitted. A user reviews the checksums and contents before manually staging, committing, or synchronizing the evidence.
+The execution agent verifies each run and creates one evidence-only local commit. A user reviews that commit before manually pushing or otherwise synchronizing it.
 
 ## 🛡️ Prohibited content
 
@@ -35,6 +35,7 @@ Follow [the remote GWOSC agent runbook](../docs/REMOTE_GWOSC_AGENT_RUNBOOK.md) w
 | --- | --- | --- | --- | --- |
 | `20260622T162349Z_b7842451781f` | `b7842451781f` | Stage 0 did not run because `uv` was unavailable | Not run | Infrastructure failure retained for provenance |
 | `20260622T164907Z_f541c542f778` | `f541c542f778` | Stage 0 passed; 89 tests and all GWOSC commands passed | `failed_acceptance` | PSD matched GWpy exactly, but held-out amplitude spread exceeded prediction |
+| `20260622T175125Z_b169c1f595a4` | `b169c1f595a4` | Stage 0 passed; 91 tests and all commands passed | `failed_acceptance` | Official DATA coverage and enhanced diagnostics passed; random and chronological null calibration still failed |
 
-The scientific interpretation of the second run is recorded in
+The scientific interpretation of these controlled runs is recorded in
 [`docs/GWOSC_VALIDATION_2026-06-22.md`](../docs/GWOSC_VALIDATION_2026-06-22.md).

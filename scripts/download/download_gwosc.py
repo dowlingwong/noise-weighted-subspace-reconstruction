@@ -9,6 +9,7 @@ import json
 from math import ceil
 import sys
 from pathlib import Path
+from urllib.request import urlopen
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC = REPO_ROOT / "src"
@@ -16,6 +17,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from noise_geometry.gwosc import dependency_status
+from noise_geometry.gwosc.waveforms import GW150914_PUBLIC_WAVEFORM_URL
 from noise_geometry.utils import load_config, resolve_data_root
 from noise_geometry.utils.paths import dataset_root, ensure_dataset_layout, is_within_repo
 
@@ -115,6 +117,42 @@ def _fetch_event_windows(args, config: dict, dataset_dir: Path) -> list[Path]:
         "data_quality": data_quality,
         "files": [{"path": str(path), "sha256": _sha256(path)} for path in written],
     }
+    waveform_config = dict(config.get("waveform", {}))
+    if waveform_config.get("type") == "public_text":
+        relative_path = Path(
+            waveform_config.get(
+                "relative_path",
+                f"gwosc/raw/{event}/waveforms/"
+                "fig2-unfiltered-waveform-H.txt",
+            )
+        )
+        data_root = dataset_dir.parent
+        waveform_path = data_root / relative_path
+        waveform_path.parent.mkdir(parents=True, exist_ok=True)
+        waveform_url = str(
+            waveform_config.get(
+                "source_url",
+                GW150914_PUBLIC_WAVEFORM_URL,
+            )
+        )
+        if not waveform_path.exists() or args.force:
+            with urlopen(waveform_url, timeout=timeout) as response:
+                waveform_bytes = response.read()
+            waveform_path.write_bytes(waveform_bytes)
+        metadata["waveforms"] = [
+            {
+                "name": str(
+                    waveform_config.get(
+                        "name",
+                        "GW150914_public_NR_waveform_H",
+                    )
+                ),
+                "path": str(waveform_path),
+                "relative_path": str(relative_path),
+                "source_url": waveform_url,
+                "sha256": _sha256(waveform_path),
+            }
+        ]
     (raw_dir / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return written
 

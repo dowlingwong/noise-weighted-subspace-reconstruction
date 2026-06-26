@@ -26,7 +26,7 @@ class MultiChannelNoiseGenerator:
         "n_latent": 2,
         "latent_strength_range": [0.1, 0.4],
         "private_strength_range": [0.8, 1.2],
-        "normalize_channel_variance": True,
+        "normalize_channel_variance": False,
     }
 
     def __init__(

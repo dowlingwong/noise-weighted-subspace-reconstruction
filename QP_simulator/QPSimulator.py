@@ -52,6 +52,22 @@ class QPSimulator:
         eV -> ADC conversion factor (matches TraceSimulator).
     meV_per_QP : float
         Mean energy per QP in meV. Default 1.0.
+    adc_lsb : float
+        ADC least significant bit in analog ADC-count units. Used only by
+        ``digitize_trace`` or ``generate(..., digitize=True)``.
+    adc_offset : float
+        Analog pedestal corresponding to ADC code zero. Used only by explicit
+        digitization.
+    adc_bits : int or None
+        Optional ADC bit depth. When set, digitized codes are clipped to the
+        configured signed or unsigned range.
+    adc_signed : bool
+        If ``adc_bits`` is set, choose signed two's-complement style limits
+        when true and unsigned limits when false.
+    arrival_mode : {"linear", "histogram"}
+        Default arrival-time deposition mode. ``"linear"`` preserves sub-sample
+        timing to first order by splitting each arrival between neighbouring
+        samples. ``"histogram"`` reproduces the legacy whole-sample binning.
     """
 
     def __init__(
@@ -64,6 +80,11 @@ class QPSimulator:
         gain_QE: float = 15.0,
         E_to_ADC: float = 2.0,
         meV_per_QP: float = 1.0,
+        adc_lsb: float = 1.0,
+        adc_offset: float = 0.0,
+        adc_bits: int | None = None,
+        adc_signed: bool = True,
+        arrival_mode: str = "linear",
     ):
         # Digitizer
         self.frequency = float(sampling_frequency)
@@ -83,6 +104,14 @@ class QPSimulator:
         self.E_to_ADC = float(E_to_ADC)
         self.meV_per_QP = float(meV_per_QP)
         self.qp_amplitude = self.gain_QE * self.E_to_ADC * 1e-3 * self.meV_per_QP
+
+        # Explicit ADC model. The simulator still returns analog float traces
+        # by default; digitization is opt-in so existing analyses are unchanged.
+        self.adc_lsb = float(adc_lsb)
+        self.adc_offset = float(adc_offset)
+        self.adc_bits = None if adc_bits is None else int(adc_bits)
+        self.adc_signed = bool(adc_signed)
+        self.arrival_mode = self._validate_arrival_mode(arrival_mode)
 
         # Histogram bin edges for arrival times: length trace_samples + 1
         self.t_edges = np.arange(0.0, self.trace_duration + self.dt / 2.0, self.dt)
@@ -108,7 +137,10 @@ class QPSimulator:
         self,
         arrival_times,
         return_amplitude: bool = False,
-    ) -> "np.ndarray | tuple[np.ndarray, float]":
+        return_metadata: bool = False,
+        digitize: bool = False,
+        arrival_mode: str | None = None,
+    ) -> "np.ndarray | tuple":
         """Return a clean QP trace (in ADC counts) for the given arrivals.
 
         Parameters
@@ -121,25 +153,49 @@ class QPSimulator:
             ``amplitude_true = n_inside * self.qp_amplitude`` where
             ``n_inside`` is the number of arrival times that fall within
             ``[0, trace_duration)``. Default False (original behaviour).
+        return_metadata : bool, optional
+            When True, return a metadata dictionary containing ``n_QP_inside``,
+            ``total_qp_amplitude_ADC``, and ``peak_ADC``.
+        digitize : bool, optional
+            When True, quantize the analog trace with ``digitize_trace``.
+        arrival_mode : {"linear", "histogram"} or None
+            Override the instance default arrival-time deposition mode.
 
         Returns
         -------
         trace : np.ndarray, shape (trace_samples,)
-            Clean QP trace, float ADC counts. Add noise yourself.
+            Clean QP trace. Float analog ADC counts unless ``digitize=True``.
         amplitude_true : float
             Only returned when ``return_amplitude=True``. True signal
-            amplitude in ADC counts.
+            total per-QP amplitude scale in ADC counts.
+        metadata : dict
+            Only returned when ``return_metadata=True``.
         """
         t = np.asarray(arrival_times, dtype=float).ravel()
-        if t.size == 0:
-            trace = np.zeros(self.trace_samples, dtype=float)
-            return (trace, 0.0) if return_amplitude else trace
-        counts, _ = np.histogram(t, bins=self.t_edges)
+        counts, n_inside = self._arrival_counts(t, arrival_mode=arrival_mode)
         trace = self._sum_template(counts) * self.qp_amplitude
+        analog_peak = float(np.max(trace)) if trace.size else 0.0
+        if digitize:
+            trace = self.digitize_trace(trace)
+
+        total_amplitude = float(n_inside) * self.qp_amplitude
+        metadata = {
+            "n_QP_inside": int(n_inside),
+            "total_qp_amplitude_ADC": total_amplitude,
+            "peak_ADC": analog_peak,
+            "arrival_mode": self._validate_arrival_mode(arrival_mode)
+            if arrival_mode is not None
+            else self.arrival_mode,
+            "digitized": bool(digitize),
+        }
+        outputs: list = [trace]
         if return_amplitude:
-            amplitude_true = float(counts.sum()) * self.qp_amplitude
-            return trace, amplitude_true
-        return trace
+            outputs.append(total_amplitude)
+        if return_metadata:
+            outputs.append(metadata)
+        if len(outputs) == 1:
+            return trace
+        return tuple(outputs)
 
     def generate_family(
         self,
@@ -148,6 +204,8 @@ class QPSimulator:
         t0_jitter_range: "tuple[float, float]" = (0.0, 0.0),
         n_QP_range: "tuple[int, int]" = (5000, 5000),
         rng: "np.random.Generator | None" = None,
+        digitize: bool = False,
+        arrival_mode: str | None = None,
     ) -> "tuple[np.ndarray, dict]":
         """Generate ``n_events`` clean traces with independently drawn per-event
         parameters.
@@ -157,8 +215,9 @@ class QPSimulator:
         * ``tau_decay`` is drawn uniformly from ``tau_decay_range``.
         * ``trigger_time`` = ``self.trigger_time`` + Uniform(``t0_jitter_range``).
         * ``n_QP`` is drawn uniformly (integer) from ``n_QP_range``.
-        * Arrival times are drawn as Exponential(scale=2e6 ns) + trigger_time,
-          matching the existing demo convention.
+        * Arrival times are drawn as Exponential(scale=2e6 ns). The per-event
+          trigger-time jitter is applied once through the temporary simulator's
+          ``trigger_time``; it is not also added to the arrivals.
         * A temporary :class:`QPSimulator` is built with the per-event
           ``tau_decay`` and ``trigger_time`` to generate each trace; all
           other parameters are inherited from ``self``.
@@ -182,6 +241,10 @@ class QPSimulator:
         rng : np.random.Generator or None
             Random generator for reproducibility. If None, uses
             ``np.random.default_rng()``.
+        digitize : bool
+            When true, return quantized integer ADC codes.
+        arrival_mode : {"linear", "histogram"} or None
+            Override the instance default arrival-time deposition mode.
 
         Returns
         -------
@@ -193,7 +256,10 @@ class QPSimulator:
             * ``'tau_decay'``    — np.ndarray, shape (n_events,)
             * ``'t0_shift'``    — np.ndarray, shape (n_events,), jitter in ns
             * ``'n_QP'``        — np.ndarray, shape (n_events,), dtype int
-            * ``'amplitude_ADC'`` — np.ndarray, shape (n_events,), true peak ADC
+            * ``'total_qp_amplitude_ADC'`` — np.ndarray, shape (n_events,)
+            * ``'peak_ADC'``      — np.ndarray, shape (n_events,), true trace peak
+            * ``'amplitude_ADC'`` — backward-compatible alias for total QP
+              amplitude scale, not the waveform peak
         """
         if rng is None:
             rng = np.random.default_rng()
@@ -208,7 +274,7 @@ class QPSimulator:
             else rng.uniform(tau_lo, tau_hi, size=n_events)
         )
         t0_shifts = (
-            np.zeros(n_events)
+            np.full(n_events, t0_lo)
             if t0_lo == t0_hi
             else rng.uniform(t0_lo, t0_hi, size=n_events)
         )
@@ -218,8 +284,11 @@ class QPSimulator:
             else rng.integers(nqp_lo, nqp_hi + 1, size=n_events)
         )
 
-        traces = np.empty((n_events, self.trace_samples), dtype=float)
-        amplitudes = np.empty(n_events, dtype=float)
+        trace_dtype = np.int64 if digitize else float
+        traces = np.empty((n_events, self.trace_samples), dtype=trace_dtype)
+        total_amplitudes = np.empty(n_events, dtype=float)
+        peaks = np.empty(n_events, dtype=float)
+        n_inside = np.empty(n_events, dtype=int)
 
         for i in range(n_events):
             ev_tau = tau_decays[i]
@@ -235,18 +304,35 @@ class QPSimulator:
                 gain_QE=self.gain_QE,
                 E_to_ADC=self.E_to_ADC,
                 meV_per_QP=self.meV_per_QP,
+                adc_lsb=self.adc_lsb,
+                adc_offset=self.adc_offset,
+                adc_bits=self.adc_bits,
+                adc_signed=self.adc_signed,
+                arrival_mode=self.arrival_mode,
             )
 
-            arrivals = rng.exponential(scale=2e6, size=ev_nqp) + ev_t0
-            trace, amp = ev_sim.generate(arrivals, return_amplitude=True)
+            arrivals = rng.exponential(scale=2e6, size=ev_nqp)
+            generated = ev_sim.generate(
+                arrivals,
+                return_amplitude=True,
+                return_metadata=True,
+                digitize=digitize,
+                arrival_mode=arrival_mode,
+            )
+            trace, amp, meta = generated
             traces[i] = trace
-            amplitudes[i] = amp
+            total_amplitudes[i] = amp
+            peaks[i] = float(meta["peak_ADC"])
+            n_inside[i] = int(meta["n_QP_inside"])
 
         params = {
             "tau_decay": tau_decays,
             "t0_shift": t0_shifts,
             "n_QP": n_qps,
-            "amplitude_ADC": amplitudes,
+            "n_QP_inside": n_inside,
+            "total_qp_amplitude_ADC": total_amplitudes,
+            "peak_ADC": peaks,
+            "amplitude_ADC": total_amplitudes,
         }
         return traces, params
 
@@ -279,8 +365,35 @@ class QPSimulator:
             gain_QE=self.gain_QE,
             E_to_ADC=self.E_to_ADC,
             meV_per_QP=self.meV_per_QP,
+            adc_lsb=self.adc_lsb,
+            adc_offset=self.adc_offset,
+            adc_bits=self.adc_bits,
+            adc_signed=self.adc_signed,
+            arrival_mode=self.arrival_mode,
         )
         return shifted_sim.template[: self.trace_samples].copy()
+
+    def digitize_trace(self, trace: np.ndarray) -> np.ndarray:
+        """Quantize an analog ADC-count trace to integer ADC codes.
+
+        Quantization is round-to-nearest after subtracting ``adc_offset`` and
+        dividing by ``adc_lsb``. If ``adc_bits`` is configured, codes are clipped
+        to the corresponding signed or unsigned range.
+        """
+        if self.adc_lsb <= 0.0:
+            raise ValueError("adc_lsb must be positive.")
+        codes = np.rint((np.asarray(trace, dtype=float) - self.adc_offset) / self.adc_lsb)
+        if self.adc_bits is not None:
+            if self.adc_bits <= 0:
+                raise ValueError("adc_bits must be positive when set.")
+            if self.adc_signed:
+                low = -(2 ** (self.adc_bits - 1))
+                high = 2 ** (self.adc_bits - 1) - 1
+            else:
+                low = 0
+                high = 2**self.adc_bits - 1
+            codes = np.clip(codes, low, high)
+        return codes.astype(np.int64)
 
     @staticmethod
     def estimate_psd(
@@ -351,6 +464,46 @@ class QPSimulator:
         for i in np.nonzero(counts)[0]:
             out[i:] += counts[i] * self.template[: n - i]
         return out
+
+    def _arrival_counts(
+        self,
+        arrival_times: np.ndarray,
+        arrival_mode: str | None = None,
+    ) -> tuple[np.ndarray, int]:
+        """Deposit arrival times onto the sampled trace grid."""
+        mode = self._validate_arrival_mode(arrival_mode) if arrival_mode else self.arrival_mode
+        t = np.asarray(arrival_times, dtype=float).ravel()
+        counts = np.zeros(self.trace_samples, dtype=float)
+        if t.size == 0:
+            return counts, 0
+
+        inside = (t >= 0.0) & (t < self.trace_duration)
+        t_inside = t[inside]
+        n_inside = int(t_inside.size)
+        if n_inside == 0:
+            return counts, 0
+
+        if mode == "histogram":
+            hist, _ = np.histogram(t_inside, bins=self.t_edges)
+            return hist.astype(float), n_inside
+
+        positions = t_inside / self.dt
+        left = np.floor(positions).astype(int)
+        frac = positions - left
+        valid_left = (left >= 0) & (left < self.trace_samples)
+        np.add.at(counts, left[valid_left], 1.0 - frac[valid_left])
+
+        right = left + 1
+        valid_right = (frac > 0.0) & (right < self.trace_samples)
+        np.add.at(counts, right[valid_right], frac[valid_right])
+        return counts, n_inside
+
+    @staticmethod
+    def _validate_arrival_mode(arrival_mode: str) -> str:
+        mode = str(arrival_mode).lower()
+        if mode not in {"linear", "histogram"}:
+            raise ValueError("arrival_mode must be 'linear' or 'histogram'.")
+        return mode
 
 
 # ---------------------------------------------------------------------- #

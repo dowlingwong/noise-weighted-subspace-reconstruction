@@ -1,15 +1,27 @@
+# CRESST pulse-shape smoke test on the public DMDC release (test split).
+# Dataset: arXiv:2508.03078 (CRESST-II/III pulse shape data).
+# Quick development iteration on the ~160 MB test split.
 experiment_id: P2_CRESST_PULSE_SHAPE
 dataset: cresst
 data_root: /ceph/dwong/paper1_dataset
 dataset_dir: /ceph/dwong/paper1_dataset/cresst
 raw_data_dir: /ceph/dwong/paper1_dataset/cresst/raw
 processed_data_dir: /ceph/dwong/paper1_dataset/cresst/processed
-manual_download_required: true
+
+# DMDC download. Set this to the directory URL that holds the released files
+# (obtained from the CRESST DMDC page), or pass --base-url on the command line.
+cresst_base_url: ""
+
+# Use the public release format (X_{split}.npy + features_{split}.csv).
+release_format: true
+split: test
+trace_length: 512
+noise_column: noise      # random-triggered baselines -> covariance/PSD
+clean_column: clean      # accepted pulses -> reconstruction
+
 seed: 22
 rank: 4
-max_traces: 2000
+max_traces: 4000         # subsample of the split for a fast smoke run
 max_features: 256
 baseline_fraction: 0.2
-noise_quantile: 0.2
 covariance_shrinkage: 0.1
-estimate_noise_from: baseline_or_noise_like_traces

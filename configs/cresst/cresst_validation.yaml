@@ -1,0 +1,35 @@
+# Predeclared CRESST validation run on the public DMDC release.
+# Follows the CRESST Validation Protocol in docs/EXPERIMENT_PROTOCOLS.md.
+# Fix these values before inspecting any real-data scores; do not tune after.
+experiment_id: P2_CRESST_VALIDATION
+dataset: cresst
+data_root: /ceph/dwong/paper1_dataset
+
+cresst_base_url: ""
+release_format: true
+split: test
+trace_length: 512
+noise_column: noise
+clean_column: clean
+
+seed: 22
+rank: 6                  # predeclared subspace rank k
+max_traces: null        # use the full split
+max_features: 512        # keep native downsampled resolution
+baseline_fraction: 0.2
+covariance_shrinkage: 0.1
+
+# --- Predeclared protocol parameters (consumed as the analysis matures) ---
+# Baselines reported in order: single-template OF, multi-template OF, PCA,
+# whitened/weighted PCA (EMPCA), tied weighted linear AE.
+baselines: [of, multi_template_of, pca, empca, linear_ae]
+# Multi-template OF bank grid over pulse-shape variation:
+template_bank:
+  rise_time_grid: auto   # quantiles of the features rise_time column
+  decay_time_grid: auto  # quantiles of the features decay_time column
+# Detector-facing evaluation:
+fpr_points: [0.001, 0.01, 0.05]
+efficiency_thresholds: [0.5, 0.9]
+bootstrap_reps: 300
+# Negative controls that must degrade the result:
+negative_controls: [wrong_psd, permuted_time_bins, random_weighted_basis, noise_only_train]

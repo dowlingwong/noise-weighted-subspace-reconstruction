@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### 2026-06-30
+
+- Prepared the CRESST setup against the public DMDC pulse-shape release
+  (arXiv:2508.03078). Rewrote `scripts/download/download_cresst.py` as a
+  manifest-driven, base-URL-keyed downloader that verifies every `.npy`
+  shape/dtype and CSV row count, writes a checksummed provenance manifest, and
+  refuses repo-internal writes. Added `load_cresst_release` / `select_cresst_subsets`
+  (uses the `noise`/`clean` flags to separate baselines from accepted pulses),
+  a release-aware branch in `run_cresst_experiment`, a cache-building
+  `preprocess_cresst.py`, `configs/cresst/cresst_validation.yaml`, an updated
+  smoke config and runbook, and `tests/test_cresst_release.py`.
+
 ### 2026-06-29
 
 - Consolidated the documentation into one canonical `docs/` set

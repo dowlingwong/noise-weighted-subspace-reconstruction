@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### 2026-06-29
+
+- Consolidated the documentation into one canonical `docs/` set
+  (`CURRENT_STATUS`, `EXPERIMENT_PROTOCOLS`, `GWOSC_RESULT`,
+  `PAPER_REVISION_GUIDE`, `REMOTE_EXECUTION`, `README`), moved the superseded
+  notes under `docs/archive/2026-06-29_pre_consolidation/`, and repointed the
+  `README`/`EXPERIMENT_PLAN`/`TODO` stubs at the canonical docs.
+- Refreshed the `transfer_paper/` evidence bundle (figures, derived/summary
+  CSVs, manifests, and source-document mirror) to consume the consolidated
+  documentation.
+- Removed stale artifacts: the source-less `src/EMPCA/` cache, stray
+  `.DS_Store` files, and a leftover `.git/index.lock`.
+- Archived an additional GWOSC validation run.
+- Fixed the QP simulator standard-deviation estimation and updated the 1 MHz
+  noise-PSD resampling code.
+
+### Earlier (undated)
+
 - Added two predeclared GWOSC follow-up experiments. Filtering/statistic
   equivalence applies one shared GWpy-designed FIR through explicit FFT
   convolution and GWpy convolution over a frozen FIR-duration/edge-trim grid,
@@ -49,7 +67,7 @@
   (`tests/test_synthetic_gate_acceptance.py`).
 - S2: added the `amplitude_model` (real|complex) flag; pinned the rank-1
   EMPCA/OF angle's 1/√N convergence and its robustness to coefficient phase.
-- Recorded findings and decisions in `docs/paper1_validation_progress.md`
+- Recorded findings and decisions in `docs/archive/2026-06-29_pre_consolidation/paper1_validation_progress.md`
   (EMPCA smoothing caveat, complex EMPCA phase DOF, S2 finite-sample √N scaling,
   real-vs-complex amplitude decision).
 - Repaired import breakage from the `src/canonical/` reorganisation
@@ -80,7 +98,8 @@
   documentation.
 - Consolidated overlapping validation plans, experiment registries, dataset
   notes, metrics, preprocessing rules, and acceptance gates into
-  `docs/VALIDATION_ROADMAP.md`; archived the superseded DELight/K-alpha plan.
+  `docs/archive/2026-06-29_pre_consolidation/VALIDATION_ROADMAP.md`; archived
+  the superseded DELight/K-alpha plan.
 - Preserved adjacent Paper 2, NPML, TraceSimulator, and QP simulator code while
   consolidating the verified Paper 1 OF/EMPCA implementations under
   `src/canonical/`.

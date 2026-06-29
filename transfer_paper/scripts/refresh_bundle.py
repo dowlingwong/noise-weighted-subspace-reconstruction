@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 import shutil
@@ -87,11 +88,30 @@ def _copy_tree_files(
 
 def _copy_synthetic_sweeps(provenance: dict[str, str]) -> None:
     SYNTHETIC_ROOT.mkdir(parents=True, exist_ok=True)
+    sources = sorted((REPO_ROOT / "results" / "sweeps").glob("S*_sweep_10seeds.*"))
+    if not sources:
+        existing = sorted(SYNTHETIC_ROOT.glob("S*_sweep_10seeds.*"))
+        if not existing:
+            raise SystemExit(
+                "No synthetic sweep sources found under results/sweeps and no "
+                "existing transfer_paper/data/synthetic sweep files to preserve."
+            )
+        for path in existing:
+            provenance[str(path.relative_to(TRANSFER_ROOT))] = (
+                "preserved existing transfer synthetic sweep; source "
+                "results/sweeps/S*_sweep_10seeds.* was absent"
+            )
+        summary = SYNTHETIC_ROOT / "synthetic_summary.csv"
+        if summary.is_file():
+            provenance[str(summary.relative_to(TRANSFER_ROOT))] = (
+                "preserved existing transfer synthetic summary; source "
+                "results/tables/synthetic_summary.csv was not refreshed"
+            )
+        return
+
     for existing in SYNTHETIC_ROOT.glob("S*_sweep_10seeds.*"):
         existing.unlink()
-    for source in sorted((REPO_ROOT / "results" / "sweeps").glob(
-        "S*_sweep_10seeds.*"
-    )):
+    for source in sources:
         destination = SYNTHETIC_ROOT / source.name
         shutil.copy2(source, destination)
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
@@ -108,12 +128,22 @@ def _copy_synthetic_sweeps(provenance: dict[str, str]) -> None:
 
 def _copy_synthetic_figures(provenance: dict[str, str]) -> None:
     destination_root = SYNTHETIC_ROOT / "figures"
+    sources = sorted(
+        path for path in (REPO_ROOT / "results" / "figures").glob("*")
+        if path.is_file()
+    )
+    if not sources:
+        for existing in sorted(destination_root.glob("*")) if destination_root.exists() else []:
+            if existing.is_file():
+                provenance[str(existing.relative_to(TRANSFER_ROOT))] = (
+                    "preserved existing transfer synthetic figure; source "
+                    "results/figures was empty"
+                )
+        return
     if destination_root.exists():
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
-    for source in sorted((REPO_ROOT / "results" / "figures").glob("*")):
-        if not source.is_file():
-            continue
+    for source in sources:
         destination = destination_root / source.name
         shutil.copy2(source, destination)
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
@@ -392,6 +422,262 @@ def _derive_gwosc_tables(
         )
 
 
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[midpoint]
+    return 0.5 * (ordered[midpoint - 1] + ordered[midpoint])
+
+
+def _correlation(xs: list[float], ys: list[float]) -> float:
+    if len(xs) != len(ys) or len(xs) < 2:
+        return float("nan")
+    mean_x = sum(xs) / len(xs)
+    mean_y = sum(ys) / len(ys)
+    var_x = sum((value - mean_x) ** 2 for value in xs)
+    var_y = sum((value - mean_y) ** 2 for value in ys)
+    if var_x == 0.0 or var_y == 0.0:
+        return float("nan")
+    cov = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    return cov / math.sqrt(var_x * var_y)
+
+
+def _write_or_remove_followup_csv(
+    name: str,
+    rows: list[dict[str, Any]],
+    provenance: dict[str, str],
+    source: Path,
+    copy_to_tables: bool = False,
+) -> None:
+    destinations = [DERIVED_ROOT / name]
+    if copy_to_tables:
+        destinations.append(TABLE_ROOT / name)
+    for destination in destinations:
+        if rows:
+            _write_csv(destination, rows)
+            provenance[str(destination.relative_to(TRANSFER_ROOT))] = (
+                f"derived from {source.relative_to(REPO_ROOT)}"
+            )
+        elif destination.exists():
+            destination.unlink()
+
+
+def _derive_followup_tables(
+    run_dir: Path,
+    provenance: dict[str, str],
+) -> None:
+    """Write compact paper-facing summaries for GWOSC follow-up JSON records."""
+    source_dir = run_dir / "gwosc"
+    filter_path = source_dir / "filter_equivalence.json"
+    filter_rows: list[dict[str, Any]] = []
+    if filter_path.is_file():
+        record = _load_json(filter_path)
+        metrics = record["metrics"]
+        groups = [
+            ("synthetic", metrics["synthetic_control"]["sweep"]),
+            *[
+                (detector, detector_metrics["sweep"])
+                for detector, detector_metrics in metrics["real_data"].items()
+            ],
+        ]
+        accepted = metrics["acceptance"]
+        for group, sweep in groups:
+            filter_rows.append(
+                {
+                    "group": group,
+                    "n_settings": len(sweep),
+                    "max_abs_score_difference": max(
+                        item["identity"]["max_abs_score_difference"]
+                        for item in sweep
+                    ),
+                    "max_relative_l2_score_difference": max(
+                        item["identity"]["relative_l2_score_difference"]
+                        for item in sweep
+                    ),
+                    "acceptance_threshold_abs": accepted[
+                        "max_abs_identity_difference"
+                    ],
+                    "acceptance_threshold_relative_l2": accepted[
+                        "max_identity_relative_l2"
+                    ],
+                    "accepted": (
+                        accepted["synthetic_control"]
+                        if group == "synthetic"
+                        else accepted["real_data"][group]
+                    ),
+                }
+            )
+    _write_or_remove_followup_csv(
+        "gwosc_filter_equivalence_summary.csv",
+        filter_rows,
+        provenance,
+        filter_path,
+        copy_to_tables=True,
+    )
+
+    local_path = source_dir / "time_local_noise.json"
+    summary_rows: list[dict[str, Any]] = []
+    block_rows: list[dict[str, Any]] = []
+    spectral_rows: list[dict[str, Any]] = []
+    top_window_rows: list[dict[str, Any]] = []
+    if local_path.is_file():
+        record = _load_json(local_path)
+        metrics = record["metrics"]
+        acceptance = metrics["acceptance"]
+        groups = [
+            ("synthetic", metrics["synthetic_control"]),
+            *[
+                (detector, detector_metrics)
+                for detector, detector_metrics in metrics["real_data"].items()
+            ],
+        ]
+        for group_name, group in groups:
+            for model_name, summary in group["summaries"].items():
+                scores = summary["scores"]
+                total_windows = summary["available_windows"] + summary[
+                    "unavailable_windows"
+                ]
+                primary = bool(summary.get("is_predeclared_primary", False))
+                if group_name == "synthetic":
+                    accepted = (
+                        acceptance["synthetic_control"]
+                        if primary
+                        else ""
+                    )
+                elif primary:
+                    accepted = acceptance["real_data"][group_name]
+                else:
+                    accepted = ""
+                summary_rows.append(
+                    {
+                        "group": group_name,
+                        "model": model_name,
+                        "is_predeclared_primary": primary,
+                        "accepted": accepted,
+                        "available_windows": summary["available_windows"],
+                        "unavailable_windows": summary["unavailable_windows"],
+                        "coverage_fraction": (
+                            summary["available_windows"] / total_windows
+                            if total_windows
+                            else ""
+                        ),
+                        "score_n": scores["n"],
+                        "score_mean": scores["mean"],
+                        "score_median": scores["median"],
+                        "score_std": scores["std"],
+                        "score_p05": scores["p05"],
+                        "score_p95": scores["p95"],
+                    }
+                )
+                if primary:
+                    for block in summary["chronological_blocks"]:
+                        block_rows.append(
+                            {
+                                "group": group_name,
+                                "model": model_name,
+                                "block_id": block["block_id"],
+                                "n_windows": block["n_windows"],
+                                "start_seconds": block["start_seconds"],
+                                "stop_seconds": block["stop_seconds"],
+                                "score_mean": block["score_mean"],
+                                "score_std": block["score_std"],
+                            }
+                        )
+            if group_name == "synthetic":
+                continue
+            for model_name in ("global_leave_one_out", "local_radius_64s"):
+                records = [
+                    item
+                    for item in group["records"][model_name]
+                    if item.get("available")
+                ]
+                abs_scores = [abs(item["score"]) for item in records]
+                template_ratios = [
+                    item["spectral"]["template_projected_psd_ratio"]
+                    for item in records
+                ]
+                spectral_row: dict[str, Any] = {
+                    "detector": group_name,
+                    "model": model_name,
+                    "template_projected_ratio_min": min(template_ratios),
+                    "template_projected_ratio_median": _median(template_ratios),
+                    "template_projected_ratio_max": max(template_ratios),
+                    "corr_abs_score_template_projected_ratio": _correlation(
+                        abs_scores,
+                        template_ratios,
+                    ),
+                }
+                for band_index, band_name in enumerate(
+                    ("20_80", "80_150", "150_300", "300_512")
+                ):
+                    ratios = [
+                        item["spectral"]["narrow_bands"][band_index][
+                            "observed_over_model"
+                        ]
+                        for item in records
+                    ]
+                    spectral_row[f"band_{band_name}_ratio_min"] = min(ratios)
+                    spectral_row[f"band_{band_name}_ratio_median"] = _median(
+                        ratios
+                    )
+                    spectral_row[f"band_{band_name}_ratio_max"] = max(ratios)
+                    spectral_row[
+                        f"band_{band_name}_corr_abs_score_ratio"
+                    ] = _correlation(abs_scores, ratios)
+                spectral_rows.append(spectral_row)
+                for rank, item in enumerate(
+                    sorted(records, key=lambda entry: abs(entry["score"]), reverse=True)[
+                        :5
+                    ],
+                    start=1,
+                ):
+                    row = {
+                        "detector": group_name,
+                        "model": model_name,
+                        "rank_by_abs_score": rank,
+                        "evaluation_index": item["evaluation_index"],
+                        "start_seconds": item["start_seconds"],
+                        "score": item["score"],
+                        "abs_score": abs(item["score"]),
+                        "template_projected_psd_ratio": item["spectral"][
+                            "template_projected_psd_ratio"
+                        ],
+                    }
+                    for band_index, band_name in enumerate(
+                        ("20_80", "80_150", "150_300", "300_512")
+                    ):
+                        row[f"band_{band_name}_observed_over_model"] = item[
+                            "spectral"
+                        ]["narrow_bands"][band_index]["observed_over_model"]
+                    top_window_rows.append(row)
+    _write_or_remove_followup_csv(
+        "gwosc_time_local_psd_summary.csv",
+        summary_rows,
+        provenance,
+        local_path,
+        copy_to_tables=True,
+    )
+    _write_or_remove_followup_csv(
+        "gwosc_time_local_psd_blocks.csv",
+        block_rows,
+        provenance,
+        local_path,
+    )
+    _write_or_remove_followup_csv(
+        "gwosc_time_local_psd_spectral_summary.csv",
+        spectral_rows,
+        provenance,
+        local_path,
+    )
+    _write_or_remove_followup_csv(
+        "gwosc_time_local_psd_top_windows.csv",
+        top_window_rows,
+        provenance,
+        local_path,
+    )
+
+
 def _paper_implications(
     run_dir: Path,
     provenance: dict[str, str],
@@ -415,6 +701,100 @@ def _paper_implications(
         if not synthetic.empty
         else ""
     )
+    filter_path = run_dir / "gwosc" / "filter_equivalence.json"
+    if filter_path.is_file():
+        filter_record = _load_json(filter_path)
+        filter_metrics = filter_record["metrics"]
+        filter_parts = []
+        for label, sweep in [
+            ("synthetic", filter_metrics["synthetic_control"]["sweep"]),
+            *[
+                (detector, detector_metrics["sweep"])
+                for detector, detector_metrics in filter_metrics["real_data"].items()
+            ],
+        ]:
+            filter_parts.append(
+                f"{label} max abs {max(item['identity']['max_abs_score_difference'] for item in sweep):.3g}, "
+                f"max relative L2 {max(item['identity']['relative_l2_score_difference'] for item in sweep):.3g}"
+            )
+        filter_result_summary = (
+            "Passed the predeclared shared-statistic implementation identity gate: "
+            + "; ".join(filter_parts)
+            + "."
+        )
+        filter_paper_implication = (
+            "The Results can state that explicit FFT convolution and GWpy "
+            "convolution agree when forced to use the same FIR coefficients "
+            "and normalization."
+        )
+        filter_boundary = (
+            "This does not prove that the original PSD-domain GLS statistic and "
+            "a finite-duration FIR statistic are mathematically equivalent; "
+            "that comparison remains diagnostic sensitivity."
+        )
+    else:
+        filter_result_summary = (
+            "Implemented and predeclared locally; no remote evidence JSON is "
+            "present in the current bundle."
+        )
+        filter_paper_implication = (
+            "Can be described as a predeclared follow-up method until remote "
+            "evidence is synchronized."
+        )
+        filter_boundary = "Do not claim FIR/GLS equivalence or real-data outcomes yet."
+
+    local_path = run_dir / "gwosc" / "time_local_noise.json"
+    if local_path.is_file():
+        local_record = _load_json(local_path)
+        local_metrics = local_record["metrics"]
+        synthetic_primary = local_metrics["synthetic_control"]["summaries"][
+            "local_radius_64s"
+        ]
+        h1_primary = local_metrics["real_data"]["H1"]["summaries"][
+            "local_radius_64s"
+        ]
+        l1_primary = local_metrics["real_data"]["L1"]["summaries"][
+            "local_radius_64s"
+        ]
+        h1_global = local_metrics["real_data"]["H1"]["summaries"][
+            "global_leave_one_out"
+        ]
+        l1_global = local_metrics["real_data"]["L1"]["summaries"][
+            "global_leave_one_out"
+        ]
+        local_result_summary = (
+            "Synthetic primary local-64 control passed "
+            f"(std {synthetic_primary['scores']['std']:.3f}); real H1/L1 "
+            "failed the [0.8, 1.2] primary gate with full coverage "
+            f"(H1 global/local-64 std {h1_global['scores']['std']:.3f}/"
+            f"{h1_primary['scores']['std']:.3f}; L1 global/local-64 std "
+            f"{l1_global['scores']['std']:.3f}/{l1_primary['scores']['std']:.3f})."
+        )
+        local_paper_implication = (
+            "The Results should report this as a verified negative real-data "
+            "follow-up: the tested local PSD model did not calibrate this "
+            "GWOSC interval."
+        )
+        local_boundary = (
+            "The failure does not invalidate the synthetic theory; it shows "
+            "that this real interval is not calibrated by the tested global "
+            "or fixed-radius local PSD models. Do not retune radius, cuts, "
+            "thresholds, or windows after inspection."
+        )
+    else:
+        local_result_summary = (
+            "Implemented and predeclared locally with global leave-one-out and "
+            "32/64/96-second local radii; no remote evidence JSON is present "
+            "in the current bundle."
+        )
+        local_paper_implication = (
+            "Can be described as the next controlled test of whether local "
+            "spectral drift explains the failed global-PSD calibration."
+        )
+        local_boundary = (
+            "Do not claim that any local model improves calibration before "
+            "the remote evidence exists."
+        )
     rows = [
         {
             "paper_claim_area": "Controlled validation ladder",
@@ -520,40 +900,24 @@ def _paper_implications(
             "evidence_files": (
                 "data/configs/gwosc/filter_statistic_equivalence.yaml, "
                 "data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md, "
-                "data/gwosc/followup/filter_equivalence.json when present"
+                "data/gwosc/followup/filter_equivalence.json, "
+                "data/derived/gwosc_filter_equivalence_summary.csv"
             ),
-            "result_summary": (
-                "Implemented and predeclared locally; no remote evidence JSON is "
-                "present in the current bundle."
-            ),
-            "paper_implication": (
-                "Can be described as a predeclared follow-up method until remote "
-                "evidence is synchronized."
-            ),
-            "boundary": (
-                "Do not claim FIR/GLS equivalence or real-data outcomes yet."
-            ),
+            "result_summary": filter_result_summary,
+            "paper_implication": filter_paper_implication,
+            "boundary": filter_boundary,
         },
         {
             "paper_claim_area": "Time-local PSD follow-up",
             "evidence_files": (
                 "data/configs/gwosc/time_local_noise.yaml, "
                 "data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md, "
-                "data/gwosc/followup/time_local_noise.json when present"
+                "data/gwosc/followup/time_local_noise.json, "
+                "data/derived/gwosc_time_local_psd_summary.csv"
             ),
-            "result_summary": (
-                "Implemented and predeclared locally with global leave-one-out and "
-                "32/64/96-second local radii; no remote evidence JSON is present "
-                "in the current bundle."
-            ),
-            "paper_implication": (
-                "Can be described as the next controlled test of whether local "
-                "spectral drift explains the failed global-PSD calibration."
-            ),
-            "boundary": (
-                "Do not claim that any local model improves calibration before "
-                "the remote evidence exists."
-            ),
+            "result_summary": local_result_summary,
+            "paper_implication": local_paper_implication,
+            "boundary": local_boundary,
         },
     ]
     for destination in (
@@ -567,6 +931,28 @@ def _paper_implications(
 
 
 def _method_traceability(provenance: dict[str, str]) -> None:
+    filter_available = (GWOSC_ROOT / "followup" / "filter_equivalence.json").is_file()
+    local_available = (GWOSC_ROOT / "followup" / "time_local_noise.json").is_file()
+    filter_status = (
+        "Passed shared-statistic implementation identity gate."
+        if filter_available
+        else "Implemented locally; remote evidence pending."
+    )
+    filter_role = (
+        "Methods and Results, with GLS/FIR comparison kept diagnostic."
+        if filter_available
+        else "Methods now; Results only after evidence synchronization."
+    )
+    local_status = (
+        "Synthetic control passed; real H1/L1 primary local-64 gate failed."
+        if local_available
+        else "Implemented locally; remote evidence pending."
+    )
+    local_role = (
+        "Negative real-data Results and Discussion."
+        if local_available
+        else "Methods now; exploratory/confirmatory Results only after evidence synchronization."
+    )
     rows = [
         {
             "experiment": "S1-S9 synthetic ladder",
@@ -604,17 +990,17 @@ def _method_traceability(provenance: dict[str, str]) -> None:
             "experiment": "Shared-FIR statistic equivalence",
             "purpose": "Disentangle implementation identity from methodological sensitivity by forcing GWpy and repository paths to use identical FIR coefficients and score normalization.",
             "config_or_protocol": "data/configs/gwosc/filter_statistic_equivalence.yaml",
-            "primary_outputs": "data/gwosc/followup/filter_equivalence.json, figures/gwosc_filter_equivalence.* when remote run exists.",
-            "acceptance_or_status": "Implemented locally; remote evidence pending.",
-            "manuscript_role": "Methods now; Results only after evidence synchronization.",
+            "primary_outputs": "data/gwosc/followup/filter_equivalence.json, data/derived/gwosc_filter_equivalence_summary.csv, figures/gwosc_filter_equivalence.*.",
+            "acceptance_or_status": filter_status,
+            "manuscript_role": filter_role,
         },
         {
             "experiment": "Time-local PSD modelling",
             "purpose": "Compare global leave-one-out PSDs with fixed local calibration radii and record chronological, template-projected, and narrow-band diagnostics.",
             "config_or_protocol": "data/configs/gwosc/time_local_noise.yaml",
-            "primary_outputs": "data/gwosc/followup/time_local_noise.json, figures/gwosc_time_local_psd.* when remote run exists.",
-            "acceptance_or_status": "Implemented locally; remote evidence pending.",
-            "manuscript_role": "Methods now; exploratory/confirmatory Results only after evidence synchronization.",
+            "primary_outputs": "data/gwosc/followup/time_local_noise.json, data/derived/gwosc_time_local_psd_*.csv, figures/gwosc_time_local_psd.*.",
+            "acceptance_or_status": local_status,
+            "manuscript_role": local_role,
         },
     ]
     for destination in (
@@ -628,6 +1014,8 @@ def _method_traceability(provenance: dict[str, str]) -> None:
 
 
 def _figure_index(provenance: dict[str, str]) -> None:
+    filter_available = (GWOSC_ROOT / "followup" / "filter_equivalence.json").is_file()
+    local_available = (GWOSC_ROOT / "followup" / "time_local_noise.json").is_file()
     rows = [
         {
             "figure_stem": "synthetic_validation_overview",
@@ -662,14 +1050,20 @@ def _figure_index(provenance: dict[str, str]) -> None:
         {
             "figure_stem": "gwosc_filter_equivalence",
             "source_data": "data/gwosc/followup/filter_equivalence.json",
-            "paper_message": "Pending shared-FIR identity and GLS/FIR sensitivity results.",
-            "status": "pending_remote_evidence",
+            "paper_message": (
+                "Shared-FIR implementation identity passed; original GLS/FIR "
+                "comparison remains a diagnostic sensitivity result."
+            ),
+            "status": "available" if filter_available else "pending_remote_evidence",
         },
         {
             "figure_stem": "gwosc_time_local_psd",
             "source_data": "data/gwosc/followup/time_local_noise.json",
-            "paper_message": "Pending global/local PSD calibration and chronological stability results.",
-            "status": "pending_remote_evidence",
+            "paper_message": (
+                "Time-local PSD follow-up is a negative real-data result: "
+                "synthetic control passed, but primary local-64 H1/L1 gates failed."
+            ),
+            "status": "available" if local_available else "pending_remote_evidence",
         },
     ]
     destination = DERIVED_ROOT / "figure_index.csv"
@@ -759,6 +1153,52 @@ def _synthetic_gate_summary(
 
 
 def _claim_status(provenance: dict[str, str]) -> None:
+    filter_available = (GWOSC_ROOT / "followup" / "filter_equivalence.json").is_file()
+    local_available = (GWOSC_ROOT / "followup" / "time_local_noise.json").is_file()
+    filter_row = {
+        "topic": "Shared-FIR statistic equivalence",
+        "evidence_state": (
+            "verified_positive" if filter_available else "implemented_pending_remote"
+        ),
+        "paper_use": (
+            "Results and Methods" if filter_available else "Methods only until evidence arrives"
+        ),
+        "allowed_statement": (
+            "The explicit FFT-convolution and GWpy-convolution paths agree "
+            "under the predeclared shared FIR statistic."
+            if filter_available
+            else "A predeclared identical-statistic comparison was implemented."
+        ),
+        "prohibited_overclaim": (
+            "Do not claim the original PSD-domain GLS statistic and finite-FIR "
+            "statistic are mathematically equivalent."
+            if filter_available
+            else "Do not report real-data equivalence results yet."
+        ),
+    }
+    local_row = {
+        "topic": "Time-local PSD model",
+        "evidence_state": (
+            "verified_negative" if local_available else "implemented_pending_remote"
+        ),
+        "paper_use": (
+            "Results, Discussion, and Limitations"
+            if local_available
+            else "Methods only until evidence arrives"
+        ),
+        "allowed_statement": (
+            "The stationary synthetic control passed, but the primary 64-second "
+            "local PSD model failed H1 and L1 real-data calibration."
+            if local_available
+            else "Global and fixed-radius local PSD models were predeclared."
+        ),
+        "prohibited_overclaim": (
+            "Do not claim calibrated GWOSC inference or tune the radius, cuts, "
+            "thresholds, or windows into a pass."
+            if local_available
+            else "Do not claim that the 64-second model improves calibration."
+        ),
+    }
     rows = [
         {
             "topic": "S1-S9 controlled validation",
@@ -807,28 +1247,8 @@ def _claim_status(provenance: dict[str, str]) -> None:
                 "Do not describe event scores as calibrated significance."
             ),
         },
-        {
-            "topic": "Shared-FIR statistic equivalence",
-            "evidence_state": "implemented_pending_remote",
-            "paper_use": "Methods only until evidence arrives",
-            "allowed_statement": (
-                "A predeclared identical-statistic comparison was implemented."
-            ),
-            "prohibited_overclaim": (
-                "Do not report real-data equivalence results yet."
-            ),
-        },
-        {
-            "topic": "Time-local PSD model",
-            "evidence_state": "implemented_pending_remote",
-            "paper_use": "Methods only until evidence arrives",
-            "allowed_statement": (
-                "Global and fixed-radius local PSD models were predeclared."
-            ),
-            "prohibited_overclaim": (
-                "Do not claim that the 64-second model improves calibration."
-            ),
-        },
+        filter_row,
+        local_row,
         {
             "topic": "GW150914 event and injection interpretation",
             "evidence_state": "not_validated",
@@ -864,8 +1284,10 @@ def _copy_followup_if_available(
     for name in (
         "filter_equivalence.json",
         "filter_equivalence.config.yaml",
+        "filter_equivalence.log",
         "time_local_noise.json",
         "time_local_noise.config.yaml",
+        "time_local_noise.log",
         "diagnostic_summary.json",
     ):
         source = source_dir / name
@@ -1000,11 +1422,12 @@ def main() -> None:
     )
     _derive_gwosc_tables(selected_run, provenance)
     _synthetic_gate_summary(provenance)
+    _copy_followup_if_available(selected_run, provenance)
+    _derive_followup_tables(selected_run, provenance)
     _claim_status(provenance)
     _paper_implications(selected_run, provenance)
     _method_traceability(provenance)
     _figure_index(provenance)
-    _copy_followup_if_available(selected_run, provenance)
     _write_evidence_inventory(provenance)
     _write_manifest(provenance, selected_run)
 

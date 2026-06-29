@@ -1,0 +1,57 @@
+_config_path: configs/gwosc/filter_statistic_equivalence.yaml
+acceptance:
+  max_abs_identity_difference: 1.0e-10
+  max_identity_relative_l2: 1.0e-10
+analysis_duration_seconds: 4
+analysis_highpass_hz: 20.0
+data_quality:
+  required: true
+data_root: /ceph/dwong/paper1_dataset
+dataset: gwosc_filter_equivalence
+detectors:
+- H1
+- L1
+event: GW150914
+experiment_id: P1_GWOSC_FILTER_STATISTIC_EQUIVALENCE
+fir_sweep:
+  detrend: constant
+  durations_seconds:
+  - 0.25
+  - 0.5
+  - 1.0
+  - 2.0
+  edge_trims_seconds:
+  - 0.125
+  - 0.25
+  - 0.5
+  - 1.0
+  primary_duration_seconds: 1.0
+  primary_edge_trim_seconds: 0.5
+  window: hann
+minimum_evaluation_windows: 16
+minimum_psd_calibration_windows: 32
+offsource_split_seed: 150914
+psd_calibration_fraction: 0.75
+psd_estimator:
+  average: median
+  detrend: constant
+  window: hann
+psd_floor_fraction: 1.0e-06
+resolved_data_root: /ceph/dwong/paper1_dataset
+synthetic_control:
+  duration_seconds: 4
+  n_evaluation_traces: 128
+  noise_kind: pink
+  noise_level: 1.0e-42
+  sample_rate_hz: 1024
+  seed: 20260623
+waveform:
+  citation: GWpy TimeSeries injection example using the public GW150914 numerical-simulation
+    waveform
+  name: GW150914_public_NR_waveform_H
+  normalization: peak
+  peak_time_seconds: 2.0
+  relative_path: gwosc/raw/GW150914/waveforms/fig2-unfiltered-waveform-H.txt
+  source_url: https://www.gw-openscience.org/s/events/GW150914/P150914/fig2-unfiltered-waveform-H.txt
+  type: public_text
+  value_scale: 1.0e-21

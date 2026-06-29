@@ -66,21 +66,21 @@ records, it copies and derives their paper-facing tables automatically.
 1. `00_evidence_inventory.ipynb` — provenance, run inventory, and claim status.
 2. `01_synthetic_validation.ipynb` — S1–S9 interval-backed synthetic results.
 3. `02_gwosc_baseline_validation.ipynb` — the verified failed global-PSD gate.
-4. `03_gwosc_filter_equivalence.ipynb` — shared-FIR experiment; currently
-   pending remote evidence.
-5. `04_gwosc_time_local_psd.ipynb` — global/local PSD experiment; currently
-   pending remote evidence.
+4. `03_gwosc_filter_equivalence.ipynb` — shared-FIR experiment; verified
+   positive for shared-statistic implementation identity.
+5. `04_gwosc_time_local_psd.ipynb` — global/local PSD experiment; verified
+   negative on real H1/L1 after the stationary synthetic control passed.
 
 The notebooks save vector PDF and 300-dpi PNG figures under `figures/`.
 
 ## Placeholder rule
 
-Any experiment that is pending, absent from `transfer_paper`, or not solidly
-accepted under its predeclared gate must be drafted as an explicit placeholder
-first. The writing agent must not turn pending shared-FIR, time-local PSD,
-confirmatory GWOSC, CRESST, event-significance, or injection-sensitivity claims
-into prose results until the required evidence files exist and have been
-reviewed. Exact placeholder text is in
+Any experiment that is pending or absent from `transfer_paper` must be drafted
+as an explicit placeholder first. Failed synchronized experiments should be
+written as negative results rather than tuned into positive claims. The writing
+agent must not turn confirmatory GWOSC, CRESST, event-significance, or
+injection-sensitivity claims into prose results until the required evidence
+files exist and have been reviewed. Exact placeholder text is in
 [PENDING_RESULT_PLACEHOLDERS.md](PENDING_RESULT_PLACEHOLDERS.md).
 
 ## Writing-control tables

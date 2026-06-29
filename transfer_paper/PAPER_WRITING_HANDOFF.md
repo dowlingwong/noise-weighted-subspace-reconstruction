@@ -1,6 +1,6 @@
 # Paper 1 experiment and evidence handoff
 
-_Status date: 23 June 2026_
+_Status date: 29 June 2026_
 
 ## Purpose and authority
 
@@ -18,13 +18,15 @@ For a faster writing-oriented entry point, read `WRITING_AGENT_BRIEF.md` and
 experiments must be represented by explicit placeholders in working drafts,
 not by speculative result prose.
 
-The most recent archived GWOSC run available when this bundle was assembled is
+The selected archived GWOSC baseline run is
 `20260622T175125Z_b169c1f595a4`, testing commit
 `b169c1f595a46d2701417ff4cbce292330817ad2`. It completed without operational
 errors, passed Stage 0, passed 91 tests on the remote Linux system, and failed
-the predeclared scientific acceptance gate. The subsequent filtering and
-time-local-noise implementation passes 95 local tests but has not yet produced
-remote evidence. Those two states must not be conflated.
+the predeclared global-PSD scientific acceptance gate. The follow-up
+shared-FIR and time-local PSD experiments now have evidence under
+`data/gwosc/followup/`: shared-FIR implementation identity passed, while the
+time-local PSD real-data gate failed after passing its stationary synthetic
+control.
 
 ## What has been run and verified
 
@@ -94,6 +96,38 @@ Because those paths did not compute an identical finite-filter statistic, this
 comparison is diagnostic rather than an equivalence failure. The newly
 implemented shared-FIR experiment is designed to resolve that ambiguity.
 
+### Shared-FIR implementation identity
+
+The predeclared shared-FIR follow-up passed. It forced the explicit
+FFT-convolution path and GWpy convolution path to use identical FIR
+coefficients, edge trimming, and score normalization. The synthetic control and
+both H1/L1 real-window sweeps passed the `1e-10` identity thresholds. This
+resolves the narrow software implementation-equivalence question for the
+shared finite-FIR statistic.
+
+This result must not be broadened into a claim that the original PSD-domain
+GLS statistic and the finite-duration FIR statistic are mathematically
+equivalent. The GLS-to-FIR comparison remains a methodological sensitivity
+diagnostic.
+
+### Time-local PSD follow-up
+
+The predeclared time-local PSD follow-up is a negative real-data result. The
+stationary synthetic control passed for the primary 64-second local model, but
+the H1 and L1 real-data primary gates failed with full local-model coverage.
+The primary local model worsened score dispersion relative to the global
+comparator on this interval: H1 global/local-64 standard deviations were
+1.771/9.424, and L1 global/local-64 standard deviations were 7.288/8.827.
+Chronological blocks remained unstable, with H1 primary block standard
+deviations rising as high as 14.554 and L1 blocks reaching 11.944.
+
+The archived template-projected and narrow-band diagnostics do not identify a
+single obvious frequency-band fix. Template-projected observed/model ratios are
+compressed near roughly 0.6-0.8 in the real runs and are weakly correlated with
+absolute score excursions. The safe interpretation is therefore real-noise
+model inadequacy or instability under the tested global/local PSD models, not
+a generic normalization bug and not a parameter choice to tune into a pass.
+
 ### Injection and event values
 
 The archived empirical injection SNRs were 2.396 for H1 and 6.435 for L1,
@@ -103,54 +137,33 @@ L1 under the old approximate template. These values may be reported only as
 uncalibrated diagnostics. They must not be described as event significance,
 false-alarm evidence, or detector sensitivity.
 
-## Implemented but awaiting remote evidence
+## Still awaiting evidence
 
-The current local code replaces the approximate chirp with the public
-GW150914 numerical-simulation waveform used by the GWpy injection example. The
-download metadata and run record retain the URL, SHA-256 checksum, inferred
-source rate, resampling ratio, placement, and normalization. Until the patched
-commit is executed remotely, this is an implemented method rather than an
-observed result.
-
-The filtering/statistic-equivalence experiment constructs one GWpy-designed
-FIR and applies the same coefficients through explicit FFT convolution and
-GWpy convolution. It computes an identical normalized matched statistic across
-a frozen grid of FIR durations and edge trims, first on stationary synthetic
-noise and then on archived H1/L1 windows. Local regression tests establish the
-software path on fixtures; paper-facing real-data values remain pending.
-
-The time-local-noise experiment compares a leave-one-out global PSD with
-predeclared 32-, 64-, and 96-second local calibration radii. The 64-second
-model is primary and must cover at least 90% of evaluation windows. It records
-held-out score spread, five chronological blocks, template-projected spectral
-power, and fixed narrow-band observed/model ratios. Its real-data conclusion is
-also pending the next controlled remote run.
-
-Any Results text for the shared-FIR experiment, time-local PSD experiment,
-confirmatory GWOSC interval, CRESST/SCRESST validation, calibrated event
-significance, or injection sensitivity must use the placeholders in
-`PENDING_RESULT_PLACEHOLDERS.md` until the corresponding evidence files exist
-inside this bundle and their acceptance status has been reviewed.
+The confirmatory GWOSC interval, CRESST/SCRESST validation, calibrated event
+significance, and injection sensitivity remain pending. Any Results text for
+those claims must use the placeholders in `PENDING_RESULT_PLACEHOLDERS.md`
+until the corresponding evidence files exist inside this bundle and their
+acceptance status has been reviewed.
 
 ## Paper sections that can be updated now
 
 The Methods section can describe the S1–S9 validation ladder, seed-sweep and
 held-out infrastructure, the Stage 0 reproducibility protocol, GWOSC data
-provenance and official DATA coverage, and the Hann/median PSD estimator. It
-can also describe the newly frozen waveform, FIR sweep, and local-PSD protocol
-as planned methods, provided the text does not imply that their remote results
-already exist.
+provenance and official DATA coverage, the Hann/median PSD estimator, the
+documented waveform, and the executed shared-FIR and local-PSD protocols.
 
 The Results section can report the synthetic gate outcomes, exact PSD agreement
-with GWpy, and the failed global-PSD held-out calibration. The failure should
-be presented directly rather than hidden: random splits were unstable and
-chronological blocks failed for both detectors.
+with GWpy, the positive shared-FIR implementation-identity result, and the
+failed global-PSD and time-local-PSD held-out calibration. The failures should
+be presented directly rather than hidden: random splits, chronological blocks,
+and the primary 64-second local PSD model were not calibrated on the real
+interval.
 
-The Discussion can state that PSD-estimator correctness does not guarantee
-stationary likelihood calibration on real detector data. It can motivate
-identical-statistic filtering comparisons and time-local spectral models as
-predeclared follow-up tests. It should treat nonstationarity and transient
-contamination as competing hypotheses, not established explanations.
+The Discussion can state that PSD-estimator correctness and shared-FIR software
+identity do not guarantee stationary likelihood calibration on real detector
+data. It should treat nonstationarity, transient contamination, and
+template-projected model inadequacy as competing hypotheses, not solved
+explanations.
 
 The Limitations section should state that the current evidence covers one
 256-second interval around one event, that overlapping split seeds are not
@@ -162,9 +175,8 @@ that confirmatory intervals are still required after model selection.
 The paper must not claim a calibrated GW150914 significance, a validated
 nominal SNR-eight injection sensitivity, equivalence of the original GLS and
 GWpy FIR statistics, superiority of a 64-second local PSD, or general
-calibration across GWOSC epochs. It must also not treat the next-run waveform,
-filtering, or local-PSD outputs as completed until their evidence JSON and
-checksums have been synchronized into the repository.
+calibration across GWOSC epochs. It must not tune the local radius, thresholds,
+quality cuts, or windows after seeing the negative real-data result.
 
 ## Planned figure sequence
 
@@ -176,28 +188,17 @@ The first GWOSC figure should show random and chronological
 panel can show exact PSD agreement alongside the non-equivalent matched-score
 correlations, clearly labeling the latter as diagnostic.
 
-After the next remote run, the filtering figure should display implementation
-identity error over the FIR-duration/edge-trim grid and separately display the
-original-GLS/shared-FIR correlation. The local-noise figure should compare
-global and local held-out score standard deviations, followed by chronological,
-template-projected, and narrow-band diagnostics. These follow-up figures must
-retain the predeclared primary setting visually rather than highlighting the
-best post hoc setting.
+The filtering figure should display implementation identity error over the
+FIR-duration/edge-trim grid and separately display the original-GLS/shared-FIR
+correlation. The local-noise figure should compare global and local held-out
+score standard deviations, followed by chronological, template-projected, and
+narrow-band diagnostics. These follow-up figures must retain the predeclared
+primary setting visually rather than highlighting the best post hoc setting.
 
 ## Next controlled loop
 
-The next operation is to commit and push the current patch, execute the remote
-runbook without tuning, commit only the generated evidence directory on the
-server, and synchronize it. After synchronization, run
-`transfer_paper/scripts/refresh_bundle.py`, regenerate the notebooks, and
-render the available figures. The evidence must then be assessed in this order:
-shared-FIR implementation identity, original GLS-to-FIR sensitivity,
-stationary synthetic local-PSD control, H1/L1 primary local calibration,
-chronological stability, and template-sensitive spectral diagnostics.
-
-If the primary local model passes both detectors, it still requires an
-untouched confirmatory interval before supporting a general real-noise
-calibration claim. If it improves but fails, the paper may report partial
-correction as an exploratory result. If it does not improve, simple local PSD
-drift should be rejected as the dominant explanation and a new hypothesis must
-be frozen before further testing.
+The next operation is to write the negative real-data result into the evidence
+map and manuscript draft without changing the frozen L1 choices. Any new
+hypothesis, quality cut, radius choice, or frequency exclusion must be frozen
+in a new protocol and tested on untouched evidence. A confirmatory GWOSC
+interval is still required before any broader public-data calibration claim.

@@ -54,20 +54,24 @@ verified, verified-negative, implemented-but-pending, or not validated. This
 plot is not a scientific result by itself; it is an audit figure that helps
 separate supported manuscript statements from overclaims.
 
-## Pending shared-FIR equivalence figure
+## GWOSC shared-FIR equivalence
 
-For each stationary-synthetic, H1, and L1 dataset, the planned figure will show
-the maximum absolute score difference between explicit FFT convolution and
-GWpy convolution over the predeclared FIR-duration/edge-trim grid. A separate
-panel will show the original PSD-domain GLS/shared-FIR correlation. The first
-quantity is the software identity gate; the second is a methodological
-sensitivity diagnostic.
+Shared-FIR implementation identity over the predeclared FIR-duration/edge-trim
+grid. For stationary synthetic data and H1/L1 real windows, the left panels
+show the maximum absolute score difference between explicit FFT convolution
+and GWpy convolution when both paths use identical FIR coefficients and score
+normalization. The right panels show the original PSD-domain GLS/shared-FIR
+correlation as a methodological sensitivity diagnostic. The identity gate
+passed; the GLS/FIR comparison must not be interpreted as mathematical
+equivalence of the original statistic and finite FIR statistic.
 
-## Pending time-local PSD figure
+## GWOSC time-local PSD
 
-The planned figure will compare normalized held-out score standard deviations
-for leave-one-out global PSDs and fixed 32-, 64-, and 96-second local PSDs. The
-64-second model is primary. A second panel will display the primary model’s
-five chronological blocks. Template-projected and fixed narrow-band power
-ratios will be reported in supplementary panels or tables without defining
-post hoc frequency cuts.
+Negative time-local PSD follow-up. **A**, Normalized held-out score standard
+deviations for leave-one-out global PSDs and fixed 32-, 64-, and 96-second
+local PSDs. The 64-second model is the predeclared primary model. The
+stationary synthetic control passed, but H1 and L1 real-data score dispersion
+remained far outside the `[0.8, 1.2]` acceptance band. **B**, Five
+chronological blocks for the primary model, showing persistent real-data
+instability. Template-projected and fixed narrow-band power ratios are archived
+in derived tables and should not be used to define post hoc frequency cuts.

@@ -1,9 +1,11 @@
 # Placeholder policy for pending or weak experiments
 
 This file is mandatory guidance for any paper-writing agent using this bundle.
-If an experiment has not been run, has not been synchronized into this bundle,
-or did not pass its predeclared acceptance gate, the manuscript draft must use
-an explicit placeholder rather than writing the result as if it exists.
+If an experiment has not been run or has not been synchronized into this
+bundle, the manuscript draft must use an explicit placeholder rather than
+writing the result as if it exists. If an experiment has been synchronized and
+failed its predeclared acceptance gate, write the negative result directly and
+do not tune it into a pass.
 
 Placeholders are allowed in working drafts only. They must be resolved before
 submission. A final manuscript must either replace the placeholder with
@@ -26,51 +28,43 @@ Recommended placeholder format:
 Do not convert a pending placeholder into speculative prose. Do not write
 "expected", "should", "likely", or "we anticipate" as a substitute for data.
 
-## Required placeholders by experiment
+## Resolved follow-up experiments
 
 ### Shared-FIR filtering/statistic equivalence
 
-Current state: implemented locally and predeclared, but no remote evidence JSON
-is present in this bundle.
+Current state: evidence is present and reviewed. The shared-FIR implementation
+identity gate passed for the stationary synthetic control and H1/L1 real
+windows.
 
-Required evidence before writing a result:
+Evidence:
 
 - `data/gwosc/followup/filter_equivalence.json`
 - regenerated `data/derived/figure_index.csv`
 - rendered `figures/gwosc_filter_equivalence.*`
 - reviewed acceptance status for synthetic control, H1, and L1
 
-Draft placeholder:
+Allowed wording:
 
 ```text
-[PLACEHOLDER — pending shared-FIR evidence. Insert the implementation-identity
-error over the predeclared FIR-duration/edge-trim grid, plus the separate
-original-GLS/shared-FIR sensitivity result, only after
-data/gwosc/followup/filter_equivalence.json is synchronized and reviewed.]
+The shared-FIR follow-up passed its implementation-identity gate: explicit FFT
+convolution and GWpy convolution agree when both paths use the same FIR
+coefficients and score normalization.
 ```
 
-Allowed current wording:
+Prohibited wording:
 
 ```text
-We predeclared a shared-FIR comparison that applies identical GWpy-designed FIR
-coefficients through both explicit FFT convolution and GWpy convolution, with
-the software identity error separated from the original GLS-to-FIR sensitivity
-diagnostic.
-```
-
-Prohibited current wording:
-
-```text
-The shared-FIR experiment showed that the repository and GWpy filtering paths
-are equivalent on real data.
+The original PSD-domain GLS statistic and the finite-duration GWpy FIR
+statistic are mathematically equivalent.
 ```
 
 ### Time-local PSD modelling
 
-Current state: implemented locally and predeclared, but no remote evidence JSON
-is present in this bundle.
+Current state: evidence is present and reviewed. The stationary synthetic
+control passed, but the predeclared primary 64-second local PSD model failed
+H1 and L1 real-data acceptance.
 
-Required evidence before writing a result:
+Evidence:
 
 - `data/gwosc/followup/time_local_noise.json`
 - regenerated local/global PSD summary tables
@@ -79,29 +73,24 @@ Required evidence before writing a result:
   calibration, chronological blocks, template-projected diagnostics, and
   narrow-band diagnostics
 
-Draft placeholder:
+Allowed wording:
 
 ```text
-[PLACEHOLDER — pending time-local PSD evidence. Insert global-versus-local PSD
-calibration results only after data/gwosc/followup/time_local_noise.json is
-synchronized and the primary 64-second model has been reviewed against its
-predeclared acceptance criteria.]
+The time-local PSD follow-up passed its stationary synthetic control but failed
+real H1/L1 acceptance: the primary 64-second local PSD model did not calibrate
+held-out score dispersion on this GWOSC interval.
 ```
 
-Allowed current wording:
+Prohibited wording:
 
 ```text
-We predeclared a time-local PSD analysis comparing a leave-one-out global PSD
-with 32-, 64-, and 96-second local calibration radii, with the 64-second model
-defined as primary and chronological/template-projected/narrow-band diagnostics
-recorded as explanatory outputs.
 ```
 
-Prohibited current wording:
+Do not replace the primary radius, thresholds, quality cuts, or windows after
+seeing this result. Any new PSD model or data-quality rule requires a new
+frozen protocol and untouched evidence.
 
-```text
-The 64-second local PSD model corrected the GWOSC calibration failure.
-```
+## Required placeholders by experiment
 
 ### Confirmatory GWOSC interval
 
@@ -223,4 +212,3 @@ failure.
 Abstract and conclusion sections should omit pending-result placeholders unless
 the draft is explicitly an internal working draft. For a submission draft, any
 unresolved placeholder means the corresponding claim must be removed.
-

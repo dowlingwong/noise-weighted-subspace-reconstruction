@@ -28,8 +28,8 @@ as if the evidence exists.
 | GWpy PSD reference | `data/gwosc/current/gwosc/gwpy_reference.json`, `data/derived/gwosc_reference_summary.csv`, `figures/gwosc_reference_comparison.*` | verified positive | The repository PSD estimator matches GWpy for the same windows and estimator. | This validates the PSD estimator only, not the full likelihood calibration. |
 | Global-PSD real-noise null calibration | `data/gwosc/current/gwosc/experiment.json`, `data/derived/gwosc_null_calibration.csv`, `data/derived/gwosc_primary_results.csv`, `figures/gwosc_null_calibration.*` | verified negative | The globally estimated PSD failed the held-out null calibration gate on the selected GWOSC interval. | Do not report event significance or validated sensitivity. |
 | Matched statistic path comparison from baseline run | `data/derived/gwosc_reference_summary.csv`, `figures/gwosc_reference_comparison.*` | diagnostic only | The repository GLS score correlates well with repository direct whitening but not consistently with the earlier GWpy FIR path. | The paths were not mathematically identical; do not call this an equivalence failure. |
-| Shared-FIR statistic equivalence | `data/configs/gwosc/filter_statistic_equivalence.yaml`, `data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md`, `data/gwosc/followup/PENDING.md` | implemented pending remote evidence | The paper can describe the predeclared test design. | No real-data result can be claimed yet. |
-| Time-local PSD model | `data/configs/gwosc/time_local_noise.yaml`, `data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md`, `data/gwosc/followup/PENDING.md` | implemented pending remote evidence | The paper can describe local PSD radii, chronological blocks, template-projected diagnostics, and narrow-band diagnostics as the next test. | Do not claim improvement until remote evidence exists. |
+| Shared-FIR statistic equivalence | `data/gwosc/followup/filter_equivalence.json`, `data/gwosc/followup/filter_equivalence.config.yaml`, `data/derived/gwosc_filter_equivalence_summary.csv`, `figures/gwosc_filter_equivalence.*` | verified positive for shared-statistic implementation identity | The explicit FFT-convolution and GWpy-convolution paths agree under the predeclared shared FIR statistic for synthetic control and H1/L1 real windows. | This does not prove the original PSD-domain GLS statistic and finite-duration FIR statistic are mathematically equivalent; GLS-to-FIR differences remain diagnostic sensitivity. |
+| Time-local PSD model | `data/gwosc/followup/time_local_noise.json`, `data/gwosc/followup/time_local_noise.config.yaml`, `data/derived/gwosc_time_local_psd_summary.csv`, `data/derived/gwosc_time_local_psd_blocks.csv`, `data/derived/gwosc_time_local_psd_spectral_summary.csv`, `figures/gwosc_time_local_psd.*` | verified negative on real H1/L1; synthetic control passed | The stationary synthetic control passed, but the predeclared primary 64-second local PSD model failed H1 and L1 real-data score-std acceptance with full coverage. | This does not invalidate the synthetic theory; it shows this GWOSC interval is not calibrated by the tested global/local PSD models. Do not retune radius, thresholds, quality cuts, or windows into a pass. |
 | Confirmatory GWOSC interval | `PENDING_RESULT_PLACEHOLDERS.md` | not run | Use a placeholder for any broader GWOSC calibration claim. | Current evidence is one GW150914-centered interval only. |
 | CRESST / SCRESST validation | `PENDING_RESULT_PLACEHOLDERS.md` | not run | Use a placeholder for any CRESST result. | No schema-validated CRESST evidence is present in this bundle. |
 
@@ -69,31 +69,33 @@ negative conclusion: the synthetic hierarchy is internally consistent, while
 the first real-data stress test exposes nonstationarity or statistic-definition
 effects that must be modelled before making astrophysical claims.
 
-The pending shared-FIR experiment tests whether the earlier GLS/GWpy
-score-path discrepancy is an implementation/filter-definition issue. The
-pending local-PSD experiment tests whether local spectral modelling can reduce
-the observed null-spread inflation. These should be presented as predeclared
-next tests, not as confirmed explanations.
+The shared-FIR experiment resolves the narrow implementation-identity question:
+when both paths compute the same finite FIR statistic with the same
+normalization, they agree. It does not retroactively make the original
+PSD-domain GLS and finite-FIR statistics equivalent. The time-local PSD
+experiment is a negative real-data follow-up: the synthetic control passed, but
+the fixed 64-second local model did not calibrate H1 or L1 and should not be
+tuned after inspection.
 
 ## Placeholder insertion rule
 
 For a working manuscript draft, insert placeholders at the exact locations
 where missing results will later go. The placeholder must name the experiment
-and the required evidence file. For example, the shared-FIR Results subsection
-should contain the shared-FIR placeholder until
-`data/gwosc/followup/filter_equivalence.json` exists. The local-PSD Results
-subsection should contain the time-local placeholder until
-`data/gwosc/followup/time_local_noise.json` exists. CRESST and confirmatory
-GWOSC claims should remain placeholders until their archived evidence appears
-inside this bundle.
+and the required evidence file. The shared-FIR and time-local PSD follow-ups no
+longer require pending-evidence placeholders because their JSON evidence exists
+and has been reviewed; they require careful pass/fail wording instead. CRESST,
+confirmatory GWOSC, calibrated event-significance, and injection-sensitivity
+claims should remain placeholders until their archived evidence appears inside
+this bundle.
 
 ## Manuscript statements to avoid
 
 Do not state that the method detects GW150914 with calibrated significance.
 Do not state that the nominal SNR-eight injection target was validated. Do not
 state that the original GLS and GWpy FIR statistics are equivalent. Do not
-state that the 64-second local PSD model improves calibration. Do not generalize
-from this one 256-second interval to all GWOSC data or to CRESST.
+state that the 64-second local PSD model improves or corrects calibration; it
+failed the real H1/L1 acceptance gate in this evidence bundle. Do not
+generalize from this one 256-second interval to all GWOSC data or to CRESST.
 
 ## Tables and plots to use
 

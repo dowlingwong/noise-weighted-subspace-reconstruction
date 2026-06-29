@@ -14,16 +14,17 @@ geometry. For Gaussian noise the likelihood-aligned objective is
 
 Ordinary MSE is the corresponding likelihood only when the noise is white.
 
-The authoritative experiment status, acceptance gates, dataset contracts, and
-next steps are in
-[`docs/VALIDATION_ROADMAP.md`](docs/VALIDATION_ROADMAP.md).
+The current documentation map is in [`docs/README.md`](docs/README.md).
+Current status and paper claim boundaries are in
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
 
 ## Status
 
-The config-driven synthetic suite S0-S9 is runnable. GWOSC has cached
-event/injection analysis, and CRESST has a format-tolerant NPZ/HDF5
-reconstruction path. Paper-grade public-data selection and figures still
-require the real files on the remote server. TIDMAD is optional.
+The controlled synthetic suite S1-S9 has verified positive evidence. GWOSC is
+a completed negative public real-noise stress test: PSD/reference and
+shared-FIR implementation checks passed, but global and predeclared local PSD
+real-noise calibration failed. CRESST remains the next candidate public
+detector-pulse validation domain. TIDMAD is optional.
 
 ## Remote Installation
 
@@ -48,7 +49,7 @@ python3 scripts/stage0_remote_gate.py
 
 The command runs the complete five-command gate and archives the environment
 and logs under `results/stage0/`. See
-[`docs/STAGE0_REMOTE_GATE.md`](docs/STAGE0_REMOTE_GATE.md).
+[`docs/REMOTE_EXECUTION.md`](docs/REMOTE_EXECUTION.md).
 
 ## Data Root
 
@@ -111,11 +112,10 @@ uv run python scripts/run_experiment.py \
 ```
 
 The preprocessing command compares PSD normalization and held-out whitening
-calibration against GWpy. See
-[`docs/GWOSC_GWPY_REFERENCE.md`](docs/GWOSC_GWPY_REFERENCE.md). The two
-follow-up experiments use a documented public waveform and predeclared
-filter/local-PSD settings; see
-[`docs/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md`](docs/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md).
+calibration against GWpy. The GWOSC outcome and follow-up interpretation are
+summarized in [`docs/GWOSC_RESULT.md`](docs/GWOSC_RESULT.md); commands and
+acceptance rules are in
+[`docs/EXPERIMENT_PROTOCOLS.md`](docs/EXPERIMENT_PROTOCOLS.md).
 
 Prepare the CRESST cache and print current manual-download instructions:
 
@@ -138,7 +138,8 @@ Both scripts refuse to put large data inside this repository unless
 - `scripts/`: experiment, download, preprocessing, figure, and table entry points.
 - `experiments/`: compatibility entry points for earlier smoke experiments.
 - `tests/`: fast theory and regression tests.
-- `docs/`: validation, data, metrics, preprocessing, and figure mapping.
+- `docs/`: consolidated current status, protocols, GWOSC result, and paper
+  revision guidance.
 - `archive/`: reviewed stale material only; legacy directories are otherwise
   preserved in place.
 - `paper2/`, `NPML/`, `TraceSimulator/`, `QP_simulator/`: adjacent or legacy
@@ -156,12 +157,13 @@ Both scripts refuse to put large data inside this repository unless
 
 Use the acknowledgement and citation instructions from GWOSC and the CRESST
 Dark Matter Data Center. TIDMAD must be cited if the optional extension is
-used. See `docs/VALIDATION_ROADMAP.md`.
+used. See `docs/EXPERIMENT_PROTOCOLS.md`.
 
 ## Limitations
 
-Synthetic experiments validate controlled assumptions. GWOSC is intended as a
-public real-noise likelihood-geometry demonstration, not gravitational-wave
-parameter estimation. CRESST is for pulse-shape reconstruction, not a
-dark-matter exclusion analysis. Covariance estimation, nonstationarity, and
-non-Gaussian noise remain explicit robustness questions.
+Synthetic experiments validate controlled assumptions. GWOSC is a negative
+public real-noise stress test for the current revision, not gravitational-wave
+parameter estimation and not calibrated detection evidence. CRESST is for
+pulse-shape reconstruction, not a dark-matter exclusion analysis. Covariance
+estimation, nonstationarity, and non-Gaussian noise remain explicit robustness
+questions.

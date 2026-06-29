@@ -17,6 +17,13 @@
 - Archived an additional GWOSC validation run.
 - Fixed the QP simulator standard-deviation estimation and updated the 1 MHz
   noise-PSD resampling code.
+- Distilled the reusable linear methodology from the NPML experiment plan into
+  the canonical docs: a predeclared CRESST validation protocol (multi-template
+  OF baseline, measured-PSD-injection honesty rule, negative-control battery),
+  detector-facing metrics (residual whitening ratio, detection score, trigger
+  efficiency at fixed FPR) in `docs/EXPERIMENT_PROTOCOLS.md`, and a GWOSC
+  diagnostic-framing section in `docs/GWOSC_RESULT.md`. No code ported; the
+  full source methodology remains in `NPML/plan.md`.
 
 ### Earlier (undated)
 

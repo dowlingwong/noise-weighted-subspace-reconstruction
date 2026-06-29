@@ -137,6 +137,20 @@ Core metrics:
 - residual calibration by PSD, whitened PSD, autocorrelation, chi-square, and
   Gaussian QQ diagnostics.
 
+Detector-facing metrics for real-data domains (GWOSC, CRESST):
+
+- residual whitening ratio `mean(|r_f|^2 / PSD_f)` versus frequency, expected
+  near 1 under correct calibration and used to localize the bands that break it;
+- detection score by noise-weighted residual reduction:
+  `chi2(noise-only) - chi2(signal-subspace)`;
+- trigger efficiency versus injected energy/amplitude at a fixed background
+  false-positive rate (for example 0.1%, 1%, 5%), with the threshold set on
+  background-only data;
+- 50% and 90% efficiency thresholds, plus amplitude/energy RMSE and bias.
+
+Report detector-facing metrics alongside reconstruction residuals for any real
+detector domain; do not report reconstruction loss alone.
+
 Raw MSE is diagnostic only under structured noise. The primary success metric
 must align with the declared noise likelihood.
 
@@ -164,3 +178,57 @@ Every paper-facing quantitative result should:
 - Do not tune thresholds, windows, cuts, PSD radii, or model choices after
   inspecting a failed result.
 - Sensitivity analyses cannot replace a failed predeclared primary result.
+
+## CRESST Validation Protocol
+
+CRESST is the next candidate for positive public real-data validation:
+cryogenic detector-pulse reconstruction where pulses form a shape manifold
+rather than a single fixed template. Predeclare the items below before running
+on real data. Distilled from the NPML experiment plan; the full methodology is
+preserved in `NPML/plan.md`.
+
+Baselines, ordered classical to learned:
+
+- single-template OF (rank-1, fixed template);
+- multi-template OF: a small GLS template bank over representative decay-time
+  and `t0` grid points, scored by maximum likelihood / minimum weighted
+  residual. This is the strong classical baseline and is currently absent from
+  the Paper 1 code surface;
+- ordinary PCA and whitened/weighted PCA / EMPCA at matched rank `k`;
+- the tied weighted linear autoencoder.
+
+The Paper 1 linear claim on real pulses is: EMPCA must beat single-template OF
+and stay competitive with multi-template OF as the pulse family becomes smooth
+and low rank.
+
+Noise and injection, with an explicit honesty rule:
+
+- prefer direct injection into true noise-only detector traces when an
+  event-level noise bank exists;
+- otherwise use measured-PSD Gaussian injection and label it "measured-PSD
+  injection", never "measured-noise-trace injection";
+- match integrated variance between analytic and measured-PSD conditions and
+  report degradation from analytic to measured.
+
+Detector-facing evaluation (see Metrics): trigger efficiency versus injected
+amplitude at fixed background FPR with the threshold set on background only, the
+50%/90% efficiency thresholds, and amplitude/energy RMSE and bias reported
+beside the weighted residual, with bootstrap 95% intervals over events in each
+energy bin.
+
+Negative controls, each of which must degrade the result:
+
+- wrong PSD/covariance;
+- permuted time bins;
+- a random weighted-orthonormal basis at matched rank;
+- train on noise-only, test on signal;
+- a deliberately mismatched OF template.
+
+Gains must come from physical structure plus the correct metric, not from
+dimensionality reduction alone.
+
+Predeclaration: fix train/validation/test splits per seed with no event,
+time-window, detector, or calibration/evaluation leakage; declare the
+template-bank grid, rank `k`, FPR points, and acceptance thresholds before
+seeing real-data scores; do not tune any of these after inspecting a failed
+result (see Acceptance Principles).

@@ -35,6 +35,11 @@ roadmap, GWOSC run records, agent handoff notes, dataset notes, metrics notes,
 and compatibility stubs. They are retained because some contain useful
 provenance and historical reasoning.
 
+`docs/archive/plan/` holds the consolidated 2026-05 manuscript-planning material
+moved out of the former top-level `plan/` directory: `PAPER1_MANUSCRIPT_PLAN.md`,
+`REVIEW_AND_HANDOFF.md`, and the source `EMPCA_improvement.pdf`. The Paper 2 /
+NPML planning notes were relocated to `paper2/plans/`.
+
 When an archived file conflicts with a top-level canonical file, the top-level
 canonical file governs.
 

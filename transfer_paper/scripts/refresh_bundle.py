@@ -130,7 +130,7 @@ def _copy_synthetic_figures(provenance: dict[str, str]) -> None:
     destination_root = SYNTHETIC_ROOT / "figures"
     sources = sorted(
         path for path in (REPO_ROOT / "results" / "figures").glob("*")
-        if path.is_file()
+        if path.is_file() and not path.name.startswith(".")
     )
     if not sources:
         for existing in sorted(destination_root.glob("*")) if destination_root.exists() else []:
@@ -173,13 +173,15 @@ def _copy_config_snapshots(provenance: dict[str, str]) -> None:
 
 def _copy_source_documents(provenance: dict[str, str]) -> None:
     destination_root = DATA_ROOT / "source_documents"
+    if destination_root.exists():
+        shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
     names = (
-        "GWOSC_VALIDATION_2026-06-22.md",
-        "GWOSC_GWPY_REFERENCE.md",
-        "GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md",
-        "VALIDATION_ROADMAP.md",
-        "paper1_validation_progress.md",
+        "CURRENT_STATUS.md",
+        "EXPERIMENT_PROTOCOLS.md",
+        "GWOSC_RESULT.md",
+        "PAPER_REVISION_GUIDE.md",
+        "REMOTE_EXECUTION.md",
     )
     for name in names:
         source = REPO_ROOT / "docs" / name
@@ -899,7 +901,7 @@ def _paper_implications(
             "paper_claim_area": "Filtering/statistic equivalence follow-up",
             "evidence_files": (
                 "data/configs/gwosc/filter_statistic_equivalence.yaml, "
-                "data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md, "
+                "data/source_documents/GWOSC_RESULT.md, "
                 "data/gwosc/followup/filter_equivalence.json, "
                 "data/derived/gwosc_filter_equivalence_summary.csv"
             ),
@@ -911,7 +913,7 @@ def _paper_implications(
             "paper_claim_area": "Time-local PSD follow-up",
             "evidence_files": (
                 "data/configs/gwosc/time_local_noise.yaml, "
-                "data/source_documents/GWOSC_FILTERING_AND_LOCAL_PSD_PROTOCOL.md, "
+                "data/source_documents/GWOSC_RESULT.md, "
                 "data/gwosc/followup/time_local_noise.json, "
                 "data/derived/gwosc_time_local_psd_summary.csv"
             ),
@@ -965,7 +967,7 @@ def _method_traceability(provenance: dict[str, str]) -> None:
         {
             "experiment": "Stage 0 remote reproducibility",
             "purpose": "Show the repo can install, test, run core experiments, make tables, and make figures on a clean remote checkout.",
-            "config_or_protocol": "data/gwosc/runs/*/stage0/, data/source_documents/VALIDATION_ROADMAP.md",
+            "config_or_protocol": "data/gwosc/runs/*/stage0/, data/source_documents/REMOTE_EXECUTION.md",
             "primary_outputs": "data/derived/gwosc_run_history.csv, data/gwosc/runs/*/stage0/summary.json",
             "acceptance_or_status": "Latest archived run passed.",
             "manuscript_role": "Reproducibility statement and supplement.",

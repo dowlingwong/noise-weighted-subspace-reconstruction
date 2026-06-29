@@ -27,7 +27,8 @@ Do not commit:
 - Credentials, tokens, or private URLs
 - Artifacts unrelated to the recorded run
 
-Follow [the remote GWOSC agent runbook](../docs/REMOTE_GWOSC_AGENT_RUNBOOK.md) when producing a new evidence bundle.
+Follow [the remote execution guide](../docs/REMOTE_EXECUTION.md) when producing
+a new evidence bundle.
 
 ## 📊 Archived runs
 
@@ -38,4 +39,4 @@ Follow [the remote GWOSC agent runbook](../docs/REMOTE_GWOSC_AGENT_RUNBOOK.md) w
 | `20260622T175125Z_b169c1f595a4` | `b169c1f595a4` | Stage 0 passed; 91 tests and all commands passed | `failed_acceptance` | Official DATA coverage and enhanced diagnostics passed; random and chronological null calibration still failed |
 
 The scientific interpretation of these controlled runs is recorded in
-[`docs/GWOSC_VALIDATION_2026-06-22.md`](../docs/GWOSC_VALIDATION_2026-06-22.md).
+[`docs/GWOSC_RESULT.md`](../docs/GWOSC_RESULT.md).

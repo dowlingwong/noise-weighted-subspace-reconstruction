@@ -75,13 +75,13 @@ class ReleaseFile:
 # Published manifest (arXiv:2508.03078, Sec. III). Record counts are exact.
 RELEASE_FILES: tuple[ReleaseFile, ...] = (
     ReleaseFile("X_train.npy", "train", "npy", shape=(979446, 512), dtype="float32"),
-    ReleaseFile("y_train.npy", "train", "npy", shape=(979446,)),
+    ReleaseFile("y_train.npy", "train", "npy", shape=(979446,), dtype="int64"),
     ReleaseFile(
         "features_train.csv", "train", "csv", rows=979446,
         required_columns=("run", "channel", "noise", "clean", "pulse_height"),
     ),
     ReleaseFile("X_test.npy", "test", "npy", shape=(78084, 512), dtype="float32"),
-    ReleaseFile("y_test.npy", "test", "npy", shape=(78084,)),
+    ReleaseFile("y_test.npy", "test", "npy", shape=(78084,), dtype="int64"),
     ReleaseFile(
         "features_test.csv", "test", "csv", rows=78084,
         required_columns=("run", "channel", "noise", "clean", "pulse_height"),
@@ -152,6 +152,44 @@ def _download(url: str, output: Path, *, timeout: float, force: bool) -> None:
     tmp.replace(output)
 
 
+_NPY_MAGIC = b"\x93NUMPY"
+
+
+def _load_npy_tolerant(spec: ReleaseFile, path: Path) -> tuple[np.ndarray, bool]:
+    """Load a ``.npy``-named file, tolerating a headerless raw binary dump.
+
+    Some DMDC-hosted release files carry the ``.npy`` extension but were
+    written with ``ndarray.tofile()`` (no magic/header), not ``np.save``. When
+    the standard magic is absent, fall back to interpreting the file as a
+    flat buffer of ``spec.shape``/``spec.dtype`` (both required in that case)
+    and validate the byte count exactly matches before reshaping, so a
+    corrupt/partial file still raises rather than silently misreading.
+
+    Returns ``(array, was_headerless)``.
+    """
+    with path.open("rb") as fh:
+        magic = fh.read(len(_NPY_MAGIC))
+    if magic == _NPY_MAGIC:
+        return np.load(path, mmap_mode="r"), False
+
+    if spec.shape is None or spec.dtype is None:
+        raise ValueError(
+            f"{spec.name}: not a valid .npy file (missing magic header) and no "
+            "expected shape/dtype declared to interpret it as raw binary"
+        )
+    dtype = np.dtype(spec.dtype)
+    expected_bytes = int(np.prod(spec.shape)) * dtype.itemsize
+    actual_bytes = path.stat().st_size
+    if actual_bytes != expected_bytes:
+        raise ValueError(
+            f"{spec.name}: not a valid .npy file and raw byte count "
+            f"{actual_bytes} != expected {expected_bytes} for shape {spec.shape} "
+            f"dtype {spec.dtype}"
+        )
+    arr = np.memmap(path, dtype=dtype, mode="r", shape=spec.shape)
+    return arr, True
+
+
 def _verify(spec: ReleaseFile, path: Path) -> dict:
     """Verify a downloaded file against the published manifest.
 
@@ -160,9 +198,11 @@ def _verify(spec: ReleaseFile, path: Path) -> dict:
     """
     record: dict = {"name": spec.name, "bytes": path.stat().st_size}
     if spec.kind == "npy":
-        arr = np.load(path, mmap_mode="r")  # memory-mapped: no full read
+        arr, headerless = _load_npy_tolerant(spec, path)
         record["shape"] = list(arr.shape)
         record["dtype"] = str(arr.dtype)
+        if headerless:
+            record["format"] = "raw_headerless"
         if spec.shape is not None and tuple(arr.shape) != spec.shape:
             raise ValueError(
                 f"{spec.name}: shape {tuple(arr.shape)} != expected {spec.shape}"

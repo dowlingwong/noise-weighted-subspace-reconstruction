@@ -19,17 +19,61 @@ max_features: 512        # keep native downsampled resolution
 baseline_fraction: 0.2
 covariance_shrinkage: 0.1
 
-# --- Predeclared protocol parameters (consumed as the analysis matures) ---
+# --- Predeclared protocol parameters ---
 # Baselines reported in order: single-template OF, multi-template OF, PCA,
 # whitened/weighted PCA (EMPCA), tied weighted linear AE.
 baselines: [of, multi_template_of, pca, empca, linear_ae]
-# Multi-template OF bank grid over pulse-shape variation:
+
+# Leakage-safe split (Stage C3 item 5): Sigma is a per-detector-channel
+# quantity, so calibration and evaluation are split *within* each (run,
+# channel) channel, chronologically by `hours` -- never pooled across
+# channels. The 7 channels in the test split (2 for run 33, 5 for run 35)
+# become 7 quasi-independent replications, each with its own Sigma/template
+# bank/subspace fit on the earlier `channel_calibration_fraction` of that
+# channel's own traces, evaluated on the later remainder of that same
+# channel. The injection template for each channel is that channel's own
+# single-OF template, fit on its own calibration segment.
+channel_columns: [run, channel]
+channel_calibration_fraction: 0.7
+channel_time_column: hours
+
+# Multi-template OF bank grid over pulse-shape variation (Stage C3 item 1):
+# terciles of rise_time x terciles of decay_time (<=9 empirical templates,
+# fewer if a cell has too few training pulses), each scored at 5 t0 shifts.
 template_bank:
-  rise_time_grid: auto   # quantiles of the features rise_time column
-  decay_time_grid: auto  # quantiles of the features decay_time column
-# Detector-facing evaluation:
+  rise_time_quantiles: [0.3333333333333333, 0.6666666666666666]
+  decay_time_quantiles: [0.3333333333333333, 0.6666666666666666]
+  t0_grid_samples: [-4, -2, 0, 2, 4]
+  min_cell_pulses: 20
+
+# Detector-facing evaluation (Stage C3 item 2/3): trigger efficiency vs.
+# injected amplitude at fixed background FPR, threshold set on each
+# channel's own held-out (later-segment) noise only. 0.1% is demoted to
+# diagnostic: each channel's held-out noise pool is only a few hundred to
+# ~1500 traces, so a 0.1% threshold is set by the top 1-2 order statistics
+# and carries large threshold uncertainty; 1% and 5% remain the reportable
+# points. The amplitude grid is anchored to each channel's *published* OF
+# resolution (resolutions_test.csv), not to held-out pulse amplitudes (which
+# would (a) consult held-out data to define the grid and (b) sit far above
+# threshold, since released pulses all survived triggering).
 fpr_points: [0.001, 0.01, 0.05]
+fpr_diagnostic_points: [0.001]
 efficiency_thresholds: [0.5, 0.9]
 bootstrap_reps: 300
-# Negative controls that must degrade the result:
-negative_controls: [wrong_psd, permuted_time_bins, random_weighted_basis, noise_only_train]
+detector_metrics:
+  amplitude_grid_multiples_of_sigma_of: [0, 1, 2, 3, 4, 5, 6, 8, 10]
+  n_injections_per_amplitude: 200
+
+# Negative controls that must degrade the result (Stage C3 item 4; the 5th,
+# mismatched_of_template, is from the fuller CRESST Validation Protocol list
+# in docs/EXPERIMENT_PROTOCOLS.md and is included for completeness):
+negative_controls:
+  [wrong_psd, permuted_time_bins, random_weighted_basis, noise_only_train, mismatched_of_template]
+
+# Acceptance gate (Stage C4): EMPCA is "competitive with" the multi-template
+# OF bank if its weighted residual is within this multiple of the bank's.
+# Not tuned on real scores -- fixed here, before Stage C5. Every gate boolean
+# (beats single-template OF, competitive with multi-template OF, each
+# negative control) requires the pooled paired-per-event bootstrap 95% CI to
+# exclude zero in the required direction, not a raw point-estimate win.
+multi_template_of_competitive_tolerance: 1.1

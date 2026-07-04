@@ -61,6 +61,57 @@ def load_cresst_traces(
     return traces, labels, {"source": str(source), "trace_key": str(trace_key), "label_key": str(label_key)}
 
 
+_NPY_MAGIC = b"\x93NUMPY"
+
+
+def _load_release_traces(x_path: Path, n_rows: int, *, mmap: bool) -> np.ndarray:
+    """Load ``X_{split}.npy``, tolerating a headerless raw float32 dump.
+
+    Some DMDC-hosted release files carry the ``.npy`` extension but were
+    written with ``ndarray.tofile()`` (no magic/header). When the standard
+    magic is absent, infer the trace width from the file size and the known
+    row count (``n_rows``, from the aligned features CSV) assuming float32,
+    and reshape a flat buffer instead of calling ``np.load``.
+    """
+    with x_path.open("rb") as fh:
+        magic = fh.read(len(_NPY_MAGIC))
+    if magic == _NPY_MAGIC:
+        return np.load(x_path, mmap_mode="r" if mmap else None)
+
+    dtype = np.dtype("<f4")
+    file_bytes = x_path.stat().st_size
+    if n_rows <= 0 or file_bytes % (n_rows * dtype.itemsize) != 0:
+        raise ValueError(
+            f"{x_path.name}: not a valid .npy file and its byte count "
+            f"{file_bytes} is not divisible into {n_rows} rows of float32 traces"
+        )
+    width = file_bytes // (n_rows * dtype.itemsize)
+    shape = (n_rows, width)
+    if mmap:
+        return np.memmap(x_path, dtype=dtype, mode="r", shape=shape)
+    return np.fromfile(x_path, dtype=dtype).reshape(shape)
+
+
+def load_resolutions(
+    raw_dir: str | Path, *, split: str = "test", group_columns: tuple[str, ...] = ("run", "channel")
+) -> dict[tuple, float]:
+    """Load the published per-channel OF resolution (``resolutions_{split}.csv``).
+
+    Used to anchor the injection amplitude grid to each channel's own
+    sigma_OF rather than to a held-out-data-derived quantity.
+    """
+    import pandas as pd
+
+    path = Path(raw_dir) / f"resolutions_{split}.csv"
+    if not path.exists():
+        raise FileNotFoundError(f"Missing {path}; run scripts/download/download_cresst.py first.")
+    table = pd.read_csv(path)
+    return {
+        tuple(float(row[c]) for c in group_columns): float(row["of_resolution"])
+        for _, row in table.iterrows()
+    }
+
+
 def _coerce_bool(series) -> np.ndarray:
     """Coerce a CSV column (bool, 0/1, or 'True'/'False' text) to a bool array."""
     text = series.astype(str).str.strip().str.lower()
@@ -116,8 +167,8 @@ def load_cresst_release(
             "Run scripts/download/download_cresst.py first."
         )
 
-    traces = np.load(x_path, mmap_mode="r" if mmap else None)
     features = pd.read_csv(feat_path)
+    traces = _load_release_traces(x_path, len(features), mmap=mmap)
     if traces.shape[0] != len(features):
         raise ValueError(
             f"row mismatch: {x_path.name} has {traces.shape[0]} rows, "
@@ -166,4 +217,6 @@ def select_cresst_subsets(
         "pulse_traces": np.asarray(traces[pulses], dtype=np.float64),
         "n_noise": int(is_noise.sum()),
         "n_pulse": int(pulses.sum()),
+        "is_noise": is_noise,
+        "is_pulse": pulses,
     }

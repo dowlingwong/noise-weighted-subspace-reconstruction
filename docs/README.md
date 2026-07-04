@@ -23,7 +23,8 @@ The current validation state is:
 - GWOSC PSD/reference and shared-FIR implementation checks: verified positive;
 - GWOSC global-PSD and time-local real-noise calibration: verified negative;
 - GW150914 event/significance and SNR-eight sensitivity: not validated;
-- CRESST public-data validation: not completed.
+- CRESST-A public-data validation (linear hierarchy): verified positive;
+  trigger-efficiency detector metric: inconclusive.
 
 Use `CURRENT_STATUS.md` and `PAPER_REVISION_GUIDE.md` for paper-facing claims.
 Use `GWOSC_RESULT.md` for the real-noise boundary result.

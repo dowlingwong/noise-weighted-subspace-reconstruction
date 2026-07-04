@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+### 2026-07-04
+
+- Fixed a real data-format bug: the DMDC-hosted `X_*.npy`/`y_*.npy` release
+  files are headerless raw binary dumps, not standard `.npy`; the downloader
+  verifier and `load_cresst_release` now tolerate both formats.
+- Implemented the CRESST Validation Protocol (Stage C3): a per-channel,
+  time-disjoint calibration/evaluation split (`splits.py`), a multi-template
+  OF bank (`templates.py`), detector-facing metrics with a paired-bootstrap
+  acceptance gate (`detector_metrics.py`), signal injection (direct +
+  measured-PSD, `injections.py`), and 5 negative controls
+  (`negative_controls.py`). Added a PSD-stationary covariance model
+  (`noise.covariance_from_psd`) for the per-channel N ~ p regime and
+  three-tier FPR reporting (5% primary, 1% with a threshold CI, 0.1%
+  diagnostic). Froze the Stage C4 predeclaration
+  (`docs/CRESST_PREDECLARED_GATES.md`, commit `9c9f696ff6bc`).
+- Ran the predeclared Stage C5 CRESST-A validation once on the full public
+  test split: **passed** (EMPCA beat single-template OF, was competitive
+  with multi-template OF, and all 5 negative controls degraded, by pooled
+  paired-bootstrap 95% CI across all 7 channels), with two reported
+  limitations (a single-channel exception in the weakest negative control;
+  an inconclusive trigger-efficiency metric at the predeclared amplitude
+  grid). See `docs/CRESST_RESULT.md`. Archived evidence under
+  `evidence/cresst/20260704T013758Z_9c9f696ff6bc/` and synchronized
+  `transfer_paper/data/cresst/` and `transfer_paper/data/derived/
+  cresst_{per_channel,pooled}_summary.csv` via the new
+  `transfer_paper/scripts/refresh_cresst_bundle.py`. Updated
+  `docs/CURRENT_STATUS.md` and `transfer_paper/data/derived/claim_status.csv`.
+
 ### 2026-06-30
 
 - Prepared the CRESST setup against the public DMDC pulse-shape release

@@ -1,0 +1,119 @@
+{
+  "acceptance": {
+    "aggregation": "pooled paired per-event differences across all used channels; each gate requires the 95% bootstrap CI to exclude zero in the required direction (exceeds_zero), not a raw point-estimate win. Per-channel results and any sign reversal vs. the pooled direction are reported under 'per_channel' / 'pooled.*_sign_reversed_channels'.",
+    "all_negative_controls_degraded": true,
+    "criterion": "EMPCA at rank k must beat single-template OF and remain competitive with multi-template OF on the likelihood-aligned metrics, with all negative controls degrading as expected -- each judged by a pooled paired-bootstrap 95% CI excluding zero, not a raw point estimate.",
+    "empca_beats_single_template_of": true,
+    "empca_competitive_with_multi_template_of": true,
+    "fpr_diagnostic_only": [
+      0.001
+    ],
+    "fpr_points": [
+      0.001,
+      0.01,
+      0.05
+    ],
+    "fpr_primary": [
+      0.05
+    ],
+    "fpr_threshold_ci_reported": [
+      0.01,
+      0.05
+    ],
+    "multi_template_of_competitive_tolerance": 1.1,
+    "passed": true
+  },
+  "covariance_model": "psd_stationary",
+  "experiment_id": "P2_CRESST_VALIDATION",
+  "git_commit": "9c9f696ff6bca6e6b9729cdb90e41ee92d576787",
+  "n_channels_total": 7,
+  "n_channels_used": 7,
+  "n_duplicate_traces": 0,
+  "pooled": {
+    "empca_competitive_sign_reversed_channels": [],
+    "empca_competitive_with_multi_template_of": {
+      "bootstrap_reps": 300,
+      "ci95_difference": [
+        272.3965839494105,
+        424.01473959556745
+      ],
+      "exceeds_zero": true,
+      "mean_difference": 352.1707059367909,
+      "n_events": 19335
+    },
+    "negative_controls": {
+      "mismatched_of_template": {
+        "bootstrap_reps": 300,
+        "ci95_difference": [
+          6566.697909938043,
+          7241.208430485634
+        ],
+        "exceeds_zero": true,
+        "mean_difference": 6911.824448301768,
+        "n_events": 19335
+      },
+      "noise_only_train": {
+        "bootstrap_reps": 300,
+        "ci95_difference": [
+          405.5846189831298,
+          563.9012492698536
+        ],
+        "exceeds_zero": true,
+        "mean_difference": 489.40125687415417,
+        "n_events": 19335
+      },
+      "permuted_time_bins": {
+        "bootstrap_reps": 300,
+        "ci95_difference": [
+          53914.026844173386,
+          65079.455899482025
+        ],
+        "exceeds_zero": true,
+        "mean_difference": 59812.71728917728,
+        "n_events": 19335
+      },
+      "random_weighted_basis": {
+        "bootstrap_reps": 300,
+        "ci95_difference": [
+          3694.7652828294536,
+          4304.392822405314
+        ],
+        "exceeds_zero": true,
+        "mean_difference": 4013.4726131219595,
+        "n_events": 19335
+      },
+      "wrong_psd": {
+        "bootstrap_reps": 300,
+        "ci95_difference": [
+          0.9742865961538661,
+          2.0786678165068815
+        ],
+        "exceeds_zero": true,
+        "mean_difference": 1.5674186915255321,
+        "n_events": 19335
+      }
+    },
+    "negative_controls_sign_reversed_channels": {
+      "mismatched_of_template": [],
+      "noise_only_train": [],
+      "permuted_time_bins": [],
+      "random_weighted_basis": [],
+      "wrong_psd": [
+        "35_58.0"
+      ]
+    },
+    "of_vs_empca": {
+      "bootstrap_reps": 300,
+      "ci95_difference": [
+        927.9023965817061,
+        1097.6055771189936
+      ],
+      "exceeds_zero": true,
+      "mean_difference": 1012.2664482366206,
+      "n_events": 19335
+    },
+    "of_vs_empca_sign_reversed_channels": []
+  },
+  "rank": 6,
+  "status_field_run_experiment": "complete"
+}

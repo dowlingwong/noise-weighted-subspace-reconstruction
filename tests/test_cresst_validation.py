@@ -13,6 +13,7 @@ import pytest
 
 from src.noise_geometry.cresst.detector_metrics import (
     amplitude_error_summary,
+    background_threshold_ci,
     background_thresholds,
     bootstrap_ci,
     detection_score,
@@ -202,6 +203,21 @@ def test_background_thresholds_are_upper_quantiles():
     thresholds = background_thresholds(scores, [0.01, 0.05])
     assert thresholds[0.01] == pytest.approx(np.quantile(scores, 0.99))
     assert thresholds[0.01] > thresholds[0.05]
+
+
+def test_background_threshold_ci_widens_for_tighter_fpr_and_smaller_pool():
+    rng = np.random.default_rng(20)
+    large_pool = rng.normal(size=1500)
+    small_pool = rng.normal(size=200)
+
+    ci_large = background_threshold_ci(large_pool, [0.001, 0.05], bootstrap_reps=300, seed=1)
+    width_001_large = ci_large[0.001][1] - ci_large[0.001][0]
+    width_05_large = ci_large[0.05][1] - ci_large[0.05][0]
+    assert width_001_large > width_05_large  # tighter FPR -> wider threshold CI
+
+    ci_small = background_threshold_ci(small_pool, [0.05], bootstrap_reps=300, seed=1)
+    width_05_small = ci_small[0.05][1] - ci_small[0.05][0]
+    assert width_05_small > width_05_large  # smaller background pool -> wider CI
 
 
 def test_efficiency_curve_and_amplitude_thresholds():

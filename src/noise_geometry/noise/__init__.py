@@ -1,6 +1,12 @@
 """Noise covariance, PSD, whitening, and synthetic noise utilities."""
 
-from .covariance import block_covariance, estimate_covariance, inverse_covariance, regularize_covariance
+from .covariance import (
+    block_covariance,
+    covariance_from_psd,
+    estimate_covariance,
+    inverse_covariance,
+    regularize_covariance,
+)
 from .psd import (
     estimate_psd_ensemble,
     estimate_psd_rfft,
@@ -13,6 +19,7 @@ from .whitening import unwhiten_rfft, unwhiten_with_covariance, whiten_rfft, whi
 
 __all__ = [
     "block_covariance",
+    "covariance_from_psd",
     "estimate_covariance",
     "estimate_psd_ensemble",
     "estimate_psd_rfft",

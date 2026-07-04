@@ -28,7 +28,7 @@ import numpy as np
 
 from ..autoencoders import tied_linear_ae_closed_form
 from ..metrics import mse, weighted_residual
-from ..noise import estimate_covariance, inverse_covariance, regularize_covariance
+from ..noise import covariance_from_psd, estimate_covariance, estimate_psd_ensemble, inverse_covariance, regularize_covariance
 from ..subspace import fit_pca, fit_weighted_pca, principal_angles, project_onto_basis
 from ..subspace.pca import SubspaceFit
 from ..utils.paths import dataset_root
@@ -78,15 +78,42 @@ class BaselineFit:
 
 
 def _fit_baselines(
-    train: np.ndarray, test: np.ndarray, noise_train: np.ndarray, rank: int, covariance_shrinkage: float
+    train: np.ndarray,
+    test: np.ndarray,
+    noise_train: np.ndarray,
+    rank: int,
+    covariance_shrinkage: float,
+    *,
+    covariance_model: str = "empirical",
 ) -> BaselineFit:
     """Fit OF/PCA/EMPCA/linear-AE under the empirical noise metric.
 
     The OF template is built from ``train`` (the calibration segment), so
     injection studies that reuse ``of_template`` are, explicitly, injecting
     the channel's own single-OF template fit on its own calibration data.
+
+    ``covariance_model``:
+
+    - ``"empirical"`` (default, used by the generic NPZ/HDF5 path): the raw
+      sample covariance, ``n_features * (n_features + 1) / 2`` free
+      parameters.
+    - ``"psd_stationary"`` (used by the per-channel CRESST release path,
+      where calibration noise counts are only ~500-540 per channel against
+      512 features -- N ~ p, so the raw sample covariance is
+      near-singular): a circulant covariance built from a PSD estimate
+      (only ``n_features // 2 + 1`` free parameters), matching the
+      stationary/frequency-domain framing the rest of this codebase's
+      OF/whitening machinery already assumes. See
+      ``noise.covariance_from_psd`` and ``docs/CRESST_PREDECLARED_GATES.md``.
     """
-    covariance = regularize_covariance(estimate_covariance(noise_train), shrinkage=covariance_shrinkage)
+    if covariance_model == "empirical":
+        raw_covariance = estimate_covariance(noise_train)
+    elif covariance_model == "psd_stationary":
+        _, psd = estimate_psd_ensemble(noise_train, average="median")
+        raw_covariance = covariance_from_psd(psd, noise_train.shape[1])
+    else:
+        raise ValueError(f"unknown covariance_model: {covariance_model!r}")
+    covariance = regularize_covariance(raw_covariance, shrinkage=covariance_shrinkage)
     metric = inverse_covariance(covariance)
 
     pca = fit_pca(train, rank)
@@ -216,6 +243,7 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
 
     rank = int(config.get("rank", 4))
     covariance_shrinkage = float(config.get("covariance_shrinkage", 0.1))
+    covariance_model = str(config.get("covariance_model", "psd_stationary"))
     tb_config = dict(config.get("template_bank", {}))
     dm_config = dict(config.get("detector_metrics", {}))
     fpr_points = list(config.get("fpr_points", [0.001, 0.01, 0.05]))
@@ -229,6 +257,8 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
     amplitude_multiples = list(dm_config.get("amplitude_grid_multiples_of_sigma_of", [0, 1, 2, 3, 4, 5, 6, 8, 10]))
     n_injections = int(dm_config.get("n_injections_per_amplitude", 200))
     tolerance = float(config.get("multi_template_of_competitive_tolerance", 1.1))
+    fpr_primary_points = sorted(set(config.get("fpr_primary_points", [0.05])))
+    fpr_threshold_ci_points = sorted(set(config.get("fpr_threshold_ci_points", [0.01, 0.05])))
 
     channels = unique_groups(features, channel_columns)
     per_channel: dict[str, Any] = {}
@@ -278,7 +308,7 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
             }
             continue
 
-        fit = _fit_baselines(train, test, noise_train, rank, covariance_shrinkage)
+        fit = _fit_baselines(train, test, noise_train, rank, covariance_shrinkage, covariance_model=covariance_model)
         pca_residual = weighted_residual(test, fit.pca_recon, fit.metric)
         empca_residual = weighted_residual(test, fit.empca_recon, fit.metric)
         of_residual = weighted_residual(test, fit.of_recon, fit.metric)
@@ -444,6 +474,7 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
         "n_channels_total": len(channels),
         "n_channels_used": n_channels_used,
         "n_duplicate_traces": n_duplicate_traces,
+        "covariance_model": covariance_model,
         "n_noise_traces": int(
             sum(e["n_train_noise"] for e in per_channel.values() if not e.get("skipped"))
         ),
@@ -484,6 +515,8 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
                 "'pooled.*_sign_reversed_channels'."
             ),
             "fpr_points": fpr_points,
+            "fpr_primary": fpr_primary_points,
+            "fpr_threshold_ci_reported": fpr_threshold_ci_points,
             "fpr_diagnostic_only": fpr_diagnostic_points,
             "criterion": (
                 "EMPCA at rank k must beat single-template OF and remain competitive "

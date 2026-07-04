@@ -57,6 +57,41 @@ def inverse_covariance(cov: np.ndarray, *, floor: float | None = None, shrinkage
     return (vecs * (1.0 / vals)[None, :]) @ vecs.T
 
 
+def covariance_from_psd(psd_one_sided: np.ndarray, n_samples: int, *, sampling_frequency: float = 1.0) -> np.ndarray:
+    """Stationary (circulant) covariance implied by a one-sided PSD estimate.
+
+    Uses the same one-sided convention as ``estimate_psd_rfft``/
+    ``estimate_psd_ensemble`` (interior rFFT bins carry twice the power of
+    DC/Nyquist). This is the periodic/circular-boundary approximation the
+    rest of this codebase's rFFT-based OF/whitening machinery already
+    assumes, so it is not a new modeling choice, just an explicit one.
+
+    Where the observation-space sample covariance (``estimate_covariance``)
+    has ``n_samples * (n_samples + 1) / 2`` free parameters, this has only
+    ``n_samples // 2 + 1`` (one per PSD bin) -- the right regime when the
+    calibration sample size is comparable to or smaller than the trace
+    length (N ~ p), where the raw sample covariance is ill-conditioned.
+    """
+    psd = np.asarray(psd_one_sided, dtype=np.float64)
+    n = int(n_samples)
+    n_bins = n // 2 + 1
+    if psd.shape[0] != n_bins:
+        raise ValueError(f"psd length {psd.shape[0]} does not match rfft bin count {n_bins} for n_samples={n}")
+    undoubled = psd.copy()
+    if n > 2:
+        stop = n // 2 + 1 - (n + 1) % 2  # interior bins, excluding DC and (if even) Nyquist
+        undoubled[1:stop] = undoubled[1:stop] / 2.0
+    autocovariance = np.fft.irfft(undoubled * float(sampling_frequency), n=n)
+    return _circulant(autocovariance)
+
+
+def _circulant(first_column: np.ndarray) -> np.ndarray:
+    c = np.asarray(first_column, dtype=np.float64)
+    n = c.shape[0]
+    idx = (np.arange(n)[:, None] - np.arange(n)[None, :]) % n
+    return c[idx]
+
+
 def block_covariance(channel_cov: np.ndarray, time_cov: np.ndarray) -> np.ndarray:
     """Build a separable multichannel covariance ``channel_cov kron time_cov``."""
     Cc = np.asarray(channel_cov, dtype=np.float64)

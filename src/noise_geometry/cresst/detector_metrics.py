@@ -79,6 +79,31 @@ def background_thresholds(background_scores: np.ndarray, fpr_points: list[float]
     return {float(p): float(np.quantile(scores, 1.0 - p)) for p in fpr_points}
 
 
+def background_threshold_ci(
+    background_scores: np.ndarray, fpr_points: list[float], *, bootstrap_reps: int = 300, seed: int = 0
+) -> dict[float, tuple[float, float]]:
+    """Bootstrap 95% CI on the background-only *threshold itself* (not its mean).
+
+    With a per-channel background pool of only ~hundreds of traces, a tight
+    FPR point (e.g. 0.1%) is set by the top 1-2 order statistics and the
+    threshold estimate carries substantial sampling uncertainty; this makes
+    that uncertainty explicit rather than reporting a bare point estimate.
+    """
+    scores = np.asarray(background_scores, dtype=np.float64)
+    n = scores.size
+    if n < 2:
+        return {float(p): (float("nan"), float("nan")) for p in fpr_points}
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, n, size=(int(bootstrap_reps), n))
+    resampled = scores[idx]
+    out = {}
+    for p in fpr_points:
+        boot_thresholds = np.quantile(resampled, 1.0 - p, axis=1)
+        lo, hi = np.percentile(boot_thresholds, [2.5, 97.5])
+        out[float(p)] = (float(lo), float(hi))
+    return out
+
+
 def efficiency_curve(
     scores_by_amplitude: list[np.ndarray],
     threshold: float,
@@ -188,6 +213,7 @@ def evaluate_trigger_efficiency(
     recon_background = project_onto_basis(background, components, weights=metric, mean=mean)
     background_scores = detection_score(background, recon_background, metric)
     thresholds = background_thresholds(background_scores, fpr_points)
+    threshold_ci = background_threshold_ci(background_scores, fpr_points, bootstrap_reps=bootstrap_reps, seed=seed)
 
     direct = _condition_curves(
         background, template, amplitude_grid, n_injections, components, mean, metric,
@@ -210,6 +236,8 @@ def evaluate_trigger_efficiency(
         "amplitude_grid": [float(a) for a in amplitude_grid],
         "fpr_points": [float(p) for p in fpr_points],
         "background_thresholds": thresholds,
+        "background_threshold_ci95": threshold_ci,
+        "n_background": int(background.shape[0]),
         "n_injections_per_amplitude": int(n_injections),
         "bootstrap_reps": int(bootstrap_reps),
         "direct_injection": direct,

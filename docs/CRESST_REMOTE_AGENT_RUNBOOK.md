@@ -44,17 +44,34 @@ If the checkout is new, optionally close Stage 0 first:
 Data root resolution: `--data-root` > `PAPER1_DATA_ROOT` > config >
 `/ceph/dwong/paper1_dataset`. Target layout: `<root>/cresst/raw/`.
 
-The DMDC has no static direct-download URL. Obtain the file-directory base
-URL from the CRESST DMDC page (human step if the browser is unavailable):
-https://www.origins-cluster.de/odsl/dark-matter-data-center/available-datasets/cresst
+The release is hosted in the DMDC GitLab repository at MPCDF
+(verified 2026-07-03; linked from the CRESST DMDC page):
+
+```text
+https://gitlab.mpcdf.mpg.de/dmdc/cresst/cresst-pulse-shape-deep-learning
+```
+
+All eight release files sit in `data/` on branch `master`. Base URL for the
+downloader (it composes `<base-url>/<filename>`):
+
+```text
+https://gitlab.mpcdf.mpg.de/dmdc/cresst/cresst-pulse-shape-deep-learning/-/raw/master/data
+```
 
 ```bash
+BASE=https://gitlab.mpcdf.mpg.de/dmdc/cresst/cresst-pulse-shape-deep-learning/-/raw/master/data
 # Plan first
-uv run python scripts/download/download_cresst.py --base-url <DMDC_URL> --group test --dry-run
+uv run python scripts/download/download_cresst.py --base-url "$BASE" --group test --dry-run
 # Test split (~160 MB), then full release (~2.5 GB)
-uv run python scripts/download/download_cresst.py --base-url <DMDC_URL> --group test
-uv run python scripts/download/download_cresst.py --base-url <DMDC_URL> --group all
+uv run python scripts/download/download_cresst.py --base-url "$BASE" --group test
+uv run python scripts/download/download_cresst.py --base-url "$BASE" --group all
 ```
+
+Fallbacks if raw URLs misbehave (e.g. Git LFS redirects): download the
+data-only archive
+`https://gitlab.mpcdf.mpg.de/dmdc/cresst/cresst-pulse-shape-deep-learning/-/archive/master/cresst-pulse-shape-deep-learning-master.tar.gz?path=data`,
+or `git clone` the repository (with `git lfs` installed), then move the files
+into `<root>/cresst/raw/` and verify with `--check`.
 
 The script verifies every `.npy` shape/dtype and CSV row count against the
 published manifest and writes `raw/cresst_manifest.json`. If files were

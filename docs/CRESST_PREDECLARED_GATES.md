@@ -1,14 +1,32 @@
 # CRESST Predeclared Validation Gates
 
-Status: **DRAFT v2 — pending review, not yet committed, Stage C5 not yet run.**
+Status: **APPROVED — frozen before Stage C5.**
 
-This supersedes the v1 draft after a design review that found the v1 split
-(random cross-channel group assignment) contradicted Paper 1's own premise.
-This file freezes every threshold, grid, rank, FPR point, split definition,
-and acceptance criterion for the CRESST-A predeclared validation run
+v2 fixed the split design (see below). v3 addresses two sample-size
+consequences of that fix that a second review pass surfaced: per-channel
+covariance estimation is now in the N ~ p regime, and per-channel FPR
+thresholds are set by small background pools. Both are addressed below and
+frozen before any real-data score has been seen. This file freezes every
+threshold, grid, rank, FPR point, split definition, and acceptance criterion
+for the CRESST-A predeclared validation run
 (`configs/cresst/cresst_validation.yaml`), per Stage C4 of
 `docs/CRESST_REMOTE_AGENT_RUNBOOK.md` and the CRESST Validation Protocol in
 `docs/EXPERIMENT_PROTOCOLS.md`.
+
+## Audit trail: commit `3b93cbd`
+
+`git log` shows a commit `3b93cbda889060af986c53966bd76233a04bd51b`
+("update", author `dwong <dowling.wong@kit.edu>`, 2026-07-04 02:53:31 +0200)
+already in history, immediately after `6f6f6e3 added playbook` -- it was
+not created by the acting agent in this session. `git show --stat` confirms
+its contents are exactly the v1/v2 draft (`cresst_validation.yaml`,
+`CRESST_PREDECLARED_GATES.md`, `download_cresst.py`, and the
+`src/noise_geometry/cresst/{analysis,detector_metrics,injections,loader,
+negative_controls,splits,templates}.py` modules plus their tests) --
+i.e. an out-of-band checkpoint of the prior review round, not a scientific
+run and not a CRESST score. It precedes this v3 freeze and does not affect
+any value declared below. Recorded here rather than silently absorbed, so
+anyone auditing this record later knows the commit exists and what it is.
 
 ## Why the split changed (v1 -> v2)
 
@@ -32,6 +50,75 @@ against) and turns the 7 test-release channels into 7 quasi-independent
 replications instead of one fragile 5-vs-2 channel split. The old "7-group
 granularity" caveat from v1 no longer applies -- every channel contributes
 its own held-out evaluation, not a coin-flip group assignment.
+
+## Sample-size consequences of the per-channel redesign (v3)
+
+Splitting within each channel instead of pooling ~5 channels of calibration
+data means every per-channel sample is much smaller than it was in v1. Two
+distinct problems follow, both frozen here rather than resolved after
+seeing a failed gate.
+
+### Covariance estimation is now N ~ p
+
+Each channel's calibration noise segment is only ~500-540 traces
+(0.7 x ~730-770 total per channel) against `max_features: 512`. The raw
+observation-space sample covariance (`estimate_covariance`) has
+`512 x 513 / 2 ~ 131,000` free parameters against ~500 samples -- badly
+underdetermined; the v1/early-v2 declaration of `covariance_shrinkage: 0.1`
+would have been carrying the entire burden of making that near-singular
+matrix usable, undeclared as such.
+
+**Frozen choice: `covariance_model: psd_stationary`.** Instead of the raw
+sample covariance, estimate a one-sided PSD per channel
+(`estimate_psd_ensemble`, median-averaged across that channel's calibration
+traces -- exactly the GWOSC convention) and build the implied **circulant**
+covariance from it (`noise.covariance_from_psd`): only `512/2 + 1 = 257`
+free parameters, an N ~ 2p regime instead of N ~ p. This is not a new
+modeling assumption -- the codebase's rFFT-based OF/whitening machinery
+(`estimate_psd_rfft`, `inverse_psd_weights`, `filters.optimal`) already
+treats the noise as stationary/circulant; this makes that assumption
+explicit and applies it to covariance estimation too, matching the paper's
+own frequency-domain framing. `covariance_shrinkage: 0.1` is kept on top as
+an additional numerical safety floor, not a replacement for this fix.
+
+Alternatives considered and rejected: heavier shrinkage alone (papers over
+the problem rather than fixing the parameter count, and picking "how much
+heavier" after seeing a result would itself be tuning); reduced
+`max_features` (would also reduce timing resolution for the multi-template
+bank and the physical pulse-shape information EMPCA/PCA/AE can use --
+undesirable for the Paper 1 claim itself, which is precisely that shape
+structure matters).
+
+### FPR thresholds are set by small per-channel background pools
+
+The 30% evaluation segment leaves only ~220 background (held-out noise)
+traces per channel. A 1% FPR threshold is then set by the top ~2 order
+statistics of that pool, and 0.1% by the single most extreme trace --
+already why 0.1% was demoted to diagnostic in v2, but 1% deserved the same
+scrutiny and didn't get it in v2.
+
+**Frozen choice: three-tier FPR reporting**, all still computed for every
+channel, only the *interpretation* differs:
+
+- **5% -- primary, gate-relevant** (`fpr_primary_points: [0.05]`): set by
+  ~11 order statistics per channel, the least noisy of the three.
+- **1% -- reported with threshold uncertainty**
+  (`fpr_threshold_ci_points: [0.01, 0.05]`): alongside the point-estimate
+  threshold, a bootstrap 95% CI on the *threshold itself*
+  (`background_threshold_ci95` in the run record, via
+  `detector_metrics.background_threshold_ci`), not just on the resulting
+  efficiency.
+- **0.1% -- diagnostic only** (`fpr_diagnostic_points: [0.001]`, unchanged
+  from v2): still computed and recorded, never gate-relevant.
+
+Alternative considered and rejected: an asymmetric calibration fraction for
+noise specifically (e.g. 50/50 noise vs. 70/30 pulses, to grow the
+background pool). Rejected because it trades this problem for the
+covariance-conditioning problem above (fewer calibration noise traces),
+and because a single declared `channel_calibration_fraction` for the whole
+channel is simpler to defend as not selectively tuned. The PSD-stationary
+covariance model already tolerates the smaller calibration count
+(N ~ 2p instead of N ~ p), so the trade isn't necessary.
 
 ## Rank
 
@@ -74,24 +161,15 @@ its own held-out evaluation, not a coin-flip group assignment.
   acceptance-gate number was interpreted.) `sigma_of_source` in the run
   record ("resolutions_test.csv" vs. "fallback_of_crb_no_published_resolution")
   reports which applied, per channel.
-- FPR points: `[0.001, 0.01, 0.05]`, numbers unchanged, but **0.1% is
-  demoted to diagnostic** (see below) -- the one exception to "keep the FPR
-  points" granted for a concrete statistical reason.
-  `fpr_diagnostic_only: [0.001]`.
+- FPR points: `[0.001, 0.01, 0.05]`, numbers unchanged, but reported in
+  three tiers (5% primary, 1% with a threshold CI, 0.1% diagnostic-only) --
+  see "Sample-size consequences" above for the full rationale. The one
+  exception to "keep the FPR points" is in *tiering the interpretation*,
+  not in changing the numbers.
 - Efficiency thresholds: `[0.5, 0.9]`, unchanged.
-- `bootstrap_reps: 300`, unchanged, now used both for the amplitude
-  bias/RMSE CIs (as before) and for every paired-difference gate CI (new,
-  see Acceptance gate below).
-
-### 0.1% FPR demoted to diagnostic
-
-Each channel's held-out (evaluation-segment) noise pool is on the order of a
-few hundred to ~1,500 traces (real per-channel background counts, 0.3 x
-each channel's noise total). A 0.1% threshold is then set by the top 1-2
-order statistics of that pool and carries large threshold uncertainty. 1%
-and 5% remain the reportable, gate-relevant points; 0.1% is still computed
-and recorded (background threshold, efficiency curve) but is explicitly
-labeled diagnostic, not used in any pass/fail decision.
+- `bootstrap_reps: 300`, unchanged, now used for the amplitude bias/RMSE
+  CIs, every paired-difference gate CI (see Acceptance gate below), and the
+  background-threshold CI (see "Sample-size consequences" above).
 
 ## Injection machinery (Stage C3 item 3) -- template now specified explicitly
 
@@ -156,13 +234,20 @@ the gate (the pooled CI is authoritative) but must be reported, not hidden.
 `bootstrap_reps: 300` is used for every paired-CI computation (unchanged
 declared value, now serving double duty).
 
-## Other frozen values (unchanged from the prior declaration)
+## Other frozen values
 
-- `covariance_shrinkage: 0.1`
+- `covariance_model: psd_stationary` (new in v3, see above);
+  `covariance_shrinkage: 0.1` (unchanged, now a safety floor on top of the
+  PSD-based covariance rather than the sole regularizer of a near-singular
+  empirical one).
 - `baseline_fraction: 0.2`
 - `max_features: 512` (native downsampled resolution)
 - `split: test`; `channel_columns: [run, channel]`;
-  `channel_calibration_fraction: 0.7`; `channel_time_column: hours`
+  `channel_calibration_fraction: 0.7` (uniform for both pulses and noise,
+  see "Sample-size consequences" above for why an asymmetric noise fraction
+  was rejected); `channel_time_column: hours`
+- `fpr_primary_points: [0.05]`; `fpr_threshold_ci_points: [0.01, 0.05]`;
+  `fpr_diagnostic_points: [0.001]` (new in v3)
 
 ## Acknowledging the Stage C2 smoke run
 
@@ -188,15 +273,16 @@ pre-argue away a conflict of interest.
 
 ## Sign-off checklist before Stage C5
 
-- [ ] Per-channel, time-disjoint split (chronological by `hours`, 0.7 calibration fraction, seed 22) replacing the flawed cross-channel group split -- reviewed and approved by design critique.
-- [ ] Rank `k=6` and FPR points `[0.001, 0.01, 0.05]` -- carried over unchanged.
-- [ ] 0.1% FPR demoted to diagnostic-only (the one FPR exception) -- reviewed.
-- [ ] Template-bank grid (terciles x terciles x 5 shifts, `min_cell_pulses=20`) -- approved as-is.
-- [ ] Amplitude grid anchored to per-channel published sigma_OF (`[0,1,2,3,4,5,6,8,10] x sigma_OF`), with the CRB-formula fallback for the one channel `(35,56)` missing a published resolution -- reviewed.
-- [ ] 5 negative controls (including `mismatched_of_template`) -- approved as-is.
-- [ ] `multi_template_of_competitive_tolerance: 1.1`, now applied via paired-bootstrap CI -- approved as-is (CI-aware).
-- [ ] Paired-bootstrap gate criteria (CI excludes zero, not point estimate) with pooled-across-channels aggregation and per-channel sign-reversal reporting -- reviewed.
-- [ ] Injection template = per-channel single-OF template from that channel's calibration segment -- confirmed explicit.
-- [ ] Stage C2 smoke contamination acknowledgment above -- read.
-- [ ] `n_injections_per_amplitude=200`, `bootstrap_reps=300`, `covariance_shrinkage=0.1`, `max_features=512` -- approved as-is.
-- [ ] Commit this file and the final `cresst_validation.yaml` before running Stage C5; the commit hash becomes part of the evidence.
+- [x] Per-channel, time-disjoint split (chronological by `hours`, 0.7 calibration fraction, seed 22) replacing the flawed cross-channel group split -- reviewed and approved by design critique.
+- [x] Rank `k=6` and FPR points `[0.001, 0.01, 0.05]` -- carried over unchanged.
+- [x] **New in v3**: `covariance_model: psd_stationary` for the N ~ p per-channel covariance problem, with `covariance_shrinkage: 0.1` retained as a safety floor -- reviewed.
+- [x] **New in v3**: three-tier FPR reporting (5% primary, 1% with threshold CI, 0.1% diagnostic) for the thin per-channel background-noise problem -- reviewed.
+- [x] Template-bank grid (terciles x terciles x 5 shifts, `min_cell_pulses=20`) -- approved as-is.
+- [x] Amplitude grid anchored to per-channel published sigma_OF (`[0,1,2,3,4,5,6,8,10] x sigma_OF`), with the CRB-formula fallback for the one channel `(35,56)` missing a published resolution -- reviewed.
+- [x] 5 negative controls (including `mismatched_of_template`) -- approved as-is.
+- [x] `multi_template_of_competitive_tolerance: 1.1`, now applied via paired-bootstrap CI -- approved as-is (CI-aware).
+- [x] Paired-bootstrap gate criteria (CI excludes zero, not point estimate) with pooled-across-channels aggregation and per-channel sign-reversal reporting -- reviewed.
+- [x] Injection template = per-channel single-OF template from that channel's calibration segment -- confirmed explicit.
+- [x] Stage C2 smoke contamination acknowledgment above -- read.
+- [x] `n_injections_per_amplitude=200`, `bootstrap_reps=300`, `baseline_fraction=0.2`, `max_features=512` -- approved as-is.
+- [x] Commit this file and the final `cresst_validation.yaml` before running Stage C5; the commit hash becomes part of the evidence.

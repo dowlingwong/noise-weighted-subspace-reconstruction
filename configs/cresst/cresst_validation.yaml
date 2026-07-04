@@ -18,6 +18,13 @@ max_traces: null        # use the full split
 max_features: 512        # keep native downsampled resolution
 baseline_fraction: 0.2
 covariance_shrinkage: 0.1
+# Per channel, calibration noise is only ~500-540 traces (0.7 x ~730-770
+# total) against 512 features: N ~ p, so the raw sample covariance would be
+# near-singular. Use a stationary (circulant, PSD-based) covariance model
+# instead -- only n_features/2+1 free parameters, matching the paper's own
+# frequency-domain framing -- with covariance_shrinkage kept on top as an
+# extra numerical safety floor. Frozen before any real-data score was seen.
+covariance_model: psd_stationary
 
 # --- Predeclared protocol parameters ---
 # Baselines reported in order: single-template OF, multi-template OF, PCA,
@@ -48,15 +55,27 @@ template_bank:
 
 # Detector-facing evaluation (Stage C3 item 2/3): trigger efficiency vs.
 # injected amplitude at fixed background FPR, threshold set on each
-# channel's own held-out (later-segment) noise only. 0.1% is demoted to
-# diagnostic: each channel's held-out noise pool is only a few hundred to
-# ~1500 traces, so a 0.1% threshold is set by the top 1-2 order statistics
-# and carries large threshold uncertainty; 1% and 5% remain the reportable
-# points. The amplitude grid is anchored to each channel's *published* OF
-# resolution (resolutions_test.csv), not to held-out pulse amplitudes (which
-# would (a) consult held-out data to define the grid and (b) sit far above
-# threshold, since released pulses all survived triggering).
+# channel's own held-out (later-segment) noise only. The amplitude grid is
+# anchored to each channel's *published* OF resolution (resolutions_test.csv),
+# not to held-out pulse amplitudes (which would (a) consult held-out data to
+# define the grid and (b) sit far above threshold, since released pulses all
+# survived triggering).
+#
+# FPR reporting tiers (each channel's held-out noise pool is only ~a few
+# hundred to ~1500 traces, so tight FPR thresholds are set by a handful of
+# order statistics and carry real sampling uncertainty):
+#   - 5% (fpr_primary_points): the primary, gate-relevant reportable point.
+#   - 1% (fpr_threshold_ci_reported): also reported, alongside a bootstrap
+#     95% CI on the *threshold itself* (not just the efficiency), since ~11
+#     background events set it.
+#   - 0.1% (fpr_diagnostic_points): diagnostic only, set by ~1-2 order
+#     statistics; never used in the acceptance gate.
+# All three points are still computed (background_threshold_ci95 is reported
+# for every fpr_point regardless of tier); the tiers govern interpretation,
+# not computation.
 fpr_points: [0.001, 0.01, 0.05]
+fpr_primary_points: [0.05]
+fpr_threshold_ci_points: [0.01, 0.05]
 fpr_diagnostic_points: [0.001]
 efficiency_thresholds: [0.5, 0.9]
 bootstrap_reps: 300

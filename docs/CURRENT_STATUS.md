@@ -1,6 +1,6 @@
 # Current Status
 
-Last consolidated: 2026-06-29.
+Last consolidated: 2026-07-04.
 
 ## Central Claim
 
@@ -131,7 +131,11 @@ detection sensitivity from the trigger-efficiency metric as measured.
 - `docs/CRESST_RESULT.md`, `docs/CRESST_PREDECLARED_GATES.md`
 - `transfer_paper/data/derived/cresst_per_channel_summary.csv`,
   `transfer_paper/data/derived/cresst_pooled_summary.csv`
-- `evidence/cresst/20260704T013758Z_9c9f696ff6bc/`
+- `evidence/cresst/20260704T013758Z_9c9f696ff6bc/` (full run record:
+  `cresst/validation.json`; config: `cresst/validation.config.yaml`;
+  gate-only summary: `cresst/acceptance_summary.json`)
+- `transfer_paper/data/cresst/current/cresst/p2_cresst_validation_seed22.json`
+  (synchronized copy of the same full run record)
 - `transfer_paper/data/derived/paper_implications.csv`
 - `transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md`
 - `transfer_paper/data/gwosc/followup/filter_equivalence.json`

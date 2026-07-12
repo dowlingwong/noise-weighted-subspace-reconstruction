@@ -1,6 +1,6 @@
 # Experiment Protocols
 
-Last consolidated: 2026-06-29.
+Last consolidated: 2026-07-04.
 
 ## Environment
 
@@ -75,12 +75,23 @@ uv run python scripts/run_experiment.py \
   --config configs/gwosc/time_local_noise.yaml
 ```
 
-Prepare CRESST:
+Prepare CRESST and run the computational smoke check (Stage C2, not a
+scientific claim):
 
 ```bash
-uv run python scripts/download/download_cresst.py
+uv run python scripts/download/download_cresst.py --base-url <DMDC_URL> --group all
+uv run python scripts/preprocess/preprocess_cresst.py --split test
 uv run python scripts/run_experiment.py \
   --config configs/cresst/pulse_shape_smoke.yaml
+```
+
+Run the frozen predeclared CRESST-A validation (Stage C5; already run once,
+commit `9c9f696ff6bc` -- see `docs/CRESST_RESULT.md`, do not re-run to seek a
+different result):
+
+```bash
+uv run python scripts/run_experiment.py \
+  --config configs/cresst/cresst_validation.yaml
 ```
 
 ## Experiment Registry
@@ -181,11 +192,16 @@ Every paper-facing quantitative result should:
 
 ## CRESST Validation Protocol
 
-CRESST is the next candidate for positive public real-data validation:
-cryogenic detector-pulse reconstruction where pulses form a shape manifold
-rather than a single fixed template. Predeclare the items below before running
-on real data. Distilled from the NPML experiment plan; the full methodology is
-preserved in `NPML/plan.md`.
+**Status: executed and passed (Stage C5, commit `9c9f696ff6bc`).** CRESST was
+the candidate for positive public real-data validation: cryogenic
+detector-pulse reconstruction where pulses form a shape manifold rather than
+a single fixed template. The protocol below is retained as the methodology
+record (distilled from the NPML experiment plan; the full methodology is
+preserved in `NPML/plan.md`); the frozen numeric predeclaration actually used
+is `docs/CRESST_PREDECLARED_GATES.md`, and the outcome is
+`docs/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
+any further CRESST work is a new predeclared stage (see "If CRESST Work Is
+Continued" in `docs/CRESST_RESULT.md`).
 
 Baselines, ordered classical to learned:
 

@@ -112,6 +112,24 @@ Figures:
 - `transfer_paper/figures/gwosc_filter_equivalence.png`
 - `transfer_paper/figures/gwosc_time_local_psd.png`
 
+## Diagnostic Framing
+
+These diagnostics sharpen the negative result without changing its status; they
+remain diagnostics only and imply no calibrated significance claim. Distilled
+from the NPML experiment plan (`NPML/plan.md`).
+
+- Residual whitening ratio: report `mean(|r_f|^2 / PSD_f)` versus frequency.
+  Under correct calibration it sits near 1; the bands where it departs localize
+  which part of the spectrum breaks the held-out gate.
+- Detection-score view: report the noise-weighted residual reduction
+  `chi2(noise-only) - chi2(signal-subspace)` and, where injections exist, the
+  trigger efficiency at fixed background FPR. This shows the physics-facing
+  consequence of the calibration failure rather than an amplitude ratio alone.
+- Negative controls: confirm the failure is calibration, not a coding artifact,
+  by checking that a wrong PSD, permuted time bins, or a random
+  weighted-orthonormal basis degrade the scores as expected while the passing
+  implementation checks (PSD match, shared-FIR identity) still hold.
+
 ## If GWOSC Is Continued
 
 Do not modify the completed experiment to obtain a pass. Any future GWOSC work

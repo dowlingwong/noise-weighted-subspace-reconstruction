@@ -127,37 +127,13 @@ The method is calibrated on GWOSC data in general.
 
 ### CRESST / SCRESST validation
 
-Current state: not run in the current evidence bundle.
+Current state: completed, synchronized, reviewed, and passed for the narrow
+within-channel linear reconstruction hierarchy. Do not use a placeholder.
 
-Required evidence before writing a CRESST result:
-
-- validated data schema and provenance
-- archived preprocessing logs and checksums
-- predeclared calibration/evaluation split
-- experiment JSON and derived tables copied into this bundle
-- pass/fail interpretation reviewed against acceptance criteria
-
-Draft placeholder:
-
-```text
-[PLACEHOLDER — pending CRESST evidence. Insert CRESST/SCRESST validation only
-after the data schema, preprocessing, calibration split, experiment outputs,
-and acceptance review are synchronized into transfer_paper.]
-```
-
-Allowed current wording:
-
-```text
-CRESST is a planned second real-data domain after the GWOSC verification loop,
-because its schema and preprocessing assumptions still need independent
-validation.
-```
-
-Prohibited current wording:
-
-```text
-The method has been validated on CRESST.
-```
+Use the result and boundaries in `REVISION_INSTRUCTION_2026-07-12.md` and the
+authoritative run under
+`data/cresst/current/cresst/p2_cresst_validation_seed22.json`. Do not broaden
+the result into cross-channel transfer or validated detection sensitivity.
 
 ### Event significance and injection sensitivity
 

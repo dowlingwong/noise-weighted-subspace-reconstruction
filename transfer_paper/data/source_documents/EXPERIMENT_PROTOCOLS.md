@@ -1,6 +1,6 @@
 # Experiment Protocols
 
-Last consolidated: 2026-06-29.
+Last consolidated: 2026-07-04.
 
 ## Environment
 
@@ -75,12 +75,23 @@ uv run python scripts/run_experiment.py \
   --config configs/gwosc/time_local_noise.yaml
 ```
 
-Prepare CRESST:
+Prepare CRESST and run the computational smoke check (Stage C2, not a
+scientific claim):
 
 ```bash
-uv run python scripts/download/download_cresst.py
+uv run python scripts/download/download_cresst.py --base-url <DMDC_URL> --group all
+uv run python scripts/preprocess/preprocess_cresst.py --split test
 uv run python scripts/run_experiment.py \
   --config configs/cresst/pulse_shape_smoke.yaml
+```
+
+Run the frozen predeclared CRESST-A validation (Stage C5; already run once,
+commit `9c9f696ff6bc` -- see `docs/CRESST_RESULT.md`, do not re-run to seek a
+different result):
+
+```bash
+uv run python scripts/run_experiment.py \
+  --config configs/cresst/cresst_validation.yaml
 ```
 
 ## Experiment Registry
@@ -100,7 +111,7 @@ uv run python scripts/run_experiment.py \
 | GWOSC-A | Global PSD real-noise calibration | `configs/gwosc/gw150914_smoke.yaml` | verified negative |
 | GWOSC-F1 | Shared-FIR implementation identity | `configs/gwosc/filter_statistic_equivalence.yaml` | verified positive |
 | GWOSC-L1 | Time-local PSD real-noise calibration | `configs/gwosc/time_local_noise.yaml` | verified negative |
-| CRESST-A | Public cryogenic pulse validation | `configs/cresst/pulse_shape_smoke.yaml` | not completed |
+| CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/CRESST_RESULT.md`) |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | optional/planned |
 
 ## Preprocessing Contract
@@ -137,6 +148,20 @@ Core metrics:
 - residual calibration by PSD, whitened PSD, autocorrelation, chi-square, and
   Gaussian QQ diagnostics.
 
+Detector-facing metrics for real-data domains (GWOSC, CRESST):
+
+- residual whitening ratio `mean(|r_f|^2 / PSD_f)` versus frequency, expected
+  near 1 under correct calibration and used to localize the bands that break it;
+- detection score by noise-weighted residual reduction:
+  `chi2(noise-only) - chi2(signal-subspace)`;
+- trigger efficiency versus injected energy/amplitude at a fixed background
+  false-positive rate (for example 0.1%, 1%, 5%), with the threshold set on
+  background-only data;
+- 50% and 90% efficiency thresholds, plus amplitude/energy RMSE and bias.
+
+Report detector-facing metrics alongside reconstruction residuals for any real
+detector domain; do not report reconstruction loss alone.
+
 Raw MSE is diagnostic only under structured noise. The primary success metric
 must align with the declared noise likelihood.
 
@@ -164,3 +189,62 @@ Every paper-facing quantitative result should:
 - Do not tune thresholds, windows, cuts, PSD radii, or model choices after
   inspecting a failed result.
 - Sensitivity analyses cannot replace a failed predeclared primary result.
+
+## CRESST Validation Protocol
+
+**Status: executed and passed (Stage C5, commit `9c9f696ff6bc`).** CRESST was
+the candidate for positive public real-data validation: cryogenic
+detector-pulse reconstruction where pulses form a shape manifold rather than
+a single fixed template. The protocol below is retained as the methodology
+record (distilled from the NPML experiment plan; the full methodology is
+preserved in `NPML/plan.md`); the frozen numeric predeclaration actually used
+is `docs/CRESST_PREDECLARED_GATES.md`, and the outcome is
+`docs/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
+any further CRESST work is a new predeclared stage (see "If CRESST Work Is
+Continued" in `docs/CRESST_RESULT.md`).
+
+Baselines, ordered classical to learned:
+
+- single-template OF (rank-1, fixed template);
+- multi-template OF: a small GLS template bank over representative decay-time
+  and `t0` grid points, scored by maximum likelihood / minimum weighted
+  residual. This is the strong classical baseline and is currently absent from
+  the Paper 1 code surface;
+- ordinary PCA and whitened/weighted PCA / EMPCA at matched rank `k`;
+- the tied weighted linear autoencoder.
+
+The Paper 1 linear claim on real pulses is: EMPCA must beat single-template OF
+and stay competitive with multi-template OF as the pulse family becomes smooth
+and low rank.
+
+Noise and injection, with an explicit honesty rule:
+
+- prefer direct injection into true noise-only detector traces when an
+  event-level noise bank exists;
+- otherwise use measured-PSD Gaussian injection and label it "measured-PSD
+  injection", never "measured-noise-trace injection";
+- match integrated variance between analytic and measured-PSD conditions and
+  report degradation from analytic to measured.
+
+Detector-facing evaluation (see Metrics): trigger efficiency versus injected
+amplitude at fixed background FPR with the threshold set on background only, the
+50%/90% efficiency thresholds, and amplitude/energy RMSE and bias reported
+beside the weighted residual, with bootstrap 95% intervals over events in each
+energy bin.
+
+Negative controls, each of which must degrade the result:
+
+- wrong PSD/covariance;
+- permuted time bins;
+- a random weighted-orthonormal basis at matched rank;
+- train on noise-only, test on signal;
+- a deliberately mismatched OF template.
+
+Gains must come from physical structure plus the correct metric, not from
+dimensionality reduction alone.
+
+Predeclaration: fix train/validation/test splits per seed with no event,
+time-window, detector, or calibration/evaluation leakage; declare the
+template-bank grid, rank `k`, FPR points, and acceptance thresholds before
+seeing real-data scores; do not tune any of these after inspecting a failed
+result (see Acceptance Principles).

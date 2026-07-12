@@ -2,6 +2,11 @@
 
 _Status date: 29 June 2026_
 
+> **Superseded in part:** read `REVISION_INSTRUCTION_2026-07-12.md` first.
+> CRESST-A has since been completed, synchronized, reviewed, and passed for the
+> narrow within-channel linear hierarchy. Any statement below that CRESST is
+> pending is obsolete.
+
 ## Purpose and authority
 
 This handoff tells a paper-writing agent what has actually been executed, what
@@ -139,11 +144,12 @@ false-alarm evidence, or detector sensitivity.
 
 ## Still awaiting evidence
 
-The confirmatory GWOSC interval, CRESST/SCRESST validation, calibrated event
-significance, and injection sensitivity remain pending. Any Results text for
-those claims must use the placeholders in `PENDING_RESULT_PLACEHOLDERS.md`
-until the corresponding evidence files exist inside this bundle and their
-acceptance status has been reviewed.
+The confirmatory GWOSC interval, calibrated event significance, and injection
+sensitivity remain pending. CRESST-A is complete and must be written from the
+evidence and constraints in `REVISION_INSTRUCTION_2026-07-12.md`. Results text
+for claims that remain pending must use the placeholders in
+`PENDING_RESULT_PLACEHOLDERS.md` until corresponding evidence exists and has
+been reviewed.
 
 ## Paper sections that can be updated now
 

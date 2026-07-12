@@ -1,11 +1,15 @@
 # Paper transfer bundle
 
+**Current writing instruction (12 July 2026):** start with
+[REVISION_INSTRUCTION_2026-07-12.md](REVISION_INSTRUCTION_2026-07-12.md). It
+supersedes older statements in this bundle that mark CRESST-A as pending.
+
 This directory is the controlled handoff from experiment development to paper
 analysis and writing. It contains lightweight, versioned evidence; derived
 tables; reproducible plotting notebooks; and a claim-status document. It does
 not contain raw GWOSC strain arrays or other large datasets.
 
-Start with [WRITING_AGENT_BRIEF.md](WRITING_AGENT_BRIEF.md), then read
+After the current instruction, read [WRITING_AGENT_BRIEF.md](WRITING_AGENT_BRIEF.md), then read
 [MANUSCRIPT_EVIDENCE_MAP.md](MANUSCRIPT_EVIDENCE_MAP.md),
 [PENDING_RESULT_PLACEHOLDERS.md](PENDING_RESULT_PLACEHOLDERS.md), and
 [PAPER_WRITING_HANDOFF.md](PAPER_WRITING_HANDOFF.md). Together they state
@@ -38,7 +42,8 @@ transfer_paper/
 └── tables/
 ```
 
-The JSON, YAML, checksum, and log files under `data/gwosc/` are copied without
+The JSON, YAML, checksum, and log files under `data/gwosc/` and `data/cresst/`
+are copied without
 scientific modification from the archived evidence. CSV files under
 `data/derived/` are convenience views generated from those authoritative
 files. If the two ever disagree, the archived evidence JSON is authoritative.
@@ -80,7 +85,8 @@ as an explicit placeholder first. Failed synchronized experiments should be
 written as negative results rather than tuned into positive claims. The writing
 agent must not turn confirmatory GWOSC, CRESST, event-significance, or
 injection-sensitivity claims into prose results until the required evidence
-files exist and have been reviewed. Exact placeholder text is in
+files exist and have been reviewed. CRESST-A is no longer pending; its reviewed
+evidence is present and must replace the old placeholder. Exact placeholder text is in
 [PENDING_RESULT_PLACEHOLDERS.md](PENDING_RESULT_PLACEHOLDERS.md).
 
 ## Writing-control tables

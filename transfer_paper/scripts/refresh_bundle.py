@@ -921,6 +921,28 @@ def _paper_implications(
             "paper_implication": local_paper_implication,
             "boundary": local_boundary,
         },
+        {
+            "paper_claim_area": "CRESST-A within-channel linear hierarchy",
+            "evidence_files": (
+                "data/cresst/current/cresst/p2_cresst_validation_seed22.json, "
+                "data/derived/cresst_per_channel_summary.csv, "
+                "data/derived/cresst_pooled_summary.csv"
+            ),
+            "result_summary": (
+                "Across seven chronologically split channels, rank-6 EMPCA "
+                "beat single-template OF and met the multi-template-OF "
+                "competitiveness gate; all five pooled negative controls "
+                "degraded with one channel-level wrong-PSD sign exception."
+            ),
+            "paper_implication": (
+                "The Results can present CRESST-A as positive public real-data "
+                "validation of the narrow within-channel linear hierarchy."
+            ),
+            "boundary": (
+                "Do not claim cross-channel transfer or validated detection "
+                "sensitivity; trigger efficiency was inconclusive."
+            ),
+        },
     ]
     for destination in (
         DERIVED_ROOT / "paper_implications.csv",
@@ -1262,6 +1284,21 @@ def _claim_status(provenance: dict[str, str]) -> None:
                 "No significance, false-alarm, or validated sensitivity claim."
             ),
         },
+        {
+            "topic": "CRESST-A linear hierarchy (public real data)",
+            "evidence_state": "verified_positive",
+            "paper_use": "Results and Methods",
+            "allowed_statement": (
+                "Rank-6 EMPCA beat single-template OF and met the "
+                "multi-template-OF competitiveness gate across seven "
+                "chronologically split channels; all five pooled negative "
+                "controls degraded."
+            ),
+            "prohibited_overclaim": (
+                "Do not claim cross-channel transfer or validated detection "
+                "sensitivity; disclose the one wrong-PSD channel exception."
+            ),
+        },
     ]
     for destination in (
         DERIVED_ROOT / "claim_status.csv",
@@ -1346,6 +1383,7 @@ def _write_manifest(
         "authoritative_sources": [
             "data/gwosc/runs/",
             "data/synthetic/",
+            "data/cresst/current/",
         ],
         "files": files,
     }

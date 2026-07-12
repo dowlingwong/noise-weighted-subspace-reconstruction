@@ -2,6 +2,11 @@
 
 Status date: 29 June 2026.
 
+> **Superseded in part:** read `REVISION_INSTRUCTION_2026-07-12.md` first.
+> CRESST-A has since been completed, synchronized, reviewed, and passed for the
+> narrow within-channel linear hierarchy. Any statement below that CRESST is
+> pending is obsolete.
+
 This directory is intended to be a standalone paper-writing bundle. A writing
 agent should be able to read this folder, inspect the copied evidence, use the
 derived CSVs and figures, and draft paper updates without opening the original
@@ -73,10 +78,11 @@ interval, so the safe interpretation is real-noise/model inadequacy or
 instability under the tested global/local PSD models, not a generic
 normalization bug and not a result to tune into a pass.
 
-The confirmatory GWOSC interval, CRESST/SCRESST validation, calibrated event
-significance, and validated injection sensitivity remain pending. Drafts
-should use the exact placeholders in `PENDING_RESULT_PLACEHOLDERS.md` wherever
-those results would be inserted.
+The confirmatory GWOSC interval, calibrated event significance, and validated
+injection sensitivity remain pending. CRESST-A is complete and must be written
+from the evidence and constraints in `REVISION_INSTRUCTION_2026-07-12.md`.
+Drafts should use the exact placeholders in `PENDING_RESULT_PLACEHOLDERS.md`
+only for results that remain pending.
 
 ## How this supports the paper
 

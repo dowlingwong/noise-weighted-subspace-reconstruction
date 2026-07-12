@@ -31,7 +31,7 @@ as if the evidence exists.
 | Shared-FIR statistic equivalence | `data/gwosc/followup/filter_equivalence.json`, `data/gwosc/followup/filter_equivalence.config.yaml`, `data/derived/gwosc_filter_equivalence_summary.csv`, `figures/gwosc_filter_equivalence.*` | verified positive for shared-statistic implementation identity | The explicit FFT-convolution and GWpy-convolution paths agree under the predeclared shared FIR statistic for synthetic control and H1/L1 real windows. | This does not prove the original PSD-domain GLS statistic and finite-duration FIR statistic are mathematically equivalent; GLS-to-FIR differences remain diagnostic sensitivity. |
 | Time-local PSD model | `data/gwosc/followup/time_local_noise.json`, `data/gwosc/followup/time_local_noise.config.yaml`, `data/derived/gwosc_time_local_psd_summary.csv`, `data/derived/gwosc_time_local_psd_blocks.csv`, `data/derived/gwosc_time_local_psd_spectral_summary.csv`, `figures/gwosc_time_local_psd.*` | verified negative on real H1/L1; synthetic control passed | The stationary synthetic control passed, but the predeclared primary 64-second local PSD model failed H1 and L1 real-data score-std acceptance with full coverage. | This does not invalidate the synthetic theory; it shows this GWOSC interval is not calibrated by the tested global/local PSD models. Do not retune radius, thresholds, quality cuts, or windows into a pass. |
 | Confirmatory GWOSC interval | `PENDING_RESULT_PLACEHOLDERS.md` | not run | Use a placeholder for any broader GWOSC calibration claim. | Current evidence is one GW150914-centered interval only. |
-| CRESST / SCRESST validation | `PENDING_RESULT_PLACEHOLDERS.md` | not run | Use a placeholder for any CRESST result. | No schema-validated CRESST evidence is present in this bundle. |
+| CRESST-A within-channel linear hierarchy | `data/cresst/current/cresst/p2_cresst_validation_seed22.json`, `data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml`, `data/derived/cresst_per_channel_summary.csv`, `data/derived/cresst_pooled_summary.csv` | verified positive | Rank-6 EMPCA beat single-template OF, met the multi-template-OF competitiveness gate, and all five negative controls degraded at the pooled level across seven chronologically split channels. The tied linear-AE/EMPCA maximum principal angle was about `1.91e-6` degrees. | Per-channel design only; one wrong-PSD control sign exception; trigger efficiency inconclusive; no cross-channel transfer or detection-sensitivity claim. |
 
 ## Suggested Results narrative
 
@@ -81,12 +81,12 @@ tuned after inspection.
 
 For a working manuscript draft, insert placeholders at the exact locations
 where missing results will later go. The placeholder must name the experiment
-and the required evidence file. The shared-FIR and time-local PSD follow-ups no
-longer require pending-evidence placeholders because their JSON evidence exists
-and has been reviewed; they require careful pass/fail wording instead. CRESST,
-confirmatory GWOSC, calibrated event-significance, and injection-sensitivity
-claims should remain placeholders until their archived evidence appears inside
-this bundle.
+and the required evidence file. The shared-FIR, time-local PSD, and CRESST-A
+results no longer require pending-evidence placeholders because their JSON
+evidence exists and has been reviewed; they require careful pass/fail wording
+instead. Confirmatory GWOSC, calibrated event-significance, and injection-
+sensitivity claims should remain placeholders until their archived evidence
+appears inside this bundle.
 
 ## Manuscript statements to avoid
 
@@ -95,7 +95,8 @@ Do not state that the nominal SNR-eight injection target was validated. Do not
 state that the original GLS and GWpy FIR statistics are equivalent. Do not
 state that the 64-second local PSD model improves or corrects calibration; it
 failed the real H1/L1 acceptance gate in this evidence bundle. Do not
-generalize from this one 256-second interval to all GWOSC data or to CRESST.
+generalize from this one 256-second interval to all GWOSC data. Do not
+generalize the CRESST-A result beyond within-channel reconstruction.
 
 ## Tables and plots to use
 

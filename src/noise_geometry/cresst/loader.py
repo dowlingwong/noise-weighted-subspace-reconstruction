@@ -185,6 +185,14 @@ def load_cresst_release(
     elif not mmap:
         traces = np.asarray(traces, dtype=np.float64)
 
+    # Preserve the source CSV row even after an optional reproducible subset.
+    # This is deliberately metadata-only: downstream numerical calculations
+    # continue to see the same traces, ordering, and feature values as the
+    # frozen validation path.
+    if "release_row_index" in features.columns:
+        raise ValueError(f"{feat_path.name} unexpectedly contains reserved column 'release_row_index'")
+    features.insert(0, "release_row_index", indices)
+
     meta = {
         "source_traces": str(x_path),
         "source_features": str(feat_path),

@@ -17,6 +17,9 @@ paths, and SHA-256 digests.
 - `synthetic/` contains exact copies of the S1–S9 multi-seed sweep records.
 - `synthetic/figures/` contains exact copies of the existing synthetic result
   figures from `results/figures/`.
+- `cresst/current/` contains the immutable synchronized frozen primary CRESST
+  record. `cresst/sensitivity/` is reserved for versioned post-freeze outputs;
+  those outputs must never overwrite `cresst/current/`.
 - `source_documents/` contains exact copies of the validation record,
   reference protocol, follow-up protocol, roadmap, and progress record.
 - `derived/` contains CSV views generated for notebooks and plotting.

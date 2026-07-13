@@ -21,6 +21,7 @@ acceptance gate pooled across channels. See
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -194,7 +195,24 @@ def _reversed_sign_channels(per_channel: dict[str, Any], key: str, pooled_mean_d
     ]
 
 
-def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
+def _trace_sha256(trace: np.ndarray) -> str:
+    """Stable hash of a release trace in canonical little-endian float64 form."""
+    canonical = np.ascontiguousarray(np.asarray(trace, dtype="<f8"))
+    return hashlib.sha256(canonical.tobytes()).hexdigest()
+
+
+def _index_digest(indices: np.ndarray) -> str:
+    canonical = np.ascontiguousarray(np.asarray(indices, dtype="<i8"))
+    return hashlib.sha256(canonical.tobytes()).hexdigest()
+
+
+def _run_release(
+    config: dict[str, Any],
+    root: Path,
+    *,
+    event_batches: list[dict[str, np.ndarray]] | None = None,
+    leakage_channels: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Run the CRESST Validation Protocol comparison on the public DMDC release.
 
     Sigma (the noise covariance/metric) is a per-detector-channel quantity:
@@ -273,6 +291,9 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
 
         pulse_mask = select_by_groups(pulse_features, channel_columns, {channel_key})
         noise_mask = select_by_groups(noise_features, channel_columns, {channel_key})
+        collect_audit_data = event_batches is not None or leakage_channels is not None
+        channel_pulses_raw = subsets["pulse_traces"][pulse_mask] if collect_audit_data else None
+        channel_noise_raw = subsets["noise_traces"][noise_mask] if collect_audit_data else None
         channel_pulses = pulses[pulse_mask]
         channel_noise = noise[noise_mask]
         channel_pulse_features = pulse_features[pulse_mask].reset_index(drop=True)
@@ -329,6 +350,78 @@ def _run_release(config: dict[str, Any], root: Path) -> dict[str, Any]:
             train, test, noise_train, fit.metric, rank, fit.of_template,
             seed=channel_seed, controls=controls,
         )
+
+        if event_batches is not None or leakage_channels is not None:
+            assert channel_pulses_raw is not None and channel_noise_raw is not None
+            pulse_calib_rows = channel_pulse_features.loc[pulse_calib, "release_row_index"].to_numpy(dtype=np.int64)
+            pulse_eval_rows = channel_pulse_features.loc[pulse_eval, "release_row_index"].to_numpy(dtype=np.int64)
+            noise_calib_rows = channel_noise_features.loc[noise_calib, "release_row_index"].to_numpy(dtype=np.int64)
+            noise_eval_rows = channel_noise_features.loc[noise_eval, "release_row_index"].to_numpy(dtype=np.int64)
+            train_hashes = np.asarray([_trace_sha256(row) for row in channel_pulses_raw[pulse_calib]])
+            test_hashes = np.asarray([_trace_sha256(row) for row in channel_pulses_raw[pulse_eval]])
+            noise_train_hashes = np.asarray([_trace_sha256(row) for row in channel_noise_raw[noise_calib]])
+            noise_eval_hashes = np.asarray([_trace_sha256(row) for row in channel_noise_raw[noise_eval]])
+
+            if event_batches is not None:
+                batch: dict[str, np.ndarray] = {
+                    "event_id": np.asarray([f"{split}:row:{row}" for row in pulse_eval_rows]),
+                    "release_row_index": pulse_eval_rows,
+                    "trace_sha256": test_hashes,
+                    "run": np.full(test.shape[0], str(channel_key[0])),
+                    "channel": np.full(test.shape[0], str(channel_key[1])),
+                    "channel_label": np.full(test.shape[0], label),
+                    "chronological_time": channel_pulse_features.loc[pulse_eval, time_column].to_numpy(dtype=np.float64),
+                    "split_label": np.full(test.shape[0], "evaluation"),
+                    "event_weight": np.ones(test.shape[0], dtype=np.float64),
+                    "of_weighted_residual": np.asarray(of_residual, dtype=np.float64),
+                    "multi_template_of_weighted_residual": np.asarray(multi_residual, dtype=np.float64),
+                    "pca_weighted_residual": np.asarray(pca_residual, dtype=np.float64),
+                    "empca_weighted_residual": np.asarray(empca_residual, dtype=np.float64),
+                }
+                for name in controls:
+                    batch[f"control_{name}_weighted_residual"] = np.asarray(
+                        control_residuals[name], dtype=np.float64
+                    )
+                event_batches.append(batch)
+
+            if leakage_channels is not None:
+                calibration_rows = set(pulse_calib_rows.tolist()) | set(noise_calib_rows.tolist())
+                evaluation_rows = set(pulse_eval_rows.tolist()) | set(noise_eval_rows.tolist())
+                calibration_hashes = set(train_hashes.tolist()) | set(noise_train_hashes.tolist())
+                evaluation_hashes = set(test_hashes.tolist()) | set(noise_eval_hashes.tolist())
+                leakage_channels.append(
+                    {
+                        "channel_label": label,
+                        "run": str(channel_key[0]),
+                        "channel": str(channel_key[1]),
+                        "pulse_calibration_count": int(pulse_calib_rows.size),
+                        "pulse_evaluation_count": int(pulse_eval_rows.size),
+                        "noise_calibration_count": int(noise_calib_rows.size),
+                        "noise_evaluation_count": int(noise_eval_rows.size),
+                        "pulse_calibration_row_index_sha256": _index_digest(pulse_calib_rows),
+                        "pulse_evaluation_row_index_sha256": _index_digest(pulse_eval_rows),
+                        "noise_calibration_row_index_sha256": _index_digest(noise_calib_rows),
+                        "noise_evaluation_row_index_sha256": _index_digest(noise_eval_rows),
+                        "calibration_evaluation_row_overlap_count": len(calibration_rows & evaluation_rows),
+                        "calibration_evaluation_trace_hash_overlap_count": len(
+                            calibration_hashes & evaluation_hashes
+                        ),
+                        "pulse_calibration_max_time": float(np.max(pulse_hours[pulse_calib])),
+                        "pulse_evaluation_min_time": float(np.min(pulse_hours[pulse_eval])),
+                        "noise_calibration_max_time": float(np.max(noise_hours[noise_calib])),
+                        "noise_evaluation_min_time": float(np.min(noise_hours[noise_eval])),
+                        "pulse_split_chronological": bool(
+                            np.max(pulse_hours[pulse_calib]) <= np.min(pulse_hours[pulse_eval])
+                        ),
+                        "noise_split_chronological": bool(
+                            np.max(noise_hours[noise_calib]) <= np.min(noise_hours[noise_eval])
+                        ),
+                        "psd_and_metric_fit_source": "calibration noise only",
+                        "pca_empca_linear_ae_fit_source": "calibration pulses only",
+                        "of_and_multi_template_fit_source": "calibration pulses only",
+                        "evaluation_source": "held-out later chronological pulses only",
+                    }
+                )
 
         residual_traces = test - fit.empca_recon
         whitening = residual_whitening_ratio(residual_traces, noise_train)
@@ -569,3 +662,53 @@ def run_cresst_experiment(config: dict[str, Any], data_root_path: str | Path) ->
         noise_train = train[peak <= threshold]
 
     return _model_and_metrics(train, test, noise_train, config, metadata, n_total=traces.shape[0])
+
+
+def run_cresst_experiment_with_event_data(
+    config: dict[str, Any], data_root_path: str | Path
+) -> tuple[dict[str, Any], dict[str, np.ndarray], dict[str, Any]]:
+    """Run the release validation and retain auditable held-out event arrays.
+
+    This entry point executes the same numerical path as ``run_cresst_experiment``.
+    The only additions are metadata collection and copies of arrays that were
+    already computed for the frozen pooled summaries.
+    """
+    root = dataset_root("cresst", data_root_path)
+    if not _use_release(config, root):
+        raise ValueError("event-level export is supported only for the public CRESST release path")
+    batches: list[dict[str, np.ndarray]] = []
+    channels: list[dict[str, Any]] = []
+    metrics = _run_release(config, root, event_batches=batches, leakage_channels=channels)
+    if not batches:
+        raise RuntimeError("CRESST release run produced no event-level batches")
+    columns = list(batches[0])
+    if any(list(batch) != columns for batch in batches):
+        raise RuntimeError("event-level batches have inconsistent columns")
+    events = {name: np.concatenate([batch[name] for batch in batches]) for name in columns}
+    audit = {
+        "analysis_label": "post-freeze sensitivity analysis",
+        "channels": channels,
+        "n_channels": len(channels),
+        "n_evaluation_pulses": int(len(events["event_id"])),
+        "n_duplicate_full_release_traces": int(metrics["n_duplicate_traces"]),
+        "all_channel_splits_chronological": all(
+            c["pulse_split_chronological"] and c["noise_split_chronological"] for c in channels
+        ),
+        "total_calibration_evaluation_row_overlap_count": int(
+            sum(c["calibration_evaluation_row_overlap_count"] for c in channels)
+        ),
+        "total_calibration_evaluation_trace_hash_overlap_count": int(
+            sum(c["calibration_evaluation_trace_hash_overlap_count"] for c in channels)
+        ),
+        "preprocessing": (
+            "Per-trace subtraction of the mean of the first baseline_fraction samples, "
+            "followed by deterministic stride downsampling capped at max_features; identical "
+            "prepared traces are supplied to all comparators."
+        ),
+        "weighted_residual_definition": (
+            "R = (x - xhat)^T Sigma^{-1} (x - xhat) / n_features; "
+            "dimensionless covariance-normalized mean-square residual per retained sample."
+        ),
+        "event_weight_definition": "1.0 for every held-out pulse; the frozen pooled mean is unweighted across events.",
+    }
+    return metrics, events, audit

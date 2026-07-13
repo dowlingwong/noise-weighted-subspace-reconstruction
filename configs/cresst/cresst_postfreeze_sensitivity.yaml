@@ -1,0 +1,24 @@
+# Post-freeze sensitivity analysis requested 2026-07-13.
+# This file does not alter or replace the frozen primary CRESST validation.
+analysis_id: CRESST_POSTFREEZE_CHANNEL_ROBUSTNESS_20260713_V1
+analysis_label: post-freeze sensitivity analysis
+
+frozen_source_commit: 9c9f696ff6bca6e6b9729cdb90e41ee92d576787
+frozen_config: configs/cresst/cresst_validation.yaml
+frozen_config_sha256: 0cb11a0e60bc9e9073923b342c6f18e70b48f328654e311c16f966be78f9514a
+archived_primary_json: transfer_paper/data/cresst/current/cresst/p2_cresst_validation_seed22.json
+archived_primary_sha256: 2e794345140fe291d77778cf8362981f7a863173ac3e01ef92dad07298d29b8f
+
+expected_evaluation_pulses: 19335
+expected_channels: 7
+competitiveness_tolerance: 1.1
+original_event_bootstrap_replicates: 300
+
+# Fixed before this sensitivity analysis is executed.
+hierarchical_bootstrap_seed: 20260713
+hierarchical_bootstrap_replicates: 10000
+reproduction_rtol: 1.0e-10
+reproduction_atol: 1.0e-10
+
+# The runner refuses to overwrite this versioned directory.
+output_directory: transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1

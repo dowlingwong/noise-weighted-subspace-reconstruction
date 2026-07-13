@@ -12,6 +12,7 @@ import pytest
 from src.noise_geometry.cresst import (
     load_cresst_release,
     run_cresst_experiment,
+    run_cresst_experiment_with_event_data,
     select_cresst_subsets,
 )
 
@@ -58,6 +59,7 @@ def test_load_release_and_subsets(tmp_path):
     assert traces.shape == (n_noise + n_pulse, 256)
     assert len(features) == n_noise + n_pulse
     assert meta["n_total"] == n_noise + n_pulse
+    np.testing.assert_array_equal(features["release_row_index"], np.arange(n_noise + n_pulse))
 
     subsets = select_cresst_subsets(traces, features)
     assert subsets["n_noise"] == n_noise
@@ -73,6 +75,8 @@ def test_release_subsample_is_reproducible(tmp_path):
     b, fb, _ = load_cresst_release(raw, split="test", max_traces=50, seed=7)
     assert a.shape[0] == 50
     np.testing.assert_array_equal(a, b)
+    np.testing.assert_array_equal(fa["release_row_index"], fb["release_row_index"])
+    assert fa["release_row_index"].is_monotonic_increasing
 
 
 def _write_grouped_release(raw: Path, *, groups, n_per_group=300, n_samples=128, seed=0, missing_resolution_for=None):
@@ -155,7 +159,7 @@ def test_run_cresst_experiment_validation_pipeline(tmp_path):
             "n_injections_per_amplitude": 40,
         },
     }
-    result = run_cresst_experiment(config, tmp_path)
+    result, events, audit = run_cresst_experiment_with_event_data(config, tmp_path)
 
     assert result["n_traces"] <= n_total
     assert result["n_channels_total"] == len(groups)
@@ -186,6 +190,13 @@ def test_run_cresst_experiment_validation_pipeline(tmp_path):
     assert "acceptance" in result
     assert isinstance(result["acceptance"]["passed"], bool)
     assert result["acceptance"]["fpr_diagnostic_only"] == [0.001]  # default, not overridden here
+    assert len(events["event_id"]) == sum(c["n_test_pulses"] for c in used_channels)
+    assert len(np.unique(events["event_id"])) == len(events["event_id"])
+    assert set(events["split_label"]) == {"evaluation"}
+    assert audit["n_channels"] == len(used_channels)
+    assert audit["all_channel_splits_chronological"]
+    assert audit["total_calibration_evaluation_row_overlap_count"] == 0
+    assert audit["total_calibration_evaluation_trace_hash_overlap_count"] == 0
 
     import json
 

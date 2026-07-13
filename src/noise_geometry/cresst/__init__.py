@@ -1,6 +1,6 @@
 """CRESST pulse-shape loading and reconstruction helpers."""
 
-from .analysis import run_cresst_experiment
+from .analysis import run_cresst_experiment, run_cresst_experiment_with_event_data
 from .loader import load_cresst_release, load_cresst_traces, select_cresst_subsets
 
 __all__ = [
@@ -8,4 +8,5 @@ __all__ = [
     "load_cresst_release",
     "select_cresst_subsets",
     "run_cresst_experiment",
+    "run_cresst_experiment_with_event_data",
 ]

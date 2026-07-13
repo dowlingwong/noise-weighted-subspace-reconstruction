@@ -1,6 +1,10 @@
 # CRESST post-freeze sensitivity runbook
 
-Status: prepared 13 July 2026; numerical execution pending on the remote server.
+Status: prepared and executed 13 July 2026 (232 reproduction checks, 0
+failures; output at
+`transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/`).
+See `docs/CRESST_RESULT.md` for the post-hoc pulse/noise cross-stream
+ordering correction this run's leakage audit surfaced.
 
 This run is a **post-freeze sensitivity analysis**. It does not tune, rerun
 model selection, change the frozen validation, or replace the archived pooled

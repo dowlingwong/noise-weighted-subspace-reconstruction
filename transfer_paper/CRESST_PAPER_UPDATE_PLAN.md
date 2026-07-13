@@ -21,10 +21,12 @@ After the GWOSC sentences, insert (condensed from the manuscript-safe
 paragraph in `docs/CRESST_RESULT.md`):
 
 > A subsequent predeclared validation on the public CRESST-II/III
-> pulse-shape release passed: with each of seven detector channels split
-> chronologically into calibration and evaluation segments, rank-6 EMPCA
-> under a per-channel PSD-stationary noise metric beat the single-template
-> optimal filter and remained competitive with a multi-template
+> pulse-shape release passed: within each of seven detector channels, the
+> pulse and noise streams were each split chronologically, separately, into
+> calibration and evaluation segments (zero row/hash overlap within a
+> stream), and rank-6 EMPCA under a per-channel PSD-stationary noise metric
+> beat the single-template optimal filter and remained competitive with a
+> multi-template
 > optimal-filter bank, with paired-bootstrap 95% intervals excluding zero
 > and all predeclared negative controls degrading as required.
 
@@ -48,7 +50,10 @@ section. Question/Setup/Metric/Result/Interpretation format:
 
 - **Setup**: DMDC CRESST-II/III pulse-shape release (arXiv:2508.03078);
   7 test-split detector channels; per-channel chronological 70/30
-  calibration/evaluation split by `hours`; noise metric = inverse of a
+  calibration/evaluation split by `hours`, applied separately to the pulse
+  and noise streams (zero row/hash overlap within each stream; the two
+  streams' cutoffs are not synchronized -- see the post-hoc leakage-audit
+  note below); noise metric = inverse of a
   circulant covariance built from the calibration-segment median PSD
   (257 free parameters vs ~131k for a full sample covariance) with
   shrinkage 0.1; predeclaration frozen at commit `9c9f696ff6bc` before the
@@ -84,6 +89,17 @@ section. Question/Setup/Metric/Result/Interpretation format:
      contaminated noise bank) plus grid anchoring to full-resolution
      published σ_OF. Reported as limitation; grid frozen predeclared, not
      widened post hoc.
+  4. Cross-stream ordering (found by the 2026-07-13 post-freeze leakage
+     audit, `transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/leakage_audit.json`):
+     because the pulse and noise streams are split separately, their
+     cutoffs are not synchronized. In channels 35_57.0 and 35_58.0,
+     respectively 6 and 3 evaluation pulses (of 19,335 pooled) have
+     timestamps earlier than that channel's final calibration-noise
+     timestamp. Zero row/hash overlap within each stream still holds, and
+     no evaluation pulse entered any fitted model, so the result is
+     unaffected — but do not write "all calibration data precede all
+     evaluation data"; write that the two streams were each split
+     chronologically with zero row/hash overlap.
 
 ### 7.13 Placeholder section
 

@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+### 2026-07-13
+
+- Fixed two issues found while reviewing the CRESST post-freeze channel-
+  robustness sensitivity archive
+  (`transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/`,
+  added 2026-07-13, not by this fix): (1) three files present on the server
+  and listed in the archive's own `SHA256SUMS` (`console.log`,
+  `event_residuals_lossless.npz`, `hierarchical_bootstrap_draws.npz`) were
+  silently excluded from every commit by the repository's global `*.log`/
+  `*.npz` ignore rules; added a narrow `.gitignore` exception scoped to
+  `transfer_paper/data/cresst/sensitivity/` (all ~8 MB, small derived
+  per-event/bootstrap arrays, not raw detector data) and tracked the three
+  files. (2) `docs/CRESST_PREDECLARED_GATES.md` and downstream
+  manuscript-facing text described the per-channel chronological split as a
+  single combined cut, but the pulse and noise streams are actually split
+  *separately*; the sensitivity archive's leakage audit found 6 and 3
+  evaluation pulses (of 19,335 pooled) in channels `35_57.0`/`35_58.0`
+  respectively with timestamps earlier than that channel's final
+  calibration-noise timestamp. No evaluation pulse entered any fitted model
+  and zero within-stream row/hash overlap holds, so Stage C5's result is
+  unaffected; corrected the wording (in `CRESST_PREDECLARED_GATES.md`,
+  `CRESST_RESULT.md`, `CURRENT_STATUS.md`, and
+  `transfer_paper/CRESST_PAPER_UPDATE_PLAN.md`) to "pulse and noise streams
+  were each split chronologically, separately, with zero row/hash overlap,"
+  and added a future-work recommendation to use one shared time cutoff per
+  channel for a strict prospective replication. Documentation-only: the
+  frozen split fraction, seed, code, and Stage C5 result are unchanged, and
+  nothing was rerun.
+
 ### 2026-07-04
 
 - Fixed a real data-format bug: the DMDC-hosted `X_*.npy`/`y_*.npy` release

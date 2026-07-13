@@ -41,3 +41,10 @@ paper2/results/_suite_runs/
 *.npy
 *.zst
 *.log
+
+# CRESST post-freeze sensitivity archives: small (MB-scale) derived
+# per-event/bootstrap arrays and run logs kept as a lossless audit trail
+# alongside the compact CSV summaries -- not raw detector data, so a narrow
+# exception to the repo-wide *.npz/*.log rules above.
+!transfer_paper/data/cresst/sensitivity/**/*.npz
+!transfer_paper/data/cresst/sensitivity/**/*.log

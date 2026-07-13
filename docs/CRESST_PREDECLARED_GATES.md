@@ -40,16 +40,44 @@ tests domain transfer, which Paper 1 does not claim, and would likely fail
 for the same "wrong noise model" reason GWOSC did -- telling us nothing
 about the linear hierarchy.
 
-**v2**: split *within* each channel, chronologically. Sort each channel's
-own traces by `hours`; the earliest `channel_calibration_fraction` (0.7) is
-calibration (Sigma, PSD, template bank, subspace all fit here), the later
-remainder is evaluation (test pulses, background-FPR noise, injection
-substrate). This is still leakage-safe (calibration and evaluation traces
-are disjoint, PSD is independent of the test residuals it's later scored
-against) and turns the 7 test-release channels into 7 quasi-independent
-replications instead of one fragile 5-vs-2 channel split. The old "7-group
-granularity" caveat from v1 no longer applies -- every channel contributes
-its own held-out evaluation, not a coin-flip group assignment.
+**v2**: split *within* each channel, chronologically. Within each channel,
+the pulse stream and the noise stream are each sorted by `hours` and cut
+*separately*: the earliest `channel_calibration_fraction` (0.7) of that
+channel's pulses is pulse-calibration (template bank, subspace fits), and
+independently the earliest 0.7 of that channel's noise is noise-calibration
+(Sigma/PSD); the later remainder of each stream is that stream's evaluation
+segment (test pulses; background-FPR noise, injection substrate). Each
+stream's own split is chronological and leakage-safe (zero calibration/
+evaluation row or release-trace-hash overlap, verified per channel -- see
+the post-hoc correction below for the precise claim this supports), and
+turns the 7 test-release channels into 7 quasi-independent replications
+instead of one fragile 5-vs-2 channel split. The old "7-group granularity"
+caveat from v1 no longer applies -- every channel contributes its own
+held-out evaluation, not a coin-flip group assignment.
+
+### Post-hoc correction (2026-07-13): pulse/noise cross-stream ordering
+
+The post-freeze sensitivity analysis
+(`transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/`,
+`leakage_audit.json`) found that because the pulse and noise streams are
+split *separately* (each internally chronological, per the corrected
+description above), their cutoffs are not synchronized: in channels
+`35_57.0` and `35_58.0`, respectively 6 and 3 evaluation pulses (of 19,335
+pooled evaluation events total) have `hours` earlier than that channel's
+final calibration-noise timestamp. No evaluation pulse entered any fitted
+signal model (PCA/EMPCA/AE/template bank are fit on calibration pulses
+only, Sigma/PSD on calibration noise only, and the row/hash overlap check
+that matters for that -- calibration vs. evaluation *within* the same
+stream -- remains exactly 0 in every channel), so this does not invalidate
+the frozen Stage C5 result. It does mean the strongest possible verbal
+claim, "all calibration data precede all evaluation data," is not literally
+correct across streams. Use instead: **pulse and noise streams were each
+split chronologically, separately, with zero row/hash overlap between that
+stream's calibration and evaluation segments.** A future strict prospective
+replication should use one shared time cutoff per channel for both streams
+together, at the cost of unequal calibration/evaluation fractions between
+pulses and noise. This is a documentation correction only -- the frozen
+split fraction, seed, and code are unchanged, and Stage C5 was not rerun.
 
 ## Sample-size consequences of the per-channel redesign (v3)
 

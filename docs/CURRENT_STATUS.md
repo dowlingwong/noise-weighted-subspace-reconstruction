@@ -53,9 +53,9 @@ set.
 - CRESST-A (public DMDC CRESST-II/III pulse-shape release, test split): EMPCA
   at the predeclared rank (k=6) beat single-template OF and was competitive
   with multi-template OF, and all 5 predeclared negative controls degraded,
-  by a pooled paired-bootstrap 95% CI across all 7 detector channels (each
-  split chronologically into its own calibration/evaluation segments). See
-  `docs/CRESST_RESULT.md`.
+  by a pooled paired-bootstrap 95% CI across all 7 detector channels (within
+  each channel, the pulse and noise streams were each split chronologically,
+  separately, with zero row/hash overlap). See `docs/CRESST_RESULT.md`.
 
 ## What Is Not Supported
 
@@ -102,9 +102,10 @@ detector metric at the predeclared amplitude grid.
 The correct interpretation is:
 
 ```text
-CRESST-A shows that, on real cryogenic detector pulses split chronologically
-within each channel, the noise-weighted linear hierarchy (EMPCA vs.
-single-/multi-template OF) holds with statistically supported margins. It
+CRESST-A shows that, with the pulse and noise streams each split
+chronologically (separately) within each channel, the noise-weighted
+linear hierarchy (EMPCA vs. single-/multi-template OF) holds with
+statistically supported margins. It
 does not show cross-channel transfer, and it does not show validated
 detection sensitivity from the trigger-efficiency metric as measured.
 ```

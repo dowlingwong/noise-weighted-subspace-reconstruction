@@ -120,9 +120,11 @@ Use this as the base paragraph:
 
 ```text
 As a public real-data validation, we applied the noise-geometry pipeline to
-the CRESST-II/III pulse-shape release (arXiv:2508.03078), splitting each of
-the 7 test-release detector channels chronologically into calibration and
-evaluation segments. EMPCA at the predeclared rank (k=6) beat a
+the CRESST-II/III pulse-shape release (arXiv:2508.03078). Within each of the
+7 test-release detector channels, the pulse stream and the noise stream were
+each split chronologically, separately, into calibration and evaluation
+segments, with zero row/hash overlap between a stream's own calibration and
+evaluation events. EMPCA at the predeclared rank (k=6) beat a
 single-template optimal filter and remained competitive with a
 multi-template optimal-filter bank, judged by a paired bootstrap over held-
 out events pooled across channels (95% CI excluding zero in both cases).
@@ -150,6 +152,14 @@ limitation, not as validated detection sensitivity.
   channel's noise model works for another.
 - Do not quote Stage C2 smoke metrics as part of this result (see the
   smoke-contamination acknowledgment in `docs/CRESST_PREDECLARED_GATES.md`).
+- Do not claim "all calibration data precede all evaluation data" -- the
+  pulse and noise streams within a channel are split separately, each
+  internally chronological with zero row/hash overlap, but their cutoffs
+  are not synchronized. In channels `35_57.0` and `35_58.0`, 6 and 3
+  evaluation pulses respectively (of 19,335 pooled) have timestamps earlier
+  than that channel's final calibration-noise timestamp; see the post-hoc
+  correction in `docs/CRESST_PREDECLARED_GATES.md`. This does not affect
+  the result (no evaluation pulse entered any fitted model).
 
 ## Evidence Files
 
@@ -166,6 +176,15 @@ Derived summaries:
 - `transfer_paper/data/derived/cresst_per_channel_summary.csv`
 - `transfer_paper/data/derived/cresst_pooled_summary.csv`
 - `transfer_paper/data/cresst/current/` (synchronized run copy)
+
+Post-freeze sensitivity (2026-07-13; does not alter or replace the above):
+
+- `transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/`
+  (event-level lossless residuals, per-channel/pooled reproduction of the
+  frozen result within `1e-10`, the cross-stream leakage audit behind the
+  post-hoc correction above, and a 10,000-replicate hierarchical
+  channel-clustered bootstrap)
+- `docs/CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md`
 
 ## Diagnostic Framing
 
@@ -188,6 +207,10 @@ CRESST work should be a new predeclared stage, for example:
   `NaN` here;
 - an investigation (diagnostic only, not a re-run of this gate) of why
   channel `35_58.0`'s noise appears close to white;
+- a strict prospective replication using one shared time cutoff per channel
+  for both the pulse and noise streams together (accepting unequal
+  calibration/evaluation fractions between the two streams), rather than
+  splitting each stream separately as done here;
 - extending to `X_train.npy`/the full release beyond the test split, with
   its own frozen predeclaration;
 - a genuine cross-channel generalization study, explicitly framed as

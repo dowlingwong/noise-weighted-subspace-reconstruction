@@ -68,6 +68,22 @@ uv run python scripts/run_experiment.py \
 
 Preserve each generated `.json`, `.config.yaml`, and `.log` file.
 
+## CRESST post-freeze channel robustness
+
+The non-tuning event-export, channel-balanced, and hierarchical-bootstrap run
+has a dedicated fail-closed procedure:
+
+```bash
+uv run python scripts/run_cresst_postfreeze_sensitivity.py \
+  --config configs/cresst/cresst_postfreeze_sensitivity.yaml \
+  --data-root /ceph/dwong/paper1_dataset
+```
+
+Read `CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md` before execution. The command
+must reproduce the archived frozen result before it computes any sensitivity
+interval, and it writes a new versioned directory under
+`transfer_paper/data/cresst/sensitivity/` without changing archived evidence.
+
 ## Evidence Bundle Refresh
 
 The paper-revision evidence bundle lives under `transfer_paper/`.

@@ -31,7 +31,8 @@ as if the evidence exists.
 | Shared-FIR statistic equivalence | `data/gwosc/followup/filter_equivalence.json`, `data/gwosc/followup/filter_equivalence.config.yaml`, `data/derived/gwosc_filter_equivalence_summary.csv`, `figures/gwosc_filter_equivalence.*` | verified positive for shared-statistic implementation identity | The explicit FFT-convolution and GWpy-convolution paths agree under the predeclared shared FIR statistic for synthetic control and H1/L1 real windows. | This does not prove the original PSD-domain GLS statistic and finite-duration FIR statistic are mathematically equivalent; GLS-to-FIR differences remain diagnostic sensitivity. |
 | Time-local PSD model | `data/gwosc/followup/time_local_noise.json`, `data/gwosc/followup/time_local_noise.config.yaml`, `data/derived/gwosc_time_local_psd_summary.csv`, `data/derived/gwosc_time_local_psd_blocks.csv`, `data/derived/gwosc_time_local_psd_spectral_summary.csv`, `figures/gwosc_time_local_psd.*` | verified negative on real H1/L1; synthetic control passed | The stationary synthetic control passed, but the predeclared primary 64-second local PSD model failed H1 and L1 real-data score-std acceptance with full coverage. | This does not invalidate the synthetic theory; it shows this GWOSC interval is not calibrated by the tested global/local PSD models. Do not retune radius, thresholds, quality cuts, or windows into a pass. |
 | Confirmatory GWOSC interval | `PENDING_RESULT_PLACEHOLDERS.md` | not run | Use a placeholder for any broader GWOSC calibration claim. | Current evidence is one GW150914-centered interval only. |
-| CRESST-A within-channel linear hierarchy | `data/cresst/current/cresst/p2_cresst_validation_seed22.json`, `data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml`, `data/derived/cresst_per_channel_summary.csv`, `data/derived/cresst_pooled_summary.csv` | verified positive | Rank-6 EMPCA beat single-template OF, met the multi-template-OF competitiveness gate, and all five negative controls degraded at the pooled level across seven chronologically split channels. The tied linear-AE/EMPCA maximum principal angle was about `1.91e-6` degrees. | Per-channel design only; one wrong-PSD control sign exception; trigger efficiency inconclusive; no cross-channel transfer or detection-sensitivity claim. |
+| CRESST-A within-channel linear hierarchy | `data/cresst/current/cresst/p2_cresst_validation_seed22.json`, `data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml`, `data/derived/cresst_per_channel_summary.csv`, `data/derived/cresst_pooled_summary.csv` | verified positive primary analysis | Pulse and noise streams were each split chronologically, separately. Rank-6 EMPCA beat single-template OF, met the multi-template-OF competitiveness gate, and all five negative controls degraded at the pooled level across seven channels. The tied linear-AE/EMPCA maximum principal angle was about `1.91e-6` degrees. | The pooled 300-resample event bootstrap is conditional on the observed channels. Per-channel design only; one wrong-PSD control sign exception; trigger efficiency inconclusive; no cross-channel transfer or detection-sensitivity claim. |
+| CRESST-A channel-balanced and hierarchical sensitivity | `data/cresst/sensitivity/20260713_channel_robustness_v1/summary.json`, `data/cresst/sensitivity/20260713_channel_robustness_v1/channel_summary.csv`, `data/cresst/sensitivity/20260713_channel_robustness_v1/estimand_summary.csv`, `data/cresst/sensitivity/20260713_channel_robustness_v1/hierarchical_bootstrap_draws.npz`, `figures/cresst_channel_robustness.*` | verified positive post-freeze sensitivity | Equal-channel means were `731.87` for OF minus EMPCA, `279.26` for the competitiveness margin, and `3.78` for PCA minus EMPCA. Channel-then-event hierarchical 95% intervals were `[110.69, 1537.48]`, `[36.52, 569.01]`, and `[1.22, 6.69]`, respectively. All seven channel means were positive for each contrast. | This analysis does not replace the frozen pooled primary gate. It uses 10,000 resamples with seed `20260713`, but only seven run/channel clusters from two runs make cluster-level percentile intervals coarse and potentially unstable. |
 
 ## Suggested Results narrative
 
@@ -42,13 +43,20 @@ and covariance models reproduce the intended mathematical behavior in
 controlled settings. The synthetic result should be framed as necessary
 validation, not as real-data proof.
 
-Second, report the GWOSC PSD reference check. The repository PSD estimator
+Second, report the public CRESST hierarchy. Preserve the pooled event bootstrap
+as primary, then state that equal-channel weighting and the post-freeze
+channel-then-event bootstrap retained positive OF, multi-template
+competitiveness, and same-rank PCA contrasts. Report the exact intervals and
+the seven-cluster limitation together. Describe the split only as: “pulse and
+noise streams were each split chronologically, separately.”
+
+Third, report the GWOSC PSD reference check. The repository PSD estimator
 agreed with GWpy exactly at recorded precision on identical windows for both
 H1 and L1. This is important because it isolates the later failure: the
 global-PSD real-data gate did not fail because the median-Welch PSD estimator
 was trivially inconsistent with GWpy.
 
-Third, report the failed held-out null calibration. The observed held-out
+Fourth, report the failed held-out null calibration. The observed held-out
 score spread exceeded the PSD-predicted spread in both random and chronological
 tests, with chronological blocks failing for both detectors. This result should
 be written as the main real-data finding currently available. It implies that
@@ -77,6 +85,13 @@ experiment is a negative real-data follow-up: the synthetic control passed, but
 the fixed 64-second local model did not calibrate H1 or L1 and should not be
 tuned after inspection.
 
+For CRESST, distinguish signal-model capacity from covariance weighting. The
+OF contrast is large but changes both model capacity and geometry; the matched-
+rank PCA contrast is the more direct weighting comparison. Its channel-aware
+interval is positive, while the normalized effect remains heterogeneous across
+channels. The correct conclusion is a supported within-channel reconstruction
+hierarchy, not detector sensitivity or population-level channel generalization.
+
 ## Placeholder insertion rule
 
 For a working manuscript draft, insert placeholders at the exact locations
@@ -96,7 +111,9 @@ state that the original GLS and GWpy FIR statistics are equivalent. Do not
 state that the 64-second local PSD model improves or corrects calibration; it
 failed the real H1/L1 acceptance gate in this evidence bundle. Do not
 generalize from this one 256-second interval to all GWOSC data. Do not
-generalize the CRESST-A result beyond within-channel reconstruction.
+generalize the CRESST-A result beyond within-channel reconstruction. Do not
+describe the 19,335 pulses as independent detector-level replications or call
+the post-freeze hierarchical analysis the primary analysis.
 
 ## Tables and plots to use
 

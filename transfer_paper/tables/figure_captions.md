@@ -16,6 +16,33 @@ residual chi-square per degree of freedom; the dashed line marks unity. Each
 point is one deterministic seed. Complete 68% and 95% intervals are reported
 in `data/derived/synthetic_gate_summary.csv`.
 
+## CRESST within-channel validation
+
+Frozen public CRESST within-channel validation. **A**, Per-channel paired
+effects for single-template optimal filtering and the predeclared
+multi-template-OF competitiveness margin; horizontal bars are 95% event-
+bootstrap intervals from 300 resamples. **B**, Pooled paired degradations for
+five negative controls. Wrong-PSD weighting is the weakest pooled control and
+has one channel-level sign reversal on `35/58.0`. **C**, Maximum principal
+angles between independently fitted tied linear-AE and EMPCA subspaces. Pulse
+and noise streams were each split chronologically, separately. The frozen
+primary analysis contains 19,335 held-out pulses across seven channels and is
+conditional on those observed channels.
+
+## CRESST channel-aware sensitivity
+
+Post-freeze channel-aware sensitivity analysis of public CRESST held-out
+reconstruction. **A**, Per-channel residual-reduction fractions for
+single-template OF minus EMPCA and same-rank PCA minus EMPCA. **B**, Frozen
+pooled event-weighted means compared with equal-channel means; intervals are
+95% percentiles from 10,000 channel-then-event hierarchical bootstrap
+resamples with seed `20260713`. The plotted OF-minus-EMPCA and PCA-minus-EMPCA
+intervals remain positive; the archived multi-template competitiveness
+interval is also positive. These intervals test robustness to unequal channel
+sizes but are coarse and potentially unstable because the archive contains
+only seven run/channel clusters from two runs; they do not replace the pooled
+primary analysis.
+
 ## GWOSC held-out null calibration
 
 Held-out amplitude-spread calibration for 256 seconds of GW150914-centered H1

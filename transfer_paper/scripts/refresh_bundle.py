@@ -24,6 +24,12 @@ GWOSC_ROOT = DATA_ROOT / "gwosc"
 SYNTHETIC_ROOT = DATA_ROOT / "synthetic"
 TABLE_ROOT = TRANSFER_ROOT / "tables"
 CONFIG_ROOT = DATA_ROOT / "configs"
+CRESST_SENSITIVITY_ROOT = (
+    DATA_ROOT
+    / "cresst"
+    / "sensitivity"
+    / "20260713_channel_robustness_v1"
+)
 
 
 def _sha256(path: Path) -> str:
@@ -148,6 +154,21 @@ def _copy_synthetic_figures(provenance: dict[str, str]) -> None:
         shutil.copy2(source, destination)
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
             source.relative_to(REPO_ROOT)
+        )
+
+
+def _copy_cresst_sensitivity_figures(provenance: dict[str, str]) -> None:
+    """Expose the archived post-freeze sensitivity figure under a stable stem."""
+    figure_root = TRANSFER_ROOT / "figures"
+    figure_root.mkdir(parents=True, exist_ok=True)
+    for suffix in ("pdf", "png"):
+        source = CRESST_SENSITIVITY_ROOT / f"paper_figure.{suffix}"
+        if not source.is_file():
+            continue
+        destination = figure_root / f"cresst_channel_robustness.{suffix}"
+        shutil.copy2(source, destination)
+        provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
+            source.relative_to(TRANSFER_ROOT)
         )
 
 
@@ -703,6 +724,8 @@ def _paper_implications(
         if not synthetic.empty
         else ""
     )
+    cresst_sensitivity = _load_json(CRESST_SENSITIVITY_ROOT / "summary.json")
+    cresst_estimands = cresst_sensitivity["estimands"]
     filter_path = run_dir / "gwosc" / "filter_equivalence.json"
     if filter_path.is_file():
         filter_record = _load_json(filter_path)
@@ -929,7 +952,8 @@ def _paper_implications(
                 "data/derived/cresst_pooled_summary.csv"
             ),
             "result_summary": (
-                "Across seven chronologically split channels, rank-6 EMPCA "
+                "Across seven channels, pulse and noise streams were each "
+                "split chronologically, separately. Rank-6 EMPCA "
                 "beat single-template OF and met the multi-template-OF "
                 "competitiveness gate; all five pooled negative controls "
                 "degraded with one channel-level wrong-PSD sign exception."
@@ -941,6 +965,43 @@ def _paper_implications(
             "boundary": (
                 "Do not claim cross-channel transfer or validated detection "
                 "sensitivity; trigger efficiency was inconclusive."
+            ),
+        },
+        {
+            "paper_claim_area": "CRESST-A channel-aware sensitivity analysis",
+            "evidence_files": (
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "summary.json, data/cresst/sensitivity/"
+                "20260713_channel_robustness_v1/estimand_summary.csv, "
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "channel_summary.csv, data/cresst/sensitivity/"
+                "20260713_channel_robustness_v1/hierarchical_bootstrap_draws.npz, "
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "leakage_audit.json"
+            ),
+            "result_summary": (
+                "Post-freeze equal-channel means were "
+                f"{cresst_estimands['d_OF']['equal_channel_mean']:.2f} for OF minus EMPCA, "
+                f"{cresst_estimands['d_comp']['equal_channel_mean']:.2f} for the "
+                "competitiveness margin, and "
+                f"{cresst_estimands['d_PCA']['equal_channel_mean']:.2f} for PCA minus EMPCA. "
+                "Their channel-then-event hierarchical 95% intervals were "
+                f"[{cresst_estimands['d_OF']['hierarchical_ci95'][0]:.2f}, "
+                f"{cresst_estimands['d_OF']['hierarchical_ci95'][1]:.2f}], "
+                f"[{cresst_estimands['d_comp']['hierarchical_ci95'][0]:.2f}, "
+                f"{cresst_estimands['d_comp']['hierarchical_ci95'][1]:.2f}], and "
+                f"[{cresst_estimands['d_PCA']['hierarchical_ci95'][0]:.2f}, "
+                f"{cresst_estimands['d_PCA']['hierarchical_ci95'][1]:.2f}], respectively."
+            ),
+            "paper_implication": (
+                "The Results can state that the OF, multi-template competitiveness, "
+                "and same-rank PCA contrasts retain positive direction after "
+                "equal channel weighting and hierarchical resampling."
+            ),
+            "boundary": (
+                "This is a post-freeze sensitivity analysis, not a replacement for "
+                "the pooled primary gate. Only seven run/channel clusters from two "
+                "runs make the percentile intervals coarse and potentially unstable."
             ),
         },
     ]
@@ -985,6 +1046,27 @@ def _method_traceability(provenance: dict[str, str]) -> None:
             "primary_outputs": "data/synthetic/S*_sweep_10seeds.*, data/derived/synthetic_gate_summary.csv, figures/synthetic_validation_overview.*",
             "acceptance_or_status": "Passed multi-seed gates.",
             "manuscript_role": "Methods and controlled Results.",
+        },
+        {
+            "experiment": "CRESST channel-aware sensitivity",
+            "purpose": (
+                "Test whether the frozen pooled CRESST conclusions survive equal "
+                "channel weighting and channel-then-event hierarchical resampling."
+            ),
+            "config_or_protocol": (
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "analysis_config.yaml"
+            ),
+            "primary_outputs": (
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "summary.json, estimand_summary.csv, hierarchical_bootstrap_draws.npz, "
+                "figures/cresst_channel_robustness.*"
+            ),
+            "acceptance_or_status": (
+                "Verified post-freeze sensitivity; positive hierarchical intervals "
+                "for OF, multi-template competitiveness, and PCA contrasts."
+            ),
+            "manuscript_role": "Results robustness analysis and Limitations.",
         },
         {
             "experiment": "Stage 0 remote reproducibility",
@@ -1045,6 +1127,36 @@ def _figure_index(provenance: dict[str, str]) -> None:
             "figure_stem": "synthetic_validation_overview",
             "source_data": "data/synthetic/S1/S2/S5/S8 sweep CSVs and data/derived/synthetic_gate_summary.csv",
             "paper_message": "Representative synthetic gates show interval-backed validation of normalization, OF/EMPCA geometry, colored-noise weighting, and residual calibration.",
+            "status": "available",
+        },
+        {
+            "figure_stem": "cresst_validation",
+            "source_data": (
+                "data/cresst/current/cresst/p2_cresst_validation_seed22.json, "
+                "data/derived/cresst_per_channel_summary.csv, "
+                "data/derived/cresst_pooled_summary.csv"
+            ),
+            "paper_message": (
+                "The frozen pooled analysis supports the within-channel rank-6 "
+                "EMPCA hierarchy and records the negative controls and tied-linear "
+                "AE consistency check."
+            ),
+            "status": "available",
+        },
+        {
+            "figure_stem": "cresst_channel_robustness",
+            "source_data": (
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "summary.json, data/cresst/sensitivity/"
+                "20260713_channel_robustness_v1/channel_summary.csv, "
+                "data/cresst/sensitivity/20260713_channel_robustness_v1/"
+                "estimand_summary.csv"
+            ),
+            "paper_message": (
+                "Post-freeze equal-channel and hierarchical analyses preserve the "
+                "positive OF, multi-template competitiveness, and PCA contrasts, "
+                "with uncertainty limited by seven clusters."
+            ),
             "status": "available",
         },
         {
@@ -1291,12 +1403,28 @@ def _claim_status(provenance: dict[str, str]) -> None:
             "allowed_statement": (
                 "Rank-6 EMPCA beat single-template OF and met the "
                 "multi-template-OF competitiveness gate across seven "
-                "chronologically split channels; all five pooled negative "
+                "channels; pulse and noise streams were each split "
+                "chronologically, separately. All five pooled negative "
                 "controls degraded."
             ),
             "prohibited_overclaim": (
                 "Do not claim cross-channel transfer or validated detection "
                 "sensitivity; disclose the one wrong-PSD channel exception."
+            ),
+        },
+        {
+            "topic": "CRESST-A channel-aware sensitivity analysis",
+            "evidence_state": "verified_positive_post_freeze_sensitivity",
+            "paper_use": "Results, Discussion, and Limitations",
+            "allowed_statement": (
+                "Equal-channel effects and channel-then-event hierarchical 95% "
+                "intervals remained positive for OF minus EMPCA, the "
+                "multi-template competitiveness margin, and PCA minus EMPCA."
+            ),
+            "prohibited_overclaim": (
+                "Do not replace the frozen pooled primary analysis, treat 19,335 "
+                "events as independent detector-level replications, or generalize "
+                "from seven clusters and two runs."
             ),
         },
     ]
@@ -1377,13 +1505,15 @@ def _write_manifest(
         "raw_data_in_transfer_bundle": False,
         "standalone_scope": (
             "Contains evidence logs, JSON/YAML records, checksums, derived "
-            "tables, config snapshots, notebooks, and rendered paper plots. "
+            "tables, config snapshots, CRESST channel-aware sensitivity arrays, "
+            "notebooks, and rendered paper plots. "
             "It intentionally excludes raw GWOSC strain arrays."
         ),
         "authoritative_sources": [
             "data/gwosc/runs/",
             "data/synthetic/",
             "data/cresst/current/",
+            "data/cresst/sensitivity/20260713_channel_robustness_v1/",
         ],
         "files": files,
     }
@@ -1451,6 +1581,7 @@ def main() -> None:
     )
     _copy_synthetic_sweeps(provenance)
     _copy_synthetic_figures(provenance)
+    _copy_cresst_sensitivity_figures(provenance)
     _copy_config_snapshots(provenance)
     _copy_source_documents(provenance)
     _write_csv(

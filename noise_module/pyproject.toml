@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modular-noise-simulator"
+dynamic = ["version"]
+description = "Validated stationary, nonstationary, artifact, and multichannel noise simulation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "scipy>=1.10"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[tool.setuptools]
+packages = ["noise_module"]
+
+[tool.setuptools.dynamic]
+version = {attr = "noise_module.__version__"}
+
+[tool.setuptools.package-data]
+noise_module = ["CONFIGURATION.md", "*.npy"]
+
+[tool.pytest.ini_options]
+markers = [
+  "statistical: confidence-aware ensemble statistical tests",
+  "integration: composed pipeline tests",
+  "calibration: empirical calibration and held-out validation tests",
+  "slow: larger validation or performance tests",
+]

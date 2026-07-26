@@ -1,0 +1,170 @@
+{
+  "config": {
+    "_config_path": "configs/tidmad/phase1_estimator_identity.yaml",
+    "dataset": "tidmad",
+    "experiment_id": "TIDMAD_P1",
+    "frequency": 1000000.0,
+    "mode": "synthetic",
+    "n_windows": 512,
+    "output": "results/metrics/TIDMAD_P1_synthetic_seed20260727.json",
+    "phase_errors": [
+      0.0,
+      0.3,
+      0.6,
+      1.0
+    ],
+    "psd_kind": "pink",
+    "psd_knee_hz": null,
+    "resolved_data_root": "/ceph/dwong/paper1_dataset",
+    "sampling_frequency": 10000000.0,
+    "scaling_snr_grid": [
+      30.0,
+      100.0,
+      300.0,
+      1000.0
+    ],
+    "seed": 20260727,
+    "snr": 100.0,
+    "window_samples": 4096
+  },
+  "dataset_metadata": {
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad"
+  },
+  "experiment_id": "TIDMAD_P1",
+  "git_commit": "86904d5b373a03c6d86440dec046c8a8009952d1",
+  "metrics": {
+    "all_gates_passed": true,
+    "configuration": {
+      "injected_amplitude": 243.66562926081136,
+      "learned_subspace_snr_boost": 1.0,
+      "n_windows": 512,
+      "on_grid_frequency_hz": 1000976.5625,
+      "predicted_sigma": 2.4366562926081134,
+      "psd_kind": "pink",
+      "psd_knee_hz": null,
+      "requested_frequency_hz": 1000000.0,
+      "requested_snr": 100.0,
+      "sampling_frequency_hz": 10000000.0,
+      "seed": 20260727,
+      "window_samples": 4096
+    },
+    "experiment": "TIDMAD-P1",
+    "fixed_phase_snr_loss": {
+      "max_abs_error": 0.02230384789690909,
+      "observed_amplitude_ratio": [
+        1.0,
+        0.955207286977071,
+        0.8250887518557404,
+        0.5399344127200012
+      ],
+      "observed_snr_squared_ratio": [
+        1.0,
+        0.9261027269809572,
+        0.7034827251352459,
+        0.3066949616514176
+      ],
+      "phase_errors_rad": [
+        0.0,
+        0.3,
+        0.6,
+        1.0
+      ],
+      "predicted_cos": [
+        1.0,
+        0.955336489125606,
+        0.8253356149096783,
+        0.5403023058681398
+      ],
+      "predicted_cos_squared": [
+        1.0,
+        0.9126678074548391,
+        0.6811788772383368,
+        0.2919265817264289
+      ]
+    },
+    "gates": {
+      "G1a_amplitude_bias_z": {
+        "passed": true,
+        "threshold": 3.0,
+        "value": -0.5524595580033761
+      },
+      "G1b_sigma_over_predicted": {
+        "passed": true,
+        "threshold": 0.1,
+        "value": 0.9913308063885292
+      },
+      "G1c_null_mean_z": {
+        "passed": true,
+        "threshold": 3.0,
+        "value": 0.02775619862977506
+      },
+      "G1d_max_principal_angle_deg": {
+        "passed": true,
+        "threshold": 5.0,
+        "value": 2.3239133782743564
+      },
+      "G1e_snr_loss_max_abs_error": {
+        "passed": true,
+        "threshold": 0.05,
+        "value": 0.02230384789690909
+      },
+      "G1f_subspace_scaling_slope_error": {
+        "passed": true,
+        "threshold": 0.15,
+        "value": 0.001566157826756509
+      }
+    },
+    "generated_utc": "2026-07-26T17:00:04Z",
+    "injection": {
+      "amplitude_bias_fraction": -0.00024203831094891769,
+      "bias_absolute": -0.05897641734259196,
+      "bias_standard_error": 0.10675246086018761,
+      "empirical_sigma": 2.415532447442885,
+      "mean_recovered_amplitude": 243.60665284346877,
+      "n_windows": 512,
+      "predicted_sigma": 2.4366562926081134,
+      "sigma_ratio": 0.9913308063885292,
+      "sigma_ratio_with_true_psd": 1.0152296894074373,
+      "true_amplitude": 243.66562926081136
+    },
+    "learned_subspace": {
+      "injected_amplitude": 243.66562926081136,
+      "max_principal_angle_deg": 2.3239133782743564,
+      "principal_angles_deg": [
+        2.2574480851697163,
+        2.3239133782743564
+      ]
+    },
+    "mode": "synthetic",
+    "noise_source": "synthetic pink PSD (knee None Hz)",
+    "null": {
+      "mean": 0.0030739758558024043,
+      "n_windows": 512,
+      "sigma": 2.505967566333666,
+      "standard_error": 0.11074916622425526
+    },
+    "phase": "Phase 1 -- noise model, whitening convention, estimator identity",
+    "subspace_scaling": {
+      "abs_slope_error": 0.001566157826756509,
+      "expected_slope": -1.0,
+      "log_log_intercept": 5.460455553664622,
+      "log_log_slope": -1.0015661578267565,
+      "max_principal_angle_deg": [
+        7.810073300229959,
+        2.341122800191951,
+        0.7699184285921655,
+        0.2338797261788616
+      ],
+      "snr_grid": [
+        30.0,
+        100.0,
+        300.0,
+        1000.0
+      ]
+    }
+  },
+  "model_metadata": {},
+  "preprocessing_metadata": {},
+  "status": "complete"
+}

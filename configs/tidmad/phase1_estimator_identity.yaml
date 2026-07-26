@@ -1,0 +1,32 @@
+# TIDMAD Phase 1 -- noise model, whitening convention, and estimator identity.
+# Roadmap: docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md, gate G1.
+#
+# These values are the declared operating point of the synthetic gate. They are
+# an experimental design choice (they fix the statistical power of the test),
+# not thresholds: the gate thresholds live in the script and are predeclared.
+experiment_id: TIDMAD_P1
+dataset: tidmad
+mode: synthetic
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+sampling_frequency: 10000000.0     # 10 MS/s, the ABRACADABRA rate
+frequency: 1000000.0               # snapped to the rFFT grid before use
+
+# Injected amplitude in units of the estimator's own predicted sigma. Stating
+# it this way keeps the bias gate meaningful: a "1% bias" claim is empty if the
+# statistical uncertainty is 10%.
+snr: 100.0
+
+psd_kind: pink                     # SQUID-like 1/f floor
+psd_knee_hz: null
+
+# Phase errors for the fixed-phase rank-1 comparison (Paper 1 Eq. 16).
+phase_errors: [0.0, 0.3, 0.6, 1.0]
+
+# SNR grid for the subspace-recovery scaling law. The falsifiable statement is
+# the log-log slope (-1), not the angle at any single point.
+scaling_snr_grid: [30.0, 100.0, 300.0, 1000.0]
+
+output: results/metrics/TIDMAD_P1_synthetic_seed20260727.json

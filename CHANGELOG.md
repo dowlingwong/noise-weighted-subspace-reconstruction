@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### 2026-07-27 - TIDMAD stage: structure and Phase 1
+
+- Added `src/noise_geometry/tidmad/` (templates, estimators, injections, psd,
+  splits, loader, experiments), replacing the placeholder package. The stage is
+  Paper 1's second real-data anchor; rationale and phase plan are in
+  `docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md`.
+- **Phase 1 (estimator identity) executed in synthetic mode: all six gates
+  pass.** Amplitude bias z = -0.55; empirical/predicted sigma ratio 0.9913;
+  no-signal null z = 0.028; learned rank-2 subspace within 2.32 degrees of the
+  analytic quadrature subspace; fixed-phase SNR loss matches cos^2 to 0.022;
+  and the subspace-recovery error follows the theoretical 1/SNR law with a
+  log-log slope of -1.0016 against the predicted -1. Record:
+  `results/metrics/TIDMAD_P1_synthetic_seed20260727.json`; write-up:
+  `docs/results/TIDMAD_PHASE1_RESULT.md`.
+- The real-noise half of Phase 1 is written and configured
+  (`configs/tidmad/phase1_estimator_identity_real_noise.yaml`) but blocked on
+  Phase 0: it requires a verified data contract, and the loader refuses to run
+  without one by design.
+- Added `scripts/tidmad_phase0_contract.py` (channel semantics established from
+  spectral evidence, not assumed), `scripts/tidmad_phase1_estimator_identity.py`,
+  `scripts/download/download_tidmad.py` (wraps the upstream downloader; refuses
+  to write into the repository), and `tests/test_tidmad_estimators.py` (9 tests).
+- `scripts/run_experiment.py` now dispatches `dataset: tidmad` to the Phase 1
+  gate instead of returning `planned`.
+
 ### 2026-07-26 — documentation consolidation
 
 - **Source documents are now generated, not maintained.** `CURRENT_STATUS.md`,

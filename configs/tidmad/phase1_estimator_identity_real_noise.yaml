@@ -1,0 +1,26 @@
+# TIDMAD Phase 1 on REAL signal-free science stretches.
+#
+# Identical checks to the synthetic gate, with injections into real SQUID noise.
+# This is the version that matters scientifically: it tests the estimator
+# against the real noise distribution, including its non-Gaussian tails, rather
+# than against the Gaussian model that generated it.
+#
+# Requires a verified Phase 0 contract (docs/tidmad_data_contract.json with
+# verified=true). The loader refuses to run without one, by design.
+experiment_id: TIDMAD_P1_REAL
+dataset: tidmad
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+frequency: 1000000.0
+snr: 100.0
+phase_errors: [0.0, 0.3, 0.6, 1.0]
+scaling_snr_grid: [30.0, 100.0, 300.0, 1000.0]
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P1_real_seed20260727.json

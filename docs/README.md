@@ -34,6 +34,7 @@ not exist.
 | [`results/CRESST_RESULT.md`](results/CRESST_RESULT.md) | CRESST-A outcome: the positive public-data validation. |
 | [`results/CRESST_PREDECLARED_GATES.md`](results/CRESST_PREDECLARED_GATES.md) | The CRESST predeclaration. Use as the template for any new stage. |
 | [`results/GWOSC_RESULT.md`](results/GWOSC_RESULT.md) | GWOSC outcome: implementation checks pass, calibration fails. Boundary result. |
+| [`results/TIDMAD_PHASE1_RESULT.md`](results/TIDMAD_PHASE1_RESULT.md) | TIDMAD Phase 1: estimator identity and whitening convention verified (synthetic half). |
 
 ## `plans/` — roadmaps and decisions
 

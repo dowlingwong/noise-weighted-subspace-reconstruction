@@ -94,6 +94,56 @@ uv run python scripts/run_experiment.py \
   --config configs/cresst/cresst_validation.yaml
 ```
 
+Run the noise-budget analyses (Study A/B) from the authoritative Al2O3/Al
+athermal component spectra:
+
+```bash
+uv run python scripts/run_noise_budget.py --config configs/noise_budget/study_a_v1.yaml
+uv run python scripts/run_noise_budget.py --config configs/noise_budget/study_b_v1.yaml \
+  --study-a-run <study_a_run_id>
+```
+
+Study A computes band-fractional PSD contributions and crossovers directly
+from `noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er,total}_noise.dat`
+under their native labels -- never relabel these as "1/f phonon",
+"vibrational", or "TES Johnson". Study B computes conditional OF sensitivity
+attribution (leave-one-out and scale scenarios) under two explicit,
+non-exhaustive acquisition branches (`inband_no_alias`,
+`unfiltered_alias_fold`); neither branch is detector truth, and a PSD/CSD
+factorization yields statistically orthogonal modes, not uniquely
+identifiable physical sources -- see
+`docs/CURRENT_STATUS.md#noise-module-scientific-boundary` and
+`noise_module/noise_module/PAPER_CONVENTION.md` for the underlying generator
+convention (Gaussian rFFT-bin sampling vs. the separate exact-Toeplitz
+sampler).
+
+Run the S5 confirmatory sweep (predeclared, >=30 independent held-out seeds,
+disjoint from the frozen 0-9 block; also runs a matched S4 negative-control
+sweep under the identical protocol):
+
+```bash
+uv run python scripts/run_s5_confirmatory_sweep.py
+```
+
+Never format the output's `absolute_difference` or `fractional_difference`
+fields as a "x times" ratio -- only the `ratio` block exists for that
+purpose. `configs/synthetic/{s4_white_control,s5_metric_reversal,
+s6_timing_jitter_rank_sweep}_v2.yaml` bake `test_frac: 0.5` into the
+standalone-config default (the frozen v1 configs default to in-sample,
+`test_frac: 0.0`, and remain unchanged); use the `_v2` configs with
+`scripts/run_experiment.py` for any new single-run archival record that
+should match the sweep's held-out design.
+
+Run the EXP-05 rerun-decision and Appendix F traceability audits (read-only
+except for their own output; require `results/audits/
+noise_generator_provenance.json` from `scripts/audit_paper_evidence.py`):
+
+```bash
+uv run python scripts/build_rerun_decisions.py
+uv run python scripts/build_appendix_f_traceability.py
+uv run python scripts/audit_generator_distribution.py
+```
+
 ## Experiment Registry
 
 | ID | Purpose | Config | Current status |
@@ -112,6 +162,8 @@ uv run python scripts/run_experiment.py \
 | GWOSC-F1 | Shared-FIR implementation identity | `configs/gwosc/filter_statistic_equivalence.yaml` | verified positive |
 | GWOSC-L1 | Time-local PSD real-noise calibration | `configs/gwosc/time_local_noise.yaml` | verified negative |
 | CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/CRESST_RESULT.md`) |
+| Study A | Noise-budget band decomposition from authoritative component spectra | `configs/noise_budget/study_a_v1.yaml` | verified positive |
+| Study B | Conditional OF sensitivity attribution, two acquisition branches | `configs/noise_budget/study_b_v1.yaml` | verified positive, conditional on declared assumptions |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | optional/planned |
 
 ## Preprocessing Contract

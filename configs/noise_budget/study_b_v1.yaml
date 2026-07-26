@@ -1,0 +1,16 @@
+schema_version: 1
+run_kind: study_b
+data_dir: noise_module/Al2O3_Al_athermal
+component_files:
+  SQUID: SQUID_noise.dat
+  Johnson: Johnson_noise.dat
+  TD: TD_noise.dat
+  Er: Er_noise.dat
+total_file: total_noise.dat
+sampling_frequency_hz: 1000000.0
+n_samples: 131072
+pretrigger_fraction: 0.1
+# Two mandatory acquisition branches (EXP-03); neither is "detector truth".
+# No third branch is added without a measured anti-alias transfer function.
+acquisition_branches: [inband_no_alias, unfiltered_alias_fold]
+output_dir: results/noise_budget

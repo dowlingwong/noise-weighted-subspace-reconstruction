@@ -72,6 +72,8 @@ claim.
 | GWOSC local PSD calibration | verified negative | "synthetic control passed, real H1/L1 failed" | "64-second local PSD fixed calibration" |
 | GW150914 significance | not validated | "diagnostic score only" | "detection/significance claim" |
 | CRESST-A public validation | verified positive | "within each chronologically split channel, rank-6 EMPCA beat single-template OF and met the multi-template-OF competitiveness gate; pooled paired-bootstrap CIs excluded zero" | "cross-channel transfer" or "validated detection sensitivity" |
+| Study A noise-budget decomposition | verified positive, rebuilt from authoritative component files | "SQUID, Johnson, TD, and Er component PSDs from noise_module/Al2O3_Al_athermal/ dominate/cross as reported in results/noise_budget/<run_id>/study_a/" using exactly those source labels | "1/f phonon", "vibrational", "TES Johnson", or any physical relabeling not recorded in provenance; any crossover not independently bracketed by a sign change |
+| Study B sensitivity attribution | verified positive, conditional on declared PSD/acquisition assumptions | "removing/scaling component X changes OF amplitude sensitivity by factor Y under acquisition branch Z (inband_no_alias / unfiltered_alias_fold)" | stating a sensitivity ratio without naming its acquisition branch; calling this a unique physical noise decomposition or a measured detector improvement |
 
 ## Sections That Usually Need Revision
 

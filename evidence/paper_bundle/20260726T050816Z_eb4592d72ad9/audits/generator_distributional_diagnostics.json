@@ -1,0 +1,50 @@
+{
+  "generated_at_utc": "2026-07-26T05:03:24.962881+00:00",
+  "generator": "src/noise_geometry/noise/synthetic.py::generate_colored_noise (post EXP-01 DC-bin fix)",
+  "purpose": "Distributional evidence (periodogram variability, KS/QQ vs Exponential(1)) that a mean-PSD-only check cannot provide -- this is exactly what would fail under the obsolete fixed-modulus sampler described in the superseded Paper 1 Equation 81.",
+  "config": {
+    "n_traces": 2000,
+    "n_samples": 128,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "per_seed_ks_tests": [
+    {
+      "seed": 0,
+      "ks_statistic": 0.002285710429700827,
+      "ks_pvalue": 0.5354556580394523
+    },
+    {
+      "seed": 1,
+      "ks_statistic": 0.00265208791016458,
+      "ks_pvalue": 0.3470562434528831
+    },
+    {
+      "seed": 2,
+      "ks_statistic": 0.0026827509837960006,
+      "ks_pvalue": 0.3334554880046513
+    },
+    {
+      "seed": 3,
+      "ks_statistic": 0.0026999926889178516,
+      "ks_pvalue": 0.3259671644232288
+    },
+    {
+      "seed": 4,
+      "ks_statistic": 0.002059523812874664,
+      "ks_pvalue": 0.6681257159027634
+    }
+  ],
+  "mean_ks_statistic": 0.002476013165090785,
+  "max_ks_statistic": 0.0026999926889178516,
+  "acceptance_note": "No single p-value is treated as a pass/fail gate (a lucky or unlucky draw is not evidence); the KS statistic is reported across 5 fixed seeds and via the pooled histogram/QQ figure for visual and quantitative distributional agreement.",
+  "figures": [
+    "results/audits/generator_distributional_diagnostics.png",
+    "results/audits/generator_distributional_diagnostics.pdf"
+  ]
+}

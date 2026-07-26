@@ -55,3 +55,21 @@ The scientific interpretation of these controlled runs is recorded in
 
 The scientific interpretation of this run is recorded in
 [`docs/CRESST_RESULT.md`](../docs/CRESST_RESULT.md).
+
+### Paper bundle
+
+Durable, checksum-backed exports of `scripts/export_paper_bundle.py` belong
+under:
+
+```text
+evidence/paper_bundle/<UTC timestamp>_<tested commit>/
+```
+
+Each run must contain a `manifest.json`, `SHA256SUMS`, and
+`BUNDLE_MANIFEST.json` (the exporter's own richer per-file checksum
+inventory, produced by `scripts/verify_paper_bundle.py`-checked runs only).
+
+| Run | Tested commit | Computational status | Scientific status | Interpretation |
+| --- | --- | --- | --- | --- |
+| `20260726T044539Z_eb4592d72ad9` | `eb4592d72ad9` | Exporter and verifier both exit 0; 64 files staged | `passed` (bundle verification) | Superseded by the run below (not deleted, per the evidence rule). First durable paper-evidence bundle after the 2026-07-26 revision: EXP-00 through EXP-03, EXP-06, EXP-07 only. |
+| `20260726T050816Z_eb4592d72ad9` | `eb4592d72ad9` | Exporter and verifier both exit 0; 73 files staged | `passed` (bundle verification) | Adds EXP-04 (S5 30-seed confirmatory sweep, `sweeps_v2_20260726T045735Z`) and EXP-05 (`rerun_decisions.json`, `appendix_f_traceability.csv`, `generator_distributional_diagnostics.*`) to the run above. Current durable bundle for the 2026-07-26 revision -- see `results/audits/DEVIATION_REPORT_2026-07-26.md` for the full deviation report. |

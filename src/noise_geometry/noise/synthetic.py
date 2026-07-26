@@ -42,7 +42,18 @@ def generate_colored_noise(
     sampling_frequency: float,
     n_traces: int,
 ) -> np.ndarray:
-    """Generate stationary Gaussian noise with a one-sided PSD."""
+    """Generate stationary Gaussian noise with a one-sided PSD.
+
+    Interior bins are circular complex Gaussian with expected power
+    ``J * f_s * N / 2``; DC and (for even ``N``) Nyquist are real Gaussian
+    with the full endpoint power ``J * f_s * N``, per
+    ``noise_module/noise_module/PAPER_CONVENTION.md``. ``scale**2`` below is
+    the interior-bin power, so both endpoints need the extra ``sqrt(2)``
+    factor to reach the endpoint power -- previously only Nyquist carried
+    that factor, leaving DC under-scaled by sqrt(2) in amplitude (a factor
+    of 2 in variance); confirmed by Monte Carlo in
+    ``results/audits/noise_generator_provenance.json`` and fixed here.
+    """
     J = np.asarray(psd, dtype=np.float64)
     n_bins = int(n_samples) // 2 + 1
     if J.shape[0] != n_bins:
@@ -51,7 +62,7 @@ def generate_colored_noise(
     re = rng.standard_normal((int(n_traces), n_bins))
     im = rng.standard_normal((int(n_traces), n_bins))
     X = (re + 1j * im) / np.sqrt(2.0) * scale[None, :]
-    X[:, 0] = re[:, 0] * scale[0]
+    X[:, 0] = re[:, 0] * scale[0] * np.sqrt(2.0)
     if n_samples % 2 == 0:
         X[:, -1] = re[:, -1] * scale[-1] * np.sqrt(2.0)
     return np.fft.irfft(X, n=int(n_samples), axis=1)

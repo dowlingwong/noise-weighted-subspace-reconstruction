@@ -1,0 +1,67 @@
+{
+  "run_id": "study_b_20260726T023744Z",
+  "study_a_run_id": "study_a_20260726T023734Z",
+  "generated_at_utc": "2026-07-26T02:37:44.847684+00:00",
+  "repo_commit": "eb4592d72ad9c49c2ec1c153a607fa84725b1053",
+  "python_version": "3.12.2",
+  "numpy_version": "2.4.6",
+  "component_labels": [
+    "SQUID",
+    "Johnson",
+    "TD",
+    "Er"
+  ],
+  "template_source": "noise_module/Al2O3_Al_athermal/signal.dat (magnitude-only)",
+  "template_unidentifiable_parameters": [
+    "t0",
+    "tau_n"
+  ],
+  "sampling_frequency_hz": 1000000.0,
+  "n_samples": 131072,
+  "acquisition_branches": [
+    "inband_no_alias",
+    "unfiltered_alias_fold"
+  ],
+  "acquisition_branch_metadata": {
+    "inband_no_alias": {
+      "method": "inband_interpolation",
+      "target_sampling_frequency": 1000000.0,
+      "target_samples": 131072,
+      "target_nyquist_hz": 500000.0,
+      "source_max_frequency_hz": 30000000.00000001,
+      "anti_alias_cutoff_hz": null,
+      "anti_alias_transition_hz": 0.0,
+      "allow_extrapolation": true
+    },
+    "unfiltered_alias_fold": {
+      "method": "alias_fold",
+      "target_sampling_frequency": 1000000.0,
+      "target_samples": 131072,
+      "target_nyquist_hz": 500000.0,
+      "source_max_frequency_hz": 30000000.00000001,
+      "alias_orders": [
+        -32,
+        32
+      ],
+      "anti_alias_cutoff_hz": null,
+      "anti_alias_transition_hz": 0.0
+    }
+  },
+  "formula": {
+    "information": "I = sum_k q_k |S_k|^2 / P_total,k (via src/noise_geometry/filters/optimal.py::psd_amplitude_variance, the same implementation validated by S1's CRB gate)",
+    "sigma_A": "I^(-1/2)",
+    "relative_sensitivity": "sqrt(I_scenario / I_baseline)"
+  },
+  "cross_check_vs_noise_module_optimal_filter": {
+    "acquisition_branch": "inband_no_alias",
+    "check_scenario": "leave_one_out_SQUID",
+    "sigma_A_baseline_psd_amplitude_variance": 6.734846634730028,
+    "sigma_A_baseline_noise_module_optimal_filter": 3.719450558115458e-05,
+    "fixed_convention_factor_psd_amplitude_variance_over_optimal_filter": 181071.00845944264,
+    "relative_sensitivity_psd_amplitude_variance": 3.26644901716671,
+    "relative_sensitivity_noise_module_optimal_filter": 3.266912391517125,
+    "relative_sensitivity_fractional_disagreement": 0.00014185874262226145,
+    "note": "Raw sigma_A differs between the two implementations by a large fixed factor (~sqrt(f_s*N)/2), traced to psd_amplitude_variance's explicit f_s*N discrete power-normalization versus OptimalFilter.normalization's bare per-bin sum; both are internally consistent OF/CRB amplitude-uncertainty calculations, not a numerical bug. The scenario-to-baseline relative sensitivity, which cancels that fixed factor, is the primary Study B quantity reported in study_b_scenarios.csv and is confirmed here to agree between the two independent implementations to the fractional disagreement reported above."
+  },
+  "scientific_scope": "Conditional sensitivity attribution under the declared PSD and acquisition assumptions; not unique physical source decomposition and not a measured detector improvement."
+}

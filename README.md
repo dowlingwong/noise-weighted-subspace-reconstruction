@@ -23,8 +23,27 @@ Current status and paper claim boundaries are in
 The controlled synthetic suite S1-S9 has verified positive evidence. GWOSC is
 a completed negative public real-noise stress test: PSD/reference and
 shared-FIR implementation checks passed, but global and predeclared local PSD
-real-noise calibration failed. CRESST remains the next candidate public
-detector-pulse validation domain. TIDMAD is optional.
+real-noise calibration failed. **CRESST-A is a completed positive public
+real-data validation** of the linear noise-geometry hierarchy (see
+[`docs/CRESST_RESULT.md`](docs/CRESST_RESULT.md)); it is not a "next
+candidate" or pending item. TIDMAD is optional.
+
+The noise-budget decomposition (Study A/B, `scripts/run_noise_budget.py`) is
+computed directly from the authoritative `noise_module/Al2O3_Al_athermal/`
+component spectra with their native `SQUID`/`Johnson`/`TD`/`Er` labels;
+PSD/CSD factorization of a total spectrum yields statistically orthogonal
+modes, not uniquely identifiable physical sources, and Study B's sensitivity
+attribution is reported under two explicit, non-exhaustive acquisition
+branches (in-band vs. alias-folded), never as detector truth. The stationary
+Gaussian noise generator's discrete convention (interior complex-Gaussian
+rFFT bins, real endpoint DC/Nyquist bins, periodic/circulant FFT-grid
+covariance vs. a separate exact-Toeplitz sampler) is pinned in
+[`noise_module/noise_module/PAPER_CONVENTION.md`](noise_module/noise_module/PAPER_CONVENTION.md).
+
+Paper 2 (`paper2/`) neural-architecture and coverage results are exploratory
+only pending separate implementation repairs (RNG seeding, test-set reuse,
+timing-metric coordinates, Transformer positional/cross-channel encoding);
+see `docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md`.
 
 ## Remote Installation
 

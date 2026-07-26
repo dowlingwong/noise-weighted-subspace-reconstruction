@@ -1,0 +1,15 @@
+experiment_id: S6
+dataset: synthetic
+seed: 6
+n_traces: 400
+n_features: 128
+rank_max: 6
+timing_jitter_samples: 3.0
+# v2: bake held-out evaluation into the standalone config default so a
+# single archival run (scripts/run_experiment.py) matches sweep_all.py's
+# held-out design instead of silently falling back to in-sample (test_frac
+# defaults to 0.0 in run_s6_timing_rank_sweep). Frozen v1 config/results are
+# untouched. See docs/REVISION_PLAN_2026-07-26.md EXP-04.
+test_frac: 0.5
+split_seed: 0
+output: results/metrics/S6_timing_jitter_rank_sweep_v2_seed6.json

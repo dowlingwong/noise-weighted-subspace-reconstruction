@@ -25,6 +25,11 @@ The current validation state is:
 - GW150914 event/significance and SNR-eight sensitivity: not validated;
 - CRESST-A public-data validation (linear hierarchy): verified positive;
   trigger-efficiency detector metric: inconclusive.
+- Study A noise-budget band decomposition and Study B sensitivity
+  attribution: verified positive, rebuilt from the authoritative
+  `noise_module/Al2O3_Al_athermal/` component spectra (see EXP-02/EXP-03 in
+  `REVISION_PLAN_2026-07-26.md`); PSD/CSD factorization is statistical-mode
+  decomposition, not unique physical source identification.
 
 Use `CURRENT_STATUS.md` and `PAPER_REVISION_GUIDE.md` for paper-facing claims.
 Use `GWOSC_RESULT.md` for the real-noise boundary result.

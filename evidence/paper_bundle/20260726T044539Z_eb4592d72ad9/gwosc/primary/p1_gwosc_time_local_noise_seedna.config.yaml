@@ -1,0 +1,68 @@
+_config_path: configs/gwosc/time_local_noise.yaml
+acceptance:
+  minimum_primary_coverage_fraction: 0.9
+  real_primary_required: true
+  real_primary_score_std_bounds:
+  - 0.8
+  - 1.2
+  synthetic_score_std_bounds:
+  - 0.8
+  - 1.2
+analysis_duration_seconds: 4
+analysis_highpass_hz: 20.0
+data_quality:
+  required: true
+data_root: /ceph/dwong/paper1_dataset
+dataset: gwosc_time_local_noise
+detectors:
+- H1
+- L1
+event: GW150914
+experiment_id: P1_GWOSC_TIME_LOCAL_NOISE
+local_psd:
+  chronological_blocks: 5
+  minimum_calibration_windows: 8
+  narrow_bands_hz:
+  - - 20
+    - 80
+  - - 80
+    - 150
+  - - 150
+    - 300
+  - - 300
+    - 512
+  primary_radius_seconds: 64
+  radii_seconds:
+  - 32
+  - 64
+  - 96
+psd_estimator:
+  average: median
+  detrend: constant
+  window: hann
+psd_floor_fraction: 1.0e-06
+psd_quality:
+  band_max_hz: 512.0
+  band_min_hz: 20.0
+  crest_factor_threshold: 20.0
+  enabled: true
+  max_rejected_fraction: 0.25
+  robust_z_threshold: 6.0
+resolved_data_root: /ceph/dwong/paper1_dataset
+synthetic_control:
+  duration_seconds: 4
+  n_windows: 64
+  noise_kind: pink
+  noise_level: 1.0e-42
+  sample_rate_hz: 1024
+  seed: 20260623
+waveform:
+  citation: GWpy TimeSeries injection example using the public GW150914 numerical-simulation
+    waveform
+  name: GW150914_public_NR_waveform_H
+  normalization: peak
+  peak_time_seconds: 2.0
+  relative_path: gwosc/raw/GW150914/waveforms/fig2-unfiltered-waveform-H.txt
+  source_url: https://www.gw-openscience.org/s/events/GW150914/P150914/fig2-unfiltered-waveform-H.txt
+  type: public_text
+  value_scale: 1.0e-21

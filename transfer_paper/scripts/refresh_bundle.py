@@ -30,6 +30,7 @@ CRESST_SENSITIVITY_ROOT = (
     / "sensitivity"
     / "20260713_channel_robustness_v1"
 )
+NOISE_BUDGET_ROOT = REPO_ROOT / "results" / "noise_budget"
 
 
 def _sha256(path: Path) -> str:
@@ -170,6 +171,40 @@ def _copy_cresst_sensitivity_figures(provenance: dict[str, str]) -> None:
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
             source.relative_to(TRANSFER_ROOT)
         )
+
+
+def _select_noise_budget_run(kind: str) -> Path | None:
+    """Select the newest results/noise_budget/<kind>_*/<kind>/ run directory.
+
+    Returns None (leaving any existing data/<kind> untouched) if
+    scripts/run_noise_budget.py has not produced a run yet -- Study A/B are
+    additive evidence, not a hard requirement for every refresh.
+    """
+    candidates = [
+        path
+        for path in NOISE_BUDGET_ROOT.glob(f"{kind}_*")
+        if path.is_dir() and (path / kind / f"{kind}_summary.json").is_file()
+    ]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda path: path.name) / kind
+
+
+def _copy_noise_budget(provenance: dict[str, str]) -> None:
+    """Copy the frozen Study A/B noise-budget evidence and figures (EXP-02/EXP-03)."""
+    figure_root = TRANSFER_ROOT / "figures"
+    figure_root.mkdir(parents=True, exist_ok=True)
+    for kind in ("study_a", "study_b"):
+        source_dir = _select_noise_budget_run(kind)
+        if source_dir is None:
+            continue
+        _copy_tree_files(source_dir, DATA_ROOT / kind, provenance)
+        for figure in sorted(source_dir.glob("*.png")) + sorted(source_dir.glob("*.pdf")):
+            destination = figure_root / figure.name
+            shutil.copy2(figure, destination)
+            provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
+                figure.relative_to(REPO_ROOT)
+            )
 
 
 def _copy_config_snapshots(provenance: dict[str, str]) -> None:
@@ -1004,6 +1039,48 @@ def _paper_implications(
                 "runs make the percentile intervals coarse and potentially unstable."
             ),
         },
+        {
+            "paper_claim_area": "Study A noise-budget decomposition",
+            "evidence_files": (
+                "data/study_a/study_a_summary.json, study_a_band_fractions.csv, "
+                "study_a_crossovers.csv"
+            ),
+            "result_summary": (
+                "SQUID dominates every analyzed band (median fraction "
+                "0.867-0.967, 1 Hz-30 MHz); no SQUID/Johnson, SQUID/TD, or "
+                "SQUID/Er crossing; Johnson-Er crosses near 319.67 Hz, "
+                "Johnson-TD near 688.58 Hz, TD-Er crosses twice (near 11.7 Hz "
+                "and 1335.3 Hz)."
+            ),
+            "paper_implication": (
+                "The Results/Appendix can report the noise-budget table and "
+                "crossovers using the native SQUID/Johnson/TD/Er labels."
+            ),
+            "boundary": (
+                "Do not use any prior '1/f phonon' / 'vibrational' / 'TES "
+                "Johnson' relabeling; those are not supported by the source "
+                "files."
+            ),
+        },
+        {
+            "paper_claim_area": "Study B sensitivity attribution",
+            "evidence_files": "data/study_b/study_b_summary.json, study_b_scenarios.csv",
+            "result_summary": (
+                "Removing SQUID improves OF amplitude sensitivity by 3.27x "
+                "(in-band) / 5.13x (alias-fold); Johnson/TD/Er are each "
+                "within ~1-5% of baseline under both branches."
+            ),
+            "paper_implication": (
+                "The Results/Appendix can report per-component sensitivity "
+                "attribution as conditional on the declared PSD and a named "
+                "acquisition branch."
+            ),
+            "boundary": (
+                "Not a unique physical source decomposition and not a "
+                "measured detector improvement; two branches are reported "
+                "because neither is detector truth."
+            ),
+        },
     ]
     for destination in (
         DERIVED_ROOT / "paper_implications.csv",
@@ -1108,6 +1185,22 @@ def _method_traceability(provenance: dict[str, str]) -> None:
             "acceptance_or_status": local_status,
             "manuscript_role": local_role,
         },
+        {
+            "experiment": "Study A noise-budget decomposition",
+            "purpose": "Compute band-fractional PSD contributions and crossovers directly from the authoritative Al2O3/Al athermal component spectra, replacing the previously mislabeled export.",
+            "config_or_protocol": "configs/noise_budget/study_a_v1.yaml",
+            "primary_outputs": "data/study_a/study_a_summary.json, study_a_band_fractions.csv, study_a_crossovers.csv, study_a_quadrature_diagnostics.json, figures/study_a_*.{png,pdf}",
+            "acceptance_or_status": "Verified; quadrature check max fractional deviation 3.3e-16; fractions sum to 1 within floating-point tolerance at every bin.",
+            "manuscript_role": "Results/Appendix noise-budget table and figures.",
+        },
+        {
+            "experiment": "Study B sensitivity attribution",
+            "purpose": "Compute conditional OF amplitude-sensitivity attribution (leave-one-out and 0.5x/0.2x scenarios) under two acquisition branches, cross-checked against an independent OF-variance implementation.",
+            "config_or_protocol": "configs/noise_budget/study_b_v1.yaml",
+            "primary_outputs": "data/study_b/study_b_summary.json, study_b_scenarios.csv, figures/study_b_sensitivity.{png,pdf}",
+            "acceptance_or_status": "Verified; monotonicity gate passed; cross-check relative-sensitivity fractional disagreement 0.014%.",
+            "manuscript_role": "Results/Appendix sensitivity table and figure.",
+        },
     ]
     for destination in (
         DERIVED_ROOT / "method_traceability.csv",
@@ -1200,6 +1293,30 @@ def _figure_index(provenance: dict[str, str]) -> None:
                 "synthetic control passed, but primary local-64 H1/L1 gates failed."
             ),
             "status": "available" if local_available else "pending_remote_evidence",
+        },
+        {
+            "figure_stem": "study_a_overview",
+            "source_data": "data/study_a/study_a_summary.json and the authoritative noise_module/Al2O3_Al_athermal component files",
+            "paper_message": "Component and total ASD on the native frequency grid, showing SQUID dominance and the TD-Er/Johnson-Er/Johnson-TD crossovers.",
+            "status": "available" if (DATA_ROOT / "study_a").exists() else "pending_local_evidence",
+        },
+        {
+            "figure_stem": "study_a_fractional_contributions",
+            "source_data": "data/study_a/study_a_band_fractions.csv",
+            "paper_message": "Fractional PSD contribution per component vs. frequency with band edges marked.",
+            "status": "available" if (DATA_ROOT / "study_a").exists() else "pending_local_evidence",
+        },
+        {
+            "figure_stem": "study_a_quadrature_validation",
+            "source_data": "data/study_a/study_a_quadrature_diagnostics.json",
+            "paper_message": "Quadrature-sum reconstruction of the total ASD validated against total_noise.dat.",
+            "status": "available" if (DATA_ROOT / "study_a").exists() else "pending_local_evidence",
+        },
+        {
+            "figure_stem": "study_b_sensitivity",
+            "source_data": "data/study_b/study_b_scenarios.csv",
+            "paper_message": "Relative OF sensitivity for leave-one-out and scale scenarios per component, under both acquisition branches.",
+            "status": "available" if (DATA_ROOT / "study_b").exists() else "pending_local_evidence",
         },
     ]
     destination = DERIVED_ROOT / "figure_index.csv"
@@ -1427,6 +1544,36 @@ def _claim_status(provenance: dict[str, str]) -> None:
                 "from seven clusters and two runs."
             ),
         },
+        {
+            "topic": "Study A noise-budget decomposition",
+            "evidence_state": "verified",
+            "paper_use": "Results/Appendix",
+            "allowed_statement": (
+                "SQUID/Johnson/TD/Er component PSD fractions and crossovers, "
+                "computed directly from the authoritative component files "
+                "under their native labels."
+            ),
+            "prohibited_overclaim": (
+                "Do not relabel components with any other physical name not "
+                "recorded in provenance."
+            ),
+        },
+        {
+            "topic": "Study B sensitivity attribution",
+            "evidence_state": "verified_conditional_on_declared_assumptions",
+            "paper_use": "Results/Appendix",
+            "allowed_statement": (
+                "Conditional OF amplitude-sensitivity attribution per "
+                "component under two named, non-exhaustive acquisition "
+                "branches, cross-checked against an independent OF-variance "
+                "implementation."
+            ),
+            "prohibited_overclaim": (
+                "Do not call this a unique physical noise decomposition or a "
+                "measured detector improvement; always name the acquisition "
+                "branch."
+            ),
+        },
     ]
     for destination in (
         DERIVED_ROOT / "claim_status.csv",
@@ -1514,6 +1661,8 @@ def _write_manifest(
             "data/synthetic/",
             "data/cresst/current/",
             "data/cresst/sensitivity/20260713_channel_robustness_v1/",
+            "data/study_a/",
+            "data/study_b/",
         ],
         "files": files,
     }
@@ -1582,6 +1731,7 @@ def main() -> None:
     _copy_synthetic_sweeps(provenance)
     _copy_synthetic_figures(provenance)
     _copy_cresst_sensitivity_figures(provenance)
+    _copy_noise_budget(provenance)
     _copy_config_snapshots(provenance)
     _copy_source_documents(provenance)
     _write_csv(

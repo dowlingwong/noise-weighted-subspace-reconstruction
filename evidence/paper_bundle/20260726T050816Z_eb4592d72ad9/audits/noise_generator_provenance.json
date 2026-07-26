@@ -1,0 +1,1325 @@
+{
+  "generated_at_utc": "2026-07-26T05:04:28.747272+00:00",
+  "repo_commit": "eb4592d72ad9c49c2ec1c153a607fa84725b1053",
+  "generator_lineage_by_experiment": {
+    "S0": {
+      "builder": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "generator_module": "src/noise_geometry/noise/synthetic.py",
+      "generator_function": "generate_colored_noise",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based": true,
+      "obsolete_fixed_modulus": false,
+      "notes": "Interior rFFT bins are independent circular complex Gaussians ((re+1j*im)/sqrt(2)*scale); Nyquist bin (even N) is correctly rescaled by sqrt(2) to the full endpoint variance J*fs*N. The DC bin is NOT given the matching sqrt(2) correction: it is assigned variance J*fs*N/2 (the interior-bin formula) instead of the declared endpoint formula J*fs*N used by Nyquist and by the target paper convention (EXP-01). Confirmed empirically (200k-draw flat-PSD Monte Carlo): DC empirical E|X0|^2 ~= 128.2 against an interior-formula prediction of 128.0 and an endpoint-formula prediction of 256.0; Nyquist empirical ~= 255.3 against the endpoint prediction of 256.0. This is a real, previously untested inconsistency in this smaller core generator -- NOT present in the separate 'upgraded modular generator' noise_module/noise_module/NoiseGenerator.py, whose psd_density_to_rfft_power() halves ONLY the interior bins (power[1:upper] *= 0.5), leaving DC and Nyquist both at the full endpoint scale -- i.e. NoiseGenerator.py implements the DC/Nyquist convention correctly; src/noise_geometry/noise/synthetic.py does not. Practical impact on S0/S1/S2/S5 results is negligible (one bin out of 65-129 rFFT bins, and the S1/S2 pulse templates and the S5 sin/cos signal basis carry ~zero DC power), but it is a genuine defect that a rigorous audit must not silently pass over, and it should be fixed under EXP-01 with a regression test added first."
+    },
+    "S1": {
+      "builder": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "generator_module": "src/noise_geometry/noise/synthetic.py",
+      "generator_function": "generate_colored_noise",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based": true,
+      "obsolete_fixed_modulus": false,
+      "notes": "Interior rFFT bins are independent circular complex Gaussians ((re+1j*im)/sqrt(2)*scale); Nyquist bin (even N) is correctly rescaled by sqrt(2) to the full endpoint variance J*fs*N. The DC bin is NOT given the matching sqrt(2) correction: it is assigned variance J*fs*N/2 (the interior-bin formula) instead of the declared endpoint formula J*fs*N used by Nyquist and by the target paper convention (EXP-01). Confirmed empirically (200k-draw flat-PSD Monte Carlo): DC empirical E|X0|^2 ~= 128.2 against an interior-formula prediction of 128.0 and an endpoint-formula prediction of 256.0; Nyquist empirical ~= 255.3 against the endpoint prediction of 256.0. This is a real, previously untested inconsistency in this smaller core generator -- NOT present in the separate 'upgraded modular generator' noise_module/noise_module/NoiseGenerator.py, whose psd_density_to_rfft_power() halves ONLY the interior bins (power[1:upper] *= 0.5), leaving DC and Nyquist both at the full endpoint scale -- i.e. NoiseGenerator.py implements the DC/Nyquist convention correctly; src/noise_geometry/noise/synthetic.py does not. Practical impact on S0/S1/S2/S5 results is negligible (one bin out of 65-129 rFFT bins, and the S1/S2 pulse templates and the S5 sin/cos signal basis carry ~zero DC power), but it is a genuine defect that a rigorous audit must not silently pass over, and it should be fixed under EXP-01 with a regression test added first."
+    },
+    "S2": {
+      "builder": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "generator_module": "src/noise_geometry/noise/synthetic.py",
+      "generator_function": "generate_colored_noise",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based": true,
+      "obsolete_fixed_modulus": false,
+      "notes": "Interior rFFT bins are independent circular complex Gaussians ((re+1j*im)/sqrt(2)*scale); Nyquist bin (even N) is correctly rescaled by sqrt(2) to the full endpoint variance J*fs*N. The DC bin is NOT given the matching sqrt(2) correction: it is assigned variance J*fs*N/2 (the interior-bin formula) instead of the declared endpoint formula J*fs*N used by Nyquist and by the target paper convention (EXP-01). Confirmed empirically (200k-draw flat-PSD Monte Carlo): DC empirical E|X0|^2 ~= 128.2 against an interior-formula prediction of 128.0 and an endpoint-formula prediction of 256.0; Nyquist empirical ~= 255.3 against the endpoint prediction of 256.0. This is a real, previously untested inconsistency in this smaller core generator -- NOT present in the separate 'upgraded modular generator' noise_module/noise_module/NoiseGenerator.py, whose psd_density_to_rfft_power() halves ONLY the interior bins (power[1:upper] *= 0.5), leaving DC and Nyquist both at the full endpoint scale -- i.e. NoiseGenerator.py implements the DC/Nyquist convention correctly; src/noise_geometry/noise/synthetic.py does not. Practical impact on S0/S1/S2/S5 results is negligible (one bin out of 65-129 rFFT bins, and the S1/S2 pulse templates and the S5 sin/cos signal basis carry ~zero DC power), but it is a genuine defect that a rigorous audit must not silently pass over, and it should be fixed under EXP-01 with a regression test added first."
+    },
+    "S3": {
+      "builder": "make_s3_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.normal",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Per-sample independent (diagonal-covariance) Gaussian noise added directly in the time domain; no FFT or covariance matrix involved."
+    },
+    "S4": {
+      "builder": "_rankk_signal + rng.normal (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.normal",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Per-sample independent (diagonal-covariance) Gaussian noise added directly in the time domain; no FFT or covariance matrix involved."
+    },
+    "S5": {
+      "builder": "_metric_reversal_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "src/noise_geometry/noise/synthetic.py",
+      "generator_function": "generate_colored_noise",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based": true,
+      "obsolete_fixed_modulus": false,
+      "notes": "Interior rFFT bins are independent circular complex Gaussians ((re+1j*im)/sqrt(2)*scale); Nyquist bin (even N) is correctly rescaled by sqrt(2) to the full endpoint variance J*fs*N. The DC bin is NOT given the matching sqrt(2) correction: it is assigned variance J*fs*N/2 (the interior-bin formula) instead of the declared endpoint formula J*fs*N used by Nyquist and by the target paper convention (EXP-01). Confirmed empirically (200k-draw flat-PSD Monte Carlo): DC empirical E|X0|^2 ~= 128.2 against an interior-formula prediction of 128.0 and an endpoint-formula prediction of 256.0; Nyquist empirical ~= 255.3 against the endpoint prediction of 256.0. This is a real, previously untested inconsistency in this smaller core generator -- NOT present in the separate 'upgraded modular generator' noise_module/noise_module/NoiseGenerator.py, whose psd_density_to_rfft_power() halves ONLY the interior bins (power[1:upper] *= 0.5), leaving DC and Nyquist both at the full endpoint scale -- i.e. NoiseGenerator.py implements the DC/Nyquist convention correctly; src/noise_geometry/noise/synthetic.py does not. Practical impact on S0/S1/S2/S5 results is negligible (one bin out of 65-129 rFFT bins, and the S1/S2 pulse templates and the S5 sin/cos signal basis carry ~zero DC power), but it is a genuine defect that a rigorous audit must not silently pass over, and it should be fixed under EXP-01 with a regression test added first."
+    },
+    "S6": {
+      "builder": "run_s6_timing_rank_sweep, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.multivariate_normal",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Direct draw from an explicit covariance matrix (AR(1) or block covariance built in-experiment), not routed through any FFT/PSD sampler at all. This is a correction to the plan's assumption ('current core S8 path already uses Gaussian real and imaginary Fourier coefficients'): S8 (and S6, S7, S9) do not use Fourier bins in any form -- they sample multivariate Gaussian noise directly from a covariance matrix via numpy's Cholesky-based multivariate_normal. This is fully Gaussian and unaffected by any question of Fourier-bin convention, fixed-modulus sampling, or circulant-vs-Toeplitz structure -- it is exact-covariance sampling on a finite grid, which sidesteps that debate entirely."
+    },
+    "S7": {
+      "builder": "run_s7_covariance_robustness, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.multivariate_normal",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Direct draw from an explicit covariance matrix (AR(1) or block covariance built in-experiment), not routed through any FFT/PSD sampler at all. This is a correction to the plan's assumption ('current core S8 path already uses Gaussian real and imaginary Fourier coefficients'): S8 (and S6, S7, S9) do not use Fourier bins in any form -- they sample multivariate Gaussian noise directly from a covariance matrix via numpy's Cholesky-based multivariate_normal. This is fully Gaussian and unaffected by any question of Fourier-bin convention, fixed-modulus sampling, or circulant-vs-Toeplitz structure -- it is exact-covariance sampling on a finite grid, which sidesteps that debate entirely."
+    },
+    "S8": {
+      "builder": "run_s8_residual_calibration, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.multivariate_normal",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Direct draw from an explicit covariance matrix (AR(1) or block covariance built in-experiment), not routed through any FFT/PSD sampler at all. This is a correction to the plan's assumption ('current core S8 path already uses Gaussian real and imaginary Fourier coefficients'): S8 (and S6, S7, S9) do not use Fourier bins in any form -- they sample multivariate Gaussian noise directly from a covariance matrix via numpy's Cholesky-based multivariate_normal. This is fully Gaussian and unaffected by any question of Fourier-bin convention, fixed-modulus sampling, or circulant-vs-Toeplitz structure -- it is exact-covariance sampling on a finite grid, which sidesteps that debate entirely."
+    },
+    "S9": {
+      "builder": "run_s9_multichannel, block covariance (src/noise_geometry/experiments/synthetic.py)",
+      "generator_module": "numpy.random.Generator",
+      "generator_function": "rng.multivariate_normal",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based": false,
+      "obsolete_fixed_modulus": false,
+      "notes": "Direct draw from an explicit covariance matrix (AR(1) or block covariance built in-experiment), not routed through any FFT/PSD sampler at all. This is a correction to the plan's assumption ('current core S8 path already uses Gaussian real and imaginary Fourier coefficients'): S8 (and S6, S7, S9) do not use Fourier bins in any form -- they sample multivariate Gaussian noise directly from a covariance matrix via numpy's Cholesky-based multivariate_normal. This is fully Gaussian and unaffected by any question of Fourier-bin convention, fixed-modulus sampling, or circulant-vs-Toeplitz structure -- it is exact-covariance sampling on a finite grid, which sidesteps that debate entirely."
+    }
+  },
+  "artifacts": [
+    {
+      "artifact": "results/metrics/S0_smoke_seed0.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S0",
+      "seed": 0,
+      "config_path": "results/metrics/S0_smoke_seed0.config.yaml",
+      "sha256": "ce49b9c5120b95f12d3a10e2f00cdc770cb63e794dad25197fca0191afff0add",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S1_of_crb_seed1.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S1",
+      "seed": 1,
+      "config_path": "results/metrics/S1_of_crb_seed1.config.yaml",
+      "sha256": "e26cf309ae239f9d8cb2ded16680a6c7301ae6e4538b5515901d2fee2191fed2",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S2_of_empca_seed7.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S2",
+      "seed": 7,
+      "config_path": "results/metrics/S2_of_empca_seed7.config.yaml",
+      "sha256": "1ad12189d030f0a86eea0f61818980dcc0bea155cfc3aca0f46a2082cc59d4a0",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S3_ae_bridge_seed3.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S3",
+      "seed": 3,
+      "config_path": "results/metrics/S3_ae_bridge_seed3.config.yaml",
+      "sha256": "db20cda43cb9a0eb4063d0f39d8064cbc2368ee8f8ddb3e5adcdbeeaed0e0549",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "make_s3_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S4_white_control_seed4.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S4",
+      "seed": 4,
+      "config_path": "results/metrics/S4_white_control_seed4.config.yaml",
+      "sha256": "d06521467cff3e8206e74b1a1435f8b6476b34d24611af6f93b585cd899610b3",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": false,
+      "generator_module": "_rankk_signal + rng.normal (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S4_white_control_v2_seed4.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S4",
+      "seed": 4,
+      "config_path": "results/metrics/S4_white_control_v2_seed4.config.yaml",
+      "sha256": "7f4aa5b8cab6c1eb88ab4a1d10a81ac85bca343ef1e7f53345c1cebd32612484",
+      "recorded_git_commit": "eb4592d72ad9c49c2ec1c153a607fa84725b1053",
+      "git_log_commit": null,
+      "held_out": true,
+      "generator_module": "_rankk_signal + rng.normal (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S5_metric_reversal_seed19.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S5",
+      "seed": 19,
+      "config_path": "results/metrics/S5_metric_reversal_seed19.config.yaml",
+      "sha256": "df4b32472ec553c5f5ca51bd53ad8aa8cb9082db2f5f453a054037eb35ea60d4",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": false,
+      "generator_module": "_metric_reversal_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S5_metric_reversal_v2_seed19.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S5",
+      "seed": 19,
+      "config_path": "results/metrics/S5_metric_reversal_v2_seed19.config.yaml",
+      "sha256": "070d836136af0627e5dd948d4aac59b7b15814f860bcf9e3f98292b1579f2536",
+      "recorded_git_commit": "eb4592d72ad9c49c2ec1c153a607fa84725b1053",
+      "git_log_commit": null,
+      "held_out": true,
+      "generator_module": "_metric_reversal_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S6_timing_jitter_rank_sweep_seed6.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S6",
+      "seed": 6,
+      "config_path": "results/metrics/S6_timing_jitter_rank_sweep_seed6.config.yaml",
+      "sha256": "735a7ef2cc7ea66e84a463c8d315ca17dd9689a113aee1b41602efbeb489a344",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": false,
+      "generator_module": "run_s6_timing_rank_sweep, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S6_timing_jitter_rank_sweep_v2_seed6.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S6",
+      "seed": 6,
+      "config_path": "results/metrics/S6_timing_jitter_rank_sweep_v2_seed6.config.yaml",
+      "sha256": "c1719a613849a2ab6c73b407101ab81d1e9f18879fb8882d587c30f981e2b5fd",
+      "recorded_git_commit": "eb4592d72ad9c49c2ec1c153a607fa84725b1053",
+      "git_log_commit": null,
+      "held_out": true,
+      "generator_module": "run_s6_timing_rank_sweep, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S7_covariance_robustness_seed7.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S7",
+      "seed": 7,
+      "config_path": "results/metrics/S7_covariance_robustness_seed7.config.yaml",
+      "sha256": "c8b1e9dad889600b8c96a171fa8a1b8f28312da5e295ae7995a01e9b60d53709",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "run_s7_covariance_robustness, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S8_residual_calibration_seed8.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S8",
+      "seed": 8,
+      "config_path": "results/metrics/S8_residual_calibration_seed8.config.yaml",
+      "sha256": "8c2f0e9a31cb4e9ea5788d126869918139d629848dd67f132bdb94bfc67a1c98",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "run_s8_residual_calibration, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/S9_multichannel_covariance_seed9.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "S9",
+      "seed": 9,
+      "config_path": "results/metrics/S9_multichannel_covariance_seed9.config.yaml",
+      "sha256": "9c742f585a6e60fb647e61deb76f00c30e017b6796ff61adbba4963583cd6db1",
+      "recorded_git_commit": "6a6079e87d277a60ec2c45eabb69baaca86a30be",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "run_s9_multichannel, block covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_filter_statistic_equivalence_seedna.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "P1_GWOSC_FILTER_STATISTIC_EQUIVALENCE",
+      "seed": null,
+      "config_path": "results/metrics/p1_gwosc_filter_statistic_equivalence_seedna.config.yaml",
+      "sha256": "5d8b4ce9a54a1c49d3271aaacf14e65536926a0abb875884f5e2fdc188177c8b",
+      "recorded_git_commit": "806a849305a9a99d50d545106ba4e63e8de8e7c7",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_gw150914_seedna.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "P1_GWOSC_GW150914",
+      "seed": null,
+      "config_path": "results/metrics/p1_gwosc_gw150914_seedna.config.yaml",
+      "sha256": "a07812a2cfb544d2abf3ea32a380f5cce79ec5b49f617158461593e13387ac20",
+      "recorded_git_commit": "1ecee5fc910f22c3772ba7972af438abeed2d384",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_time_local_noise_seedna.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "P1_GWOSC_TIME_LOCAL_NOISE",
+      "seed": null,
+      "config_path": "results/metrics/p1_gwosc_time_local_noise_seedna.config.yaml",
+      "sha256": "f887801b7ca756f5a49d1903e8e876b6f4585743cbe39b973882deddf71253d1",
+      "recorded_git_commit": "806a849305a9a99d50d545106ba4e63e8de8e7c7",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/p2_cresst_pulse_shape_seed22.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "P2_CRESST_PULSE_SHAPE",
+      "seed": 22,
+      "config_path": "results/metrics/p2_cresst_pulse_shape_seed22.config.yaml",
+      "sha256": "49332902e40f00a2283ef565208c01583ce1ffa80135587e5e99e11f42110b96",
+      "recorded_git_commit": "3b93cbda889060af986c53966bd76233a04bd51b",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "results/metrics/p2_cresst_validation_seed22.json",
+      "artifact_type": "single_run_metrics_json",
+      "experiment_id": "P2_CRESST_VALIDATION",
+      "seed": 22,
+      "config_path": "results/metrics/p2_cresst_validation_seed22.config.yaml",
+      "sha256": "2e794345140fe291d77778cf8362981f7a863173ac3e01ef92dad07298d29b8f",
+      "recorded_git_commit": "9c9f696ff6bca6e6b9729cdb90e41ee92d576787",
+      "git_log_commit": null,
+      "held_out": null,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary"
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S1_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S1",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "9a8591a9ea0360cbdf08fdcaa948262eb68af82e944a0d75c6dac2d0a46d8e0d",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S2_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S2",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "7eef9b15f37c727633f5c00d5e147e76db813bfc87a54c1048d04a2776771b77",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "make_rank1_pulse_dataset (src/noise_geometry/synthetic/benchmarks.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S3_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S3",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "535cf157185c796890a865e011f91eaf11e7a6af44d50038c3a26ed6ca832e95",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "make_s3_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S4_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S4",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "3d36fc2bade4ac0e2485d327f3cc92759d8fd680994f2a17b31ca9ac64b8d105",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": true,
+      "generator_module": "_rankk_signal + rng.normal (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S5_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S5",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "cb036ac9c524658cccff497059bfe0c221b91cdf81aec6b129e707187775c362",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": true,
+      "generator_module": "_metric_reversal_dataset (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "fft_based_sampler": true,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S6_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S6",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "edb00ae0bd519d644e9ce13948021fadd4a9736a8d875d4c22fbc06a6dc46f98",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": true,
+      "generator_module": "run_s6_timing_rank_sweep, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S7_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S7",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "9e0ab6bb29a867abec8db374c074eb8b0316a30f8020f65d099891cb168575d7",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "run_s7_covariance_robustness, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S8_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S8",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "5c23f26b2d38903b086f350cca562b3916807dc1cfbe3ecba1b35450a770518b",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "run_s8_residual_calibration, AR(1) covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S9_sweep_10seeds.json",
+      "artifact_type": "seed_sweep_json_paper_facing",
+      "experiment_id": "S9",
+      "seed": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "config_path": null,
+      "sha256": "729f27a16d8e48ebdd7f6f85aa1f330e12287d4be43df248b59a999521ee469f",
+      "recorded_git_commit": null,
+      "git_log_commit": "966ea0dc5cc8c94f5febe7d6ac1bed3f9752fbbd",
+      "held_out": false,
+      "generator_module": "run_s9_multichannel, block covariance (src/noise_geometry/experiments/synthetic.py)",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "fft_based_sampler": false,
+      "status": "frozen_primary",
+      "provenance_gap": "This 10-seed sweep is the artifact actually cited by transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md, but no matching archived copy exists under results/sweeps/ in the main repo tree (results/sweeps/ does not exist as of this audit). The command and exact repo commit that produced this file cannot be independently re-derived from the main tree alone."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_band_summary_AL.csv",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "16da2f6f4e9c045263e1c8db941de4a12ef0a17654340def723d15d8cfd0cb33",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_crossover_summary_AL.csv",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "9f658eed15e4bb9669c2506dd6201792d4be569d4d863725ef6df9b8f11b23a5",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_fractional_contributions_AL.pdf",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "7757dca5b1a95bbc3a340a2dae638fa176da876d5aa2981c8b603840c32e0a7d",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_fractional_contributions_AL.png",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "42489eb0343387d066d732cb98e9fd1f2e722e017805f846ead83d85da8be82f",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_overview_AL.pdf",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "15e96260515bf240f19608b51d33672f2556150d469513eca30318da220b7f75",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_overview_AL.png",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "8a3e1295fc478d2f29c9c5b8cbb4896a558d4bc093d02211a822620fbdf041e0",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_quadrature_validation_AL.pdf",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "6b50714d905cb16f58853c166e9846ca745964aab723e619d7da046ea130b749",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_quadrature_validation_AL.png",
+      "artifact_type": "study_a_derived_export",
+      "experiment_id": "study_a",
+      "seed": null,
+      "config_path": null,
+      "sha256": "925b6b9b582fa775e6edac5c13ca740cb56e8092ab1867474c834f5ddb74739e",
+      "recorded_git_commit": null,
+      "git_log_commit": "008cc390c92d8afaecab7032d5f54f89c3a8363c",
+      "held_out": null,
+      "generator_module": "unknown (notebook: data/noise_sample/read_dat_1.ipynb)",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "fft_based_sampler": false,
+      "status": "superseded",
+      "supersede_reason": "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md finding #1: this export's physical labels ('1/f phonon', 'vibrational', 'TES Johnson') and reported crossovers do not match the checked-in component files (noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er}_noise.dat), which the file's own numbers otherwise agree with (SQUID dominant everywhere, no SQUID crossings). Superseded by EXP-02 (results/noise_budget/<run_id>/study_a/)."
+    },
+    {
+      "artifact": "evidence/cresst/20260704T013758Z_9c9f696ff6bc",
+      "artifact_type": "cresst_evidence_run",
+      "experiment_id": "cresst",
+      "seed": null,
+      "config_path": null,
+      "sha256": "931b213b936bd764dd7a9011e5ab9b48f9df07226665ed1a55c70ce99fe255af",
+      "recorded_git_commit": null,
+      "git_log_commit": "bfc79e1f5d32e8f77afbb1314caa464e8a6b1f97",
+      "held_out": true,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary",
+      "note": "Frozen public-data evidence; no sampler rerun applies per EXP-06 (packaging only)."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T162349Z_b7842451781f",
+      "artifact_type": "gwosc_evidence_run",
+      "experiment_id": "gwosc",
+      "seed": null,
+      "config_path": null,
+      "sha256": "0a798d2a0f250aa666ecd594aeb7c1713b653c560005f505d24602ec4204fd18",
+      "recorded_git_commit": null,
+      "git_log_commit": "abc144c4c4c56a8775ce3e33b4e492bd3403d28c",
+      "held_out": true,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary",
+      "note": "Frozen public-data evidence; no sampler rerun applies per EXP-06 (packaging only)."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T164907Z_f541c542f778",
+      "artifact_type": "gwosc_evidence_run",
+      "experiment_id": "gwosc",
+      "seed": null,
+      "config_path": null,
+      "sha256": "49c359b473874d7300e9c1547261146a3b2fb3a2e933220c23cbf1a8e64642eb",
+      "recorded_git_commit": null,
+      "git_log_commit": "b169c1f595a46d2701417ff4cbce292330817ad2",
+      "held_out": true,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary",
+      "note": "Frozen public-data evidence; no sampler rerun applies per EXP-06 (packaging only)."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T175125Z_b169c1f595a4",
+      "artifact_type": "gwosc_evidence_run",
+      "experiment_id": "gwosc",
+      "seed": null,
+      "config_path": null,
+      "sha256": "01944f7d6812596c70eb9025d0f907657695f63032380f649b5254140df76721",
+      "recorded_git_commit": null,
+      "git_log_commit": "9db36ba6d10b2f0f80117b575f5ed560361a1d19",
+      "held_out": true,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary",
+      "note": "Frozen public-data evidence; no sampler rerun applies per EXP-06 (packaging only)."
+    },
+    {
+      "artifact": "evidence/paper_bundle/20260726T044539Z_eb4592d72ad9",
+      "artifact_type": "paper_bundle_evidence_run",
+      "experiment_id": "paper_bundle",
+      "seed": null,
+      "config_path": null,
+      "sha256": "3546cf73f4f19e1053433c12626f9d0528399fa360eba821d4590d88c2085040",
+      "recorded_git_commit": null,
+      "git_log_commit": null,
+      "held_out": true,
+      "generator_module": "public_data",
+      "sampler_class": "real_detector_data",
+      "fft_based_sampler": null,
+      "status": "frozen_primary",
+      "note": "Frozen public-data evidence; no sampler rerun applies per EXP-06 (packaging only)."
+    }
+  ],
+  "manuscript_evidence_map_cross_check": {
+    "source_map": "transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md",
+    "n_claims": 21,
+    "n_unresolved_paths": 0,
+    "unresolved": [],
+    "claims": [
+      {
+        "claim_area": "S1 optimal-filter uncertainty matches the CRB",
+        "cited_paths": [
+          "data/synthetic/S1_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S1_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S1_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S2 EMPCA aligns with the optimal-filter direction",
+        "cited_paths": [
+          "data/synthetic/S2_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S2_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S2_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S3 AE/EMPCA bridge is independent",
+        "cited_paths": [
+          "data/synthetic/S3_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S3_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S3_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S4 white-noise control holds",
+        "cited_paths": [
+          "data/synthetic/S4_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive/control",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S4_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S4_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S5 colored-noise metric reversal holds",
+        "cited_paths": [
+          "data/synthetic/S5_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S5_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S5_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S6 timing/rank effect holds",
+        "cited_paths": [
+          "data/synthetic/S6_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S6_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S6_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S7 covariance estimation converges",
+        "cited_paths": [
+          "data/synthetic/S7_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S7_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S7_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S8 residual chi-square calibration holds",
+        "cited_paths": [
+          "data/synthetic/S8_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S8_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S8_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "S9 full covariance improves multichannel uncertainty",
+        "cited_paths": [
+          "data/synthetic/S9_sweep_10seeds.*",
+          "data/derived/synthetic_gate_summary.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/synthetic/S9_sweep_10seeds.*",
+            "resolved": "transfer_paper/data/synthetic/S9_sweep_10seeds.csv"
+          },
+          {
+            "cited": "data/derived/synthetic_gate_summary.csv",
+            "resolved": "transfer_paper/data/derived/synthetic_gate_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "Stage 0 remote reproducibility",
+        "cited_paths": [
+          "data/gwosc/runs/*/stage0/",
+          "data/gwosc/runs/*/manifest.json",
+          "data/derived/gwosc_run_history.csv",
+          "figures/gwosc_run_history.*"
+        ],
+        "support_level": "verified positive for latest run",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/runs/*/stage0/",
+            "resolved": "transfer_paper/data/gwosc/runs/20260622T164907Z_f541c542f778/stage0"
+          },
+          {
+            "cited": "data/gwosc/runs/*/manifest.json",
+            "resolved": "transfer_paper/data/gwosc/runs/20260622T162349Z_b7842451781f/manifest.json"
+          },
+          {
+            "cited": "data/derived/gwosc_run_history.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_run_history.csv"
+          },
+          {
+            "cited": "figures/gwosc_run_history.*",
+            "resolved": "transfer_paper/figures/gwosc_run_history.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "GWOSC data coverage and checksums",
+        "cited_paths": [
+          "data/gwosc/current/gwosc/raw_metadata.json",
+          "data/gwosc/current/SHA256SUMS",
+          "data/derived/gwosc_data_quality.csv"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/current/gwosc/raw_metadata.json",
+            "resolved": "transfer_paper/data/gwosc/current/gwosc/raw_metadata.json"
+          },
+          {
+            "cited": "data/gwosc/current/SHA256SUMS",
+            "resolved": "transfer_paper/data/gwosc/current/SHA256SUMS"
+          },
+          {
+            "cited": "data/derived/gwosc_data_quality.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_data_quality.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "GWpy PSD reference",
+        "cited_paths": [
+          "data/gwosc/current/gwosc/gwpy_reference.json",
+          "data/derived/gwosc_reference_summary.csv",
+          "figures/gwosc_reference_comparison.*"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/current/gwosc/gwpy_reference.json",
+            "resolved": "transfer_paper/data/gwosc/current/gwosc/gwpy_reference.json"
+          },
+          {
+            "cited": "data/derived/gwosc_reference_summary.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_reference_summary.csv"
+          },
+          {
+            "cited": "figures/gwosc_reference_comparison.*",
+            "resolved": "transfer_paper/figures/gwosc_reference_comparison.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Global-PSD real-noise null calibration",
+        "cited_paths": [
+          "data/gwosc/current/gwosc/experiment.json",
+          "data/derived/gwosc_null_calibration.csv",
+          "data/derived/gwosc_primary_results.csv",
+          "figures/gwosc_null_calibration.*"
+        ],
+        "support_level": "verified negative",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/current/gwosc/experiment.json",
+            "resolved": "transfer_paper/data/gwosc/current/gwosc/experiment.json"
+          },
+          {
+            "cited": "data/derived/gwosc_null_calibration.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_null_calibration.csv"
+          },
+          {
+            "cited": "data/derived/gwosc_primary_results.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_primary_results.csv"
+          },
+          {
+            "cited": "figures/gwosc_null_calibration.*",
+            "resolved": "transfer_paper/figures/gwosc_null_calibration.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Matched statistic path comparison from baseline run",
+        "cited_paths": [
+          "data/derived/gwosc_reference_summary.csv",
+          "figures/gwosc_reference_comparison.*"
+        ],
+        "support_level": "diagnostic only",
+        "resolutions": [
+          {
+            "cited": "data/derived/gwosc_reference_summary.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_reference_summary.csv"
+          },
+          {
+            "cited": "figures/gwosc_reference_comparison.*",
+            "resolved": "transfer_paper/figures/gwosc_reference_comparison.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Shared-FIR statistic equivalence",
+        "cited_paths": [
+          "data/gwosc/followup/filter_equivalence.json",
+          "data/gwosc/followup/filter_equivalence.config.yaml",
+          "data/derived/gwosc_filter_equivalence_summary.csv",
+          "figures/gwosc_filter_equivalence.*"
+        ],
+        "support_level": "verified positive for shared-statistic implementation identity",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/followup/filter_equivalence.json",
+            "resolved": "transfer_paper/data/gwosc/followup/filter_equivalence.json"
+          },
+          {
+            "cited": "data/gwosc/followup/filter_equivalence.config.yaml",
+            "resolved": "transfer_paper/data/gwosc/followup/filter_equivalence.config.yaml"
+          },
+          {
+            "cited": "data/derived/gwosc_filter_equivalence_summary.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_filter_equivalence_summary.csv"
+          },
+          {
+            "cited": "figures/gwosc_filter_equivalence.*",
+            "resolved": "transfer_paper/figures/gwosc_filter_equivalence.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Time-local PSD model",
+        "cited_paths": [
+          "data/gwosc/followup/time_local_noise.json",
+          "data/gwosc/followup/time_local_noise.config.yaml",
+          "data/derived/gwosc_time_local_psd_summary.csv",
+          "data/derived/gwosc_time_local_psd_blocks.csv",
+          "data/derived/gwosc_time_local_psd_spectral_summary.csv",
+          "figures/gwosc_time_local_psd.*"
+        ],
+        "support_level": "verified negative on real H1/L1; synthetic control passed",
+        "resolutions": [
+          {
+            "cited": "data/gwosc/followup/time_local_noise.json",
+            "resolved": "transfer_paper/data/gwosc/followup/time_local_noise.json"
+          },
+          {
+            "cited": "data/gwosc/followup/time_local_noise.config.yaml",
+            "resolved": "transfer_paper/data/gwosc/followup/time_local_noise.config.yaml"
+          },
+          {
+            "cited": "data/derived/gwosc_time_local_psd_summary.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_time_local_psd_summary.csv"
+          },
+          {
+            "cited": "data/derived/gwosc_time_local_psd_blocks.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_time_local_psd_blocks.csv"
+          },
+          {
+            "cited": "data/derived/gwosc_time_local_psd_spectral_summary.csv",
+            "resolved": "transfer_paper/data/derived/gwosc_time_local_psd_spectral_summary.csv"
+          },
+          {
+            "cited": "figures/gwosc_time_local_psd.*",
+            "resolved": "transfer_paper/figures/gwosc_time_local_psd.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Confirmatory GWOSC interval",
+        "cited_paths": [
+          "PENDING_RESULT_PLACEHOLDERS.md"
+        ],
+        "support_level": "not run",
+        "resolutions": [
+          {
+            "cited": "PENDING_RESULT_PLACEHOLDERS.md",
+            "resolved": "transfer_paper/PENDING_RESULT_PLACEHOLDERS.md"
+          }
+        ]
+      },
+      {
+        "claim_area": "CRESST-A within-channel linear hierarchy",
+        "cited_paths": [
+          "data/cresst/current/cresst/p2_cresst_validation_seed22.json",
+          "data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml",
+          "data/derived/cresst_per_channel_summary.csv",
+          "data/derived/cresst_pooled_summary.csv"
+        ],
+        "support_level": "verified positive primary analysis",
+        "resolutions": [
+          {
+            "cited": "data/cresst/current/cresst/p2_cresst_validation_seed22.json",
+            "resolved": "transfer_paper/data/cresst/current/cresst/p2_cresst_validation_seed22.json"
+          },
+          {
+            "cited": "data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml",
+            "resolved": "transfer_paper/data/cresst/current/cresst/p2_cresst_validation_seed22.config.yaml"
+          },
+          {
+            "cited": "data/derived/cresst_per_channel_summary.csv",
+            "resolved": "transfer_paper/data/derived/cresst_per_channel_summary.csv"
+          },
+          {
+            "cited": "data/derived/cresst_pooled_summary.csv",
+            "resolved": "transfer_paper/data/derived/cresst_pooled_summary.csv"
+          }
+        ]
+      },
+      {
+        "claim_area": "CRESST-A channel-balanced and hierarchical sensitivity",
+        "cited_paths": [
+          "data/cresst/sensitivity/20260713_channel_robustness_v1/summary.json",
+          "data/cresst/sensitivity/20260713_channel_robustness_v1/channel_summary.csv",
+          "data/cresst/sensitivity/20260713_channel_robustness_v1/estimand_summary.csv",
+          "data/cresst/sensitivity/20260713_channel_robustness_v1/hierarchical_bootstrap_draws.npz",
+          "figures/cresst_channel_robustness.*"
+        ],
+        "support_level": "verified positive post-freeze sensitivity",
+        "resolutions": [
+          {
+            "cited": "data/cresst/sensitivity/20260713_channel_robustness_v1/summary.json",
+            "resolved": "transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/summary.json"
+          },
+          {
+            "cited": "data/cresst/sensitivity/20260713_channel_robustness_v1/channel_summary.csv",
+            "resolved": "transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/channel_summary.csv"
+          },
+          {
+            "cited": "data/cresst/sensitivity/20260713_channel_robustness_v1/estimand_summary.csv",
+            "resolved": "transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/estimand_summary.csv"
+          },
+          {
+            "cited": "data/cresst/sensitivity/20260713_channel_robustness_v1/hierarchical_bootstrap_draws.npz",
+            "resolved": "transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1/hierarchical_bootstrap_draws.npz"
+          },
+          {
+            "cited": "figures/cresst_channel_robustness.*",
+            "resolved": "transfer_paper/figures/cresst_channel_robustness.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Study A noise-budget band decomposition",
+        "cited_paths": [
+          "data/study_a/study_a_summary.json",
+          "data/study_a/study_a_band_fractions.csv",
+          "data/study_a/study_a_crossovers.csv",
+          "data/study_a/study_a_quadrature_diagnostics.json",
+          "data/study_a/source_checksums.json",
+          "figures/study_a_overview.*",
+          "figures/study_a_fractional_contributions.*",
+          "figures/study_a_quadrature_validation.*"
+        ],
+        "support_level": "verified positive",
+        "resolutions": [
+          {
+            "cited": "data/study_a/study_a_summary.json",
+            "resolved": "transfer_paper/data/study_a/study_a_summary.json"
+          },
+          {
+            "cited": "data/study_a/study_a_band_fractions.csv",
+            "resolved": "transfer_paper/data/study_a/study_a_band_fractions.csv"
+          },
+          {
+            "cited": "data/study_a/study_a_crossovers.csv",
+            "resolved": "transfer_paper/data/study_a/study_a_crossovers.csv"
+          },
+          {
+            "cited": "data/study_a/study_a_quadrature_diagnostics.json",
+            "resolved": "transfer_paper/data/study_a/study_a_quadrature_diagnostics.json"
+          },
+          {
+            "cited": "data/study_a/source_checksums.json",
+            "resolved": "transfer_paper/data/study_a/source_checksums.json"
+          },
+          {
+            "cited": "figures/study_a_overview.*",
+            "resolved": "transfer_paper/figures/study_a_overview.pdf"
+          },
+          {
+            "cited": "figures/study_a_fractional_contributions.*",
+            "resolved": "transfer_paper/figures/study_a_fractional_contributions.pdf"
+          },
+          {
+            "cited": "figures/study_a_quadrature_validation.*",
+            "resolved": "transfer_paper/figures/study_a_quadrature_validation.pdf"
+          }
+        ]
+      },
+      {
+        "claim_area": "Study B conditional OF sensitivity attribution",
+        "cited_paths": [
+          "data/study_b/study_b_summary.json",
+          "data/study_b/study_b_scenarios.csv",
+          "data/study_b/source_checksums.json",
+          "figures/study_b_sensitivity.*"
+        ],
+        "support_level": "verified positive, conditional on declared assumptions",
+        "resolutions": [
+          {
+            "cited": "data/study_b/study_b_summary.json",
+            "resolved": "transfer_paper/data/study_b/study_b_summary.json"
+          },
+          {
+            "cited": "data/study_b/study_b_scenarios.csv",
+            "resolved": "transfer_paper/data/study_b/study_b_scenarios.csv"
+          },
+          {
+            "cited": "data/study_b/source_checksums.json",
+            "resolved": "transfer_paper/data/study_b/source_checksums.json"
+          },
+          {
+            "cited": "figures/study_b_sensitivity.*",
+            "resolved": "transfer_paper/figures/study_b_sensitivity.pdf"
+          }
+        ]
+      }
+    ]
+  }
+}

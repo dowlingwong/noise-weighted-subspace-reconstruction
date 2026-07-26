@@ -181,8 +181,8 @@ class NoiseGenerator:
 
         Custom PSD handling is explicit: ``absolute`` preserves file units,
         ``normalize`` treats the file as a shape and normalizes its integral to
-        ``noise_power``, and ``multiply`` scales the file density by
-        ``noise_power``.
+        ``noise_power``, and ``scale`` scales the file density by
+        ``psd_scale``.
         """
         if N <= 0:
             raise ValueError("N must be positive.")

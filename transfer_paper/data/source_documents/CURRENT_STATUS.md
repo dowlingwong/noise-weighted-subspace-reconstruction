@@ -19,7 +19,28 @@ white isotropic noise.
 Paper 1 is scoped to linear reconstruction, optimal filtering, weighted
 subspaces, covariance/PSD estimation, and residual calibration. Nonlinear
 architectures and Paper 2 material are outside the Paper 1 validation claim
-set.
+set. Paper 2's neural-architecture and coverage results are exploratory
+until their separate implementation defects (uncontrolled RNG seeding,
+repeated test-set evaluation during training, an invalid timing-coordinate
+metric, and a Transformer with neither positional encoding nor cross-channel
+attention) are repaired and rerun from a frozen protocol; see
+`docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md`.
+
+## Noise-Module Scientific Boundary
+
+The stationary Gaussian generator's discrete convention (interior
+circular-complex-Gaussian rFFT bins, real endpoint DC/Nyquist bins,
+periodic/circulant FFT-grid covariance vs. a separately named exact-Toeplitz
+sampler) is pinned in `noise_module/noise_module/PAPER_CONVENTION.md` and
+`paper_convention.json`, and supersedes the fixed-modulus/random-phase
+sampler previously documented as Paper 1 Equation 81. A total PSD or
+covariance can be diagonalized, whitened, or decorrelated into statistically
+orthogonal modes; those modes are not, by themselves, uniquely identifiable
+physical sources (rotations of latent factors can leave a low-rank total
+covariance unchanged). Physical source attribution requires additional
+structure -- known transfer functions, auxiliary sensors, or controlled
+interventions -- beyond what Study A/B's declared PSD and acquisition
+assumptions provide.
 
 ## Validation Summary
 
@@ -36,6 +57,8 @@ set.
 | SNR-eight injection sensitivity on GWOSC | not validated | Diagnostics only, if mentioned |
 | CRESST-A public-data validation (linear hierarchy) | verified positive | Results and Methods |
 | CRESST trigger-efficiency detector metric | inconclusive | Limitations, if mentioned |
+| Study A noise-budget band decomposition | verified positive (rebuilt from authoritative component files, see EXP-02) | Results/Appendix |
+| Study B sensitivity attribution | verified positive, conditional on declared PSD/acquisition assumptions (see EXP-03) | Results/Appendix, with acquisition branch stated in every caption |
 
 ## What Is Supported
 
@@ -56,6 +79,20 @@ set.
   by a pooled paired-bootstrap 95% CI across all 7 detector channels (within
   each channel, the pulse and noise streams were each split chronologically,
   separately, with zero row/hash overlap). See `docs/CRESST_RESULT.md`.
+- Study A (`results/noise_budget/<run_id>/study_a/`) reproduces the checked-in
+  component band fractions and crossovers directly from
+  `noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er,total}_noise.dat`
+  under their native labels: SQUID dominates every analyzed band (median
+  fraction 0.867-0.967), with no SQUID/Johnson, SQUID/TD, or SQUID/Er
+  crossing; Johnson-Er crosses near 319.67 Hz and Johnson-TD near 688.58 Hz.
+  Do not use any prior "1/f phonon" / "vibrational" / "TES Johnson" labeling.
+- Study B (`results/noise_budget/<run_id>/study_b/`) computes conditional OF
+  sensitivity attribution (leave-one-out and 0.5x/0.2x scaling per component)
+  under two explicit, non-exhaustive acquisition branches (`inband_no_alias`,
+  `unfiltered_alias_fold`); cross-checked against an independent OF-variance
+  implementation to <0.02% fractional disagreement on relative sensitivity.
+  This is sensitivity attribution under declared assumptions, not unique
+  physical source decomposition and not a measured detector improvement.
 
 ## What Is Not Supported
 
@@ -143,3 +180,12 @@ detection sensitivity from the trigger-efficiency metric as measured.
 - `transfer_paper/data/gwosc/followup/time_local_noise.json`
 - `transfer_paper/data/derived/gwosc_filter_equivalence_summary.csv`
 - `transfer_paper/data/derived/gwosc_time_local_psd_summary.csv`
+- `results/audits/noise_generator_provenance.{json,md}`,
+  `results/audits/synthetic_config_provenance.csv` (generator lineage per
+  synthetic experiment; see EXP-00)
+- `results/noise_budget/<run_id>/study_a/`,
+  `results/noise_budget/<run_id>/study_b/` (see EXP-02/EXP-03)
+- `results/public_data_package/cresst/`, `results/public_data_package/gwosc/`
+  (stable packaged tables; see EXP-06)
+- `noise_module/noise_module/PAPER_CONVENTION.md`,
+  `noise_module/noise_module/paper_convention.json` (see EXP-01)

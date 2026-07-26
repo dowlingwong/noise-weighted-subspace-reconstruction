@@ -1,0 +1,343 @@
+{
+  "generated_at_utc": "2026-07-26T05:04:30.579840+00:00",
+  "source_provenance_audit": "results/audits/noise_generator_provenance.json",
+  "decision_rule": {
+    "gaussian_bin_or_exact_covariance_proven": "retain_rerun_only_for_new_protocol",
+    "fixed_modulus_random_phase_proven": "rerun_every_distributional_or_calibration_claim",
+    "sampler_lineage_unknown": "rerun_from_frozen_current_config",
+    "deterministic_psd_arithmetic_only": "no_sampler_rerun_required",
+    "public_real_data_no_sampler_in_scoring_path": "retain"
+  },
+  "summary_counts": {
+    "retain_rerun_only_for_new_protocol": 22,
+    "retain": 10,
+    "no_sampler_rerun_required": 8
+  },
+  "no_fixed_modulus_artifacts_found": true,
+  "decisions": [
+    {
+      "artifact": "results/metrics/S0_smoke_seed0.json",
+      "experiment_id": "S0",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S1_of_crb_seed1.json",
+      "experiment_id": "S1",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S2_of_empca_seed7.json",
+      "experiment_id": "S2",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S3_ae_bridge_seed3.json",
+      "experiment_id": "S3",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (diagonal_gaussian_real_domain); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S4_white_control_seed4.json",
+      "experiment_id": "S4",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (diagonal_gaussian_real_domain); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S4_white_control_v2_seed4.json",
+      "experiment_id": "S4",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (diagonal_gaussian_real_domain); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S5_metric_reversal_seed19.json",
+      "experiment_id": "S5",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S5_metric_reversal_v2_seed19.json",
+      "experiment_id": "S5",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S6_timing_jitter_rank_sweep_seed6.json",
+      "experiment_id": "S6",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S6_timing_jitter_rank_sweep_v2_seed6.json",
+      "experiment_id": "S6",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S7_covariance_robustness_seed7.json",
+      "experiment_id": "S7",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S8_residual_calibration_seed8.json",
+      "experiment_id": "S8",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/S9_multichannel_covariance_seed9.json",
+      "experiment_id": "S9",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_filter_statistic_equivalence_seedna.json",
+      "experiment_id": "P1_GWOSC_FILTER_STATISTIC_EQUIVALENCE",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_gw150914_seedna.json",
+      "experiment_id": "P1_GWOSC_GW150914",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "results/metrics/p1_gwosc_time_local_noise_seedna.json",
+      "experiment_id": "P1_GWOSC_TIME_LOCAL_NOISE",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "results/metrics/p2_cresst_pulse_shape_seed22.json",
+      "experiment_id": "P2_CRESST_PULSE_SHAPE",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "results/metrics/p2_cresst_validation_seed22.json",
+      "experiment_id": "P2_CRESST_VALIDATION",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S1_sweep_10seeds.json",
+      "experiment_id": "S1",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S2_sweep_10seeds.json",
+      "experiment_id": "S2",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S3_sweep_10seeds.json",
+      "experiment_id": "S3",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (diagonal_gaussian_real_domain); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S4_sweep_10seeds.json",
+      "experiment_id": "S4",
+      "sampler_class": "diagonal_gaussian_real_domain",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (diagonal_gaussian_real_domain); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S5_sweep_10seeds.json",
+      "experiment_id": "S5",
+      "sampler_class": "fourier_gaussian_real_imag_bins",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (fourier_gaussian_real_imag_bins); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S6_sweep_10seeds.json",
+      "experiment_id": "S6",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S7_sweep_10seeds.json",
+      "experiment_id": "S7",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S8_sweep_10seeds.json",
+      "experiment_id": "S8",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "transfer_paper/data/synthetic/S9_sweep_10seeds.json",
+      "experiment_id": "S9",
+      "sampler_class": "exact_multivariate_gaussian_from_covariance",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain_rerun_only_for_new_protocol",
+      "reason": "Gaussian-bin (or exact-covariance / diagonal-Gaussian) source path proven by EXP-00's code trace (exact_multivariate_gaussian_from_covariance); not the obsolete fixed-modulus sampler. Retain the frozen result; only the new held-out/seed protocol (EXP-04's S5 confirmatory sweep) required a rerun."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_band_summary_AL.csv",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_crossover_summary_AL.csv",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_fractional_contributions_AL.pdf",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_fractional_contributions_AL.png",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_overview_AL.pdf",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_overview_AL.png",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_quadrature_validation_AL.pdf",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "data/noise_sample/Study_A/studyA_quadrature_validation_AL.png",
+      "experiment_id": "study_a",
+      "sampler_class": "deterministic_psd_arithmetic",
+      "status_from_exp00": "superseded",
+      "decision": "no_sampler_rerun_required",
+      "reason": "Deterministic PSD arithmetic only; already regenerated after label/convention correction (EXP-02)."
+    },
+    {
+      "artifact": "evidence/cresst/20260704T013758Z_9c9f696ff6bc",
+      "experiment_id": "cresst",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T162349Z_b7842451781f",
+      "experiment_id": "gwosc",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T164907Z_f541c542f778",
+      "experiment_id": "gwosc",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "evidence/gwosc/20260622T175125Z_b169c1f595a4",
+      "experiment_id": "gwosc",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    },
+    {
+      "artifact": "evidence/paper_bundle/20260726T044539Z_eb4592d72ad9",
+      "experiment_id": "paper_bundle",
+      "sampler_class": "real_detector_data",
+      "status_from_exp00": "frozen_primary",
+      "decision": "retain",
+      "reason": "Public real-data result with no synthetic sampler in its scoring path; no shared scoring defect identified."
+    }
+  ],
+  "additional_actions_taken": [
+    "Regenerated the paper-facing PSD audit with distributional panels (periodogram histogram, QQ plot, per-seed KS statistics vs Exponential(1)) rather than only mean-PSD recovery -- results/audits/generator_distributional_diagnostics.{json,png,pdf} (scripts/audit_generator_distribution.py).",
+    "CRESST and GWOSC retained unchanged as frozen public-data evidence (EXP-06); no shared scoring defect was identified during this audit."
+  ]
+}

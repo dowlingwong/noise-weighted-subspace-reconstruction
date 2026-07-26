@@ -1,0 +1,31 @@
+{
+  "files": [
+    {
+      "all_gates_passed": true,
+      "path": "TIDMAD_P2_synthetic_seed20260727.json",
+      "sha256": "af19b38d870229c553a4bafe09d71c8d64a88ebac7047890b80a40acb643ae7b",
+      "size_bytes": 4593
+    },
+    {
+      "all_gates_passed": true,
+      "path": "TIDMAD_P3_synthetic_seed20260727.json",
+      "sha256": "69165756316c1401b66c2979da715d8576062f22b4c892663d29f6045c57aeaf",
+      "size_bytes": 4447
+    },
+    {
+      "all_gates_passed": true,
+      "path": "TIDMAD_P4_synthetic_seed20260727.json",
+      "sha256": "b277931417ce1aeb931ff9b4edfc7d655f680d2c7d184fa2cffeb54c37d8a5c0",
+      "size_bytes": 4337
+    }
+  ],
+  "note": "results/metrics/ is gitignored, so paper-facing run records live here. Synthetic mode only: these establish that the analysis is correct and the gates have power, not anything about TIDMAD data. Phase 5 has no synthetic form and is implemented but not run.",
+  "phase": "Phases 2-4 (synthetic) -- metric reversal, rank sweep, calibration boundary",
+  "reproduce": [
+    "uv run python scripts/run_experiment.py --config configs/tidmad/phase2_metric_reversal.yaml",
+    "uv run python scripts/run_experiment.py --config configs/tidmad/phase3_rank_manifold.yaml",
+    "uv run python scripts/run_experiment.py --config configs/tidmad/phase4_calibration_boundary.yaml"
+  ],
+  "schema": "tidmad-phase-evidence/1.0.0",
+  "stage": "TIDMAD"
+}

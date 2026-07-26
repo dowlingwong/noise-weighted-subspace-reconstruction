@@ -45,7 +45,7 @@ a new evidence bundle.
 | `20260622T175125Z_b169c1f595a4` | `b169c1f595a4` | Stage 0 passed; 91 tests and all commands passed | `failed_acceptance` | Official DATA coverage and enhanced diagnostics passed; random and chronological null calibration still failed |
 
 The scientific interpretation of these controlled runs is recorded in
-[`docs/GWOSC_RESULT.md`](../docs/GWOSC_RESULT.md).
+[`docs/results/GWOSC_RESULT.md`](../docs/results/GWOSC_RESULT.md).
 
 ### CRESST
 
@@ -54,7 +54,7 @@ The scientific interpretation of these controlled runs is recorded in
 | `20260704T013758Z_9c9f696ff6bc` | `9c9f696ff6bc` | Stage C5 exit 0; predeclared run on the full public test split, all 7 channels used | `passed` (predeclared gate) | EMPCA beat single-template OF and was competitive with multi-template OF (pooled paired-bootstrap 95% CIs excluding zero), and all 5 negative controls degraded at the pooled level. One channel (`35_58.0`) showed a non-degrading `wrong_psd` control on its own (pooled result unaffected). The trigger-efficiency detector metric was largely inconclusive within the predeclared amplitude grid (0-10x sigma_OF) for most channels -- see `docs/CRESST_RESULT.md`. |
 
 The scientific interpretation of this run is recorded in
-[`docs/CRESST_RESULT.md`](../docs/CRESST_RESULT.md).
+[`docs/results/CRESST_RESULT.md`](../docs/results/CRESST_RESULT.md).
 
 ### Paper bundle
 

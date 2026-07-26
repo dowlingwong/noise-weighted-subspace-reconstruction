@@ -1,0 +1,26 @@
+# TIDMAD Phase 3 -- the rank axis against a closed-form prediction (gate G3).
+#
+# The unknown phase of a sinusoid spans exactly span{cos, sin}: rank 1 is
+# provably deficient, rank 2 provably sufficient, rank >= 3 can only add noise.
+# Unlike CRESST's empirically chosen k = 6, the right answer here is known, so
+# the rank curve is a test rather than a description.
+experiment_id: TIDMAD_P3
+dataset: tidmad
+phase: 3
+mode: synthetic
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+sampling_frequency: 10000000.0
+frequency: 1000000.0
+snr: 8.0
+
+ranks: [1, 2, 3, 4]
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+
+psd_kind: pink
+output: results/metrics/TIDMAD_P3_synthetic_seed20260727.json

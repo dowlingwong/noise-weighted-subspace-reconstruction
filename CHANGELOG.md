@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+### 2026-07-27 - TIDMAD phases 2-5
+
+- Added `analysis.py` (phases 2-3), `calibration.py` (phase 4), `denoise.py`
+  and `score.py` (phase 5) to `src/noise_geometry/tidmad/`, plus
+  `scripts/tidmad_phases.py` and four configs. Phases 1-4 run through
+  `scripts/run_experiment.py`.
+- **Phase 2 (metric reversal against truth) passes in synthetic mode.** Two
+  matched-rank subspaces fitted on the same rFFT-real representation, differing
+  only in the metric: PCA wins raw MSE (-3216.8, CI [-3750.6, -2740.1]), EMPCA
+  wins the weighted residual, and **the injected truth sides with EMPCA**
+  (amplitude |error| difference +15.04, CI [14.70, 15.38]; clean-signal MSE
+  difference +3514). The third row is the claim CRESST structurally cannot
+  produce. A moving-block bootstrap is reported alongside the window-level one
+  because consecutive stream windows are dependent.
+- **Phase 3 (rank knee) passes.** Amplitude RMSE by rank: 13.456 / 5.792 /
+  5.795 / 5.794 for ranks 1-4, against 24.890 for a fixed-phase rank-1 optimal
+  filter. Rank 2 beats rank 1 (CI [5.996, 7.570]); rank 3 does not improve on
+  rank 2 (CI [-0.001, 0.005]). Reported as the smallest rank within a
+  predeclared tolerance of the minimum, because the raw argmin differs by 0.03%
+  and quoting it would mislead.
+- **Phase 4 (calibration boundary) control passes**: chi^2/dof 1.0002 and score
+  dispersion 1.0758 for the stationary synthetic control, inside the
+  predeclared [0.9, 1.1] band. The chi^2 normalization is derived in the code
+  (`f_s N / 2` per degree of freedom) and unit-tested rather than fitted. The
+  local-PSD estimator excludes the window it scores; a test pins that, since
+  including it would produce an excellent-looking calibration that is pure
+  leakage. The reported dispersion standard error assumes an exact predicted
+  sigma and understates the true spread (five-seed check: 0.03 realized vs 0.022
+  formula); this is now documented in the code.
+- **Phase 5 implemented, not run** -- it has no synthetic form, since the
+  denoising score is defined by the release's own `benchmark.py`. Components
+  verified: identity-transfer overlap-add reconstructs to 7e-14, the fitted
+  Wiener filter cuts MSE-to-clean by 20x, and spectral subtraction is clipped so
+  the transfer function cannot exceed one. `score.py` shells out to the upstream
+  benchmark and raises if it is absent rather than falling back to an internal
+  approximation.
+- 13 new tests (22 total for TIDMAD). Evidence archived under
+  `evidence/tidmad/phases_2_to_4/`; write-up in
+  `docs/results/TIDMAD_PHASES_2_TO_5_RESULT.md`.
+- Not yet implemented: Phase 6 negative controls and the frozen
+  `docs/TIDMAD_PREDECLARED_GATES.md`. Phase 2's result should not be published
+  before those exist.
+
 ### 2026-07-27 - TIDMAD stage: structure and Phase 1
 
 - Added `src/noise_geometry/tidmad/` (templates, estimators, injections, psd,

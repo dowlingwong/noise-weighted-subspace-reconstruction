@@ -1,0 +1,153 @@
+{
+  "config": {
+    "_config_path": "configs/tidmad/phase3_rank_manifold.yaml",
+    "bootstrap_reps": 300,
+    "dataset": "tidmad",
+    "experiment_id": "TIDMAD_P3",
+    "fit_fraction": 0.7,
+    "frequency": 1000000.0,
+    "guard_windows": 4,
+    "mode": "synthetic",
+    "n_calibration_windows": 256,
+    "n_windows": 512,
+    "output": "results/metrics/TIDMAD_P3_synthetic_seed20260727.json",
+    "phase": 3,
+    "psd_kind": "pink",
+    "ranks": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "resolved_data_root": "/ceph/dwong/paper1_dataset",
+    "sampling_frequency": 10000000.0,
+    "seed": 20260727,
+    "snr": 8.0,
+    "window_samples": 4096
+  },
+  "dataset_metadata": {
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad"
+  },
+  "experiment_id": "TIDMAD_P3",
+  "git_commit": "7916b78870c9df81c614b99a826ca8dc3c2ca2cd",
+  "metrics": {
+    "all_gates_passed": true,
+    "gates": {
+      "G3_knee_is_rank2": {
+        "passed": true,
+        "value": 2
+      },
+      "G3_rank2_beats_fixed_phase": {
+        "passed": true,
+        "value": 14.516525392948749
+      },
+      "G3_rank2_beats_rank1": {
+        "ci95": [
+          5.996337979112659,
+          7.56999101458138
+        ],
+        "passed": true,
+        "value": 6.847407405595809
+      },
+      "G3_rank3_does_not_improve": {
+        "passed": true,
+        "threshold": 0.05,
+        "value": -0.0003876778955073135
+      }
+    },
+    "phase": 3,
+    "rank_sweep": {
+      "amplitude_rmse_by_rank": {
+        "1": 13.456286584706024,
+        "2": 5.792400412194807,
+        "3": 5.794645997796542,
+        "4": 5.794400420837933
+      },
+      "best_rank_by_amplitude_rmse": 2,
+      "fixed_phase_rank1": {
+        "amplitude_bias": -19.571465848676315,
+        "amplitude_rmse": 24.88958757394537
+      },
+      "paired_contrasts": {
+        "amplitude_abs_error_fixed_phase_minus_rank2": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            12.315101063981697,
+            16.681377235521175
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 14.516525392948749,
+          "n_events": 150
+        },
+        "amplitude_abs_error_rank1_minus_rank2": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            5.996337979112659,
+            7.56999101458138
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 6.847407405595809,
+          "n_events": 150
+        },
+        "amplitude_abs_error_rank3_minus_rank2": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            -0.0009787135521075537,
+            0.004733365813932291
+          ],
+          "exceeds_zero": false,
+          "mean_difference": 0.0018847615883775149,
+          "n_events": 150
+        }
+      },
+      "per_rank": {
+        "1": {
+          "amplitude_bias": -12.278222922726567,
+          "amplitude_rmse": 13.456286584706024,
+          "clean_mse_mean": 203.00129288099396,
+          "raw_mse_mean": 22458.610670384835,
+          "weighted_residual_mean": 85347470924960.88
+        },
+        "2": {
+          "amplitude_bias": -5.430815517130758,
+          "amplitude_rmse": 5.792400412194807,
+          "clean_mse_mean": 145.62106694312953,
+          "max_principal_angle_to_analytic_deg": 32.154093273657146,
+          "principal_angles_to_analytic_deg": [
+            30.673560284295508,
+            32.154093273657146
+          ],
+          "raw_mse_mean": 22396.865214409296,
+          "weighted_residual_mean": 84884093362884.47
+        },
+        "3": {
+          "amplitude_bias": -5.432700278719135,
+          "amplitude_rmse": 5.794645997796542,
+          "clean_mse_mean": 149.5669925462137,
+          "raw_mse_mean": 22391.661363741838,
+          "weighted_residual_mean": 84863616885816.48
+        },
+        "4": {
+          "amplitude_bias": -5.432931962795325,
+          "amplitude_rmse": 5.794400420837933,
+          "clean_mse_mean": 154.45069250477033,
+          "raw_mse_mean": 22388.34205876523,
+          "weighted_residual_mean": 84842512979048.38
+        }
+      },
+      "prediction": "rank 2 is sufficient and rank 1 is deficient because the unknown phase of a sinusoid spans exactly span{cos, sin}",
+      "ranks": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "saturation_tolerance": 0.05,
+      "smallest_rank_within_tolerance": 2
+    }
+  },
+  "model_metadata": {},
+  "preprocessing_metadata": {},
+  "status": "complete"
+}

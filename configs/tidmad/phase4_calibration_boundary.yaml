@@ -1,0 +1,26 @@
+# TIDMAD Phase 4 -- the calibration boundary, in-domain.
+#
+# Paper 1's "implementation correctness is not model adequacy" lesson, moved
+# from GWOSC into the detector domain where injections can quantify what the
+# inadequacy costs. Structure deliberately mirrors the GWOSC stage: a
+# stationary synthetic control that MUST pass (a halt gate, not a result), a
+# global model, and time-local models at radii declared here before the run.
+#
+# The local radii are frozen in this file precisely so that they cannot be
+# tuned until the real data passes.
+experiment_id: TIDMAD_P4
+dataset: tidmad
+phase: 4
+mode: synthetic
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 1024   # split in half into calibration and evaluation
+sampling_frequency: 10000000.0
+frequency: 1000000.0
+
+local_radii: [8, 16, 32]      # predeclared; neighbourhood excludes the scored window
+
+psd_kind: pink
+output: results/metrics/TIDMAD_P4_synthetic_seed20260727.json

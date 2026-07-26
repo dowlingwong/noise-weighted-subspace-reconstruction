@@ -1,0 +1,28 @@
+# TIDMAD Phase 2 -- metric reversal against ground truth (gate G2).
+#
+# The headline experiment of the stage, and the one that decides whether TIDMAD
+# becomes a paper section. Two matched-rank subspaces are fitted on the same
+# representation and differ only in the metric; both are scored on held-out
+# windows against raw MSE, the likelihood, and the injected truth. The third
+# metric is the one that adjudicates, and CRESST structurally cannot supply it.
+experiment_id: TIDMAD_P2
+dataset: tidmad
+phase: 2
+mode: synthetic
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+sampling_frequency: 10000000.0
+frequency: 1000000.0
+snr: 8.0                    # per-window; low enough that the comparison is not trivial
+
+rank: 2                     # the analytic rank of the unknown-phase manifold
+fit_fraction: 0.7
+guard_windows: 4            # windows dropped between fit and evaluation
+bootstrap_reps: 300
+block_size: 16              # moving-block bootstrap: consecutive windows are dependent
+
+psd_kind: pink
+output: results/metrics/TIDMAD_P2_synthetic_seed20260727.json

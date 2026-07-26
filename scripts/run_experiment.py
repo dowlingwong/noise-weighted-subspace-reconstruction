@@ -15,7 +15,7 @@ if str(SRC) not in sys.path:
 
 from noise_geometry.experiments import run_synthetic_experiment
 from noise_geometry.cresst import run_cresst_experiment
-from noise_geometry.tidmad import run_tidmad_phase1
+from noise_geometry.tidmad import run_tidmad_phase
 from noise_geometry.gwosc import (
     run_filter_statistic_equivalence,
     run_gwosc_experiment,
@@ -73,7 +73,7 @@ def main() -> None:
         # docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md). Phase 1 is executable
         # today in synthetic mode; the real-noise mode additionally requires a
         # verified Phase 0 data contract, and the loader enforces that.
-        metrics = run_tidmad_phase1(config, data_root)
+        metrics = run_tidmad_phase(config, data_root)
         status = "complete" if bool(metrics.get("all_gates_passed", False)) else "failed_acceptance"
     else:
         raise ValueError(f"unknown dataset type: {dataset}")

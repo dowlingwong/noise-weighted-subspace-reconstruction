@@ -35,6 +35,7 @@ not exist.
 | [`results/CRESST_PREDECLARED_GATES.md`](results/CRESST_PREDECLARED_GATES.md) | The CRESST predeclaration. Use as the template for any new stage. |
 | [`results/GWOSC_RESULT.md`](results/GWOSC_RESULT.md) | GWOSC outcome: implementation checks pass, calibration fails. Boundary result. |
 | [`results/TIDMAD_PHASE1_RESULT.md`](results/TIDMAD_PHASE1_RESULT.md) | TIDMAD Phase 1: estimator identity and whitening convention verified (synthetic half). |
+| [`results/TIDMAD_PHASES_2_TO_5_RESULT.md`](results/TIDMAD_PHASES_2_TO_5_RESULT.md) | TIDMAD Phases 2–5: metric reversal with truth, rank knee, calibration boundary, denoiser. |
 
 ## `plans/` — roadmaps and decisions
 

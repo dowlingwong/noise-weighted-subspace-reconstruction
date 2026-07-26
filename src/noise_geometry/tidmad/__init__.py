@@ -26,7 +26,7 @@ Module map
 
 from __future__ import annotations
 
-from .experiments import run_tidmad_phase1
+from .experiments import run_tidmad_phase, run_tidmad_phase1
 from .estimators import (
     QuadratureFit,
     fit_fixed_phase,
@@ -70,6 +70,7 @@ __all__ = [
     "quadrature_templates",
     "quadrature_templates_rfft",
     "run_injection_check",
+    "run_tidmad_phase",
     "run_tidmad_phase1",
     "select_stationary_blocks",
     "sinusoid",

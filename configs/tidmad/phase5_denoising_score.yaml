@@ -1,0 +1,34 @@
+# TIDMAD Phase 5 -- the detector-facing metric (gate G4).
+#
+# Fits a Wiener filter on TRAINING files (the same information the deep
+# baselines get), applies it blind to validation, writes the release's file
+# layout, and scores it with the release's OWN benchmark.py. The score is never
+# reimplemented here: a reimplementation that disagreed by a normalization would
+# produce a number that looks comparable to the published scoreboard and is not.
+#
+# Claim boundary, fixed before the run: this measures how much of the gap
+# between no denoising and a trained deep denoiser is explained by using the
+# correct noise geometry with a linear model. It is not a claim to win.
+experiment_id: TIDMAD_P5
+dataset: tidmad
+phase: 5
+mode: file                    # phase 5 has no synthetic form: there is nothing to score
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+training_glob: tidmad/raw/abra_training_*.h5
+validation_glob: tidmad/raw/abra_validation_*.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+model_tag: wiener
+max_files: 1
+denoise_samples: 4194304
+coarse: true
+# upstream: pass --upstream <path to a jessicafry/TIDMAD checkout> on the CLI
+
+output: results/metrics/TIDMAD_P5_file_seed20260727.json

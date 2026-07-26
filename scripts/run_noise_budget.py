@@ -9,8 +9,8 @@ explicit acquisition branches.
 
 Never relabels the source component names (``SQUID``, ``Johnson``, ``TD``,
 ``Er``) and never invents a physical mapping beyond what the source files
-declare -- see docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md
-finding #1 and docs/REVISION_PLAN_2026-07-26.md EXP-02/EXP-03.
+declare -- see docs/EVALUATION.md
+finding #1 and docs/plans/REVISION_PLAN_2026-07-26.md EXP-02/EXP-03.
 
     uv run python scripts/run_noise_budget.py --config configs/noise_budget/study_a_v1.yaml
     uv run python scripts/run_noise_budget.py --config configs/noise_budget/study_b_v1.yaml --study-a-run <run_id>

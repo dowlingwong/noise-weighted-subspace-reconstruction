@@ -15,7 +15,7 @@ metrics (whitening ratio, detection score, trigger efficiency vs. injected
 amplitude anchored to each channel's published OF resolution), signal
 injection (direct + measured-PSD), negative controls, and a paired-bootstrap
 acceptance gate pooled across channels. See
-``docs/CRESST_PREDECLARED_GATES.md`` for the full design rationale.
+``docs/results/CRESST_PREDECLARED_GATES.md`` for the full design rationale.
 """
 
 from __future__ import annotations
@@ -105,7 +105,7 @@ def _fit_baselines(
       (only ``n_features // 2 + 1`` free parameters), matching the
       stationary/frequency-domain framing the rest of this codebase's
       OF/whitening machinery already assumes. See
-      ``noise.covariance_from_psd`` and ``docs/CRESST_PREDECLARED_GATES.md``.
+      ``noise.covariance_from_psd`` and ``docs/results/CRESST_PREDECLARED_GATES.md``.
     """
     if covariance_model == "empirical":
         raw_covariance = estimate_covariance(noise_train)

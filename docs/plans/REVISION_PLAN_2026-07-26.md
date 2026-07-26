@@ -10,7 +10,7 @@ This repository is the authority for simulation code, experiment configurations,
 
 The revision has four stop-ship objectives. It must replace the incorrect Study A interpretation with results computed from the checked-in `SQUID`, `Johnson`, `TD`, and `Er` spectra; rebuild Study B with the same physical component identities and explicit acquisition assumptions; establish which archived experiments used Gaussian versus fixed-modulus Fourier sampling; and export an immutable, checksum-backed bundle from which the manuscript can be revised without consulting notebooks or guessing values.
 
-The existing academic audit is [ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md](ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md). It defines the scientific concerns; this document defines the implementation sequence and acceptance gates.
+The existing academic audit is [EVALUATION.md](../EVALUATION.md). It defines the scientific concerns; this document defines the implementation sequence and acceptance gates.
 
 > ⚠️ **Evidence rule:** Existing frozen results must never be overwritten. A corrected or extended run receives a new run identifier, configuration snapshot, code revision, and output directory. Failed or changed results remain archived.
 
@@ -316,7 +316,7 @@ Add a verification command that recomputes every bundle checksum and fails if a 
 
 ## ✍️ Work package EXP-08: documentation and repository consistency
 
-Update [CURRENT_STATUS.md](CURRENT_STATUS.md), [EXPERIMENT_PROTOCOLS.md](EXPERIMENT_PROTOCOLS.md), the main repository README, and the transfer-bundle writing controls. Required corrections include:
+Update [CURRENT_STATUS.md](../CURRENT_STATUS.md), [EXPERIMENT_PROTOCOLS.md](../EXPERIMENT_PROTOCOLS.md), the main repository README, and the transfer-bundle writing controls. Required corrections include:
 
 - mark CRESST complete everywhere and remove stale “next candidate” language
 - distinguish the frozen ten-seed suite from any new confirmatory 30-seed S5/S4 run

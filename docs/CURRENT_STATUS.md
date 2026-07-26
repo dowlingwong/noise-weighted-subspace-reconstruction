@@ -24,7 +24,7 @@ until their separate implementation defects (uncontrolled RNG seeding,
 repeated test-set evaluation during training, an invalid timing-coordinate
 metric, and a Transformer with neither positional encoding nor cross-channel
 attention) are repaired and rerun from a frozen protocol; see
-`docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md`.
+`docs/EVALUATION.md`.
 
 ## Noise-Module Scientific Boundary
 
@@ -79,7 +79,7 @@ assumptions provide.
   with multi-template OF, and all 5 predeclared negative controls degraded,
   by a pooled paired-bootstrap 95% CI across all 7 detector channels (within
   each channel, the pulse and noise streams were each split chronologically,
-  separately, with zero row/hash overlap). See `docs/CRESST_RESULT.md`.
+  separately, with zero row/hash overlap). See `docs/results/CRESST_RESULT.md`.
 - Study A (`results/noise_budget/<run_id>/study_a/`) reproduces the checked-in
   component band fractions and crossovers directly from
   `noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er,total}_noise.dat`
@@ -167,7 +167,7 @@ Keep GWOSC as a limitation and boundary result unless a new predeclared Stage
 
 CRESST-A is a completed positive public real-data validation of the linear
 noise-geometry hierarchy for the current paper revision, with two reported
-limitations (see `docs/CRESST_RESULT.md`): a single-channel exception in the
+limitations (see `docs/results/CRESST_RESULT.md`): a single-channel exception in the
 weakest-margin negative control, and an inconclusive trigger-efficiency
 detector metric at the predeclared amplitude grid.
 
@@ -189,7 +189,7 @@ detection sensitivity from the trigger-efficiency metric as measured.
 2. Include GWOSC as a negative public real-noise stress test, not as calibrated
    detection evidence.
 3. ~~Move positive public real-data validation to CRESST or another
-   detector-pulse dataset~~ -- done; see `docs/CRESST_RESULT.md`. If a wider
+   detector-pulse dataset~~ -- done; see `docs/results/CRESST_RESULT.md`. If a wider
    detection-sensitivity claim is wanted, that requires a new predeclared
    stage with a revised amplitude grid (see "If CRESST Work Is Continued" in
    that document).
@@ -201,7 +201,7 @@ detection sensitivity from the trigger-efficiency metric as measured.
 ## Important Evidence Locations
 
 - `transfer_paper/data/derived/claim_status.csv`
-- `docs/CRESST_RESULT.md`, `docs/CRESST_PREDECLARED_GATES.md`
+- `docs/results/CRESST_RESULT.md`, `docs/results/CRESST_PREDECLARED_GATES.md`
 - `transfer_paper/data/derived/cresst_per_channel_summary.csv`,
   `transfer_paper/data/derived/cresst_pooled_summary.csv`
 - `evidence/cresst/20260704T013758Z_9c9f696ff6bc/` (full run record:

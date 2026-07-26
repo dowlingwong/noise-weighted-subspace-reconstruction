@@ -65,8 +65,8 @@ Authoritative sources:
 - `data/derived/cresst_pooled_summary.csv`
 
 In the parent experiment repository, the reviewed interpretation and frozen
-gate record are `docs/CRESST_RESULT.md` and
-`docs/CRESST_PREDECLARED_GATES.md`.
+gate record are `docs/results/CRESST_RESULT.md` and
+`docs/results/CRESST_PREDECLARED_GATES.md`.
 
 ## Required manuscript changes
 

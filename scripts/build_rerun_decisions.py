@@ -1,6 +1,6 @@
 """EXP-05: apply the plan's rerun-decision rule to every EXP-00-audited artifact.
 
-Decision rule (docs/REVISION_PLAN_2026-07-26.md EXP-05):
+Decision rule (docs/plans/REVISION_PLAN_2026-07-26.md EXP-05):
 
 | Provenance result | Required action |
 | --- | --- |

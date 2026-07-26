@@ -84,7 +84,7 @@ def package_cresst() -> Path:
             "-- the only sign reversal across all 5 controls x 7 channels, and "
             "the weakest-margin control pooled. Consistent with that channel's "
             "true noise being closer to white/uncorrelated than the others; "
-            "reported as a limitation, not smoothed over. See docs/CRESST_RESULT.md."
+            "reported as a limitation, not smoothed over. See docs/results/CRESST_RESULT.md."
         ),
     }
 
@@ -118,7 +118,7 @@ def package_cresst() -> Path:
             "Inconclusive within the predeclared amplitude grid for most channels "
             "(no 50%/90% crossing for 6 of 7 channels; NaN thresholds). Does not "
             "contradict the primary linear-hierarchy gate, but must not be "
-            "described as validated detection sensitivity. See docs/CRESST_RESULT.md."
+            "described as validated detection sensitivity. See docs/results/CRESST_RESULT.md."
         ),
         "no_detection_sensitivity_claim_supported": True,
         "caption": (

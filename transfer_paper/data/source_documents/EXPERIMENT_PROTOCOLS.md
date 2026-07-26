@@ -1,3 +1,8 @@
+<!-- GENERATED COPY - DO NOT EDIT.
+     Source: docs/EXPERIMENT_PROTOCOLS.md @ 54021bc9604efa0cf8f111699cb2468f43d57c4c
+     Generated: 2026-07-26T16:09:01Z by scripts/sync_source_documents.py
+     Edit the source in the experiment repository and re-run the sync. -->
+
 # Experiment Protocols
 
 Last consolidated: 2026-07-04.
@@ -86,7 +91,7 @@ uv run python scripts/run_experiment.py \
 ```
 
 Run the frozen predeclared CRESST-A validation (Stage C5; already run once,
-commit `9c9f696ff6bc` -- see `docs/CRESST_RESULT.md`, do not re-run to seek a
+commit `9c9f696ff6bc` -- see `docs/results/CRESST_RESULT.md`, do not re-run to seek a
 different result):
 
 ```bash
@@ -117,6 +122,33 @@ identifiable physical sources -- see
 convention (Gaussian rFFT-bin sampling vs. the separate exact-Toeplitz
 sampler).
 
+Run the S5 confirmatory sweep (predeclared, >=30 independent held-out seeds,
+disjoint from the frozen 0-9 block; also runs a matched S4 negative-control
+sweep under the identical protocol):
+
+```bash
+uv run python scripts/run_s5_confirmatory_sweep.py
+```
+
+Never format the output's `absolute_difference` or `fractional_difference`
+fields as a "x times" ratio -- only the `ratio` block exists for that
+purpose. `configs/synthetic/{s4_white_control,s5_metric_reversal,
+s6_timing_jitter_rank_sweep}_v2.yaml` bake `test_frac: 0.5` into the
+standalone-config default (the frozen v1 configs default to in-sample,
+`test_frac: 0.0`, and remain unchanged); use the `_v2` configs with
+`scripts/run_experiment.py` for any new single-run archival record that
+should match the sweep's held-out design.
+
+Run the EXP-05 rerun-decision and Appendix F traceability audits (read-only
+except for their own output; require `results/audits/
+noise_generator_provenance.json` from `scripts/audit_paper_evidence.py`):
+
+```bash
+uv run python scripts/build_rerun_decisions.py
+uv run python scripts/build_appendix_f_traceability.py
+uv run python scripts/audit_generator_distribution.py
+```
+
 ## Experiment Registry
 
 | ID | Purpose | Config | Current status |
@@ -134,7 +166,7 @@ sampler).
 | GWOSC-A | Global PSD real-noise calibration | `configs/gwosc/gw150914_smoke.yaml` | verified negative |
 | GWOSC-F1 | Shared-FIR implementation identity | `configs/gwosc/filter_statistic_equivalence.yaml` | verified positive |
 | GWOSC-L1 | Time-local PSD real-noise calibration | `configs/gwosc/time_local_noise.yaml` | verified negative |
-| CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/CRESST_RESULT.md`) |
+| CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/results/CRESST_RESULT.md`) |
 | Study A | Noise-budget band decomposition from authoritative component spectra | `configs/noise_budget/study_a_v1.yaml` | verified positive |
 | Study B | Conditional OF sensitivity attribution, two acquisition branches | `configs/noise_budget/study_b_v1.yaml` | verified positive, conditional on declared assumptions |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | optional/planned |
@@ -223,10 +255,10 @@ detector-pulse reconstruction where pulses form a shape manifold rather than
 a single fixed template. The protocol below is retained as the methodology
 record (distilled from the NPML experiment plan; the full methodology is
 preserved in `NPML/plan.md`); the frozen numeric predeclaration actually used
-is `docs/CRESST_PREDECLARED_GATES.md`, and the outcome is
-`docs/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
+is `docs/results/CRESST_PREDECLARED_GATES.md`, and the outcome is
+`docs/results/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
 any further CRESST work is a new predeclared stage (see "If CRESST Work Is
-Continued" in `docs/CRESST_RESULT.md`).
+Continued" in `docs/results/CRESST_RESULT.md`).
 
 Baselines, ordered classical to learned:
 

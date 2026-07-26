@@ -128,7 +128,7 @@ Every new component gets a test in `tests/` runnable without real data.
 
 ## Stage C4 — Predeclaration Freeze
 
-Before running on real data, write `docs/CRESST_PREDECLARED_GATES.md`
+Before running on real data, write `docs/results/CRESST_PREDECLARED_GATES.md`
 containing numeric values for: template-bank grid points, rank `k`
 (config currently declares 6), FPR points, efficiency thresholds, split
 definition and seeds, covariance shrinkage, and the quantitative acceptance

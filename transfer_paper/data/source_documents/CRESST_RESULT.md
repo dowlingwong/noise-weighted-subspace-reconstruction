@@ -1,3 +1,8 @@
+<!-- GENERATED COPY - DO NOT EDIT.
+     Source: docs/results/CRESST_RESULT.md @ 54021bc9604efa0cf8f111699cb2468f43d57c4c
+     Generated: 2026-07-26T16:09:01Z by scripts/sync_source_documents.py
+     Edit the source in the experiment repository and re-run the sync. -->
+
 # CRESST Result And Interpretation
 
 Last consolidated: 2026-07-04.
@@ -9,10 +14,10 @@ The predeclared CRESST-A validation run (Stage C5, commit `9c9f696ff6bc`,
 acceptance gate on the public DMDC CRESST-II/III pulse-shape test split.
 This is currently the first positive public real-data validation result for
 the linear noise-geometry hierarchy (GWOSC, by contrast, is a negative
-real-noise stress test; see `docs/GWOSC_RESULT.md`).
+real-noise stress test; see `docs/results/GWOSC_RESULT.md`).
 
 The gate was evaluated exactly as predeclared in
-`docs/CRESST_PREDECLARED_GATES.md`: no threshold, grid, or tolerance was
+`docs/results/CRESST_PREDECLARED_GATES.md`: no threshold, grid, or tolerance was
 adjusted after this run, and this report was written directly from its
 output.
 
@@ -62,7 +67,7 @@ output.
   the amplitude grid, anchored to `[0,1,2,3,4,5,6,8,10] x` each channel's
   published/CRB-estimated resolution, undersampled the true efficiency-rise
   region for this real dataset. Reported as a limitation, not adjusted:
-  the grid was frozen in `docs/CRESST_PREDECLARED_GATES.md` before this run
+  the grid was frozen in `docs/results/CRESST_PREDECLARED_GATES.md` before this run
   and Hard Rule 2 forbids retuning it now that a result is visible.
 
 ## Key Numbers
@@ -151,14 +156,14 @@ limitation, not as validated detection sensitivity.
   design is explicitly per-channel; nothing here tests whether one
   channel's noise model works for another.
 - Do not quote Stage C2 smoke metrics as part of this result (see the
-  smoke-contamination acknowledgment in `docs/CRESST_PREDECLARED_GATES.md`).
+  smoke-contamination acknowledgment in `docs/results/CRESST_PREDECLARED_GATES.md`).
 - Do not claim "all calibration data precede all evaluation data" -- the
   pulse and noise streams within a channel are split separately, each
   internally chronological with zero row/hash overlap, but their cutoffs
   are not synchronized. In channels `35_57.0` and `35_58.0`, 6 and 3
   evaluation pulses respectively (of 19,335 pooled) have timestamps earlier
   than that channel's final calibration-noise timestamp; see the post-hoc
-  correction in `docs/CRESST_PREDECLARED_GATES.md`. This does not affect
+  correction in `docs/results/CRESST_PREDECLARED_GATES.md`. This does not affect
   the result (no evaluation pulse entered any fitted model).
 
 ## Evidence Files
@@ -169,7 +174,7 @@ Primary records:
 - `results/metrics/p2_cresst_validation_seed22.config.yaml`
 - `results/metrics/p2_cresst_validation_seed22.log`
 - `evidence/cresst/20260704T013758Z_9c9f696ff6bc/`
-- `docs/CRESST_PREDECLARED_GATES.md` (frozen predeclaration, commit `9c9f696ff6bc`)
+- `docs/results/CRESST_PREDECLARED_GATES.md` (frozen predeclaration, commit `9c9f696ff6bc`)
 
 Derived summaries:
 
@@ -184,7 +189,7 @@ Post-freeze sensitivity (2026-07-13; does not alter or replace the above):
   frozen result within `1e-10`, the cross-stream leakage audit behind the
   post-hoc correction above, and a 10,000-replicate hierarchical
   channel-clustered bootstrap)
-- `docs/CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md`
+- `docs/runbooks/CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md`
 
 ## Diagnostic Framing
 

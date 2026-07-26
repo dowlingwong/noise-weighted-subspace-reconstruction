@@ -31,5 +31,8 @@ Useful entry points:
 - `python -m paper2.analysis.real_metric_coverage_matrix --train --analyze`
 - `PYTHONPATH=. python paper2/npml/generate_npml_notebooks.py`
 
-See [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md)
+See [PAPER2_NOISE_INTEGRATION_AND_PAPER3_OUTLINE.md](PAPER2_NOISE_INTEGRATION_AND_PAPER3_OUTLINE.md)
+for the current plan. The superseded 2026-06-09 implementation spec is archived
+at
+[`../docs/archive/2026-07-26_pre_paper23/paper2_IMPLEMENTATION_SPEC_2026-06-09.md`](../docs/archive/2026-07-26_pre_paper23/paper2_IMPLEMENTATION_SPEC_2026-06-09.md).
 for the pre-implementation checklist.

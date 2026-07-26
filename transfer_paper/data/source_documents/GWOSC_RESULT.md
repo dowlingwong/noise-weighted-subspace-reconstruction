@@ -1,3 +1,8 @@
+<!-- GENERATED COPY - DO NOT EDIT.
+     Source: docs/results/GWOSC_RESULT.md @ 54021bc9604efa0cf8f111699cb2468f43d57c4c
+     Generated: 2026-07-26T16:09:01Z by scripts/sync_source_documents.py
+     Edit the source in the experiment repository and re-run the sync. -->
+
 # GWOSC Result And Interpretation
 
 Last consolidated: 2026-06-29.

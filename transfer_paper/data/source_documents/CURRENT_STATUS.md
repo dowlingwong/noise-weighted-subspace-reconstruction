@@ -1,3 +1,8 @@
+<!-- GENERATED COPY - DO NOT EDIT.
+     Source: docs/CURRENT_STATUS.md @ 54021bc9604efa0cf8f111699cb2468f43d57c4c
+     Generated: 2026-07-26T16:09:01Z by scripts/sync_source_documents.py
+     Edit the source in the experiment repository and re-run the sync. -->
+
 # Current Status
 
 Last consolidated: 2026-07-04.
@@ -24,7 +29,7 @@ until their separate implementation defects (uncontrolled RNG seeding,
 repeated test-set evaluation during training, an invalid timing-coordinate
 metric, and a Transformer with neither positional encoding nor cross-channel
 attention) are repaired and rerun from a frozen protocol; see
-`docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md`.
+`docs/EVALUATION.md`.
 
 ## Noise-Module Scientific Boundary
 
@@ -47,6 +52,7 @@ assumptions provide.
 | Area | Current state | Paper use |
 | --- | --- | --- |
 | S1-S9 controlled synthetic gates | verified positive | Results and Methods |
+| S5 confirmatory sweep (30 seeds, held-out) | verified positive, strengthens the frozen 10-seed result | Results; use only the `ratio` JSON block for any "x times" wording |
 | Stage 0 remote reproducibility | verified positive | Methods/reproducibility |
 | GWOSC data integrity and official coverage | verified positive | Methods |
 | GWOSC PSD comparison with GWpy | verified positive | Methods/diagnostic Results |
@@ -78,7 +84,7 @@ assumptions provide.
   with multi-template OF, and all 5 predeclared negative controls degraded,
   by a pooled paired-bootstrap 95% CI across all 7 detector channels (within
   each channel, the pulse and noise streams were each split chronologically,
-  separately, with zero row/hash overlap). See `docs/CRESST_RESULT.md`.
+  separately, with zero row/hash overlap). See `docs/results/CRESST_RESULT.md`.
 - Study A (`results/noise_budget/<run_id>/study_a/`) reproduces the checked-in
   component band fractions and crossovers directly from
   `noise_module/Al2O3_Al_athermal/{SQUID,Johnson,TD,Er,total}_noise.dat`
@@ -93,6 +99,40 @@ assumptions provide.
   implementation to <0.02% fractional disagreement on relative sensitivity.
   This is sensitivity attribution under declared assumptions, not unique
   physical source decomposition and not a measured detector improvement.
+- S5 confirmatory sweep (`results/sweeps_v2/<run_id>/S5/`, 30 independent
+  held-out seeds 1000-1029, disjoint from the frozen 0-9 block): weighted-
+  residual PCA/EMPCA ratio `1.0115` (95% CI `[1.0111, 1.0119]`), raw-residual
+  PCA/EMPCA ratio `0.3150` (95% CI `[0.3088, 0.3210]`) -- the metric-reversal
+  effect confirmed with an independent, larger sample. The predeclared
+  smallest-relevant-effect check (>=0.5% weighted-residual improvement)
+  passed with an observed `1.14%` improvement. A matched S4 white-noise
+  sweep under the identical held-out protocol remained a negative control.
+  The frozen 10-seed S5 result is preserved unchanged; this is additive,
+  independent confirmation, not a replacement. **Any manuscript "x times"
+  wording for S5 must be read from the JSON's `ratio` block only** (see
+  `scripts/run_s5_confirmatory_sweep.py`) -- never from a raw difference or
+  percentage.
+- `results/audits/rerun_decisions.json` (EXP-05) mechanically applies the
+  Gaussian-bin/fixed-modulus/unknown-lineage/deterministic-arithmetic/
+  public-data decision rule to every EXP-00-audited artifact:
+  `no_fixed_modulus_artifacts_found: true` -- nothing in this repository's
+  current synthetic evidence used the obsolete sampler, so no distributional
+  claim required a lineage-driven rerun beyond EXP-04's new S5 protocol.
+- `results/audits/generator_distributional_diagnostics.json` adds a
+  periodogram-variability distributional check (KS/QQ vs. Exponential(1),
+  mean KS statistic `0.0025` across 5 seeds) for the Fourier generator,
+  going beyond the mean-PSD-only checks that could not have distinguished a
+  Gaussian sampler from the obsolete fixed-modulus one.
+- `results/audits/appendix_f_traceability.csv` (EXP-05) maps every named
+  legacy Appendix F item to a machine-readable source or marks it
+  unsupported: CRB verification, rank sweep, and covariance-estimation
+  convergence are confirmed and match the audit doc's numbers; principal-
+  component alignment/bootstrap and the time-shift diagnostic are only
+  partially mapped; resolution-scaling slope, template mismatch, timing-bias
+  reduction, the rank-swept KS/QQ transition, and the duplicate
+  `1029.2/1028.9/1028.6` rank values have **no machine-readable source
+  anywhere in this repository** and must not be cited until either their
+  true source is located or a new script computes and archives them.
 
 ## What Is Not Supported
 
@@ -132,7 +172,7 @@ Keep GWOSC as a limitation and boundary result unless a new predeclared Stage
 
 CRESST-A is a completed positive public real-data validation of the linear
 noise-geometry hierarchy for the current paper revision, with two reported
-limitations (see `docs/CRESST_RESULT.md`): a single-channel exception in the
+limitations (see `docs/results/CRESST_RESULT.md`): a single-channel exception in the
 weakest-margin negative control, and an inconclusive trigger-efficiency
 detector metric at the predeclared amplitude grid.
 
@@ -154,7 +194,7 @@ detection sensitivity from the trigger-efficiency metric as measured.
 2. Include GWOSC as a negative public real-noise stress test, not as calibrated
    detection evidence.
 3. ~~Move positive public real-data validation to CRESST or another
-   detector-pulse dataset~~ -- done; see `docs/CRESST_RESULT.md`. If a wider
+   detector-pulse dataset~~ -- done; see `docs/results/CRESST_RESULT.md`. If a wider
    detection-sensitivity claim is wanted, that requires a new predeclared
    stage with a revised amplitude grid (see "If CRESST Work Is Continued" in
    that document).
@@ -166,7 +206,7 @@ detection sensitivity from the trigger-efficiency metric as measured.
 ## Important Evidence Locations
 
 - `transfer_paper/data/derived/claim_status.csv`
-- `docs/CRESST_RESULT.md`, `docs/CRESST_PREDECLARED_GATES.md`
+- `docs/results/CRESST_RESULT.md`, `docs/results/CRESST_PREDECLARED_GATES.md`
 - `transfer_paper/data/derived/cresst_per_channel_summary.csv`,
   `transfer_paper/data/derived/cresst_pooled_summary.csv`
 - `evidence/cresst/20260704T013758Z_9c9f696ff6bc/` (full run record:
@@ -183,6 +223,13 @@ detection sensitivity from the trigger-efficiency metric as measured.
 - `results/audits/noise_generator_provenance.{json,md}`,
   `results/audits/synthetic_config_provenance.csv` (generator lineage per
   synthetic experiment; see EXP-00)
+- `results/audits/rerun_decisions.json` (EXP-05 decision-rule application),
+  `results/audits/appendix_f_traceability.csv` (EXP-05 Appendix F audit),
+  `results/audits/generator_distributional_diagnostics.{json,png,pdf}`
+  (EXP-05 distributional panels)
+- `results/sweeps_v2/<run_id>/{S4,S5}/` (EXP-04 confirmatory sweep; frozen
+  10-seed `results/sweeps/` and `transfer_paper/data/synthetic/` evidence is
+  unchanged and remains primary for S1-S9 generally)
 - `results/noise_budget/<run_id>/study_a/`,
   `results/noise_budget/<run_id>/study_b/` (see EXP-02/EXP-03)
 - `results/public_data_package/cresst/`, `results/public_data_package/gwosc/`

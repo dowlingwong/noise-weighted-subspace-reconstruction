@@ -29,7 +29,7 @@ OUT_DIR = REPO_ROOT / "results" / "audits"
 
 # --------------------------------------------------------------------------
 # Generator lineage: hand-traced from source, not inferred from manuscript
-# prose. See docs/REVISION_PLAN_2026-07-26.md EXP-00: "Do not infer that S8
+# prose. See docs/plans/REVISION_PLAN_2026-07-26.md EXP-00: "Do not infer that S8
 # is contaminated merely because Appendix G documents a fixed-modulus
 # sampler... its lineage must be demonstrated rather than assumed."
 #
@@ -270,7 +270,7 @@ def audit_study_a_exports() -> list[dict[str, Any]]:
                 "fft_based_sampler": False,
                 "status": STATUS_SUPERSEDED,
                 "supersede_reason": (
-                    "Per docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md "
+                    "Per docs/EVALUATION.md "
                     "finding #1: this export's physical labels ('1/f phonon', "
                     "'vibrational', 'TES Johnson') and reported crossovers do not "
                     "match the checked-in component files "

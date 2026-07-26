@@ -1,6 +1,6 @@
 # Paper Update Plan: Integrating the CRESST-A Positive Result
 
-Created: 2026-07-04. Source evidence: `docs/CRESST_RESULT.md`,
+Created: 2026-07-04. Source evidence: `docs/results/CRESST_RESULT.md`,
 `evidence/cresst/20260704T013758Z_9c9f696ff6bc/`,
 `transfer_paper/data/derived/cresst_{pooled,per_channel}_summary.csv`.
 Predeclaration commit: `9c9f696ff6bc`.
@@ -18,7 +18,7 @@ CRESST so the narrative closes on the positive result GWOSC motivated.
 ### Abstract
 
 After the GWOSC sentences, insert (condensed from the manuscript-safe
-paragraph in `docs/CRESST_RESULT.md`):
+paragraph in `docs/results/CRESST_RESULT.md`):
 
 > A subsequent predeclared validation on the public CRESST-II/III
 > pulse-shape release passed: within each of seven detector channels, the
@@ -147,7 +147,7 @@ after schema review" (now done) with the actual residual limitations:
 - σ_OF anchoring imperfect (published resolutions are full-resolution OF
   values; one channel required a CRB fallback);
 - Stage C2 smoke-run contamination acknowledgment (values directional,
-  gate not threshold-fitted; see `docs/CRESST_PREDECLARED_GATES.md`).
+  gate not threshold-fitted; see `docs/results/CRESST_PREDECLARED_GATES.md`).
 
 ### Section 9/10 Future work
 
@@ -201,7 +201,7 @@ remaining the open frontier.
 - Do not touch: GWOSC wording (frozen), internal K-α Experiment A framing,
   S1–S9 numbers.
 
-## Wording to avoid (from docs/CRESST_RESULT.md)
+## Wording to avoid (from docs/results/CRESST_RESULT.md)
 
 No validated detection sensitivity; no cross-channel transfer; no "all
 controls degraded in every channel"; no calibrated-residual claim on

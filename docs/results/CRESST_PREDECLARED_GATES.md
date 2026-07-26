@@ -10,7 +10,7 @@ frozen before any real-data score has been seen. This file freezes every
 threshold, grid, rank, FPR point, split definition, and acceptance criterion
 for the CRESST-A predeclared validation run
 (`configs/cresst/cresst_validation.yaml`), per Stage C4 of
-`docs/CRESST_REMOTE_AGENT_RUNBOOK.md` and the CRESST Validation Protocol in
+`docs/runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md` and the CRESST Validation Protocol in
 `docs/EXPERIMENT_PROTOCOLS.md`.
 
 ## Audit trail: commit `3b93cbd`

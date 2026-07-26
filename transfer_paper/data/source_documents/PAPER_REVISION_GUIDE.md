@@ -1,3 +1,8 @@
+<!-- GENERATED COPY - DO NOT EDIT.
+     Source: docs/PAPER_REVISION_GUIDE.md @ 54021bc9604efa0cf8f111699cb2468f43d57c4c
+     Generated: 2026-07-26T16:09:01Z by scripts/sync_source_documents.py
+     Edit the source in the experiment repository and re-run the sync. -->
+
 # Paper Revision Guide
 
 Last consolidated: 2026-07-12.
@@ -65,6 +70,7 @@ claim.
 | --- | --- | --- | --- |
 | OF/EMPCA/weighted-AE unified by noise metric | supported by theory and controlled validation | "unified as constrained ML projections under the noise metric" | "validated for all detector data" |
 | S1-S9 synthetic gates | verified positive | "passed multi-seed controlled criteria" | "proves real-detector calibration" |
+| S5 colored-noise metric reversal | verified positive, frozen 10-seed plus confirmatory 30-seed sweep | State the weighted-residual and raw-residual PCA/EMPCA ratios only from the confirmatory sweep's JSON `ratio` block (e.g. "EMPCA's weighted residual was X times lower / PCA's raw residual was Y times lower"); report both orderings explicitly | Never derive a "x times" figure from a raw difference or a percentage; never call `48.49` (a raw weighted-residual value, not a ratio) a "times" figure |
 | Remote reproducibility | verified positive | "Stage 0 passed on a clean remote checkout" | "reproducibility implies scientific acceptance" |
 | GWOSC PSD implementation | verified positive | "matches GWpy on identical windows" | "PSD agreement validates likelihood calibration" |
 | Shared-FIR identity | verified positive | "FFT-convolution and GWpy-convolution agree for the shared FIR statistic" | "all GWpy and repository statistics are equivalent" |

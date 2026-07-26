@@ -3,7 +3,7 @@ control under the identical held-out protocol.
 
 The frozen 10-seed S5 result (``transfer_paper/data/synthetic/S5_sweep_10seeds.*``)
 is PRESERVED AS-IS and never overwritten by this script -- see the evidence
-rule in docs/REVISION_PLAN_2026-07-26.md. This script adds a new,
+rule in docs/plans/REVISION_PLAN_2026-07-26.md. This script adds a new,
 independent, predeclared run under ``results/sweeps_v2/<run_id>/``.
 
 Predeclaration (fixed before this script is run, not tuned afterward):

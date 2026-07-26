@@ -2,6 +2,43 @@
 
 ## Unreleased
 
+### 2026-07-26 — documentation consolidation
+
+- **Source documents are now generated, not maintained.** `CURRENT_STATUS.md`,
+  `EXPERIMENT_PROTOCOLS.md`, and `PAPER_REVISION_GUIDE.md` existed as three
+  independently hand-edited copies (`docs/`, this repository's
+  `transfer_paper/data/source_documents/`, and the manuscript repository's)
+  with three different SHA-256 hashes; the manuscript repository was reading
+  the oldest. Added `scripts/sync_source_documents.py`, which renders each copy
+  from `docs/` with a provenance header and writes
+  `SOURCE_DOCUMENTS_MANIFEST.json`, and a `source_document_drift` check in
+  `scripts/verify_paper_bundle.py` that fails on any hand-edited copy.
+- **Merged the two same-day audits into `docs/EVALUATION.md`.** The broad
+  first-pass audit and the independent second-pass verification overlapped by
+  roughly 60% with no indication of which was authoritative. Both originals are
+  archived under `docs/archive/2026-07-26_pre_paper23/`. The merged document
+  records the second-pass findings: the S5 manuscript numbers come from a
+  seeds-0–29 run that violates the confirmatory sweep's own predeclaration, a
+  latent argument-count bug in `OptimumFilter.sliding_fit(chisq_mode='none')`,
+  the S5 global-scale convention, and numerical verification of the Appendix G
+  generator equations.
+- **Reorganized `docs/`** into `results/`, `plans/`, `runbooks/`, and
+  `background/`, with `docs/README.md` rewritten as a complete index. All
+  references in code docstrings, configs, and Markdown were updated; archived
+  and checksummed evidence bundles were left untouched.
+- **Archived superseded plans** to `docs/archive/2026-07-26_pre_paper23/`:
+  `NPML/plan.md`, `paper2/IMPLEMENTATION_SPEC.md`,
+  `paper2/MISSING_FOR_D_E.md`, and the two `paper2/plans/` documents.
+- **Moved `evolution_plan.md` to `noise_module/EVOLUTION_PLAN.md`** — it is the
+  noise-module roadmap and belongs with its subject.
+- Added planning documents: `docs/plans/PAPER1_SECOND_REALDATA_ANCHOR.md`
+  (second real-data anchor decision; TIDMAD selected, GWOSC demoted),
+  `docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md`,
+  `docs/plans/CORRECTION_PLAN_EXPERIMENTS_2026-07-26.md`,
+  `docs/EXPERIMENTS_OVERVIEW.md`,
+  `paper2/PAPER2_NOISE_INTEGRATION_AND_PAPER3_OUTLINE.md`, and
+  `paper3/PAPER3_PLAN.md`.
+
 ### 2026-07-13
 
 - Fixed two issues found while reviewing the CRESST post-freeze channel-
@@ -14,7 +51,7 @@
   `*.npz` ignore rules; added a narrow `.gitignore` exception scoped to
   `transfer_paper/data/cresst/sensitivity/` (all ~8 MB, small derived
   per-event/bootstrap arrays, not raw detector data) and tracked the three
-  files. (2) `docs/CRESST_PREDECLARED_GATES.md` and downstream
+  files. (2) `docs/results/CRESST_PREDECLARED_GATES.md` and downstream
   manuscript-facing text described the per-channel chronological split as a
   single combined cut, but the pulse and noise streams are actually split
   *separately*; the sensitivity archive's leakage audit found 6 and 3
@@ -45,14 +82,14 @@
   (`noise.covariance_from_psd`) for the per-channel N ~ p regime and
   three-tier FPR reporting (5% primary, 1% with a threshold CI, 0.1%
   diagnostic). Froze the Stage C4 predeclaration
-  (`docs/CRESST_PREDECLARED_GATES.md`, commit `9c9f696ff6bc`).
+  (`docs/results/CRESST_PREDECLARED_GATES.md`, commit `9c9f696ff6bc`).
 - Ran the predeclared Stage C5 CRESST-A validation once on the full public
   test split: **passed** (EMPCA beat single-template OF, was competitive
   with multi-template OF, and all 5 negative controls degraded, by pooled
   paired-bootstrap 95% CI across all 7 channels), with two reported
   limitations (a single-channel exception in the weakest negative control;
   an inconclusive trigger-efficiency metric at the predeclared amplitude
-  grid). See `docs/CRESST_RESULT.md`. Archived evidence under
+  grid). See `docs/results/CRESST_RESULT.md`. Archived evidence under
   `evidence/cresst/20260704T013758Z_9c9f696ff6bc/` and synchronized
   `transfer_paper/data/cresst/` and `transfer_paper/data/derived/
   cresst_{per_channel,pooled}_summary.csv` via the new
@@ -91,7 +128,7 @@
   OF baseline, measured-PSD-injection honesty rule, negative-control battery),
   detector-facing metrics (residual whitening ratio, detection score, trigger
   efficiency at fixed FPR) in `docs/EXPERIMENT_PROTOCOLS.md`, and a GWOSC
-  diagnostic-framing section in `docs/GWOSC_RESULT.md`. No code ported; the
+  diagnostic-framing section in `docs/results/GWOSC_RESULT.md`. No code ported; the
   full source methodology remains in `NPML/plan.md`.
 
 ### Earlier (undated)

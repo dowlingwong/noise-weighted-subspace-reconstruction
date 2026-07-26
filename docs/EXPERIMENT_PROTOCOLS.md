@@ -86,7 +86,7 @@ uv run python scripts/run_experiment.py \
 ```
 
 Run the frozen predeclared CRESST-A validation (Stage C5; already run once,
-commit `9c9f696ff6bc` -- see `docs/CRESST_RESULT.md`, do not re-run to seek a
+commit `9c9f696ff6bc` -- see `docs/results/CRESST_RESULT.md`, do not re-run to seek a
 different result):
 
 ```bash
@@ -161,7 +161,7 @@ uv run python scripts/audit_generator_distribution.py
 | GWOSC-A | Global PSD real-noise calibration | `configs/gwosc/gw150914_smoke.yaml` | verified negative |
 | GWOSC-F1 | Shared-FIR implementation identity | `configs/gwosc/filter_statistic_equivalence.yaml` | verified positive |
 | GWOSC-L1 | Time-local PSD real-noise calibration | `configs/gwosc/time_local_noise.yaml` | verified negative |
-| CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/CRESST_RESULT.md`) |
+| CRESST-A | Public cryogenic pulse validation (linear hierarchy) | `configs/cresst/cresst_validation.yaml` | verified positive (trigger-efficiency metric inconclusive; see `docs/results/CRESST_RESULT.md`) |
 | Study A | Noise-budget band decomposition from authoritative component spectra | `configs/noise_budget/study_a_v1.yaml` | verified positive |
 | Study B | Conditional OF sensitivity attribution, two acquisition branches | `configs/noise_budget/study_b_v1.yaml` | verified positive, conditional on declared assumptions |
 | TIDMAD-A | Optional denoising extension | `configs/tidmad/optional_smoke.yaml` | optional/planned |
@@ -250,10 +250,10 @@ detector-pulse reconstruction where pulses form a shape manifold rather than
 a single fixed template. The protocol below is retained as the methodology
 record (distilled from the NPML experiment plan; the full methodology is
 preserved in `NPML/plan.md`); the frozen numeric predeclaration actually used
-is `docs/CRESST_PREDECLARED_GATES.md`, and the outcome is
-`docs/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
+is `docs/results/CRESST_PREDECLARED_GATES.md`, and the outcome is
+`docs/results/CRESST_RESULT.md`. Do not re-run this gate to seek a different result;
 any further CRESST work is a new predeclared stage (see "If CRESST Work Is
-Continued" in `docs/CRESST_RESULT.md`).
+Continued" in `docs/results/CRESST_RESULT.md`).
 
 Baselines, ordered classical to learned:
 

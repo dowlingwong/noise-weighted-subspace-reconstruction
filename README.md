@@ -25,7 +25,7 @@ a completed negative public real-noise stress test: PSD/reference and
 shared-FIR implementation checks passed, but global and predeclared local PSD
 real-noise calibration failed. **CRESST-A is a completed positive public
 real-data validation** of the linear noise-geometry hierarchy (see
-[`docs/CRESST_RESULT.md`](docs/CRESST_RESULT.md)); it is not a "next
+[`docs/results/CRESST_RESULT.md`](docs/results/CRESST_RESULT.md)); it is not a "next
 candidate" or pending item. TIDMAD is optional.
 
 The noise-budget decomposition (Study A/B, `scripts/run_noise_budget.py`) is
@@ -43,7 +43,7 @@ covariance vs. a separate exact-Toeplitz sampler) is pinned in
 Paper 2 (`paper2/`) neural-architecture and coverage results are exploratory
 only pending separate implementation repairs (RNG seeding, test-set reuse,
 timing-metric coordinates, Transformer positional/cross-channel encoding);
-see `docs/ACADEMIC_EXPERIMENT_AND_NOISE_MODULE_EVALUATION.md`.
+see `docs/EVALUATION.md`.
 
 ## Remote Installation
 
@@ -132,7 +132,7 @@ uv run python scripts/run_experiment.py \
 
 The preprocessing command compares PSD normalization and held-out whitening
 calibration against GWpy. The GWOSC outcome and follow-up interpretation are
-summarized in [`docs/GWOSC_RESULT.md`](docs/GWOSC_RESULT.md); commands and
+summarized in [`docs/results/GWOSC_RESULT.md`](docs/results/GWOSC_RESULT.md); commands and
 acceptance rules are in
 [`docs/EXPERIMENT_PROTOCOLS.md`](docs/EXPERIMENT_PROTOCOLS.md).
 
@@ -157,12 +157,16 @@ Both scripts refuse to put large data inside this repository unless
 - `scripts/`: experiment, download, preprocessing, figure, and table entry points.
 - `experiments/`: compatibility entry points for earlier smoke experiments.
 - `tests/`: fast theory and regression tests.
-- `docs/`: consolidated current status, protocols, GWOSC result, and paper
-  revision guidance.
-- `archive/`: reviewed stale material only; legacy directories are otherwise
-  preserved in place.
-- `paper2/`, `NPML/`, `TraceSimulator/`, `QP_simulator/`: adjacent or legacy
-  work, not the default Paper 1 execution surface.
+- `docs/`: current status, the consolidated evaluation, the experiment
+  registry, and protocols, with `docs/results/`, `docs/plans/`,
+  `docs/runbooks/`, and `docs/background/` subdirectories. Start at
+  [`docs/README.md`](docs/README.md).
+- `archive/` and `docs/archive/`: reviewed stale material only; legacy
+  directories are otherwise preserved in place.
+- `paper2/`, `paper3/`: planning and code for the follow-up papers.
+- `noise_module/`: the noise simulator, its conventions, and its roadmap.
+- `NPML/`, `TraceSimulator/`, `QP_simulator/`: adjacent or legacy work, not the
+  default Paper 1 execution surface.
 
 ## Reproducibility
 

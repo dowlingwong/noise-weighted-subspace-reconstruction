@@ -20,7 +20,7 @@ point-estimate win/loss is not evidence on its own (see
   single-template OF template instead of the correctly fit one.
 
 A failing (non-degrading) control is itself evidence -- see the Hard Rules
-in ``docs/CRESST_REMOTE_AGENT_RUNBOOK.md``: report it, do not tune it away.
+in ``docs/runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md``: report it, do not tune it away.
 """
 
 from __future__ import annotations

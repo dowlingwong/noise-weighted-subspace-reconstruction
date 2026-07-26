@@ -1,0 +1,165 @@
+{
+  "config": {
+    "_config_path": "/sessions/compassionate-laughing-einstein/mnt/noise-weighted-subspace-reconstruction/configs/tidmad/phase6_negative_controls.yaml",
+    "bootstrap_reps": 300,
+    "dataset": "tidmad",
+    "experiment_id": "TIDMAD_P6",
+    "fit_fraction": 0.7,
+    "frequency": 1000000.0,
+    "guard_windows": 4,
+    "mode": "synthetic",
+    "n_calibration_windows": 256,
+    "n_windows": 512,
+    "output": "results/metrics/TIDMAD_P6_synthetic_seed20260727.json",
+    "phase": 6,
+    "psd_kind": "pink",
+    "rank": 2,
+    "resolved_data_root": "/ceph/dwong/paper1_dataset",
+    "sampling_frequency": 10000000.0,
+    "seed": 20260727,
+    "snr": 8.0,
+    "window_samples": 4096,
+    "wrong_frequency_offset_bins": 37
+  },
+  "dataset_metadata": {
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad"
+  },
+  "experiment_id": "TIDMAD_P6",
+  "git_commit": "1a268459e52b4e22d9235cb141ce2ebd9110d579",
+  "metrics": {
+    "all_gates_passed": true,
+    "gates": {
+      "P6_noise_only_train_degrades": {
+        "ci95": [
+          14.76585306717854,
+          15.380843882715586
+        ],
+        "passed": true,
+        "value": 15.075911809344479
+      },
+      "P6_permuted_bins_degrades": {
+        "ci95": [
+          14.757443445819469,
+          15.92324152930242
+        ],
+        "passed": true,
+        "value": 15.393933642333542
+      },
+      "P6_random_weighted_basis_degrades": {
+        "ci95": [
+          14.685439571362041,
+          15.365176581333797
+        ],
+        "passed": true,
+        "value": 15.030203826196315
+      },
+      "P6_wrong_frequency_degrades": {
+        "ci95": [
+          14.445060410036298,
+          15.46450269826548
+        ],
+        "passed": true,
+        "value": 14.982244803865836
+      },
+      "P6_wrong_psd_degrades": {
+        "ci95": [
+          14.765914701820781,
+          15.37911558260991
+        ],
+        "passed": true,
+        "value": 15.054310775293738
+      }
+    },
+    "negative_controls": {
+      "all_controls_degraded": true,
+      "all_controls_saturated": true,
+      "control_amplitude_rmse": {
+        "noise_only_train": 20.50682874464877,
+        "permuted_bins": 21.043302233941976,
+        "random_weighted_basis": 20.471529344537775,
+        "wrong_frequency": 20.54673917046599,
+        "wrong_psd": 20.495632254826972
+      },
+      "controls_saturated_at_zero_recovery": {
+        "noise_only_train": true,
+        "permuted_bins": true,
+        "random_weighted_basis": true,
+        "wrong_frequency": true,
+        "wrong_psd": true
+      },
+      "controls_that_did_not_degrade": [],
+      "degraded": {
+        "noise_only_train": true,
+        "permuted_bins": true,
+        "random_weighted_basis": true,
+        "wrong_frequency": true,
+        "wrong_psd": true
+      },
+      "nominal": "empca",
+      "nominal_amplitude_rmse": 5.792400412194807,
+      "note": "A control that fails to degrade is a reportable result, not a parameter to adjust. CRESST had one such case and published it.",
+      "paired_contrasts": {
+        "noise_only_train": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            14.76585306717854,
+            15.380843882715586
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 15.075911809344479,
+          "n_events": 150
+        },
+        "permuted_bins": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            14.757443445819469,
+            15.92324152930242
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 15.393933642333542,
+          "n_events": 150
+        },
+        "random_weighted_basis": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            14.685439571362041,
+            15.365176581333797
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 15.030203826196315,
+          "n_events": 150
+        },
+        "wrong_frequency": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            14.445060410036298,
+            15.46450269826548
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 14.982244803865836,
+          "n_events": 150
+        },
+        "wrong_psd": {
+          "bootstrap_reps": 300,
+          "ci95_difference": [
+            14.765914701820781,
+            15.37911558260991
+          ],
+          "exceeds_zero": true,
+          "mean_difference": 15.054310775293738,
+          "n_events": 150
+        }
+      },
+      "rank": 2,
+      "saturation_note": "A saturated control has collapsed to the zero-recovery level, so the controls establish that the pipeline is falsifiable but cannot be read as ranking severity. Raise the SNR if a severity ordering is wanted.",
+      "wrong_frequency_hz": 1091308.59375,
+      "wrong_frequency_offset_bins": 37,
+      "zero_recovery_rmse": 20.514660095270653
+    },
+    "phase": 6
+  },
+  "model_metadata": {},
+  "preprocessing_metadata": {},
+  "status": "complete"
+}

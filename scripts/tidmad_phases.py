@@ -6,6 +6,7 @@ Roadmap: ``docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md``.
     phase 3  rank sweep against the analytic quadrature       (gate G3)
     phase 4  calibration boundary, in-domain                  (control must pass)
     phase 5  denoised output scored by the upstream benchmark (gate G4)
+    phase 6  five negative controls; every one must degrade
 
 One runner rather than four because all four share the same window preparation,
 the same noise model, and the same chronological split. Splitting them into
@@ -67,6 +68,7 @@ from noise_geometry.tidmad.analysis import (  # noqa: E402
     run_metric_reversal,
     run_rank_sweep,
 )
+from noise_geometry.tidmad.negative_controls import run_negative_controls  # noqa: E402
 from noise_geometry.tidmad.calibration import (  # noqa: E402
     assess_global_model,
     assess_local_model,
@@ -490,7 +492,39 @@ def phase5(args: argparse.Namespace, data: dict) -> dict:
     }
 
 
-PHASES = {2: phase2, 3: phase3, 4: phase4, 5: phase5}
+def phase6(args: argparse.Namespace, data: dict) -> dict:
+    """Phase 6: break one ingredient at a time; every control must degrade."""
+    windows = build_window_set(
+        data["observed"],
+        data["clean"],
+        data["psd"],
+        data["weights"],
+        data["sampling_frequency"],
+        data["frequency"],
+        fit_fraction=args.fit_fraction,
+        guard_windows=args.guard_windows,
+    )
+    result = run_negative_controls(
+        windows,
+        data["noise_only"],
+        rank=int(args.rank),
+        bootstrap_reps=int(args.bootstrap_reps),
+        seed=int(args.seed),
+        wrong_frequency_offset_bins=int(args.wrong_frequency_offset_bins),
+    )
+
+    gates = {
+        f"P6_{name}_degrades": {
+            "value": result["paired_contrasts"][name]["mean_difference"],
+            "ci95": list(result["paired_contrasts"][name]["ci95_difference"]),
+            "passed": bool(result["degraded"][name]),
+        }
+        for name in result["degraded"]
+    }
+    return {"phase": 6, "negative_controls": result, "gates": gates}
+
+
+PHASES = {2: phase2, 3: phase3, 4: phase4, 5: phase5, 6: phase6}
 
 
 def main() -> None:
@@ -510,6 +544,7 @@ def main() -> None:
     parser.add_argument("--guard-windows", type=int, default=4)
     parser.add_argument("--bootstrap-reps", type=int, default=300)
     parser.add_argument("--block-size", type=int, default=16)
+    parser.add_argument("--wrong-frequency-offset-bins", type=int, default=37)
     parser.add_argument("--local-radii", type=int, nargs="+", default=[4, 8, 16])
     parser.add_argument(
         "--psd-kind",

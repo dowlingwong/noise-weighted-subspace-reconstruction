@@ -1,4 +1,4 @@
-# TIDMAD Phases 2–5 — Implementation and Synthetic Results
+# TIDMAD Phases 2–6 — Implementation and Synthetic Results
 
 Date: 2026-07-27. Stage: TIDMAD (Paper 1's second real-data anchor).
 Roadmap: [`../plans/TIDMAD_IMPLEMENTATION_ROADMAP.md`](../plans/TIDMAD_IMPLEMENTATION_ROADMAP.md).
@@ -155,6 +155,45 @@ missing it raises rather than falling back to an internal approximation — a
 reimplementation that disagreed by a normalization factor would produce a number
 that looks comparable to the published scoreboard and is not.
 
+## Phase 6 — negative controls (all five degrade)
+
+Phase 2's positive result is compatible with a pipeline that would report a win
+no matter what it was fed. Each control breaks one ingredient and must degrade
+the primary metric with a bootstrap interval excluding zero. The set is matched
+one-for-one with CRESST's, so both real-data stages are falsifiable the same way.
+
+Nominal (EMPCA) amplitude RMSE: **5.792**. Zero-recovery level (recovering
+nothing): **20.515**.
+
+| control | RMSE @ SNR 8 | paired difference vs nominal, 95% CI | RMSE @ SNR 40 |
+| --- | --- | --- | --- |
+| `noise_only_train` | 20.507 | +15.076 [14.766, 15.381] | 102.522 |
+| `permuted_bins` | 21.043 | +15.394 [14.757, 15.923] | 102.924 |
+| `random_weighted_basis` | 20.472 | +15.030 [14.685, 15.365] | 102.354 |
+| `wrong_frequency` | 20.547 | +14.982 [14.445, 15.465] | 102.498 |
+| `wrong_psd` | 20.496 | +15.054 [14.766, 15.379] | 59.219 |
+
+All five gates pass. Two things the table shows that a bare pass/fail would hide:
+
+**At SNR 8 every control saturates.** All five land at the zero-recovery level
+(20.515), so they establish that the pipeline is falsifiable but cannot rank
+severity — the differences between them are noise. The run record flags this
+automatically (`all_controls_saturated: true`) rather than leaving a reader to
+infer an ordering from it.
+
+**At SNR 40 the controls separate, and `wrong_psd` is the weakest** — 59.2
+against a zero-recovery level of 102.6, while the other four stay at ~102.5.
+A wrong-but-still-coloured noise model retains partial recovery, which is
+exactly what CRESST found: wrong-PSD weighting was its weakest control too.
+That agreement across two unrelated detectors is a small but real check on the
+control design.
+
+Design note: `wrong_psd` uses a **spectrally flipped** PSD, not the identity
+metric. The isotropic case is already Phase 2's Euclidean arm, so using it here
+would duplicate that contrast instead of testing the noise model separately —
+the first draft did exactly that and produced a control numerically identical
+to the Phase 2 PCA arm.
+
 ## Verification
 
 22 tests pass (`tests/test_tidmad_estimators.py`, `tests/test_tidmad_phases.py`),
@@ -178,8 +217,6 @@ report `status: complete`.
    the Gaussian model — and record what it costs via `cost_of_mismatch`, which
    is the number GWOSC could never produce.
 3. Phase 5 with `--upstream <TIDMAD checkout>`.
-4. **Phase 6** (not yet implemented): the five negative controls mirroring
-   CRESST's — wrong PSD, noise-only training, random basis, wrong frequency,
-   permuted bins — plus the frozen predeclaration document
-   `docs/TIDMAD_PREDECLARED_GATES.md`. Phase 2's result should not be published
-   before those exist.
+4. Re-run Phase 6 on real data. A control that fails to degrade there is a
+   result to publish, not a parameter to adjust — CRESST had exactly one such
+   case and reported it.

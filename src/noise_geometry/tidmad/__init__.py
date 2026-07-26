@@ -20,6 +20,7 @@ Module map
 ``injections``     synthetic-injection harness (the Phase 1 gate G1 instrument)
 ``psd``            streaming Welch PSD and measured stationarity selection
 ``splits``         chronological window splits, guard gap, leakage audit
+``negative_controls``  phase 6: five falsification controls
 ``loader``         chunked HDF5 reader driven by a verified data contract
 ``experiments``    config-driven entry point used by scripts/run_experiment.py
 """
@@ -34,6 +35,7 @@ from .estimators import (
     fixed_phase_snr_loss,
     quadrature_amplitude_variance,
 )
+from .negative_controls import CONTROLS, run_negative_controls
 from .injections import InjectionResult, inject_sinusoid, run_injection_check
 from .psd import (
     PSDEstimate,
@@ -69,7 +71,9 @@ __all__ = [
     "quadrature_amplitude_variance",
     "quadrature_templates",
     "quadrature_templates_rfft",
+    "CONTROLS",
     "run_injection_check",
+    "run_negative_controls",
     "run_tidmad_phase",
     "run_tidmad_phase1",
     "select_stationary_blocks",

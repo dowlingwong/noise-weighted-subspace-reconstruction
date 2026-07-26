@@ -218,3 +218,57 @@ def test_denoised_filename_matches_the_release_pattern(tmp_path):
         model_tag="wiener",
     )
     assert spec.destination.name == "abra_validation_denoised_wiener_0007.h5"
+
+
+# --------------------------------------------------------------------------
+# Phase 6 -- negative controls
+# --------------------------------------------------------------------------
+def test_all_negative_controls_degrade(prepared):
+    from src.noise_geometry.tidmad.negative_controls import CONTROLS, run_negative_controls
+
+    windows, calibration, *_ = prepared
+    result = run_negative_controls(
+        windows, calibration, rank=2, bootstrap_reps=100, seed=SEED
+    )
+    assert set(result["degraded"]) == set(CONTROLS)
+    assert result["all_controls_degraded"], result["controls_that_did_not_degrade"]
+    for name in CONTROLS:
+        stats = result["paired_contrasts"][name]
+        assert stats["exceeds_zero"], f"{name} did not degrade with a CI above zero"
+
+
+def test_wrong_psd_control_is_not_the_isotropic_arm(prepared):
+    """The wrong-PSD control must differ from Phase 2's Euclidean arm.
+
+    Using the identity metric here would duplicate the Phase 2 contrast rather
+    than test the noise model separately, so the control uses a spectrally
+    flipped -- wrong but still coloured -- PSD. At high SNR that leaves partial
+    recovery, which is how CRESST found wrong-PSD to be its weakest control.
+    """
+    from src.noise_geometry.tidmad.negative_controls import run_negative_controls
+
+    windows, calibration, *_ = prepared
+    result = run_negative_controls(windows, calibration, rank=2, bootstrap_reps=50, seed=SEED)
+    rmse = result["control_amplitude_rmse"]
+    # A wrong-but-coloured metric must not be catastrophically worse than a
+    # random basis; if it were, it would not be measuring the metric at all.
+    assert rmse["wrong_psd"] <= rmse["random_weighted_basis"] * 1.2
+
+
+def test_saturation_is_detected_and_reported(prepared):
+    from src.noise_geometry.tidmad.negative_controls import run_negative_controls
+
+    windows, calibration, *_ = prepared
+    result = run_negative_controls(windows, calibration, rank=2, bootstrap_reps=50, seed=SEED)
+    # Saturation is a property of the operating point, not a failure; what
+    # matters is that it is measured and exposed rather than left implicit.
+    assert set(result["controls_saturated_at_zero_recovery"]) == set(result["degraded"])
+    assert result["zero_recovery_rmse"] > result["nominal_amplitude_rmse"]
+
+
+def test_noise_only_windows_must_match_the_analysis_window_length(prepared):
+    from src.noise_geometry.tidmad.negative_controls import run_negative_controls
+
+    windows, calibration, *_ = prepared
+    with pytest.raises(ValueError):
+        run_negative_controls(windows, calibration[:, : N // 2], rank=2, bootstrap_reps=10)

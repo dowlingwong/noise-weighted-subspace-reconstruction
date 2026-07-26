@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### 2026-07-27 - TIDMAD phase 6 and a one-command stage driver
+
+- **Phase 6 negative controls implemented; all five degrade.** Matched
+  one-for-one with the CRESST set so both real-data stages are falsifiable the
+  same way: `wrong_psd`, `noise_only_train`, `random_weighted_basis`,
+  `wrong_frequency`, `permuted_bins`. Each is paired against the nominal EMPCA
+  arm on the same held-out windows with a bootstrap interval that must exclude
+  zero.
+- `wrong_psd` uses a spectrally flipped -- wrong but still coloured -- PSD, not
+  the identity metric. The first draft used identity and produced a control
+  numerically identical to Phase 2's Euclidean arm, testing nothing new. At
+  SNR 40 the corrected control retains partial recovery (RMSE 59.2 against a
+  zero-recovery level of 102.6) while the other four collapse, reproducing
+  CRESST's finding that wrong-PSD weighting is the weakest of the five.
+- The controls **saturate at SNR 8**: all five land at the zero-recovery level,
+  so they establish falsifiability but cannot rank severity. The run record
+  flags this automatically rather than leaving a reader to infer an ordering
+  from noise. A high-SNR config is provided for severity ranking.
+- **Added `docs/results/TIDMAD_PREDECLARED_GATES.md`**, mirroring the CRESST
+  predeclaration. Frozen for the synthetic gates; fields that can only be read
+  off the files (channel names, injection frequencies, sampling rate) are marked
+  open and must be filled in and re-frozen before any real evaluation number.
+- **Added `scripts/run_tidmad_stage.py`**: download, Phase 0 contract, gate G0
+  baseline reproduction, phases 1-6, and a checksummed evidence archive, in one
+  command. Idempotent and resumable (each step skips if its output exists), with
+  `--dry-run`. Hard failures stop the run -- a stage built on an unreproducible
+  baseline manufactures a result rather than measuring one -- while a gate that
+  returns a negative finding is recorded and the run continues.
+- Added `docs/runbooks/TIDMAD_STAGE_RUNBOOK.md` with the order of operations on
+  real data and a table of what each failure mode means.
+- Consolidated the two ad-hoc evidence directories into a single stage archive
+  (`evidence/tidmad/synthetic_20260727/`) produced by the driver, with per-file
+  SHA-256, git commit, and per-step status.
+- 4 new tests (30 total for TIDMAD). Full synthetic stage runs in ~11 s.
+
 ### 2026-07-27 - TIDMAD phases 2-5
 
 - Added `analysis.py` (phases 2-3), `calibration.py` (phase 4), `denoise.py`
@@ -39,8 +74,8 @@
   benchmark and raises if it is absent rather than falling back to an internal
   approximation.
 - 13 new tests (22 total for TIDMAD). Evidence archived under
-  `evidence/tidmad/phases_2_to_4/`; write-up in
-  `docs/results/TIDMAD_PHASES_2_TO_5_RESULT.md`.
+  `evidence/tidmad/synthetic_20260727/`; write-up in
+  `docs/results/TIDMAD_PHASES_2_TO_6_RESULT.md`.
 - Not yet implemented: Phase 6 negative controls and the frozen
   `docs/TIDMAD_PREDECLARED_GATES.md`. Phase 2's result should not be published
   before those exist.

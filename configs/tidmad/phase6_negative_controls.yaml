@@ -1,0 +1,32 @@
+# TIDMAD Phase 6 -- negative controls (all five must degrade).
+#
+# Phase 2's positive result is compatible with a pipeline that would report a
+# win no matter what it was fed. These controls break one ingredient at a time
+# and require the primary metric to degrade with a bootstrap interval excluding
+# zero. Matched one-for-one with the CRESST control set so both real-data
+# stages are falsifiable in the same way.
+#
+# SNR matches Phase 2 so the contrasts are directly comparable. At this
+# operating point the controls saturate at zero recovery -- they establish
+# falsifiability but cannot rank severity; the high-SNR variant does that.
+experiment_id: TIDMAD_P6
+dataset: tidmad
+phase: 6
+mode: synthetic
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+sampling_frequency: 10000000.0
+frequency: 1000000.0
+snr: 8.0
+
+rank: 2
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+wrong_frequency_offset_bins: 37   # predeclared: an empty part of the spectrum
+
+psd_kind: pink
+output: results/metrics/TIDMAD_P6_synthetic_seed20260727.json

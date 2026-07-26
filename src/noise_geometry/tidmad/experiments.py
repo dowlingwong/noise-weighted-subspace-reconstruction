@@ -50,6 +50,7 @@ _PHASE_DEFAULTS: dict[str, Any] = {
     "max_files": 1,
     "denoise_samples": 1 << 22,
     "coarse": True,
+    "wrong_frequency_offset_bins": 37,
 }
 
 
@@ -151,6 +152,7 @@ def run_tidmad_phase(config: dict[str, Any], data_root: str | Path) -> dict[str,
         max_files=int(merged["max_files"]),
         denoise_samples=int(merged["denoise_samples"]),
         coarse=bool(merged["coarse"]),
+        wrong_frequency_offset_bins=int(merged["wrong_frequency_offset_bins"]),
         output=None,
     )
     data = tidmad_phases.prepare(args)

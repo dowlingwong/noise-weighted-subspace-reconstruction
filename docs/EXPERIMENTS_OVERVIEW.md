@@ -68,6 +68,33 @@ waveforms), configs `configs/gwosc/*.yaml`.
 | GWOSC shared-FIR check | Two convolution paths, same FIR coefficients and normalization | Explicit FFT convolution vs GWpy convolution | Software identity for the common finite statistic (not equivalence to the PSD-domain GLS statistic) | Pass (≤ 3×10⁻¹³) |
 | GWOSC time-local PSD | Predeclared local-stationarity repair attempt | Leave-one-out global vs local PSD radii 32/64/96 s; 64 s + acceptance [0.8, 1.2] predeclared primary; stationary synthetic control | Whether simple local stationarity restores calibration | Negative: synthetic control 1.148 (pass); H1 9.424, L1 8.827 (fail). Falsifies the predeclared hypothesis; kept as boundary result |
 
+## 3b. TIDMAD (ABRACADABRA) — second real-data anchor
+
+Implementation: `src/noise_geometry/tidmad/`, configs `configs/tidmad/*.yaml`,
+one-command driver `scripts/run_tidmad_stage.py`. Predeclaration:
+[`results/TIDMAD_PREDECLARED_GATES.md`](results/TIDMAD_PREDECLARED_GATES.md).
+Rationale for the stage: [`plans/PAPER1_SECOND_REALDATA_ANCHOR.md`](plans/PAPER1_SECOND_REALDATA_ANCHOR.md).
+
+Why it exists: CRESST has no clean signal, so it can compare residuals but
+cannot show that the MSE-preferred reconstruction recovers the signal *worse*;
+and its trigger-efficiency metric was inconclusive. TIDMAD supplies injected
+ground truth and a published detector-facing score, and its unknown-phase
+sinusoid spans exactly a two-dimensional manifold, so the correct rank is known
+in closed form.
+
+| ID | Description | Method | Target | Status |
+| --- | --- | --- | --- | --- |
+| TIDMAD-P0 | Data contract and baseline reproduction | Classify SQUID vs reference channel from spectral evidence; reproduce the published `none`/`savgol` denoising scores | Gate G0: a score we cannot reproduce cannot be compared | Blocked on data download |
+| TIDMAD-P1 | Estimator identity | Injection recovery, predicted-variance check, no-signal null, learned-vs-analytic subspace, cos² SNR loss, 1/SNR scaling law | Establish the estimator, whitening convention, and variance formula are correct | Synthetic: 6/6 gates pass |
+| TIDMAD-P2 | Metric reversal against truth | Matched-rank PCA vs EMPCA on the same representation, scored on raw MSE, weighted residual, and error against injected truth | Gate G2: the isotropic-preferred reconstruction is worse against truth | Synthetic: pass |
+| TIDMAD-P3 | Rank and the quadrature manifold | Rank 1–4 sweep plus fixed-phase rank-1 filter; principal angle to the analytic basis | Gate G3: knee at rank 2, as the closed form requires | Synthetic: pass |
+| TIDMAD-P4 | Calibration boundary | Stationary synthetic control (halt gate), global PSD, time-local PSD at declared radii, cost of mismatch | In-domain replacement for GWOSC's boundary lesson, with the cost quantified | Synthetic control passes |
+| TIDMAD-P5 | Detector-facing metric | Wiener filter fitted on training files, applied blind to validation, scored by the release's own `benchmark.py` | Gate G4: land on the published scoreboard | Implemented; no synthetic form |
+| TIDMAD-P6 | Negative controls | Wrong PSD, noise-only training, random basis, wrong frequency, permuted bins | All five must degrade with a CI excluding zero | Synthetic: 5/5 degrade |
+
+Synthetic-mode results establish that the analysis is correct and the gates have
+power. They establish nothing about TIDMAD data.
+
 ## 4. Noise-budget studies (Study A / Study B)
 
 Implementation: `scripts/run_noise_budget.py`, source spectra

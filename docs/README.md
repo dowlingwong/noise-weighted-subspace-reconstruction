@@ -33,9 +33,10 @@ not exist.
 | --- | --- |
 | [`results/CRESST_RESULT.md`](results/CRESST_RESULT.md) | CRESST-A outcome: the positive public-data validation. |
 | [`results/CRESST_PREDECLARED_GATES.md`](results/CRESST_PREDECLARED_GATES.md) | The CRESST predeclaration. Use as the template for any new stage. |
+| [`results/TIDMAD_PREDECLARED_GATES.md`](results/TIDMAD_PREDECLARED_GATES.md) | The TIDMAD predeclaration. Frozen for the synthetic gates; data-dependent fields still open. |
 | [`results/GWOSC_RESULT.md`](results/GWOSC_RESULT.md) | GWOSC outcome: implementation checks pass, calibration fails. Boundary result. |
 | [`results/TIDMAD_PHASE1_RESULT.md`](results/TIDMAD_PHASE1_RESULT.md) | TIDMAD Phase 1: estimator identity and whitening convention verified (synthetic half). |
-| [`results/TIDMAD_PHASES_2_TO_5_RESULT.md`](results/TIDMAD_PHASES_2_TO_5_RESULT.md) | TIDMAD Phases 2–5: metric reversal with truth, rank knee, calibration boundary, denoiser. |
+| [`results/TIDMAD_PHASES_2_TO_6_RESULT.md`](results/TIDMAD_PHASES_2_TO_6_RESULT.md) | TIDMAD Phases 2–6: metric reversal with truth, rank knee, calibration boundary, denoiser. |
 
 ## `plans/` — roadmaps and decisions
 
@@ -53,6 +54,7 @@ not exist.
 | --- | --- |
 | [`runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md`](runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md) | Running the CRESST validation remotely. |
 | [`runbooks/CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md`](runbooks/CRESST_POSTFREEZE_SENSITIVITY_RUNBOOK.md) | Reproducing the channel-then-event hierarchical analysis. |
+| [`runbooks/TIDMAD_STAGE_RUNBOOK.md`](runbooks/TIDMAD_STAGE_RUNBOOK.md) | Running the whole TIDMAD stage: download, phases 0–6, evidence archive. |
 
 ## `background/` — reference material
 

@@ -2,7 +2,17 @@
 
 Status date: 27 July 2026 (updated same day: Phase 3 taken to a genuine
 confirmatory attempt, three files total, none confirmed; Phase 4 and 6 now
-have real-data results). This supersedes nothing in
+have real-data results; **and a data-integrity bug fixed** — the file-0010
+diagnostic run had silently overwritten the file-0000 headline Phase 2/3
+result in `results/metrics/` and `data/tidmad/current/` because two configs
+shared an output path. Restored from checksummed archive
+(`evidence/tidmad/20260727T063119Z/`), and each attempt now has its own
+distinct filename — `TIDMAD_P{2,3}_real_seed20260727.json` (file 0000,
+headline), `TIDMAD_P{2,3}_diagnostic_0010_seed20260727.json` (file 0010),
+`TIDMAD_P{2,3}_confirmatory_seed20260727.json` (file 0005) — with a
+sanity check in `refresh_bundle.py` (`_check_tidmad_file_identity`) that
+now fails loudly if this ever happens again. See `OPEN_ISSUES.md` item 6 for
+how this was originally caught.) This supersedes nothing in
 `REVISION_INSTRUCTION_2026-07-12.md`; it adds a new evidence stream (TIDMAD)
 on top of that instruction's CRESST/GWOSC revision. Read both. Where they
 conflict on manuscript length or structure, this document's TIDMAD-specific

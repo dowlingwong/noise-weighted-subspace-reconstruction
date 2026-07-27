@@ -32,11 +32,17 @@ block_size: 16
 
 data_root: /ceph/dwong/paper1_dataset
 contract: docs/tidmad_data_contract.json
-# abra_validation_0000.h5 (low-frequency band) turned out to carry a
-# persistent two-tone reference signal, not a clean single CW tone -- see the
-# contract's notes. abra_validation_0010.h5 (medium-high band) was checked
-# and confirmed clean.
-validation_glob: tidmad/raw/abra_validation_0010.h5
+# This is the PRIMARY, headline real-data attempt: abra_validation_0000.h5,
+# first validation file matched by the default glob, no file selection
+# involved. It turned out to carry a persistent two-tone reference signal
+# (see the contract's notes) -- irrelevant to Phase 2's own computation,
+# which does not depend on single-tone structure; only Phase 3's analytic
+# rank test is affected by that. A separate diagnostic exploration on
+# abra_validation_0010.h5 lives in phase2_metric_reversal_diagnostic_0010.yaml
+# with its own distinct output path -- do NOT point this config at any other
+# file or its output will collide with this one's, exactly as happened once
+# already (see OPEN_ISSUES.md item 6 / git history 2026-07-27).
+validation_glob: tidmad/raw/abra_validation_0000.h5
 science_glob: tidmad/raw/abra_science_*.h5
 
 output: results/metrics/TIDMAD_P2_real_seed20260727.json

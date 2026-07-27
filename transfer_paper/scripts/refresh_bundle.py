@@ -260,8 +260,10 @@ def _copy_tidmad(provenance: dict[str, str]) -> None:
         REPO_ROOT / "evidence" / "tidmad" / "phase0" / "G0_baseline_reproduction.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P1_real_seed20260727.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P2_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P2_diagnostic_0010_seed20260727.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P2_confirmatory_seed20260727.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_diagnostic_0010_seed20260727.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_file_selection.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_confirmatory_seed20260727.json",
         REPO_ROOT / "results" / "metrics" / "TIDMAD_P4_real_seed20260727.json",
@@ -276,6 +278,42 @@ def _copy_tidmad(provenance: dict[str, str]) -> None:
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
             source.relative_to(REPO_ROOT)
         )
+
+    _check_tidmad_file_identity(destination_root)
+
+
+#: Which validation file each named TIDMAD result must trace back to.
+#: Guards against the exact failure mode in OPEN_ISSUES.md item 6: a
+#: *_real_noise.yaml config was pointed at abra_validation_0010.h5 for a
+#: diagnostic detour and, because it shared its output path with the
+#: abra_validation_0000.h5 primary run, silently overwrote it before this
+#: bundle was synced. If any of these ever mismatch again, fix the source
+#: config/output path -- do not edit this map to match the wrong file.
+_TIDMAD_EXPECTED_FILE = {
+    "TIDMAD_P2_real_seed20260727.json": "abra_validation_0000.h5",
+    "TIDMAD_P3_real_seed20260727.json": "abra_validation_0000.h5",
+    "TIDMAD_P2_diagnostic_0010_seed20260727.json": "abra_validation_0010.h5",
+    "TIDMAD_P3_diagnostic_0010_seed20260727.json": "abra_validation_0010.h5",
+    "TIDMAD_P2_confirmatory_seed20260727.json": "abra_validation_0005.h5",
+    "TIDMAD_P3_confirmatory_seed20260727.json": "abra_validation_0005.h5",
+}
+
+
+def _check_tidmad_file_identity(destination_root: Path) -> None:
+    for name, expected_file in _TIDMAD_EXPECTED_FILE.items():
+        path = destination_root / name
+        if not path.is_file():
+            continue
+        glob = json.loads(path.read_text(encoding="utf-8"))["config"].get("validation_glob", "")
+        if expected_file not in glob:
+            raise SystemExit(
+                f"TIDMAD evidence identity check failed: {name} was expected to come "
+                f"from {expected_file} but its config.validation_glob is {glob!r}. "
+                "This is exactly the silent-overwrite failure mode in OPEN_ISSUES.md "
+                "item 6 -- fix the source config/output path in results/metrics/ "
+                "before re-running this sync, do not edit _TIDMAD_EXPECTED_FILE to "
+                "match the wrong file."
+            )
 
 
 def _copy_all_gwosc_runs(provenance: dict[str, str]) -> None:

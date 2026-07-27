@@ -4,14 +4,23 @@
 # manifold, and this checks whether the learned rank-2 subspace aligns with
 # it on REAL data, not synthetic.
 #
-# Uses injection_frequencies_hz[0] from the data contract (75000.0 Hz,
-# characterized for abra_validation_0010.h5's sample range [0, 2097152) as a
-# clean single CW tone -- see the contract's notes. An earlier attempt used
-# abra_validation_0000.h5 (low-frequency band), which turned out to carry a
-# persistent two-tone reference signal rather than a single tone -- a richer
-# manifold than span{cos,sin}, which is why that file did not show the
-# predicted rank-2 gain. Restricting to the same default 512-window range
-# keeps this analysis inside the range where the frequency was verified.
+# This is the PRIMARY, first-attempt real-data run: abra_validation_0000.h5,
+# matching phase2_metric_reversal_real_noise.yaml's file. The frequency is
+# resolved automatically per-file via the contract's
+# injection_frequencies_by_file map (docs/tidmad_data_contract.json;
+# TidmadDataContract.frequency_for_file) -- no need to hardcode it here.
+#
+# This file's reference channel carries a persistent, genuine two-tone
+# signal (~69510/69640 Hz, ~120 Hz apart) rather than a single tone -- a
+# richer manifold than span{cos,sin}, which is why this run does not show
+# the predicted rank-2 gain. A separate diagnostic exploration on
+# abra_validation_0010.h5 (confirmed single-tone, but weak reference-to-SQUID
+# coupling) lives in phase3_rank_manifold_diagnostic_0010.yaml with its own
+# distinct output path, and a genuinely confirmatory attempt on a
+# predeclared-rule-selected file lives in phase3_rank_manifold_confirmatory.yaml.
+# Do NOT point this config at any other file -- its output would collide with
+# this one's, exactly as happened once already (see OPEN_ISSUES.md item 6 /
+# git history 2026-07-27).
 #
 # Same frozen operating point as the synthetic gate --
 # docs/results/TIDMAD_PREDECLARED_GATES.md Section 5.
@@ -32,7 +41,7 @@ bootstrap_reps: 300
 
 data_root: /ceph/dwong/paper1_dataset
 contract: docs/tidmad_data_contract.json
-validation_glob: tidmad/raw/abra_validation_0010.h5
+validation_glob: tidmad/raw/abra_validation_0000.h5
 science_glob: tidmad/raw/abra_science_*.h5
 
 output: results/metrics/TIDMAD_P3_real_seed20260727.json

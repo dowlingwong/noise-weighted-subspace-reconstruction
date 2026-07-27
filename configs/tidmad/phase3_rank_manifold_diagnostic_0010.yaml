@@ -1,0 +1,34 @@
+# TIDMAD Phase 3 -- DIAGNOSTIC exploration on abra_validation_0010.h5.
+#
+# NOT the primary attempt (phase3_rank_manifold_real_noise.yaml, on
+# abra_validation_0000.h5) and NOT the confirmatory attempt
+# (phase3_rank_manifold_confirmatory.yaml, on abra_validation_0005.h5,
+# selected by a predeclared rule). This file was chosen after diagnosing why
+# abra_validation_0000.h5 failed (two-tone signal), to check a spectrally
+# confirmed single-tone file. Result: still flat across ranks -- diagnosed as
+# weak reference-to-SQUID-channel coupling (ratio 0.057), not a reconstruction
+# defect. See docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md.
+#
+# Distinct output path is deliberate -- see OPEN_ISSUES.md item 6 for what
+# happens when a config reuses another's output path.
+experiment_id: TIDMAD_P3_DIAGNOSTIC_0010
+dataset: tidmad
+phase: 3
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+ranks: [1, 2, 3, 4]
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0010.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P3_diagnostic_0010_seed20260727.json

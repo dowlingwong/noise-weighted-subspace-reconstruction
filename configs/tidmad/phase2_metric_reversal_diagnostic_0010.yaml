@@ -1,0 +1,38 @@
+# TIDMAD Phase 2 -- DIAGNOSTIC exploration on abra_validation_0010.h5.
+#
+# NOT the primary/headline attempt (that is
+# phase2_metric_reversal_real_noise.yaml, on abra_validation_0000.h5). This
+# file was chosen after diagnosing why abra_validation_0000.h5's Phase 3 rank
+# test failed (a genuine two-tone reference signal there), specifically to
+# check a spectrally-confirmed single-tone file -- see
+# docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md. Result: direction of the
+# metric-reversal effect still replicates, but is not statistically
+# significant here, because the reference-to-SQUID-channel coupling at this
+# file/frequency is weak (ratio 0.057 vs. 3.22 for file 0000).
+#
+# Distinct output path is deliberate: this config previously shared
+# phase2_metric_reversal_real_noise.yaml's output path, silently overwriting
+# the primary file-0000 result when it was run second -- see OPEN_ISSUES.md
+# item 6. Never reuse another config's output path.
+experiment_id: TIDMAD_P2_DIAGNOSTIC_0010
+dataset: tidmad
+phase: 2
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+rank: 2
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+block_size: 16
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0010.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P2_diagnostic_0010_seed20260727.json

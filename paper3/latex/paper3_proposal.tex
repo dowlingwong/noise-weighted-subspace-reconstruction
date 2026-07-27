@@ -1,6 +1,6 @@
 \documentclass[10pt,twocolumn]{extarticle}
 
-\usepackage[margin=0.58in,columnsep=0.24in]{geometry}
+\usepackage[margin=0.55in,columnsep=0.22in]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{microtype}
@@ -20,7 +20,7 @@
   pdftitle={Controlled Testing and Failure Attribution for ML Sensor Pipelines},
   pdfauthor={Working proposal}}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{1.2pt}
+\setlength{\parskip}{1.0pt}
 \setlist{nosep,leftmargin=*,topsep=1pt}
 \titlespacing*{\section}{0pt}{3pt}{1pt}
 \titleformat{\section}{\small\bfseries}{\thesection}{0.4em}{}
@@ -28,45 +28,59 @@
 
 \title{\vspace{-1.55em}\textbf{Controlled Testing and Failure Attribution\\[-0.18em]
 for ML Sensor Pipelines}\\[-0.15em]
-\normalsize Two-page Paper 3 proposal}
+\normalsize Paper 3 proposal}
 \author{Working proposal for postdoc and advisor review}
-\date{27 July 2026}
+\date{28 July 2026}
 
 \begin{document}
 \maketitle
 \vspace{-1.9em}
 
 \begin{abstract}
-Post-training monitors can flag distribution change but rarely distinguish a
-sensor/acquisition shift from unsupported physical states or a broken
-evaluation contract. We propose a controlled, replay-based study of that
-distinction---not a maintained software product. Declared interventions,
-named representation hooks, deterministic contract gates, and calibrated
-abstention are evaluated across NuBench point clouds and a fixed waveform
-reconstruction task. Against input tests, MMD, classifier two-sample tests,
-embedding distance, uncertainty, and output-only monitoring, we measure
-detection power and delay, false alerts, failure-family attribution, latency,
-storage, and reproducibility. The intended result is quantitative: generic
-monitors detect N/S shifts, layerwise evidence improves attribution, and
-deterministic gates isolate evaluation faults at measured replay cost.
+Post-training monitors flag distribution change but rarely say whether the
+evidence is most consistent with a sensor/acquisition shift, an unsupported
+physical state, or a broken evaluation contract. We propose a controlled,
+replay-based study of that distinction over \emph{declared intervention
+families}---not unrestricted root-cause discovery, and not a maintained
+software product. Declared interventions, named representation hooks,
+deterministic contract gates, and calibrated abstention are evaluated on
+NuBench point clouds and a fixed waveform reconstruction task, against input
+tests, MMD, classifier two-sample tests, embedding distance, uncertainty, and
+output-only monitoring. Because the waveform testbed generates its own noise
+covariance, we also measure what each shift \emph{costs} the reconstruction in
+the likelihood geometry of Papers~1--2, and test whether detectability and
+consequence agree. Intended results: generic monitors detect N/S shifts;
+layerwise evidence improves the hard N-versus-S separation; deterministic gates
+isolate evaluation faults; and monitor response is only partially aligned with
+real reconstruction loss.
 \end{abstract}
 
 \section{Scope, continuity, and novelty}
 
 Paper~1 identifies likelihood geometry under structured noise; Paper~2
 separates residual geometry, architecture class, and training support. Paper~3
-asks whether those contracts can be tested after training. Its artifact is a
-reproducible experiment suite---configurations, adapters, hooks, replay
+asks whether those contracts can be tested after training, and whether a
+violation that is \emph{detectable} is also \emph{consequential}. Its artifact
+is a reproducible experiment suite---configurations, adapters, hooks, replay
 scripts, and reports---not a branded platform or a promise of production
 maintenance.
 
 The contribution is a controlled cross-modal design that combines (i) paired
 sensor perturbations, support-composition shifts, and deliberate contract
 faults; (ii) feature-matched attribution comparisons with guarded abstention;
-and (iii) a power--cost study of full capture, sampling, reservoirs, and
-fixed-dimensional sketches. NuBench, the waveform-noise generator, and MMD are
-inputs to that design, not claimed inventions. Cross-geometry results test
-consistency, not causal detector-design effects.
+(iii) a detectability-versus-consequence comparison on the arm where the true
+covariance is known by construction; and (iv) a power--cost study of full
+capture, sampling, reservoirs, and fixed-dimensional sketches. NuBench, the
+waveform-noise generator, and MMD are inputs to that design, not claimed
+inventions. Cross-geometry results test consistency, not causal
+detector-design effects.
+
+\textbf{Identifiability limit, from Paper~1.} Diagonalizing a covariance yields
+decorrelated statistical modes, not labeled physical sources:
+$\Sigma=\Sigma_1+\Sigma_2$ admits infinitely many PSD-cone splits and low-rank
+factors are rotation-degenerate. Attribution here is over declared intervention
+families under a stated simulator; a response profile does not identify the
+cause of an unknown real shift.
 
 \section{Failure contracts and claims}
 
@@ -74,47 +88,73 @@ We predeclare three labels. \textbf{N---acquisition/noise shift} includes PSD
 or covariance change, jitter, drift, spectral lines, glitches, tails, hit
 thinning, and channel/module loss. \textbf{S---training-support shift} changes
 window composition toward physical strata that are sparse under the clean
-training distribution; events themselves are not corrupted. \textbf{E---evaluation-
-contract fault} includes wrong units, coordinate ordering, output semantics,
-PSD convention, or metric implementation. E is not a distribution shift and
-is not the likelihood-metric mismatch studied in Papers~1--2.
+training distribution; events themselves are not corrupted.
+\textbf{E---evaluation-contract fault} includes wrong units, coordinate
+ordering, output semantics, PSD convention, or metric implementation. E is not
+a distribution shift and is not the likelihood-metric mismatch studied in
+Papers~1--2.
+
+\textbf{N versus S is the discriminative core.} E is decided by deterministic
+schema and range invariants, so it is a gate result (E0), not a class in a
+classification score. The informative separation is N from S: input-quality
+evidence identifies N directly, whereas S leaves events uncorrupted and is
+input-invisible by construction, so it must be detected from representation
+position relative to the training support. If the layerwise signature cannot
+separate N from S, C2 has no interesting content regardless of E.
 
 \textbf{C1---Detect N/S shifts.} At a 1\% false-alert rate on nominal,
-non-overlapping windows, the best monitoring signature detects at least 80\%
-of held-out abrupt and gradual N/S shifts within five windows and is
-non-inferior to the strongest eligible baseline by a five-point power margin.
-Delay is primary in events and simulated seconds.
+non-overlapping windows, the best monitoring signature detects at least 80\% of
+held-out abrupt and gradual N/S shifts within five windows and is non-inferior
+to the strongest eligible baseline by a five-point power margin. Delay is
+primary in \emph{windows}; events and simulated seconds are reported per
+testbed, and cross-modal statements use windows only.
 
-\textbf{C2---Attribute with abstention.} A fixed classifier over statistical
-monitors plus deterministic gates reaches macro-F1 $\geq0.80$ on held-out
-N/S/E cases. For N/S, the full layerwise signature exceeds the same classifier
-using all generic-monitor outputs by $\geq0.20$ F1. Split-conformal distance in
-standardized fingerprint space must identify an unseen family with AUROC
-$\geq0.80$ instead of forcing a known label. This is intervention-family
-attribution, not unrestricted physical root-cause discovery.
+\textbf{C2---Attribute with abstention.} The primary endpoint is macro-F1 over
+$\{$N, S$\}$ on held-out cases, with N+S mixtures scored by multi-label F1 in
+the same endpoint; E-gate sensitivity/specificity is reported separately under
+E0. We predeclare \emph{superiority} of the full layerwise signature over the
+all-generic-monitor arm as a paired difference whose 95\% CI excludes zero,
+with a smallest relevant effect of $0.10$ macro-F1 on $\{$N, S$\}$, rather than
+a fixed point margin: a real effect should not be scored as a failure because a
+strong baseline performed well. Split-conformal distance in standardized
+fingerprint space must identify an unseen family with AUROC $\geq0.80$ instead
+of forcing a known label. This is intervention-family attribution, not
+unrestricted physical root-cause discovery.
 
 \textbf{C3---Trade power for cost.} Ten-percent event sampling plus fixed-size
 sketches yields p95 replay-path latency overhead $<10\%$, at least $10\times$
 less representation storage, and no more than five points of power/F1 loss
 relative to full capture. Effects and intervals are repeated across modalities,
-three NuBench model families, two machines, and CPU/GPU where supported. These
-targets are frozen after development profiling and power analysis.
+three NuBench model families, two machines, and CPU/GPU where supported.
 
-\begin{figure*}[t]
+\textbf{C4---Detection is not consequence.} On the waveform arm the true
+$\Sigma$ is generated, so each N intervention has a computable cost in the
+likelihood geometry of Papers~1--2: change in whitened residual, subspace angle
+against the clean basis, amplitude bias, and calibration ratio. We predeclare
+that monitor response and consequence are only partially aligned---rank
+correlation below a threshold fixed at freeze, with both off-diagonal cells of
+Table~\ref{tab:consequence} populated. This makes the likelihood geometry
+load-bearing rather than cited: the consequence column cannot be computed
+without knowing which residual geometry is correct. No analogous quantity
+exists on NuBench, where consequence is limited to downstream angular error;
+we state that asymmetry rather than implying symmetric coverage. All targets
+above are frozen after development profiling and power analysis.
+
+\begin{figure*}[!t]
   \centering
   \begin{minipage}[b]{0.43\textwidth}
     \centering
-    \includegraphics[width=\linewidth,height=1.50in,keepaspectratio]{figures/nubench_detector_geometries.png}\\[-0.2em]
+    \includegraphics[width=\linewidth,height=1.02in,keepaspectratio]{figures/nubench_detector_geometries.png}\\[-0.2em]
     \scriptsize (a) NuBench detector geometries
   \end{minipage}\hfill
   \begin{minipage}[b]{0.25\textwidth}
     \centering
-    \includegraphics[width=\linewidth,height=1.50in,keepaspectratio]{figures/spectrum_detector_signal_noise.png}\\[-0.2em]
+    \includegraphics[width=\linewidth,height=1.02in,keepaspectratio]{figures/spectrum_detector_signal_noise.png}\\[-0.2em]
     \scriptsize (b) detector signal/noise spectrum
   \end{minipage}\hfill
   \begin{minipage}[b]{0.28\textwidth}
     \centering
-    \includegraphics[width=\linewidth,height=1.50in,keepaspectratio]{figures/noise_generator_examples.png}\\[-0.2em]
+    \includegraphics[width=\linewidth,height=1.02in,keepaspectratio]{figures/noise_generator_examples.png}\\[-0.2em]
     \scriptsize (c) generated waveform stress tests
   \end{minipage}
   \vspace{-0.45em}
@@ -137,7 +177,7 @@ test~\cite{lopezpaz2017}, final-embedding mean/covariance distance, output
 tests, and uncertainty/entropy. A regularized logistic classifier is fitted
 with identical splits to five arms: input only; output/uncertainty; final
 embedding only; all generic-monitor outputs; and the full layerwise signature.
-E uses schema/range invariants and clean-reference tests, not drift statistics.
+The fourth arm is the strong baseline, committed to in advance. E uses schema/range invariants and clean-reference tests, not drift statistics.
 Clean miscalibration is a model result, not automatically a software bug
 \cite{guo2017}; latent displacement is normalized by clean within-class
 dispersion.
@@ -151,28 +191,52 @@ ParticleNeT and GRIT repeat the study; another geometry is a consistency check
 \cite{nubench}.
 
 \textbf{Waveforms and the noise module.} The fixed task uses non-overlapping
-4096-sample windows at 10~MS/s, a rank-2 noise-aware EMPCA encoder fitted on the
-chronological training split, and sinusoid-amplitude reconstruction. The module
-accepts or constructs PSD/CSD models, samples seeded frequency-domain random
-coefficients with the required real-signal symmetry, transforms them into time
-traces, and adds stationary color, piecewise nonstationarity, lines, drift,
-glitches, and tails to clean signals (Fig.~\ref{fig:testbeds}b--c). It validates
-units and second-order spectral statistics. It is therefore a controlled N
-intervention engine, not another dataset, reconstruction model, or physical-
-source separator. S holds out declared frequency/amplitude ranges; E swaps
-coefficient order or frequency units and changes PSD/score conventions.
+4096-sample windows at 10~MS/s and sinusoid-amplitude reconstruction. Two
+encoders are fitted on the chronological training split: the rank-2 noise-aware
+EMPCA encoder of Paper~1 and the Kronecker-factored encoder of Paper~2, so the
+waveform arm is not a single-model testbed. The module accepts or constructs
+PSD/CSD models, samples seeded frequency-domain random coefficients with the
+required real-signal symmetry, transforms them into time traces, and adds
+stationary color, piecewise nonstationarity, lines, drift, glitches, and tails
+to clean signals (Fig.~\ref{fig:testbeds}b--c). It validates units and
+second-order spectral statistics. It is therefore a controlled N intervention
+engine, not another dataset, reconstruction model, or physical-source
+separator. S holds out declared frequency/amplitude ranges; E swaps coefficient
+order or frequency units and changes PSD/score conventions.
+
+Because the module generates the noise, both the assumed $\hat\Sigma$ used by
+the encoder and the realized $\Sigma$ are known for every intervention, so each
+waveform window carries a consequence record (C4) alongside its monitor record
+--- one additional column, not a separate experiment.
+
+\begin{center}
+\centering
+\scriptsize
+\captionof{table}{Detectability versus consequence (C4, waveform arm). The
+off-diagonal cells are the result.}
+\begin{tabularx}{\columnwidth}{@{}p{0.62in}YY@{}}
+\toprule
+ & Low consequence & High consequence \\
+\midrule
+Monitor fires & \textbf{False alarm that matters}: priced against C3 cost & True positive \\
+Monitor silent & Correctly ignored & \textbf{Silent failure}: the dangerous cell \\
+\bottomrule
+\end{tabularx}
+\label{tab:consequence}
+\vspace{-0.2em}
+\end{center}
 
 \begin{center}
 \centering
 \scriptsize
 \captionof{table}{Confirmatory experiment matrix. Drift baselines apply only to N/S.}
-\begin{tabularx}{\columnwidth}{@{}p{0.18in}p{1.05in}Y@{}}
+\begin{tabularx}{\columnwidth}{@{}p{0.18in}p{1.02in}Y@{}}
 \toprule
 ID & Test & Primary endpoints \\
 \midrule
 E0 & Clean replay; deliberate E faults & Reference discrepancy; gate sensitivity/specificity \\
-E1 & Held-out abrupt/gradual N/S & Power at 1\% false alert; AUROC/AUPRC; delay \\
-E2 & N/S/E, mixtures, unseen family & Macro/multi-label F1; confusion; unknown AUROC \\
+E1 & Held-out abrupt/gradual N/S & Power at 1\% false alert; AUROC/AUPRC; delay in windows; consequence (waveform) \\
+E2 & N/S attribution, N+S mixtures, unseen family & Macro/multi-label F1 over $\{$N,S$\}$; paired CI vs generic arm; unknown AUROC; detection--consequence rank correlation \\
 E3 & Capture vs sample/reservoir/sketch & p50/p95 latency; bytes/event; power/F1 loss \\
 E4 & Models, modalities, hardware & Scaling; interval agreement; report hashes \\
 \bottomrule
@@ -189,6 +253,38 @@ count; repeat runs record machine, accelerator, timing method, and data/config
 hashes. Null results require a passed positive control, adequate precision, and
 a predeclared equivalence margin.
 
+\section{Optional Track B: a collaborator pipeline}
+
+The study above runs on public NuBench data and our own waveform task; no
+external dependency is on the critical path. A third testbed on a
+collaborator's pipeline would test what neither of ours can---whether a
+standardized diagnostic conclusion \emph{replicates} outside the domains it was
+developed in. It is offered as an option to accept, scope down, or decline.
+
+\textbf{Scope if adopted, deliberately small.} Only the smallest supported
+conclusion from E1/E2---one representation, one severity grid, paired pre/post
+events---reported as replication or heterogeneity. Tracks are never pooled:
+they share only the contract \emph{paired input $\to$ declared intervention and
+severity $\to$ frozen representation $\to$ standardized response}. Raw
+severities and latent distances are never compared across modalities.
+
+\textbf{Feasibility turns on four answers.} (i) Input modality---dense
+waveforms admit the noise module directly; hits or higher-level objects need a
+different intervention channel and make the module precedent only.
+(ii) Availability of raw inputs for paired re-inference. (iii) Which
+intermediate representation extracts reproducibly. (iv) Which data are real
+versus simulated, and what noise-state metadata exist.
+
+\textbf{Three participation levels, to choose from.} \emph{(a) Review
+only}---comment on perturbation plausibility and physical interpretation; no
+data exchange. \emph{(b) Third testbed}---supply pipeline and representation
+access for the reduced replication above. \emph{(c) Joint consequence
+study}---co-develop C4 as a systematic-uncertainty analysis, where a surrogate
+or fast forward model's approximation error is exactly a declared N
+intervention and its measured consequence is what a systematics budget
+requires. Level (c) is the closest fit to a physics-analysis interest and the
+only one that changes the claim set.
+
 \section{Smoke test and feasibility gate}
 
 The selected 8.82~GiB NuBench release is checksummed; the DynEdge checkpoint
@@ -198,10 +294,19 @@ $23.6548^\circ$ versus $23.60^\circ$ for CC/track and $56.1553^\circ$ versus
 $56.12^\circ$ for NC/cascade. This misses a deliberately strict $0.01^\circ$
 identity tolerance. On 256 development events, checkpoint and released
 directions differ by $0.944^\circ$ median ($7.708^\circ$ p95); therefore the
-clean gate remains open. A module-dropout positive control is monotone
-($15.28^\circ\!\to25.12^\circ$ median angular error; 10-NN retention
-$1.000\!\to0.393$ from 0--50\% dropout), establishing perturbation, hook, and
-paired-metric feasibility without presenting the pilot as a scientific claim.
+clean gate remains open.
+
+Both discrepancies are high in the same direction and of comparable size
+($+0.055^\circ$, $+0.035^\circ$) on two independent populations. Rescoring
+released predictions is deterministic, so this is more consistent with an
+event-selection or metric-definition difference---a quality cut, a different
+denominator, or median-of-medians versus pooled median---than with backend
+numerics. We test selection variants before negotiating a tolerance, noting
+that $0.01^\circ$ is $0.042\%$ of a $23.65^\circ$ median. A
+module-dropout positive control is monotone ($15.28^\circ\!\to25.12^\circ$
+median angular error; 10-NN retention $1.000\!\to0.393$ from 0--50\% dropout),
+establishing perturbation, hook, and paired-metric feasibility without
+presenting the pilot as a scientific claim.
 
 \begin{thebibliography}{5}
 \scriptsize

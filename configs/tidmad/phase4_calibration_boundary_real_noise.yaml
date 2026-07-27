@@ -1,0 +1,36 @@
+# TIDMAD Phase 4 on REAL data -- the calibration boundary, in-domain
+# (the GWOSC-boundary-lesson replacement TIDMAD was chosen to supply).
+#
+# Uses only science-file (signal-free) noise -- the calibration/evaluation
+# split, the global model, and the local models are all fitted on real SQUID
+# noise, with a synthetic-amplitude-style test at a fixed frequency (matching
+# Phase 1's own "inject a known test signal into real noise" methodology).
+# The stationary synthetic control is a halt gate: if it fails, that is a bug
+# in this code, not a property of the data. The global/local real-data
+# numbers are the boundary measurement and are reported whichever way they
+# fall -- expected to show real degradation from 8-bit quantization, drift,
+# and glitches, which is the intended result, not a failure.
+#
+# validation_glob must point at a real file with both channels for the
+# loader's structural check, but its content is not otherwise used by this
+# phase (Phase 4 only consumes noise_only from science files). Uses
+# abra_validation_0000.h5 for consistency with Phase 6, which does need this
+# file's real content.
+experiment_id: TIDMAD_P4_REAL
+dataset: tidmad
+phase: 4
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 1024
+
+local_radii: [8, 16, 32]
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0000.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P4_real_seed20260727.json

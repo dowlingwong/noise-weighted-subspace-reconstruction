@@ -174,10 +174,8 @@ def _file_windows(args: argparse.Namespace) -> dict:
     noise_only = np.vstack(noise_only)
 
     fs = float(contract.sampling_frequency_hz)
-    frequency = (
-        float(contract.injection_frequencies_hz[0])
-        if contract.injection_frequencies_hz
-        else nearest_bin_frequency(args.frequency, n, fs)
+    frequency = contract.frequency_for_file(
+        validation[0].name, nearest_bin_frequency(args.frequency, n, fs)
     )
     estimate = welch_psd_from_windows(
         list(noise_only), fs, window="boxcar", detrend=True, average="median", source="science"
@@ -456,16 +454,26 @@ def phase5(args: argparse.Namespace, data: dict) -> dict:
             destination_dir=Path(args.data_root) / "tidmad" / "denoised",
             model_tag=args.model_tag,
         )
-        written.append(
-            str(
-                write_denoised_file(
-                    denoised,
-                    spec,
-                    source_dataset=contract.squid_dataset,
-                    attributes={"filter": wiener.as_dict()},
-                )
-            )
+        write_denoised_file(
+            denoised,
+            spec,
+            source_dataset=contract.squid_dataset,
+            attributes={"filter": wiener.as_dict()},
         )
+        # benchmark.py always reads channel0002 too, for every model -- it
+        # locates the injection frequency from the reference channel
+        # regardless of which channel is under test. inference.py's own
+        # output files carry it through unchanged; do the same here, or
+        # upstream scoring fails with a missing-dataset KeyError.
+        if contract.reference_dataset is not None:
+            with TidmadFile(source, contract) as handle:
+                reference = handle.read(contract.reference_dataset, 0, int(args.denoise_samples))
+            write_denoised_file(
+                reference,
+                spec,
+                source_dataset=contract.reference_dataset,
+            )
+        written.append(str(spec.destination))
 
     benchmark = run_upstream_benchmark(
         Path(args.upstream),

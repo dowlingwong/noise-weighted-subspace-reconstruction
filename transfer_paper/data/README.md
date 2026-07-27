@@ -29,6 +29,11 @@ paths, and SHA-256 digests.
   these components in any downstream text.
 - `source_documents/` contains exact copies of the validation record,
   reference protocol, follow-up protocol, roadmap, and progress record.
+- `tidmad/current/` contains exact copies of the TIDMAD gate-G0 baseline
+  reproduction record, the verified data contract, and the Phase 1-6 real-
+  data run records (by explicit filename, not a full-tree copy -- see
+  `_copy_tidmad` in `refresh_bundle.py`). See `MANUSCRIPT_EVIDENCE_MAP.md`
+  and `PENDING_RESULT_PLACEHOLDERS.md` for what each file supports.
 - `derived/` contains CSV views generated for notebooks and plotting.
 - `transfer_manifest.json` records each copied/generated file, its source, and
   its SHA-256 digest.

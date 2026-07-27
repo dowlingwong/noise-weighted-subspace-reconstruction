@@ -8,6 +8,24 @@ Code: `src/noise_geometry/tidmad/{analysis,calibration,denoise,score}.py`,
 
 ## Scope, stated first
 
+**Update, same date, after Phase 0 passed:** Phase 0 is done
+(`TIDMAD_PHASE0_RESULT.md`), and Phases 1, 2, 3, and 5 have since run for
+real. Phase 1 real: `TIDMAD_PHASE1_RESULT.md`. Phase 2/3 real:
+`TIDMAD_PHASE2_3_REAL_RESULT.md` (Phase 2 passed; Phase 3 was investigated on
+two files and not confirmed on either, for identified reasons — read that
+document before citing anything about TIDMAD's rank axis). Phase 5 real: see
+this document's Phase 5 section below, updated with the actual result.
+**Phase 4 and Phase 6 remain synthetic-mode only below** — no real-mode
+config exists yet for either; `scripts/run_tidmad_stage.py`'s `--mode file`
+path silently ran them in synthetic mode without erroring, which is flagged
+as a bug in the driver's own source comments now. Do not read a "file mode,
+all gates passed" driver summary as evidence Phase 4/6 ran on real data.
+
+Everything below this point describes the **original, synthetic-mode-only**
+results as first written up, preserved for the record.
+
+---
+
 Phases 2–4 are **implemented and executed in synthetic mode**, where the clean
 signal is an injected sinusoid of known amplitude and random phase. That
 establishes the analysis is correct and the gates have power. It establishes
@@ -125,7 +143,37 @@ acceptance boundary as requiring a seed ensemble, not a single run — the
 seed-20260727 control value of 1.076 is a 3.4σ excursion by the formula and an
 ordinary one by the empirical spread.
 
-## Phase 5 — the detector-facing metric (implemented, not run)
+## Phase 5 — the detector-facing metric: RUN, real result recorded
+
+**Update:** Phase 5 has since actually run, on the full-length
+`abra_validation_0000.h5` (2×10⁹ samples, matching a real release file).
+Getting there required four infrastructure fixes (missing `upstream` config
+key, the writer omitting the reference channel, missing group-level HDF5
+attrs `benchmark.py` reads, and `denoise_samples` too short for
+`benchmark.py`'s file-length assumptions — see git history around
+2026-07-27 for details). The result, via the unmodified upstream
+`benchmark.py -m wiener -c`:
+
+**Coarse denoising score: -1.8025.**
+
+| Model | Coarse score |
+| --- | --- |
+| FCNet | 6.55 |
+| Transformer | 4.18 |
+| PUNet | 3.84 |
+| none (no denoising) | 1.10 |
+| Moving average | 0.64 |
+| **Wiener (this run)** | **-1.80** |
+| SG filter (ill-conditioned, see `TIDMAD_PHASE0_RESULT.md`) | -2.35 |
+
+Honest reading: the linear, noise-geometry-aware Wiener filter scores *worse
+than doing nothing at all* on this metric, at this operating point. Gate G4
+itself only asserts the linear estimator produces a valid, scoreable output
+through the unmodified benchmark path (it does — `returncode 0`), which is
+what passed; G4 was never a performance gate. Per the claim boundary fixed
+below before this ran, the honest answer to "how much of the gap does the
+correct noise geometry explain" is, on this metric, negative. Original design
+notes (numerically verified before the real run) follow.
 
 Design, with its claim boundary fixed in the code before any run:
 
@@ -206,17 +254,22 @@ All four runnable phases also execute through the config-driven entry point
 (`scripts/run_experiment.py --config configs/tidmad/phase{1,2,3,4}_*.yaml`) and
 report `status: complete`.
 
-## Next
+## Next (superseded — kept for the record; see the update at the top for current status)
 
-1. **Phase 0** (blocking everything real): download two validation and two
-   science files, run `scripts/tidmad_phase0_contract.py`, confirm channel
-   semantics, reproduce the published `none` and `savgol` scores (gate G0), and
-   set `verified: true` in the contract.
-2. Re-run Phases 1–4 with `--mode file`. Expect the Phase 4 global model to
-   fail on real SQUID noise — 8-bit quantization, drift, and glitches are not in
-   the Gaussian model — and record what it costs via `cost_of_mismatch`, which
-   is the number GWOSC could never produce.
-3. Phase 5 with `--upstream <TIDMAD checkout>`.
-4. Re-run Phase 6 on real data. A control that fails to degrade there is a
-   result to publish, not a parameter to adjust — CRESST had exactly one such
-   case and reported it.
+1. ~~**Phase 0**~~ — done, `TIDMAD_PHASE0_RESULT.md`.
+2. ~~Re-run Phases 1-4 with `--mode file`~~ — Phase 1 and Phase 2 done (real
+   result recorded); Phase 3 investigated, not confirmed, on two files (see
+   `TIDMAD_PHASE2_3_REAL_RESULT.md`); **Phase 4 still not run for real** — no
+   real-mode config exists yet, and `run_tidmad_stage.py --mode file` silently
+   ran it in synthetic mode without erroring. Still needed: a
+   `phase4_calibration_boundary_real_noise.yaml` config, mirroring the
+   `*_real_noise.yaml` pattern used for phases 1-3. Expect the global model to
+   fail on real SQUID noise (8-bit quantization, drift, glitches are not in
+   the Gaussian model) and record what it costs via `cost_of_mismatch`, the
+   number GWOSC could never produce.
+3. ~~Phase 5 with `--upstream <TIDMAD checkout>`~~ — done, real result
+   recorded above (coarse score -1.80, worse than doing nothing).
+4. **Phase 6 still not run for real** — same gap as Phase 4: no real-mode
+   config, driver silently falls back to synthetic. A control that fails to
+   degrade on real data is a result to publish, not a parameter to adjust —
+   CRESST had exactly one such case and reported it.

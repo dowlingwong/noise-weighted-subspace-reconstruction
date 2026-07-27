@@ -181,6 +181,20 @@ def step_contract(args: argparse.Namespace) -> StepResult:
     )
 
 
+def _tidmad_python(checkout: Path) -> str:
+    """Prefer a venv inside the checkout, if one exists, over our own interpreter.
+
+    The release's code was written against numpy<2 (e.g. ``int8_array + 128``
+    relies on numpy's old value-based scalar promotion, removed by NEP 50 in
+    numpy 2.0). This project's own environment tracks current numpy, so
+    running the unmodified upstream scripts under our interpreter raises
+    OverflowError on exactly that line. Set up ``<checkout>/.venv`` with
+    numpy<2 (see docs/runbooks/TIDMAD_STAGE_RUNBOOK.md) to avoid it.
+    """
+    venv_python = Path(checkout) / ".venv" / "bin" / "python"
+    return str(venv_python) if venv_python.exists() else sys.executable
+
+
 def step_baseline_gate(args: argparse.Namespace) -> StepResult:
     """Phase 0b, gate G0: reproduce the published `none` and `savgol` scores.
 
@@ -205,11 +219,19 @@ def step_baseline_gate(args: argparse.Namespace) -> StepResult:
 
     start = time.time()
     data_dir = args.data_root / "tidmad" / "raw"
-    captured = {}
+    tidmad_python = _tidmad_python(args.tidmad_checkout)
+    captured = {"tidmad_python": tidmad_python}
     for model in ("none", "savgol"):
         if model != "none":
+            # -p/--parallel: the release's sequential inference.py path leaves
+            # `model` unbound for classical (non-neural) denoisers -- its
+            # elif chain has an empty `else: pass` for exactly this case --
+            # and crashes with UnboundLocalError. The parallel path passes
+            # None explicitly instead of `model`, which is correct for
+            # non-neural methods, so it is the officially-supported way to
+            # avoid the bug without touching upstream code.
             inference = _run(
-                [sys.executable, "inference.py", "-d", str(data_dir), "-m", model],
+                [tidmad_python, "inference.py", "-d", str(data_dir), "-m", model, "-p"],
                 cwd=args.tidmad_checkout,
             )
             captured[f"{model}_inference_returncode"] = inference.returncode
@@ -221,7 +243,7 @@ def step_baseline_gate(args: argparse.Namespace) -> StepResult:
                     time.time() - start,
                 )
         benchmark = _run(
-            [sys.executable, "benchmark.py", "-d", str(data_dir), "-m", model, "-c"],
+            [tidmad_python, "benchmark.py", "-d", str(data_dir), "-m", model, "-c", "-p"],
             cwd=args.tidmad_checkout,
         )
         captured[model] = {
@@ -381,10 +403,10 @@ SYNTHETIC_PHASES = [
 
 FILE_PHASES = [
     (1, "phase1_estimator_identity_real_noise.yaml"),
-    (2, "phase2_metric_reversal.yaml"),
-    (3, "phase3_rank_manifold.yaml"),
-    (4, "phase4_calibration_boundary.yaml"),
-    (6, "phase6_negative_controls.yaml"),
+    (2, "phase2_metric_reversal_real_noise.yaml"),
+    (3, "phase3_rank_manifold_real_noise.yaml"),
+    (4, "phase4_calibration_boundary_real_noise.yaml"),
+    (6, "phase6_negative_controls_real_noise.yaml"),
     (5, "phase5_denoising_score.yaml"),
 ]
 

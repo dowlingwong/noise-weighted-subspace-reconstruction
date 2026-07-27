@@ -21,7 +21,7 @@ remain importable in environments without it.
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Iterator
 
@@ -56,6 +56,16 @@ class TidmadDataContract:
     max_samples: int = DEFAULT_MAX_SAMPLES
     injection_frequencies_hz: tuple[float, ...] = ()
     injection_amplitudes: tuple[float, ...] = ()
+    #: Per-file frequency characterizations, keyed by filename (e.g.
+    #: "abra_validation_0000.h5"), each valid only for the sample range it was
+    #: characterized over (recorded in ``notes``, not enforced here). TIDMAD's
+    #: injected frequency is file- and sample-range-specific -- see
+    #: docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md -- so a single flat
+    #: ``injection_frequencies_hz`` value is only safe for one file at a time.
+    #: Prefer this field whenever more than one file is in play; it removes
+    #: the fragile "whichever value happens to be in the contract right now"
+    #: failure mode that flat ``injection_frequencies_hz`` has.
+    injection_frequencies_by_file: dict[str, float] = field(default_factory=dict)
     verified: bool = False
     notes: str = ""
 
@@ -68,6 +78,19 @@ class TidmadDataContract:
                 "scientific numbers."
             )
 
+    def frequency_for_file(self, filename: str, fallback: float) -> float:
+        """Look up a characterized injection frequency for ``filename``.
+
+        Falls back to the legacy flat ``injection_frequencies_hz[0]`` (only
+        correct if that value happens to have been characterized for this
+        exact file), then to ``fallback`` if nothing is known.
+        """
+        if filename in self.injection_frequencies_by_file:
+            return float(self.injection_frequencies_by_file[filename])
+        if self.injection_frequencies_hz:
+            return float(self.injection_frequencies_hz[0])
+        return float(fallback)
+
     def to_json(self, path: str | Path) -> None:
         Path(path).write_text(json.dumps(asdict(self), indent=2) + "\n", encoding="utf-8")
 
@@ -77,6 +100,7 @@ def load_contract(path: str | Path) -> TidmadDataContract:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     payload["injection_frequencies_hz"] = tuple(payload.get("injection_frequencies_hz", ()))
     payload["injection_amplitudes"] = tuple(payload.get("injection_amplitudes", ()))
+    payload["injection_frequencies_by_file"] = dict(payload.get("injection_frequencies_by_file", {}))
     return TidmadDataContract(**payload)
 
 

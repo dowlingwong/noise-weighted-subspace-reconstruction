@@ -1,0 +1,36 @@
+# TIDMAD Phase 2 -- CONFIRMATORY attempt on a predeclared-rule-selected file.
+#
+# abra_validation_0005.h5 was selected by the file-selection rule frozen in
+# docs/results/TIDMAD_PREDECLARED_GATES.md ("Phase 3 confirmatory attempt --
+# predeclared file-selection rule"), applied mechanically across the 18
+# validation files not already used in this investigation. It is the first
+# file, in index order, that passes both the single-tone check and the
+# observed-SQUID-channel SNR check (3.42, vs. the required >= 3).
+#
+# Unlike the earlier abra_validation_0000.h5 / abra_validation_0010.h5
+# attempts (each a diagnostic exploration after seeing a prior result), this
+# file was never inspected for a Phase 2/3 reconstruction outcome before
+# being selected -- this is a genuine confirmatory test, at the same frozen
+# operating point as every other attempt.
+experiment_id: TIDMAD_P2_CONFIRMATORY
+dataset: tidmad
+phase: 2
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+rank: 2
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+block_size: 16
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0005.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P2_confirmatory_seed20260727.json

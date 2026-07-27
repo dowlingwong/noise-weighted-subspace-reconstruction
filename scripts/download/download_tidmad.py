@@ -57,6 +57,11 @@ def main() -> None:
         "-v", str(args.validation_files),
         "-s", str(args.science_files),
         "-sk",
+        # Non-interactive by construction (this wrapper is meant to run
+        # unattended from the stage driver): the upstream script otherwise
+        # blocks on an interactive confirmation prompt and raises EOFError
+        # when run with no stdin, as it does under nohup/subprocess.
+        "-f",
     ]
 
     print(f"destination: {destination}")

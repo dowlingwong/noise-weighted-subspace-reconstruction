@@ -1,0 +1,42 @@
+# TIDMAD Phase 2 on REAL validation data -- metric reversal against ground
+# truth (gate G2). The headline experiment of the stage: the one CRESST
+# structurally cannot supply, because it has no injected ground truth.
+#
+# "clean" here is the real injected reference channel (channel0002) of
+# abra_validation_0000.h5, read directly -- not a synthetic injection. The
+# metric-reversal computation itself (raw MSE / weighted residual / amplitude
+# error against evaluation_clean) does not depend on knowing the injection
+# frequency; only the "truth" amplitude readout (_truth_amplitude, via OF
+# projection onto quadrature templates) does, via injection_frequencies_hz in
+# the data contract.
+#
+# Same frozen operating point as the synthetic gate (window_samples, rank,
+# fit_fraction, guard_windows, bootstrap_reps, block_size) --
+# docs/results/TIDMAD_PREDECLARED_GATES.md Section 5. Do not change these
+# after seeing a result.
+experiment_id: TIDMAD_P2_REAL
+dataset: tidmad
+phase: 2
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+rank: 2
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+block_size: 16
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+# abra_validation_0000.h5 (low-frequency band) turned out to carry a
+# persistent two-tone reference signal, not a clean single CW tone -- see the
+# contract's notes. abra_validation_0010.h5 (medium-high band) was checked
+# and confirmed clean.
+validation_glob: tidmad/raw/abra_validation_0010.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P2_real_seed20260727.json

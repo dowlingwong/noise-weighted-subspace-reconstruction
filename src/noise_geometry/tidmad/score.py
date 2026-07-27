@@ -81,6 +81,11 @@ def write_denoised_file(
                 f"available: {list(source.keys())}"
             )
         target_dtype = np.dtype(spec.dtype) if spec.dtype else source[source_dataset].dtype
+        # benchmark.py reads voltage_range_mV, sampling_frequency, etc. as
+        # GROUP-level attrs (e.g. h5f['timeseries']['channel0001'].attrs[...]),
+        # not on the leaf dataset -- copy them through, since h5py's implicit
+        # intermediate-group creation below would otherwise leave them empty.
+        group_attrs = dict(source[source_dataset].parent.attrs)
 
     values = np.asarray(denoised)
     if np.issubdtype(target_dtype, np.integer):
@@ -89,12 +94,21 @@ def write_denoised_file(
     values = values.astype(target_dtype, copy=False)
 
     name = spec.dataset_name or source_dataset
-    with h5py.File(spec.destination, "w") as out:
+    # Append mode: the destination file must hold both the denoised SQUID
+    # channel and the untouched reference channel (benchmark.py reads both,
+    # for every model -- it locates the reference/injection frequency from
+    # channel0002 regardless of which channel is under test). A second call
+    # for the reference channel must not truncate the first call's dataset.
+    with h5py.File(spec.destination, "a") as out:
+        if name in out:
+            del out[name]
         dataset = out.create_dataset(name, data=values, compression="gzip", compression_opts=1)
         dataset.attrs["denoiser"] = spec.model_tag
         dataset.attrs["source_file"] = spec.source_file.name
         for key, value in (attributes or {}).items():
             dataset.attrs[key] = json.dumps(value) if isinstance(value, (dict, list)) else value
+        for key, value in group_attrs.items():
+            dataset.parent.attrs[key] = value
 
     return spec.destination
 
@@ -124,7 +138,14 @@ def run_upstream_benchmark(
             "published scoreboard."
         )
 
-    command = ["python", "benchmark.py", "-d", str(data_dir), "-m", model_tag]
+    # Prefer a venv inside the checkout, if one exists: the release's code was
+    # written against numpy<2 (e.g. int8_array + 128 relies on value-based
+    # scalar promotion, removed by NEP 50 in numpy 2.0), so running it under a
+    # current-numpy interpreter raises OverflowError on that exact pattern.
+    venv_python = Path(upstream_dir) / ".venv" / "bin" / "python"
+    python = str(venv_python) if venv_python.exists() else "python"
+
+    command = [python, "benchmark.py", "-d", str(data_dir), "-m", model_tag]
     if coarse:
         command.append("-c")
     command.extend(extra_args)

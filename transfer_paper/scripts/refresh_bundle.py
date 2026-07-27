@@ -227,21 +227,51 @@ def _copy_config_snapshots(provenance: dict[str, str]) -> None:
             )
 
 
-def _copy_source_documents(provenance: dict[str, str]) -> None:
-    destination_root = DATA_ROOT / "source_documents"
+## NOTE: `_copy_source_documents` was removed 2026-07-27. It duplicated (and
+## had gone stale relative to) `scripts/sync_source_documents.py`, which is
+## the actual, current, authoritative owner of `data/source_documents/`
+## (correct paths, per-file checksums, its own manifest). This function's
+## `rmtree`-then-repopulate-5-files behavior silently deleted
+## `CRESST_RESULT.md` and `SOURCE_DOCUMENTS_MANIFEST.json` -- files that
+## script maintains but this one didn't know about -- the one time its own
+## stale `docs/GWOSC_RESULT.md` path (moved to `docs/results/` a while ago)
+## was fixed enough for it to run to completion instead of crashing first.
+## Run `scripts/sync_source_documents.py` directly to refresh that directory.
+
+
+def _copy_tidmad(provenance: dict[str, str]) -> None:
+    """Copy the current TIDMAD gate-G0 and Phase 1-6 real-data evidence.
+
+    Unlike GWOSC/CRESST there is no single archived "current run" directory
+    for TIDMAD yet -- the evidence lives across evidence/tidmad/phase0/,
+    results/metrics/, and docs/tidmad_data_contract.json. This copies the
+    specific files each phase's write-up cites (see
+    docs/results/TIDMAD_PHASE0_RESULT.md and TIDMAD_PHASE2_3_REAL_RESULT.md)
+    by name, not a full-tree copy, so a stale or in-progress run in
+    results/metrics/ never gets pulled in silently.
+    """
+    destination_root = DATA_ROOT / "tidmad" / "current"
     if destination_root.exists():
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
-    names = (
-        "CURRENT_STATUS.md",
-        "EXPERIMENT_PROTOCOLS.md",
-        "GWOSC_RESULT.md",
-        "PAPER_REVISION_GUIDE.md",
-        "REMOTE_EXECUTION.md",
-    )
-    for name in names:
-        source = REPO_ROOT / "docs" / name
-        destination = destination_root / name
+
+    sources = [
+        REPO_ROOT / "docs" / "tidmad_data_contract.json",
+        REPO_ROOT / "evidence" / "tidmad" / "phase0" / "G0_baseline_reproduction.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P1_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P2_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P2_confirmatory_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_file_selection.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P3_confirmatory_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P4_real_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P5_file_seed20260727.json",
+        REPO_ROOT / "results" / "metrics" / "TIDMAD_P6_real_seed20260727.json",
+    ]
+    for source in sources:
+        if not source.is_file():
+            continue
+        destination = destination_root / source.name
         shutil.copy2(source, destination)
         provenance[str(destination.relative_to(TRANSFER_ROOT))] = str(
             source.relative_to(REPO_ROOT)
@@ -1732,8 +1762,10 @@ def main() -> None:
     _copy_synthetic_figures(provenance)
     _copy_cresst_sensitivity_figures(provenance)
     _copy_noise_budget(provenance)
+    _copy_tidmad(provenance)
     _copy_config_snapshots(provenance)
-    _copy_source_documents(provenance)
+    # data/source_documents/ is maintained by scripts/sync_source_documents.py,
+    # not this script -- see the note above _copy_tidmad.
     _write_csv(
         DERIVED_ROOT / "gwosc_run_history.csv",
         _gwosc_run_history(),

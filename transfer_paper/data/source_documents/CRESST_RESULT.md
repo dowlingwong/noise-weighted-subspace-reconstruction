@@ -1,6 +1,6 @@
 <!-- GENERATED COPY - DO NOT EDIT.
-     Source: docs/results/CRESST_RESULT.md @ 1a268459e52b4e22d9235cb141ce2ebd9110d579
-     Generated: 2026-07-26T17:30:29Z by scripts/sync_source_documents.py
+     Source: docs/results/CRESST_RESULT.md @ 59db37151d45f18e67d2d60142a7140eaf02f47e
+     Generated: 2026-07-27T10:03:38Z by scripts/sync_source_documents.py
      Edit the source in the experiment repository and re-run the sync. -->
 
 # CRESST Result And Interpretation

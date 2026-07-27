@@ -1,0 +1,71 @@
+{
+  "config": {
+    "_config_path": "/ceph/dwong/noise-weighted-subspace-reconstruction/configs/tidmad/phase5_denoising_score.yaml",
+    "coarse": true,
+    "contract": "docs/tidmad_data_contract.json",
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad",
+    "denoise_samples": 4194304,
+    "experiment_id": "TIDMAD_P5",
+    "max_files": 1,
+    "mode": "file",
+    "model_tag": "wiener",
+    "n_calibration_windows": 256,
+    "n_windows": 512,
+    "output": "results/metrics/TIDMAD_P5_file_seed20260727.json",
+    "phase": 5,
+    "resolved_data_root": "/ceph/dwong/paper1_dataset",
+    "science_glob": "tidmad/raw/abra_science_*.h5",
+    "seed": 20260727,
+    "training_glob": "tidmad/raw/abra_training_*.h5",
+    "upstream": "/home/dwong/src/TIDMAD",
+    "validation_glob": "tidmad/raw/abra_validation_*.h5",
+    "window_samples": 4096
+  },
+  "dataset_metadata": {
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad"
+  },
+  "experiment_id": "TIDMAD_P5",
+  "git_commit": "59db37151d45f18e67d2d60142a7140eaf02f47e",
+  "metrics": {
+    "all_gates_passed": false,
+    "claim_boundary": "This measures how much of the gap between no denoising and a trained deep denoiser is explained by using the correct noise geometry with a linear model. It is not a claim to win the benchmark.",
+    "denoised_files": [
+      "/ceph/dwong/paper1_dataset/tidmad/denoised/abra_validation_denoised_wiener_0000.h5"
+    ],
+    "gates": {
+      "G4_benchmark_ran": {
+        "passed": false,
+        "value": 1
+      }
+    },
+    "phase": 5,
+    "upstream_benchmark": {
+      "command": [
+        "/home/dwong/src/TIDMAD/.venv/bin/python",
+        "benchmark.py",
+        "-d",
+        "/ceph/dwong/paper1_dataset/tidmad/denoised",
+        "-m",
+        "wiener",
+        "-c"
+      ],
+      "cwd": "/home/dwong/src/TIDMAD",
+      "returncode": 1,
+      "stderr": "\n  0%|          | 0/20 [00:00<?, ?it/s]\n  0%|          | 0/20 [00:00<?, ?it/s]\nTraceback (most recent call last):\n  File \"/home/dwong/src/TIDMAD/benchmark.py\", line 164, in <module>\n    score = calculateBenchmark(args.data_dir+\"/\", file_list, args)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/dwong/src/TIDMAD/benchmark.py\", line 135, in calculateBenchmark\n    i, result_snr_sg, result_snr_squid = process_iteration(i, path, file, args.coarse)\n                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/dwong/src/TIDMAD/benchmark.py\", line 90, in process_iteration\n    freq_sg, psd_sg = GetOneSecPSD(path, file, ch=2, start=start_index)\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/dwong/src/TIDMAD/benchmark.py\", line 53, in GetOneSecPSD\n    data = h5f['timeseries']['channel0002']['timeseries'][startIndex:startIndex+N]\n           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^\n  File \"/home/dwong/src/TIDMAD/.venv/lib/python3.12/site-packages/h5py/_hl/group.py\", line 407, in __getitem__\n    return self._get(name)\n           ^^^^^^^^^^^^^^^\n  File \"h5py/_objects.pyx\", line 54, in h5py._objects.with_phil.wrapper\n  File \"h5py/_objects.pyx\", line 55, in h5py._objects.with_phil.wrapper\n  File \"/home/dwong/src/TIDMAD/.venv/lib/python3.12/site-packages/h5py/_hl/group.py\", line 421, in _get\n    oid = h5o.open(self.id, self._e(name), lapl=lapl)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"h5py/_objects.pyx\", line 54, in h5py._objects.with_phil.wrapper\n  File \"h5py/_objects.pyx\", line 55, in h5py._objects.with_phil.wrapper\n  File \"h5py/h5o.pyx\", line 255, in h5py.h5o.open\nKeyError: \"Unable to synchronously open object (object 'channel0002' doesn't exist)\"\n",
+      "stdout": "['abra_validation_denoised_wiener_0000.h5']\n",
+      "succeeded": false
+    },
+    "wiener_filter": {
+      "n_bins_above_half": 451,
+      "sampling_frequency_hz": 10000000.0,
+      "transfer_max": 0.7848448648401181,
+      "transfer_median": 0.3994620763380089,
+      "window_samples": 4096
+    }
+  },
+  "model_metadata": {},
+  "preprocessing_metadata": {},
+  "status": "failed_acceptance"
+}

@@ -75,6 +75,12 @@ claim.
 | CRESST-A public validation | verified positive | "within each chronologically split channel, rank-6 EMPCA beat single-template OF and met the multi-template-OF competitiveness gate; pooled paired-bootstrap CIs excluded zero" | "cross-channel transfer" or "validated detection sensitivity" |
 | Study A noise-budget decomposition | verified positive, rebuilt from authoritative component files | "SQUID, Johnson, TD, and Er component PSDs from noise_module/Al2O3_Al_athermal/ dominate/cross as reported in results/noise_budget/<run_id>/study_a/" using exactly those source labels | "1/f phonon", "vibrational", "TES Johnson", or any physical relabeling not recorded in provenance; any crossover not independently bracketed by a sign change |
 | Study B sensitivity attribution | verified positive, conditional on declared PSD/acquisition assumptions | "removing/scaling component X changes OF amplitude sensitivity by factor Y under acquisition branch Z (inband_no_alias / unfiltered_alias_fold)" | stating a sensitivity ratio without naming its acquisition branch; calling this a unique physical noise decomposition or a measured detector improvement |
+| TIDMAD gate G0 | verified positive (`none`); `savgol` diagnosed ill-conditioned, not reproducible by any implementation | "`none` reproduced the published score (1.1026 vs 1.10); `savgol` diverges for a documented numerical reason in the published baseline itself" | claiming bit-exact `savgol` reproduction |
+| TIDMAD Phase 2 metric reversal vs. real truth | verified positive, first attempt | "on real ABRACADABRA detector data, with the file's own injected reference channel as ground truth, the noise-weighted reconstruction recovered the true amplitude significantly better than the isotropic-MSE-preferred one (paired CI excludes zero)" | generalizing beyond the one file/operating point run; implying a broader file survey was done |
+| TIDMAD Phase 3 rank-2 manifold, real data | investigated, not confirmed on 3 files (incl. 1 predeclared-rule-selected confirmatory attempt), all diagnosed | "the rank-2 prediction, confirmed in theory and synthetic data, did not confirm on any of three real files tried -- including one selected by a predeclared rule before its outcome was known -- for identified non-implementation reasons" | "TIDMAD confirms the rank-2 prediction on real data"; "TIDMAD refutes the theory" |
+| TIDMAD Phase 5 denoising score | verified negative | "the noise-aware linear estimator scored -1.80 (coarse), below the no-denoising baseline of 1.10, under the predeclared claim boundary" | "the linear estimator is competitive with deep denoising baselines" |
+| TIDMAD Phase 4 calibration boundary, real data | verified positive, unexpected | "unlike GWOSC, a simple global Gaussian PSD model calibrates real TIDMAD SQUID noise adequately at this file/operating point (chi2/dof 1.003, dispersion 1.014)" | generalizing beyond the one file/sample range checked; forcing this into a GWOSC-style boundary narrative |
+| TIDMAD Phase 6 negative controls, real data | 3 of 5 degrade; 2 do not | "3 of 5 predeclared controls degraded with CI excluding zero on real data; `noise_only_train` and `random_weighted_basis` did not" | "all five TIDMAD negative controls degrade on real data" |
 
 ## Sections That Usually Need Revision
 
@@ -97,12 +103,22 @@ Use this order:
 1. theory/equivalence checks;
 2. controlled synthetic S1-S9 gates;
 3. CRESST-A within-channel reconstruction validation;
-4. GWOSC implementation/reference checks;
-5. GWOSC failed global/local real-noise calibration;
-6. limitations and next validation domain.
+4. **TIDMAD metric reversal against real injected ground truth (Phase 2)** —
+   the strongest real-data result, place it prominently, not after GWOSC's
+   negative material; TIDMAD Phase 4 (global model calibrates real SQUID
+   noise well) can sit alongside it as a second positive TIDMAD finding;
+5. GWOSC implementation/reference checks;
+6. GWOSC failed global/local real-noise calibration;
+7. limitations (TIDMAD Phase 3 non-confirmation on 3 real files including
+   one predeclared confirmatory attempt, TIDMAD Phase 5 negative
+   denoising-score result, TIDMAD Phase 6's 2 non-degrading controls, GWOSC
+   boundary) and next validation domain.
 
 This prevents the GWOSC negative result from appearing to undermine the
-synthetic theory while still reporting it honestly.
+synthetic theory while still reporting it honestly, and keeps TIDMAD's one
+strong positive result from being buried among negative/limitation material.
+See `transfer_paper/TIDMAD_REVISION_INSTRUCTION_2026-07-27.md` for the full
+TIDMAD integration instructions.
 
 ## Transfer-Paper Workflow
 

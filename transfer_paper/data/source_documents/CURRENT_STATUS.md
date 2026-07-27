@@ -1,11 +1,11 @@
 <!-- GENERATED COPY - DO NOT EDIT.
-     Source: docs/CURRENT_STATUS.md @ 1a268459e52b4e22d9235cb141ce2ebd9110d579
-     Generated: 2026-07-26T17:30:29Z by scripts/sync_source_documents.py
+     Source: docs/CURRENT_STATUS.md @ 59db37151d45f18e67d2d60142a7140eaf02f47e
+     Generated: 2026-07-27T10:03:38Z by scripts/sync_source_documents.py
      Edit the source in the experiment repository and re-run the sync. -->
 
 # Current Status
 
-Last consolidated: 2026-07-04.
+Last consolidated: 2026-07-27 (added TIDMAD).
 
 ## Central Claim
 
@@ -65,6 +65,13 @@ assumptions provide.
 | CRESST trigger-efficiency detector metric | inconclusive | Limitations, if mentioned |
 | Study A noise-budget band decomposition | verified positive (rebuilt from authoritative component files, see EXP-02) | Results/Appendix |
 | Study B sensitivity attribution | verified positive, conditional on declared PSD/acquisition assumptions (see EXP-03) | Results/Appendix, with acquisition branch stated in every caption |
+| TIDMAD gate G0 (baseline reproduction) | verified positive (`none` matches published; `savgol` diagnosed ill-conditioned, non-blocking) | Methods |
+| TIDMAD Phase 1 (estimator identity, real noise) | verified positive, all 6 gates | Methods |
+| TIDMAD Phase 2 (metric reversal vs. real injected truth) | verified positive, first attempt, CI excludes zero | Results — the headline TIDMAD claim |
+| TIDMAD Phase 3 (rank-2 quadrature manifold, real data) | not confirmed on any of three files tried, including one genuinely confirmatory attempt selected by a predeclared rule (all diagnosed, non-implementation reasons) | Limitations, if mentioned; do not cite as a passed gate |
+| TIDMAD Phase 5 (detector-facing denoising score) | verified negative: Wiener coarse score -1.80, below "no denoising" (1.10) | Results/Limitations, framed per the predeclared claim boundary |
+| TIDMAD Phase 4 (calibration boundary, real data) | verified positive: global model calibrates well (χ²/dof 1.003, dispersion 1.014), unlike GWOSC | Results — a genuine, unexpected positive finding |
+| TIDMAD Phase 6 (negative controls, real data) | 3 of 5 degrade; 2 do not (`noise_only_train` flat, `random_weighted_basis` improves slightly) | Results/Limitations, both exceptions named |
 
 ## What Is Supported
 
@@ -134,6 +141,45 @@ assumptions provide.
   anywhere in this repository** and must not be cited until either their
   true source is located or a new script computes and archives them.
 
+- TIDMAD (ABRACADABRA, arXiv:2406.04378) gate G0: the release's own `none`
+  and `savgol` denoising scores reproduced on the full 20-file validation set
+  via the unmodified upstream `benchmark.py`. `none` = 1.1026 vs. published
+  1.10 (the calibration anchor, confirming channel semantics and data
+  integrity). `savgol` does not match to precision, diagnosed as numerical
+  ill-conditioning in the published baseline's own hyperparameters
+  (`window_length=100, polyorder=11` collapses `savgol_coeffs`' coefficient
+  sum from ~1 to 1.7e-10), not a defect in this reproduction. See
+  `docs/results/TIDMAD_PHASE0_RESULT.md`.
+- TIDMAD Phase 1 real-noise estimator-identity gates (amplitude bias, PSD
+  variance bound, no-signal null, subspace/quadrature alignment, cos² loss
+  law, 1/SNR scaling law): all 6 pass on real detector noise. See
+  `docs/results/TIDMAD_PHASE1_RESULT.md`.
+- TIDMAD Phase 2 (`abra_validation_0000.h5`, first attempt, predeclared
+  operating point, no file selection or tuning involved): amplitude error
+  against the file's own real injected reference channel is significantly
+  lower for EMPCA than PCA (paired difference +0.0190, 95% CI
+  [0.0045, 0.0321] window-level, [0.0027, 0.0344] block-level; both exclude
+  zero), while raw MSE favours PCA and the weighted residual favours EMPCA —
+  all three predicted orderings reversed, as CRESST structurally cannot show
+  (no injected ground truth there). See
+  `docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md`.
+- TIDMAD Phase 5: the noise-aware linear Wiener estimator was scored through
+  the unmodified upstream `benchmark.py` (coarse score -1.8025) after four
+  infrastructure fixes to the writer/config. This is a real, executed result,
+  not a placeholder.
+- TIDMAD Phase 4 (`abra_validation_0000.h5`, real science-file noise):
+  the global Gaussian PSD model calibrates well (χ²/dof 1.0031, score
+  dispersion 1.0142, both within [0.9, 1.1] and close to the synthetic
+  control's own values); `cost_of_mismatch` is negligible. Unlike GWOSC,
+  real TIDMAD SQUID noise at this file/sample range does not expose a
+  calibration boundary. See `docs/results/TIDMAD_PHASE4_6_REAL_RESULT.md`.
+- TIDMAD Phase 6 (`abra_validation_0000.h5`, real data): 3 of 5 negative
+  controls degrade with CI excluding zero (`wrong_frequency`,
+  `permuted_bins`, `wrong_psd`); 2 do not (`noise_only_train` is flat;
+  `random_weighted_basis` improves slightly). Both exceptions are reported,
+  matching CRESST's precedent of naming its one exception. See
+  `docs/results/TIDMAD_PHASE4_6_REAL_RESULT.md`.
+
 ## What Is Not Supported
 
 - The current evidence does not support calibrated GW150914 significance.
@@ -151,6 +197,28 @@ assumptions provide.
   at fixed background FPR) was inconclusive within the predeclared amplitude
   grid for most channels and does not support a validated detection-
   sensitivity claim.
+- The current evidence does not support a TIDMAD real-data confirmation of
+  the rank-2 quadrature-manifold prediction (Phase 3). Three files were
+  tried, including one genuinely confirmatory attempt selected by a
+  predeclared rule before its outcome was known; none confirmed it, for
+  different, understood, non-implementation reasons (a genuine two-tone
+  calibration signal in one file; weak reference-to-SQUID channel coupling
+  in another; likely insufficient statistical power at this operating point
+  in the third, which passed every predeclared quality check). Do not cite
+  a "Phase 3 real-data" gate as passed or failed — it is an investigated,
+  honestly non-confirmed finding. See
+  `docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md`.
+- The current evidence does not support a claim that TIDMAD's noise-aware
+  linear estimator is competitive with the published deep-learning baselines
+  on the detector-facing denoising score: the coarse score (-1.80) is below
+  even the "no denoising" baseline (1.10).
+- The current evidence does not support a claim that all five TIDMAD
+  negative controls degrade on real data: 2 of 5 do not
+  (`noise_only_train`, `random_weighted_basis`) — see
+  `docs/results/TIDMAD_PHASE4_6_REAL_RESULT.md`.
+- The current evidence does not support generalizing TIDMAD's real-data
+  Phase 4 calibration result (global model adequate) beyond the one file and
+  ~0.2-second sample range it was checked at.
 
 ## Current GWOSC Conclusion
 
@@ -187,6 +255,44 @@ does not show cross-channel transfer, and it does not show validated
 detection sensitivity from the trigger-efficiency metric as measured.
 ```
 
+## Current TIDMAD Conclusion
+
+TIDMAD is a completed public real-data validation stage (all six phases now
+have real-data results, not just synthetic). Its headline result — Phase 2,
+metric reversal against known injected ground truth on real detector data —
+is positive and is the strongest single real-data result in this
+repository, because it is the only one with actual ground truth to compare
+against (CRESST has none). The stage also produced two more findings worth
+noting on their own terms: Phase 4 shows real SQUID noise, unlike GWOSC's
+real strain, is adequately calibrated by a simple global PSD model; Phase 3's
+rank prediction is not confirmed on real data even after a genuinely
+confirmatory attempt (open finding, not a failure, and not indicative of a
+pipeline bug).
+
+The correct interpretation is:
+
+```text
+TIDMAD Phase 2 shows that, on real ABRACADABRA detector data with a real
+injected reference signal as ground truth, the noise-weighted linear
+hierarchy (EMPCA vs. PCA) recovers the true signal amplitude significantly
+better than the isotropic-MSE-preferred reconstruction, confirming the
+metric-reversal claim against ground truth for the first time on real
+detector data. TIDMAD Phase 4 shows that, unlike GWOSC, a simple global
+Gaussian PSD model adequately calibrates real SQUID noise at this operating
+point. It does not show the predicted rank-2 gain over rank-1 on any of
+three real files tried -- including one selected by a predeclared rule
+before its outcome was known -- for identified, non-implementation reasons.
+It does not show that a noise-aware linear estimator is competitive with
+trained deep denoisers on the detector-facing benchmark score, where it in
+fact scored below the "no denoising" baseline. And 2 of its 5 negative
+controls do not degrade on real data, which is reported rather than hidden.
+```
+
+Do not broaden this into "TIDMAD confirms the full theory on real data" —
+Phase 3, the denoising-score result, and the two non-degrading controls are
+real, honestly negative or inconclusive findings that belong in
+Limitations, not omitted.
+
 ## Next Steps
 
 1. Revise the manuscript so the positive claims rest on theory, controlled
@@ -202,6 +308,24 @@ detection sensitivity from the trigger-efficiency metric as measured.
    radii, windows, quality cuts, or exclusions after seeing the result. The
    same applies to the completed CRESST-A run.
 5. If GWOSC is continued, write a new predeclared Stage 3b protocol first.
+6. Include TIDMAD Phase 2 as a second positive real-data anchor with actual
+   ground truth (the strongest such result in this repository) once the
+   manuscript's TIDMAD section is written; see
+   `docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md`.
+7. ~~TIDMAD Phase 3 needs a predeclared data-quality selection rule~~ — done;
+   a rule was frozen and applied mechanically, selecting `abra_validation_
+   0005.h5` before its outcome was known. It still did not confirm the
+   rank-2 prediction, most likely due to insufficient statistical power at
+   this operating point (150 evaluation windows) rather than a property of
+   any one file. If a confirmatory result is still wanted, predeclare a
+   power-calibrated SNR/window-count threshold (via a synthetic power
+   calculation) rather than reusing this session's generic 3-sigma
+   convention, and/or increase `n_windows`.
+8. ~~TIDMAD Phases 4 and 6 need real-mode configs~~ — done; both ran on real
+   data. Phase 4: the global model calibrates well, unlike GWOSC (see
+   `docs/results/TIDMAD_PHASE4_6_REAL_RESULT.md`). Phase 6: 3 of 5 controls
+   degrade; `noise_only_train` and `random_weighted_basis` do not, and
+   remain uninvestigated candidate explanations, not yet a settled finding.
 
 ## Important Evidence Locations
 
@@ -236,3 +360,19 @@ detection sensitivity from the trigger-efficiency metric as measured.
   (stable packaged tables; see EXP-06)
 - `noise_module/noise_module/PAPER_CONVENTION.md`,
   `noise_module/noise_module/paper_convention.json` (see EXP-01)
+- `docs/plans/TIDMAD_IMPLEMENTATION_ROADMAP.md`,
+  `docs/results/TIDMAD_PREDECLARED_GATES.md`
+- `docs/results/TIDMAD_PHASE0_RESULT.md` (gate G0),
+  `docs/results/TIDMAD_PHASE1_RESULT.md` (Phase 1, synthetic + real),
+  `docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md` (Phase 2 positive, Phase 3
+  investigated on 3 files including one confirmatory, not confirmed),
+  `docs/results/TIDMAD_PHASE4_6_REAL_RESULT.md` (Phase 4 positive, Phase 6
+  3-of-5), `docs/results/TIDMAD_PHASES_2_TO_6_RESULT.md` (original synthetic
+  Phases 2-4/6, real Phase 5)
+- `docs/tidmad_data_contract.json` (`verified: true`; channel semantics,
+  sampling rate, and `injection_frequencies_by_file` per-file characterizations)
+- `evidence/tidmad/phase0/G0_baseline_reproduction.json`,
+  `results/metrics/TIDMAD_P{1,2,3,4,5,6}_real_seed20260727.json`,
+  `results/metrics/TIDMAD_P{2,3}_confirmatory_seed20260727.json`,
+  `results/metrics/TIDMAD_P3_file_selection.json` (per-file selection-rule
+  diagnostics)

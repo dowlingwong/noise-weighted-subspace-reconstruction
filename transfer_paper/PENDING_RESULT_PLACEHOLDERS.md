@@ -125,6 +125,116 @@ Prohibited current wording:
 The method is calibrated on GWOSC data in general.
 ```
 
+### TIDMAD Phase 3 (rank-2 quadrature manifold, real data)
+
+Current state: **investigated, not confirmed, on three files, including one
+genuinely confirmatory attempt, all diagnosed**. Not a pending experiment in
+the usual sense (it has been run three times) and not a completed gate
+either — do not write it up as either "TIDMAD confirms the rank-2 prediction
+on real data" or "TIDMAD refutes the theory." It is an honest, understood
+non-confirmation.
+
+Evidence:
+
+- `data/tidmad/current/TIDMAD_P3_real_seed20260727.json`,
+  `TIDMAD_P3_confirmatory_seed20260727.json`, `TIDMAD_P3_file_selection.json`
+- see `MANUSCRIPT_EVIDENCE_MAP.md`'s TIDMAD Phase 3 row for all three
+  diagnoses
+
+Allowed wording (if mentioned at all — omitting Phase 3 from the main text
+entirely and keeping it to a supplement/limitations note is also fine):
+
+```text
+The analytic rank-2 prediction is confirmed in theory and in controlled
+synthetic data. Three attempts to confirm it on real TIDMAD validation data
+did not succeed -- including one file selected by a data-quality rule frozen
+before its outcome was known -- for reasons unrelated to the estimator
+itself: a genuine multi-tone structure in one file's calibration signal, weak
+coupling between the calibration and detector-readout channels in another,
+and, on the file passing every predeclared quality check, most likely
+insufficient statistical power at this operating point.
+```
+
+Prohibited wording:
+
+```text
+TIDMAD confirms the rank-2 quadrature-manifold prediction on real data.
+```
+
+```text
+The rank-2 prediction failed on real TIDMAD data, casting doubt on the
+theory.
+```
+
+### TIDMAD Phase 5 (detector-facing denoising score)
+
+Current state: completed, synchronized, reviewed, **verified negative**. Do
+not use a placeholder — this is a real, executed result, not a pending one.
+
+Evidence: `data/tidmad/current/TIDMAD_P5_file_seed20260727.json`.
+
+Allowed wording:
+
+```text
+Scored through the release's own unmodified benchmark script, the noise-aware
+linear Wiener estimator achieved a coarse denoising score of -1.80, below the
+no-denoising baseline of 1.10. Under the predeclared claim boundary — how
+much of the gap between no denoising and a trained deep denoiser a correct
+noise geometry with a linear model explains — the honest answer at this
+operating point is a negative amount.
+```
+
+Prohibited wording:
+
+```text
+The noise-aware linear estimator is competitive with deep denoising models
+on the TIDMAD benchmark.
+```
+
+### TIDMAD Phase 4 (calibration boundary, real data)
+
+Current state: completed, synchronized, reviewed, **verified positive,
+unexpected**. Do not use a placeholder.
+
+Evidence: `data/tidmad/current/TIDMAD_P4_real_seed20260727.json`.
+
+Allowed wording:
+
+```text
+Unlike GWOSC's real-noise calibration failure, a simple global Gaussian PSD
+model calibrates real TIDMAD SQUID noise adequately at this file and sample
+range (chi2/dof 1.003, score dispersion 1.014, both within the predeclared
+acceptance band).
+```
+
+Prohibited wording:
+
+```text
+TIDMAD's calibration boundary result generalizes to all files/sample ranges.
+```
+
+### TIDMAD Phase 6 (negative controls, real data)
+
+Current state: completed, synchronized, reviewed, **3 of 5 controls
+degrade; 2 do not**. Do not use a placeholder.
+
+Evidence: `data/tidmad/current/TIDMAD_P6_real_seed20260727.json`.
+
+Allowed wording:
+
+```text
+On real TIDMAD data, three of five predeclared negative controls
+(wrong_frequency, permuted_bins, wrong_psd) degraded the primary metric with
+95% CI excluding zero. Two (noise_only_train, random_weighted_basis) did not
+-- the latter improved slightly.
+```
+
+Prohibited wording:
+
+```text
+All five TIDMAD negative controls degrade on real data.
+```
+
 ### CRESST / SCRESST validation
 
 Current state: completed, synchronized, reviewed, and passed for the narrow

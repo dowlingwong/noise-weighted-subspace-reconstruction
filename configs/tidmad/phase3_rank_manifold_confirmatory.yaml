@@ -1,0 +1,29 @@
+# TIDMAD Phase 3 -- CONFIRMATORY attempt on a predeclared-rule-selected file.
+#
+# abra_validation_0005.h5, selected by the file-selection rule frozen in
+# docs/results/TIDMAD_PREDECLARED_GATES.md before this file's Phase 2/3
+# outcome was ever inspected -- see phase2_metric_reversal_confirmatory.yaml
+# for the selection details. Frequency 8702.28 Hz (docs/tidmad_data_contract.json
+# injection_frequencies_by_file), single-tone confirmed, observed-channel
+# SNR 3.42.
+experiment_id: TIDMAD_P3_CONFIRMATORY
+dataset: tidmad
+phase: 3
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+ranks: [1, 2, 3, 4]
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0005.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P3_confirmatory_seed20260727.json

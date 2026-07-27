@@ -1,0 +1,33 @@
+# TIDMAD Phase 6 on REAL data -- negative controls (all five must degrade).
+#
+# Phase 2's positive real-data result is compatible with a pipeline that
+# would report a win no matter what it was fed. These controls break one
+# ingredient at a time against the SAME real file/operating point Phase 2
+# used (abra_validation_0000.h5, where real signal recovery is strong -- see
+# docs/results/TIDMAD_PHASE2_3_REAL_RESULT.md), so there is a real, working
+# baseline to degrade from rather than the saturated-at-zero-recovery regime
+# the synthetic SNR=8 operating point produced.
+#
+# Same frozen rank/split/bootstrap parameters as Phase 2's real config.
+experiment_id: TIDMAD_P6_REAL
+dataset: tidmad
+phase: 6
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+rank: 2
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+wrong_frequency_offset_bins: 37
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0000.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P6_real_seed20260727.json

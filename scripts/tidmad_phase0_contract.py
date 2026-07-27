@@ -76,6 +76,29 @@ def _line_dominance(window: np.ndarray, top_bins: int = 8) -> float:
     return float(strongest.sum() / total)
 
 
+def _collect_1d_datasets(handle) -> dict:
+    """Recursively find 1-D datasets, keyed by a short, human-readable label.
+
+    TIDMAD nests each channel's samples under a group, e.g.
+    ``timeseries/channel0001/timeseries``, rather than exposing them as
+    top-level datasets. A shallow ``handle.keys()`` scan only sees the
+    top-level ``timeseries`` *group*, which has no ``.shape`` -- so it would
+    silently find nothing. Walk the whole tree instead.
+    """
+    import h5py
+
+    found: dict = {}
+
+    def visitor(name: str, obj) -> None:
+        if isinstance(obj, h5py.Dataset) and obj.ndim == 1:
+            parts = name.split("/")
+            label = parts[-2] if len(parts) >= 2 else parts[-1]
+            found[label] = obj
+
+    handle.visititems(visitor)
+    return found
+
+
 def inspect_file(path: Path, window_samples: int, n_windows: int) -> dict:
     """Return the structural and statistical facts about one file."""
     try:
@@ -90,12 +113,8 @@ def inspect_file(path: Path, window_samples: int, n_windows: int) -> dict:
         "datasets": {},
     }
     with h5py.File(path, "r") as handle:
-        for key in handle.keys():
-            item = handle[key]
-            shape = getattr(item, "shape", None)
-            if shape is None or len(shape) != 1:
-                record["datasets"][key] = {"shape": None if shape is None else list(shape)}
-                continue
+        for key, item in _collect_1d_datasets(handle).items():
+            shape = item.shape
             probe = np.asarray(item[: int(window_samples) * int(n_windows)], dtype=np.float64)
             probe = probe[: (probe.size // window_samples) * window_samples]
             windows = probe.reshape(-1, int(window_samples)) if probe.size else np.empty((0, 0))
@@ -103,6 +122,7 @@ def inspect_file(path: Path, window_samples: int, n_windows: int) -> dict:
                 float(np.median([_line_dominance(w) for w in windows])) if windows.size else float("nan")
             )
             record["datasets"][key] = {
+                "path": item.name.lstrip("/"),
                 "shape": [int(s) for s in shape],
                 "dtype": str(item.dtype),
                 "n_samples": int(shape[0]),
@@ -130,6 +150,28 @@ def classify_channels(record: dict) -> dict:
             "squid_dataset": only,
             "reference_dataset": None,
             "reason": "single channel present (science file): treated as the SQUID readout",
+        }
+
+    if "channel0001" in candidates and "channel0002" in candidates:
+        # The release's own code is more authoritative than a spectral heuristic
+        # computed on a short probe window: train.py, inference.py, benchmark.py,
+        # brazilband.py, and array2h5.py all hardcode channel0001 as the SQUID
+        # readout and channel0002 as the injected reference/target -- and
+        # benchmark.py (what gate G0 must reproduce) depends on that assignment.
+        # The line-dominance probe below disagreed with it on this file's opening
+        # window (channel0001 0.193, channel0002 0.015), which is recorded as a
+        # diagnostic, not treated as a veto.
+        dominances = {k: round(v["median_line_dominance"], 3) for k, v in candidates.items()}
+        return {
+            "squid_dataset": "channel0001",
+            "reference_dataset": "channel0002",
+            "reason": (
+                "release convention (train.py/inference.py/benchmark.py/brazilband.py/"
+                "array2h5.py all hardcode this): channel0001 is the SQUID readout, "
+                "channel0002 is the injected reference/target. Probed median line-"
+                f"dominance was {dominances}, which does not by itself indicate this "
+                "assignment on this window and is recorded for audit only."
+            ),
         }
 
     ranked = sorted(candidates.items(), key=lambda kv: kv[1]["median_line_dominance"])
@@ -211,10 +253,18 @@ def main() -> None:
         )
         raise SystemExit(1)
 
+    # classification values are short labels (e.g. "channel0001"); the loader
+    # indexes the HDF5 file directly, so the contract must store the dataset's
+    # full path (e.g. "timeseries/channel0001/timeseries"), not the label.
     squid_info = reference_record["datasets"][classification["squid_dataset"]]
+    reference_info = (
+        reference_record["datasets"][classification["reference_dataset"]]
+        if classification["reference_dataset"] is not None
+        else None
+    )
     contract = {
-        "squid_dataset": classification["squid_dataset"],
-        "reference_dataset": classification["reference_dataset"],
+        "squid_dataset": squid_info["path"],
+        "reference_dataset": reference_info["path"] if reference_info is not None else None,
         "sampling_frequency_hz": float(args.sampling_frequency),
         "dtype": squid_info.get("dtype", "unknown"),
         "max_samples": 2_000_000_000,

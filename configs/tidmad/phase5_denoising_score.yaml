@@ -27,8 +27,17 @@ science_glob: tidmad/raw/abra_science_*.h5
 
 model_tag: wiener
 max_files: 1
-denoise_samples: 4194304
+# benchmark.py's GetOneSecPSD hardcodes N_sec_file=200 (seconds) and reads
+# up to N=10_000_000-sample ("one second") chunks assuming every file in its
+# list is a full-length release file; it is not designed for short custom
+# test files. denoise_samples must match a full validation file's length
+# (contract.max_samples) or even the coarse scan's early iterations
+# ValueError on a reshape past the written file's end.
+denoise_samples: 2000000000
 coarse: true
-# upstream: pass --upstream <path to a jessicafry/TIDMAD checkout> on the CLI
+# run_experiment.py has no --upstream CLI flag (only --config/--data-root/
+# --output); "upstream" is a config key consumed via experiments.py's
+# _PHASE_DEFAULTS, so it must be set here rather than passed on the CLI.
+upstream: /home/dwong/src/TIDMAD
 
 output: results/metrics/TIDMAD_P5_file_seed20260727.json

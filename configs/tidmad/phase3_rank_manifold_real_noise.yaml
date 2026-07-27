@@ -1,0 +1,38 @@
+# TIDMAD Phase 3 on REAL validation data -- the rank axis against a
+# closed-form prediction (gate G3). The sharpest theory test in the stage:
+# span{cos, sin} at the injected frequency is the analytically known signal
+# manifold, and this checks whether the learned rank-2 subspace aligns with
+# it on REAL data, not synthetic.
+#
+# Uses injection_frequencies_hz[0] from the data contract (75000.0 Hz,
+# characterized for abra_validation_0010.h5's sample range [0, 2097152) as a
+# clean single CW tone -- see the contract's notes. An earlier attempt used
+# abra_validation_0000.h5 (low-frequency band), which turned out to carry a
+# persistent two-tone reference signal rather than a single tone -- a richer
+# manifold than span{cos,sin}, which is why that file did not show the
+# predicted rank-2 gain. Restricting to the same default 512-window range
+# keeps this analysis inside the range where the frequency was verified.
+#
+# Same frozen operating point as the synthetic gate --
+# docs/results/TIDMAD_PREDECLARED_GATES.md Section 5.
+experiment_id: TIDMAD_P3_REAL
+dataset: tidmad
+phase: 3
+mode: file
+
+seed: 20260727
+window_samples: 4096
+n_windows: 512
+n_calibration_windows: 256
+
+ranks: [1, 2, 3, 4]
+fit_fraction: 0.7
+guard_windows: 4
+bootstrap_reps: 300
+
+data_root: /ceph/dwong/paper1_dataset
+contract: docs/tidmad_data_contract.json
+validation_glob: tidmad/raw/abra_validation_0010.h5
+science_glob: tidmad/raw/abra_science_*.h5
+
+output: results/metrics/TIDMAD_P3_real_seed20260727.json

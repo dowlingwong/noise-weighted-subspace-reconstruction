@@ -1,0 +1,71 @@
+{
+  "config": {
+    "_config_path": "/ceph/dwong/noise-weighted-subspace-reconstruction/configs/tidmad/phase5_denoising_score.yaml",
+    "coarse": true,
+    "contract": "docs/tidmad_data_contract.json",
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad",
+    "denoise_samples": 2000000000,
+    "experiment_id": "TIDMAD_P5",
+    "max_files": 1,
+    "mode": "file",
+    "model_tag": "wiener",
+    "n_calibration_windows": 256,
+    "n_windows": 512,
+    "output": "results/metrics/TIDMAD_P5_file_seed20260727.json",
+    "phase": 5,
+    "resolved_data_root": "/ceph/dwong/paper1_dataset",
+    "science_glob": "tidmad/raw/abra_science_*.h5",
+    "seed": 20260727,
+    "training_glob": "tidmad/raw/abra_training_*.h5",
+    "upstream": "/home/dwong/src/TIDMAD",
+    "validation_glob": "tidmad/raw/abra_validation_*.h5",
+    "window_samples": 4096
+  },
+  "dataset_metadata": {
+    "data_root": "/ceph/dwong/paper1_dataset",
+    "dataset": "tidmad"
+  },
+  "experiment_id": "TIDMAD_P5",
+  "git_commit": "59db37151d45f18e67d2d60142a7140eaf02f47e",
+  "metrics": {
+    "all_gates_passed": true,
+    "claim_boundary": "This measures how much of the gap between no denoising and a trained deep denoiser is explained by using the correct noise geometry with a linear model. It is not a claim to win the benchmark.",
+    "denoised_files": [
+      "/ceph/dwong/paper1_dataset/tidmad/denoised/abra_validation_denoised_wiener_0000.h5"
+    ],
+    "gates": {
+      "G4_benchmark_ran": {
+        "passed": true,
+        "value": 0
+      }
+    },
+    "phase": 5,
+    "upstream_benchmark": {
+      "command": [
+        "/home/dwong/src/TIDMAD/.venv/bin/python",
+        "benchmark.py",
+        "-d",
+        "/ceph/dwong/paper1_dataset/tidmad/denoised",
+        "-m",
+        "wiener",
+        "-c"
+      ],
+      "cwd": "/home/dwong/src/TIDMAD",
+      "returncode": 0,
+      "stderr": "\n  0%|          | 0/20 [00:00<?, ?it/s]\n  5%|\u258c         | 1/20 [00:01<00:34,  1.83s/it]\n 10%|\u2588         | 2/20 [00:03<00:33,  1.84s/it]\n 15%|\u2588\u258c        | 3/20 [00:05<00:31,  1.85s/it]\n 20%|\u2588\u2588        | 4/20 [00:07<00:29,  1.86s/it]\n 25%|\u2588\u2588\u258c       | 5/20 [00:09<00:27,  1.85s/it]\n 30%|\u2588\u2588\u2588       | 6/20 [00:11<00:25,  1.83s/it]\n 35%|\u2588\u2588\u2588\u258c      | 7/20 [00:12<00:23,  1.84s/it]\n 40%|\u2588\u2588\u2588\u2588      | 8/20 [00:14<00:21,  1.82s/it]\n 45%|\u2588\u2588\u2588\u2588\u258c     | 9/20 [00:16<00:19,  1.79s/it]\n 50%|\u2588\u2588\u2588\u2588\u2588     | 10/20 [00:18<00:17,  1.79s/it]\n 55%|\u2588\u2588\u2588\u2588\u2588\u258c    | 11/20 [00:19<00:15,  1.77s/it]\n 60%|\u2588\u2588\u2588\u2588\u2588\u2588    | 12/20 [00:21<00:14,  1.75s/it]\n 65%|\u2588\u2588\u2588\u2588\u2588\u2588\u258c   | 13/20 [00:23<00:12,  1.77s/it]\n 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 14/20 [00:25<00:10,  1.75s/it]\n 75%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c  | 15/20 [00:26<00:08,  1.77s/it]\n 80%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588  | 16/20 [00:28<00:06,  1.74s/it]\n 85%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c | 17/20 [00:30<00:05,  1.76s/it]\n 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 18/20 [00:32<00:03,  1.79s/it]\n 95%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258c| 19/20 [00:34<00:01,  1.79s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 20/20 [00:35<00:00,  1.81s/it]\n100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 20/20 [00:35<00:00,  1.80s/it]\n",
+      "stdout": "['abra_validation_denoised_wiener_0000.h5']\nCoarse Denoising Score for Model wiener: -1.802453396189369\n",
+      "succeeded": true
+    },
+    "wiener_filter": {
+      "n_bins_above_half": 451,
+      "sampling_frequency_hz": 10000000.0,
+      "transfer_max": 0.7848448648401181,
+      "transfer_median": 0.3994620763380089,
+      "window_samples": 4096
+    }
+  },
+  "model_metadata": {},
+  "preprocessing_metadata": {},
+  "status": "complete"
+}

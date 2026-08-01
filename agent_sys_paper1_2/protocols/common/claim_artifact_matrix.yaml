@@ -1,0 +1,88 @@
+# Claim–artifact matrix for H1–H4
+# Version 1.0 · 2026-08-01
+# Every claim binds to a protocol/analysis ID and a required artifact.
+
+version: "1.0"
+frozen: 2026-08-01
+
+claims:
+  H1:
+    paper: R1
+    statement: >
+      State-difference and evidence histories predict terminal scientific failure
+      earlier and more reliably than terminal checks, self-confidence, or trace-only
+      critics on held-out task and fault families.
+    experimental_unit: trajectory
+    intervention_predictor: typed-event temporal model with state differences and evidence provenance
+    comparator: terminal verifier, runtime-rule alarms, agent self-confidence, text-only trace critic, typed-event without state differences
+    primary_outcome: median_normalized_warning_lead_time_at_5pct_false_alert
+    analysis_id: R1-E2-primary
+    required_artifact:
+      - r1_warning_predictions: frozen_hazard_and_attribution_outputs
+      - r1_calibration_split: sealed_calibration_indices
+      - r1_test_split: sealed_test_indices
+    manuscript_destination: r1_dmlr/sections/05_results.tex
+    figure_id: fig_warning_lead_time
+    table_id: tab_primary_results
+    current_status: planned
+
+  H2:
+    paper: R1
+    statement: >
+      Warning lead time and causal fault class jointly predict whether a trajectory
+      remains recoverable after controlling for task difficulty, model, and fault severity.
+    experimental_unit: trajectory
+    intervention_predictor: standardized canonical recovery probe at early/middle/late delays
+    comparator: delayed vs immediate recovery from same snapshot
+    primary_outcome: verified_recovery_probability_decline_per_10pct_delay
+    analysis_id: R1-E4-primary
+    required_artifact:
+      - r1_recovery_probes: standardized_recovery_probe_results
+      - r1_snapshots: forkable_pre_decision_snapshots
+    manuscript_destination: r1_dmlr/sections/05_results.tex
+    figure_id: fig_recoverability_window
+    table_id: tab_primary_results
+    current_status: planned
+
+  H3:
+    paper: R2
+    statement: >
+      A calibrated, cost-sensitive verification policy lowers scientific failure
+      at matched verification budget relative to fixed, random, and confidence-threshold policies.
+    experimental_unit: trajectory
+    intervention_predictor: adaptive verification policy
+    comparator: never_verify, always_verify, fixed_periodic, random_matched_budget, threshold_r1_probability
+    primary_outcome: verified_scientific_success_difference_at_matched_cost
+    analysis_id: R2-C1-primary
+    required_artifact:
+      - r2_controller_outputs: policy_decisions_and_outcomes
+      - r1_frozen_test_splits: sealed_r1_held_out_groups
+    manuscript_destination: r2_tmlr/sections/07_results.tex
+    figure_id: fig_success_cost_frontier
+    table_id: tab_controller_effects
+    current_status: planned
+
+  H4:
+    paper: R2
+    statement: >
+      Process-supervised verified-recovery training improves unseen-fault recovery
+      and selective risk at matched cost without a meaningful clean-task regression.
+    experimental_unit: checkpoint (training replicate)
+    intervention_predictor: process-supervised optimization (arm 5)
+    comparator: recovery SFT (arm 3), outcome-only optimization (arm 4)
+    primary_outcome: verified_recovery_rate_on_unseen_compositions
+    co_primary_outcome: clean_task_success_non_inferiority
+    analysis_id: R2-T-primary
+    required_artifact:
+      - r2_training_views: immutable_training_view_projections
+      - r2_evaluation_sets: frozen_unseen_composition_and_clean_task_sets
+    manuscript_destination: r2_tmlr/sections/07_results.tex
+    figure_id: fig_six_arm_recovery
+    table_id: tab_training_effects
+    current_status: planned
+
+artifact_status:
+  H1_artifacts: not_built
+  H2_artifacts: not_built
+  H3_artifacts: not_built
+  H4_artifacts: not_built

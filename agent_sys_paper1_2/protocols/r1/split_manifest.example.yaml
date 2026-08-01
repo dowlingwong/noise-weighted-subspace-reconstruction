@@ -1,0 +1,38 @@
+# R1 Split manifest (example)
+# Version 1.0 · 2026-08-01
+# This is a template. Real task/fault/model identifiers replace placeholders after pilot.
+
+manifest_id: R1-split-manifest-v1-example
+protocol: R1-C
+version: "1.0"
+status: example
+
+split_regime: unseen_task
+description: >
+  Example split manifest showing the structure for held-out task templates.
+  Real task identifiers must be specified before confirmatory collection.
+
+development_tasks:
+  workload_family: repository_repair
+  task_templates: [task_template_dev_01, task_template_dev_02, task_template_dev_03]
+  task_instances: [dev_instance_001 through dev_instance_018]
+
+held_out_tasks:
+  workload_family: repository_repair
+  task_templates: [task_template_test_01, task_template_test_02]
+  task_instances: [test_instance_001 through test_instance_012]
+
+grouping_rules:
+  - task_templates_grouped_before_split
+  - repositories_grouped_before_split
+  - near_duplicate_solutions_same_group
+
+leakage_audit:
+  text_similarity_threshold: 0.85
+  code_similarity_threshold: 0.90
+  manual_audit_borderline: true
+  audit_date: null
+  auditor: null
+
+split_hash: "REPLACE_WITH_SHA256_OF_FROZEN_SPLIT"
+frozen_date: null

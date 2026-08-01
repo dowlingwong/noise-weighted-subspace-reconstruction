@@ -1,0 +1,149 @@
+\section{Benchmark and governance}
+\label{sec:benchmark}
+
+\subsection{Governed trace contract}
+
+Every trajectory in the benchmark is governed by a typed event contract
+that extends the underlying \textsc{Autoresearch} harness~\citep{autoresearch2026}.
+The contract specifies fourteen event types—including proposal, action
+request, action result, state snapshot, state difference, evidence,
+verifier request, verifier result, fault injection, belief, recovery
+action, human escalation, terminal outcome, and adjudication—each with
+mandatory fields and parent-event links for causal traceability. A stable
+envelope provides run identity, monotonic step index, wall-clock timestamp,
+actor type, artifact references, and a visibility class that controls
+whether the payload is policy-visible, hidden fault truth, sealed test
+outcome, training-reward-only, or adjudication-only.
+
+The state-difference contract records the target resource (file, process,
+dataset, metric, or environment), before/after content-addressed snapshots
+or explicit missing-state markers, the semantic type of change, the
+postcondition expected before execution, the observed change, whether an
+interrupted or partial execution was independently reconciled, and the
+observer's confidence. Absence—timeout, missing observation, failed
+verifier, unexecuted action—is typed rather than collapsed into a single
+null value.
+
+An immutable run manifest is hashed before execution. It records task
+identity, model version, environment lock, resource budget, experimental
+assignment, a sealed fault-manifest hash, and adjudicator versions. A
+manifest edited after execution is invalid.
+
+\subsection{Causal fault model}
+
+We organize controlled faults into seven mechanism families, each with a
+declared causal parent, affected component, and injection trigger:
+
+\begin{enumerate}
+    \item \textbf{Model and planning:} incorrect hypothesis, invalid task
+          decomposition, or hallucinated dependency. The error originates in
+          the reasoning step before action.
+    \item \textbf{Action and tool:} malformed tool call, wrong target, or
+          invalid parameter. Intent differs from executed effect.
+    \item \textbf{Runtime and environment:} timeout after a side effect,
+          stale process state, or partial write. Reconciliation is required
+          to recover the true state.
+    \item \textbf{Memory and context:} stale fact, retrieval corruption,
+          context truncation, or provenance loss. A memory event changes the
+          agent's plan before it reaches the tool layer.
+    \item \textbf{Evidence and statistics:} data leakage, incorrect metric,
+          multiple-testing violation, or invalid uncertainty estimate. The
+          scientific claim is unsupported despite task completion.
+    \item \textbf{Verifier:} flaky test, shared implementation bug between
+          agent and verifier, incomplete oracle, or reward leakage.
+          Acceptance is not independent of the agent's own reasoning.
+    \item \textbf{Coordination:} conflicting worker instructions, stale
+          ownership, or duplicated action in a multi-agent configuration.
+          Failure propagates across agent boundaries.
+\end{enumerate}
+
+Each injected fault carries a deterministic seed, severity (low, medium, or
+high), persistence (transient or persistent), an observability class, and a
+list of expected immediate and downstream effects. Every fault assignment
+has a clean counterfactual—the same task executed without the fault—to
+enable within-task causal estimation. The fault truth is sealed in a
+manifest that the evaluated policy cannot read.
+
+\subsection{Workload ladder}
+
+Tasks are drawn from four workload levels of increasing complexity:
+
+\begin{description}
+    \item[L0---Repository repair:] bounded code-editing tasks with precise
+          state-difference labels and fast iteration. Used for injector
+          debugging and fidelity measurement.
+    \item[L1---Reproducible ML experiments:] training, evaluation, and
+          hyperparameter tasks where data leakage, configuration drift, and
+          metric misuse are observable.
+    \item[L2---Signal-detection workflows:] tasks with known optimal
+          baselines and controlled noise geometry, enabling measurement of
+          statistical and evidence-level faults.
+    \item[L3---Nonstationary-noise experiments:] tasks with distribution
+          shift, stale evidence, and model adaptation under changing
+          conditions.
+\end{description}
+
+L0--L3 support causal injection and mechanism analysis. An L4 real-data
+transfer arm, using naturally occurring failures without controlled fault
+labels, is included for external validity but does not support causal claims
+about specific mechanisms.
+
+\subsection{Split regime and leakage controls}
+
+Six split regimes are predeclared and frozen before confirmatory collection.
+Development splits consist of pilot-only task templates and injectors used
+for instrument repair. The confirmatory evaluation uses: (i)~unseen task
+templates, where entire task generators and their instances are withheld
+from training; (ii)~unseen injector implementations, where a known causal
+mechanism is implemented through a new code path; (iii)~unseen fault
+families, where one mechanism family is absent from model development
+(attribution for this regime is evaluated as ``unknown'' rather than forced
+into a known class); (iv)~unseen compositions, where individually familiar
+faults appear in new pairs or sequences; and (v)~an external L4 split with
+naturally occurring failures.
+
+Task templates, repositories, datasets, and near-duplicate solutions are
+grouped before any split assignment. Text and code similarity screens
+identify borderline clusters, which are manually audited. No task,
+repository, or injector implementation may appear in more than one
+confirmatory split.
+
+\subsection{Adjudication and evidence separation}
+
+Adjudication separates execution success and scientific validity. A
+trajectory may complete execution correctly but still produce a
+scientifically invalid claim (e.g., a correct tool call on incorrectly
+preprocessed data). The adjudication record captures deterministic checks,
+scientific postconditions, verifier versions, disagreements across
+adjudicators, human review decisions, and the final status from the
+vocabulary \{accepted, rejected, ambiguous, insufficient\_evidence,
+verifier\_failure\}. Ambiguous cases retain their ambiguity rather than
+being coerced into a majority class.
+
+The training reward channel, agent self-report, and final adjudication are
+maintained as three separate evidence streams. An outcome that satisfies the
+training verifier but fails independent scientific adjudication is recorded
+as verifier-exploitable rather than silently accepted.
+
+\subsection{Artifact access, licensing, and maintenance}
+
+The benchmark is released with an executable trace schema and validator,
+deterministic fault injectors and clean counterfactuals, frozen task, fault,
+model, and split manifests, benchmark traces with provenance and licensing
+records, evaluation code for survival, warning, calibration, attribution,
+and recoverability, and a documented maintenance plan. The public release
+includes a de-identified trace sample and the full evaluation harness;
+sensitive or access-controlled traces are referenced through archival
+identifiers with documented retrieval instructions.
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.9\textwidth}{\centering
+\textbf{Architecture diagram:} Governed harness with evidence channels,
+causal fault intervention model, and split geometry.\\
+\textit{[Replace with accessible text-source diagram using Mermaid or TikZ; see source in figures/]}}}
+\caption{System architecture showing the governed runtime, causal fault injection,
+split isolation, and the relationship between evidence channels and
+adjudication.}
+\label{fig:benchmark_architecture}
+\end{figure}

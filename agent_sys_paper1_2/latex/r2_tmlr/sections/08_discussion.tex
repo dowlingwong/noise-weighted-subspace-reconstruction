@@ -1,0 +1,69 @@
+\section{Discussion and limitations}
+\label{sec:discussion}
+
+\textit{[This section will be written after confirmatory analysis is
+complete. The structure maps to the surviving claim cards.]}
+
+\subsection{Component attribution}
+
+\textit{[Interpret the factorial ablation to attribute gains: does the
+adaptive controller improve outcomes primarily by selecting better
+verification targets, by timing interventions earlier, or by choosing more
+appropriate recovery actions? Does process supervision add value because the
+process labels carry recovery-specific information, or because the step-level
+signal provides a denser training gradient? Discuss the active-verification
+$\times$ process-supervision interaction.]}
+
+\subsection{Sensitivity to cost-model choices}
+
+The controller's decisions depend on the cost weights $\lambda_v$,
+$\lambda_{\text{compute}}$, $\lambda_{\text{human}}$, and
+$\lambda_{\text{damage}}$. \textit{[Report how the primary result changes
+under alternative cost-weight configurations. Identify any region of the
+cost space where the adaptive advantage disappears or reverses.]}
+
+\subsection{Reward-channel independence}
+
+\textit{[Report the verifier-substitution result: does the policy's
+performance degrade when evaluated with a different verifier
+implementation? Report reward--evidence disagreement: cases where the
+training reward signal is positive but the independent adjudicator
+rejects the outcome. Discuss whether the policy learned to exploit
+verifier-specific artifacts.]}
+
+\subsection{External validity}
+
+All results are conditional on the sampled models, task families, fault
+mechanisms, and cost configurations. The controller was trained on R1
+development traces and evaluated on R1 confirmatory held-out groups.
+\textit{[Discuss whether the controller value transfers to the L4 external
+arm and whether the clean-task non-inferiority result holds under
+environment shift. Identify any evaluation set where the benefit
+disappears.]}
+
+\subsection{Failure cases}
+
+\textit{[Report cases where the adaptive policy made worse decisions than
+the fixed baseline: over-verification on low-risk trajectories,
+under-verification on rapidly propagating faults, inappropriate recovery
+actions, and unnecessary abstention. Discuss whether these failures are
+systematic (predictable from the belief state) or stochastic.]}
+
+\subsection{Security and safety implications}
+
+A policy trained to verify and recover could be used to reduce the cost of
+operating unreliable agents rather than to improve reliability. The
+clean-task regression gate, the verifier-substitution audit, and the
+requirement for independent adjudication are structural defenses against
+this risk, but they are not guarantees. A deployed version should maintain
+the separation between the training reward channel and the operational
+safety monitor.
+
+\subsection{Boundary of claims}
+
+H3 and H4 each require specific evidence thresholds (Section~\ref{sec:experiments}).
+If either threshold is not met, the corresponding claim is narrowed or
+withdrawn as specified in the preregistered fallback. Claims are bounded to
+the sampled models, tasks, fault regimes, and budget configurations; they
+do not extend to substantially different agent architectures, scientific
+domains, or cost structures without further evidence.

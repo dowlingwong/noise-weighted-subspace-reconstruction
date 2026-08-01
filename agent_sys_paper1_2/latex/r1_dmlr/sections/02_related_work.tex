@@ -1,0 +1,80 @@
+\section{Related work}
+\label{sec:related_work}
+
+We position this benchmark against six active research directions. In each
+case, existing work provides important components, but no single resource
+combines causal fault injection, structured state-difference observation,
+independent scientific adjudication, calibrated pre-terminal warning, and
+frozen transfer splits.
+
+\subsection{Scientific-agent benchmarks}
+
+MLR-Bench evaluates AI agents on open-ended machine learning research tasks
+and reports task-completion rates~\citep{mlrbench2025}. SciAgentArena
+benchmarks agents across scientific challenges at multiple
+scales~\citep{sciagentarena2026}. Both are broad, valuable evaluations of
+terminal agent competence. Neither injects controlled faults with known
+causal structure, records fine-grained state differences, or measures the
+time course of failure. Our benchmark supplements, rather than replaces,
+these resources by adding the temporal, causal, and state-difference
+dimensions needed to study failure dynamics.
+
+\subsection{Agent-failure taxonomies and diagnosis}
+
+MAST-Data provides more than 1{,}600 annotated multi-agent failure traces
+with a descriptive taxonomy~\citep{mast2025}. AgentRx performs critical-step
+localization and root-cause diagnosis from execution
+trajectories~\citep{agentrx2026}. Aegis combines a failure taxonomy with
+targeted intervention suggestions~\citep{aegis2025}. These systems
+demonstrate that trajectory-level failure analysis is feasible and
+informative. Our contribution differs in three ways: we use governed,
+deterministic fault injection rather than post-hoc labeling, so causal
+knowledge is established at injection time; we measure failure \emph{dynamics}
+(hazard, propagation, recoverability) rather than only presence or class;
+and we evaluate calibrated pre-terminal prediction on frozen splits rather
+than in-domain diagnosis.
+
+\subsection{Execution monitoring and state difference}
+
+Runtime monitors, state-snapshot systems, and execution tracers are standard
+in software engineering and have been applied to agent
+systems~\citep{shinn2024}. Our framework standardizes state-difference
+observation as a typed contract—recording before/after content hashes, the
+semantic type of change, whether the change was expected, and whether
+timeout or partial completion was independently reconciled—so that
+monitoring data can be used by downstream models without ad-hoc parsing.
+
+\subsection{Calibration, selective prediction, and survival analysis}
+
+Calibrated probability estimation~\citep{guo2017}, selective
+prediction~\citep{geifman2017}, and survival or time-to-event
+modeling~\citep{cox1972} are individually well studied. Our warning baseline
+applies these tools to scientific-agent trajectories, estimating a
+time-varying failure hazard, a distribution over causal fault classes, and
+an abstention state at each step, with calibration evaluated on dedicated
+splits.
+
+\subsection{Fault injection for agents}
+
+Fault injection is established in distributed systems and has been applied
+to language-model agents for robustness testing. We extend this tradition
+by requiring clean counterfactuals (the same task executed without the
+fault), by concealing fault truth from the evaluated policy, by classifying
+failed injections separately from successful faults, and by holding out
+entire fault families and fault compositions as transfer tests.
+
+\subsection{Recoverability measurement}
+
+Most agent evaluations report final success, but few measure whether an
+intervention that arrives after a warning can still restore the trajectory.
+Our standardized recovery probe—a fixed, family-appropriate canonical action
+applied at early, middle, and late delays—provides a controlled measure of
+the closing recoverability window without introducing a learned recovery
+policy, which is the subject of the companion method paper.
+
+The novelty claim of this paper is not the existence of a taxonomy, a trace
+dataset, a scientific task, or a fault injector. It is the conjunction of
+governed causal injection, structured state-difference observation,
+independent scientific adjudication, calibrated pre-terminal prediction, and
+frozen transfer evaluation—a combination that makes failure dynamics
+measurable and the measurement reusable.

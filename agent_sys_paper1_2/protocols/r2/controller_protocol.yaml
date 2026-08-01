@@ -1,0 +1,179 @@
+# R2-C1 + R2-C2: Controller and verified-intervention dataset protocol
+# Version 1.0 · 2026-08-01
+# Depends on frozen R1 contract. See deviations.md for changes.
+
+protocol_id: R2-C
+paper: R2
+version: "1.0"
+status: prospective
+frozen_date: null
+depends_on:
+  - R1-C_frozen_trace_schema
+  - R1-C_frozen_split_manifest
+  - R1-C_frozen_adjudicator_versions
+  - R1-C_frozen_calibration_protocol
+
+purpose: >
+  Determine whether observable R1 belief states contain enough information for
+  verification decisions, and whether adaptive verification improves verified
+  success at matched cost over fixed baselines.
+
+dependency_contract: >
+  R2 begins only after R1 freezes the trace schema, fault families, held-out splits,
+  workload manifests, terminal scientific outcomes, warning/attribution calibration
+  protocol, and pilot-excluded confirmatory evaluation sets.
+  R2 may add intervention fields through a new schema version but may not relabel
+  R1 test outcomes. Training and development tasks must be disjoint from the frozen
+  evaluation set.
+
+eligible_decision_points:
+  trigger: available_observable_history_and_calibrated_belief
+  observable_policy_state:
+    - structured_trace_history
+    - calibrated_failure_hazard
+    - cause_distribution
+    - evidence_freshness
+    - resource_budget_remaining
+    - reversibility_estimate
+    - estimated_action_damage
+
+action_space:
+  continue:
+    description: proceed without verification or intervention
+    cost: zero_verification_cost
+    postcondition: none
+  verify:
+    description: select and execute a verification check
+    subtypes: [evidence_check, postcondition_check, state_reconciliation, independent_audit]
+    cost: verification_specific
+    postcondition: updated_belief_and_evidence
+  recover:
+    description: execute a recovery action
+    subtypes: [retry, repair, rollback, re-plan]
+    cost: recovery_specific_plus_risk
+    postcondition: restored_or_alternative_state
+    preconditions: [reversibility_within_budget, rollback_boundary_known]
+  escalate:
+    description: request human intervention
+    cost: human_effort_cost
+    postcondition: human_decision_pending
+  abstain:
+    description: refuse to act on current evidence
+    cost: zero
+    postcondition: trajectory_stalls
+  terminate:
+    description: end trajectory with declared outcome
+    cost: remaining_budget_foregone
+    postcondition: terminal_record
+
+cost_model:
+  verification_cost: per_check_type_and_target
+  compute_cost: per_tool_call_and_step
+  human_cost: per_escalation
+  irreversible_damage: per_action_occurrence
+
+utility_objective: >
+  maximize expected scientific utility
+    - lambda_v × verification_cost
+    - lambda_c × compute_cost
+    - lambda_h × human_cost
+    - lambda_d × irreversible_damage
+  subject to:
+    clean_task_regression <= declared_tolerance
+    selective_risk <= declared_risk_budget
+    policy_and_privacy_constraints_never_bypassed
+
+controller_policies:
+  - id: never_verify
+    type: fixed
+    description: continue without verification
+  - id: always_verify
+    type: fixed
+    description: verify every eligible step
+  - id: fixed_periodic
+    type: fixed
+    description: verify at fixed interval or terminal only
+  - id: random_matched_budget
+    type: random
+    description: random verification at matched expected budget
+  - id: threshold_confidence
+    type: threshold
+    description: verify when agent self-confidence below threshold
+  - id: threshold_r1_probability
+    type: threshold
+    description: verify when R1 failure probability exceeds threshold
+  - id: myopic_value_of_information
+    type: adaptive
+    description: estimate expected value of verification from belief update
+  - id: learned_budget_aware
+    type: learned
+    description: budget-aware policy trained from replay or online data
+    status: prospective
+  - id: oracle_fault_aware
+    type: oracle
+    description: uses true fault labels for upper bound only
+    visibility: simulator_only_not_evaluation
+
+R2_C1_randomized_study:
+  experimental_unit: trajectory
+  block: one_task_instance_x_model_configuration_x_sealed_fault_episode
+  task_instances_minimum: 32
+  fault_episodes_minimum: 120
+  workload_families: 4
+  policies: 6_non_oracle
+  replicate_executions: pilot_icc_determined_minimum_2
+  primary_comparison: adaptive_vs_strongest_non_oracle_at_matched_cost
+  primary_endpoint: verified_scientific_success_difference_at_common_budget
+
+R2_C1_supporting_endpoints:
+  - area_under_success_cost_frontier
+  - irreversible_damage_rate
+  - false_intervention_on_no_fault_tasks
+  - latency_compute_tool_calls_human_escalation
+  - calibration_after_policy_induced_selective_observation
+  - regret_relative_to_oracle
+
+R2_C1_evidence_thresholds:
+  primary_improvement: ">= 0.05 absolute verified-success at matched budget"
+  interval: paired_or_hierarchical_95pct_excluding_zero
+  damage: no_increase_in_irreversible_damage
+  workload_consistency: benefit_on_at_least_2_families_no_catastrophic_reversal
+  frontier: non_dominated_region_not_single_hand_selected_point
+
+R2_C2_verified_intervention_dataset:
+  purpose: process_labels_surviving_outside_current_controller
+  per_transition_record:
+    - observable_history_and_calibrated_belief_before_action
+    - all_actions_available_under_policy_and_resource_constraints
+    - selected_action_and_selection_propensity
+    - action_cost_state_difference_immediate_postcondition
+    - final_scientific_outcome_under_independent_adjudicator
+    - replayed_counterfactual_outcomes_when_valid
+    - ambiguity_verifier_disagreement_missing_evidence
+    - source_split_deduplication_cluster_eligibility_for_training_view
+  oversampling: rare_fault_action_combinations_for_training
+  prevalence_weights: retained_for_population_evaluation
+  dataset_gates:
+    - adequate_independent_episode_coverage_per_action
+    - no_single_task_template_exceeds_predeclared_share_of_action_class
+    - at_least_two_adjudicator_implementations_or_human_audit_high_reward
+    - duplicate_near_duplicate_clusters_isolated_by_split
+    - ambiguous_and_failed_transitions_available_for_audit
+
+counterfactual_representation:
+  supported: actions_with_replay_validity_or_matched_episodes
+  unsupported: explicitly_unknown_not_imputed_as_truth
+  sensitivity_bound: conservative_unsupported_action_sensitivity
+
+offline_feasibility:
+  replay_dataset: eligible_decision_points_with_action_availability_cost_evidence_outcome
+  estimation: inverse_propensity_or_doubly_robust_where_logging_adequate
+  gate:
+    - voi_or_learned_improves_over_strongest_fixed_non_oracle
+    - effective_sample_size_exceeds_preregistered_minimum
+    - sign_agreement_under_direct_replay_and_conservative_sensitivity
+
+selection_propensity_logging:
+  required: true
+  purpose: support_off_policy_evaluation
+  fields: [policy_id, action_probability, eligibility_mask, budget_state_at_decision]

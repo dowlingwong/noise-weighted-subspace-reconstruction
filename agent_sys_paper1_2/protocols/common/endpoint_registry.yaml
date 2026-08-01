@@ -1,0 +1,117 @@
+# Endpoint registry for Papers R1 and R2
+# Version 1.0 · 2026-08-01
+# Every endpoint maps to an analysis ID and a computation artifact.
+
+version: "1.0"
+frozen: 2026-08-01
+
+endpoints:
+  R1_primary:
+    - id: R1-E2-primary-warning-lead-time
+      name: median_normalized_warning_lead_time
+      description: >
+        Median normalized warning lead time among terminally invalid trajectories
+        at an operating point with ≤5% false warnings on no-fault valid trajectories.
+      type: continuous
+      direction: higher_is_better
+      reaction_window: minimum_declared_reaction_window
+      computation: lead_time_distribution_at_fixed_false_alert_budget
+      analysis: R1-E2
+
+    - id: R1-E2-secondary-brier
+      name: integrated_brier_score_improvement
+      description: >
+        Relative improvement in integrated Brier score over the strongest
+        non-oracle baseline.
+      type: continuous
+      direction: higher_is_better
+
+  R1_secondary:
+    - id: R1-E1-hazard
+      name: failure_hazard_over_trajectory_age
+      description: Discrete-time mixed-effects hazard with complementary log-log link
+      type: time_series
+      analysis: R1-E1
+
+    - id: R1-E1-propagation
+      name: transition_rates_between_typed_subsystems
+      description: Counts and rates of failure propagation edges
+      type: graph
+      analysis: R1-E1
+
+    - id: R1-E2-auroc
+      name: time_dependent_auroc_auprc
+      description: Time-dependent AUROC and AUPRC with grouped bootstrap intervals
+      type: continuous
+      analysis: R1-E2
+
+    - id: R1-E2-calibration
+      name: calibration_intercept_slope
+      description: Calibration intercept, slope, and reliability plots
+      type: continuous
+      analysis: R1-E2
+
+    - id: R1-E3-attribution
+      name: macro_f1_attribution
+      description: Macro-F1 over known top-level fault families on unseen injector implementations
+      type: continuous
+      analysis: R1-E3
+
+    - id: R1-E4-recoverability
+      name: marginal_change_in_recovery_probability
+      description: Marginal change in verified recovery probability per 10% delay in normalized horizon
+      type: continuous
+      analysis: R1-E4
+
+  R2_primary:
+    - id: R2-C1-primary-verified-success
+      name: verified_scientific_success_difference
+      description: >
+        Difference in independently verified scientific success at a common
+        verification and human-effort budget, adaptive vs strongest non-oracle baseline.
+      type: continuous
+      direction: higher_is_better
+      analysis: R2-C1
+
+    - id: R2-T-primary-recovery
+      name: verified_recovery_rate_unseen_compositions
+      description: >
+        Verified recovery rate on unseen fault compositions, process-supervised
+        vs stronger of recovery SFT and outcome-only at matched evaluation cost.
+      type: continuous
+      direction: higher_is_better
+      analysis: R2-T
+
+    - id: R2-T-co-primary-noninferiority
+      name: clean_task_verified_success
+      description: >
+        Clean-task verified success under non-inferiority margin of 2 percentage
+        points relative to same base model evaluation protocol.
+      type: continuous
+      direction: lower_bound_above_neg_002
+      analysis: R2-T
+
+  R2_secondary:
+    - id: R2-C1-frontier
+      name: area_under_success_cost_frontier
+      description: Area under the verified-success versus cost frontier
+      type: continuous
+      analysis: R2-C1
+
+    - id: R2-C1-damage
+      name: irreversible_damage_rate
+      description: Rate of irreversible damage under each policy
+      type: continuous
+      analysis: R2-C1
+
+    - id: R2-T-selective_risk
+      name: selective_risk_improvement
+      description: Selective-risk or risk–coverage improvement after calibration
+      type: continuous
+      analysis: R2-T
+
+    - id: R2-A-interaction
+      name: active_verification_x_process_supervision
+      description: Interaction effect in 2×2×2 factorial ablation
+      type: continuous
+      analysis: R2-A

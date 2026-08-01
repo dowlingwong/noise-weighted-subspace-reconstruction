@@ -1,0 +1,56 @@
+\section{Introduction}
+\label{sec:introduction}
+
+A scientific agent that correctly predicts its own failure has solved only
+half the reliability problem. The other half is deciding what to do about
+it: whether to buy additional evidence, which verification check to run,
+whether recovery is still possible at acceptable cost, and when to escalate
+or abstain. A calibrated warning that arrives late in the trajectory,
+after the recovery window has closed, produces no practical benefit. A
+warning that triggers unnecessary verification on every clean task wastes
+compute and risks false interventions. The scientific question is not
+whether failure can be detected—it can—but whether a policy can use
+calibrated detection results to choose cost-effective verification and
+recovery actions that improve outcomes without degrading performance on
+tasks that would have succeeded without intervention.
+
+Recent work on agent reliability provides important foundations but stops
+short of this question. AgentRx localizes critical steps and attributes
+root causes from execution traces~\citep{agentrx2026}. Aegis pairs a
+failure taxonomy with intervention suggestions~\citep{aegis2025}. CAPF
+converts zero-reward failures into verifier-guided repair
+trajectories~\citep{capf2026}. Afterburner compares SFT, DPO, and GRPO
+under execution feedback~\citep{afterburner2025}. These systems demonstrate
+that diagnosis, repair, and execution-feedback training are individually
+feasible. However, none provides a factorized decision framework in which a
+budget-aware policy selects verification or recovery actions from calibrated
+beliefs, the outcomes are independently adjudicated, and the entire
+pipeline—belief, decision, verification, recovery, and training—is tested
+on frozen unseen fault compositions with a clean-task safety gate.
+
+This paper makes two separately identifiable claims. First, a calibrated,
+cost-sensitive verification policy improves independently verified
+scientific success at matched verification budget relative to fixed, random,
+and confidence-threshold policies, evaluated in a randomized online study
+with task-level blocking (H3). Second, process-supervised training on
+independently adjudicated recovery transitions improves unseen-fault
+recovery and selective risk at matched cost beyond recovery SFT and
+outcome-only optimization, without meaningful regression on clean tasks
+(H4). Both claims are evaluated under the frozen trace contract, fault
+model, and held-out splits of the companion benchmark paper~\citep{reliability_benchmark}, which
+supplies calibrated failure hazard and cause beliefs as fixed inputs.
+The benchmark contract is consumed without modification; R2 may add
+intervention fields through a new schema version but may not relabel
+R1's test outcomes.
+
+The paper structure follows the dependency. After positioning against
+related work (Section~\ref{sec:related_work}), we formalize the sequential
+decision problem over belief states, actions, costs, and postconditions
+(Section~\ref{sec:problem}). The controller and adjudication method is
+presented in Section~\ref{sec:method}. The verified-intervention dataset
+and randomized study design are specified in Section~\ref{sec:dataset}.
+The full experimental matrix—six controller arms, six post-training arms,
+matched budgets, and evaluation sets—is detailed in
+Section~\ref{sec:experiments}. Results appear in
+Section~\ref{sec:results} and are discussed in
+Section~\ref{sec:discussion}.

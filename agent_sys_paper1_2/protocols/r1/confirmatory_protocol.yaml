@@ -1,0 +1,156 @@
+# R1-C: Confirmatory failure-dynamics benchmark protocol
+# Version 1.0 · 2026-08-01
+# Frozen after pilot gates pass. Immutable after confirmatory collection begins.
+
+protocol_id: R1-C
+paper: R1
+version: "1.0"
+status: prospective
+frozen_date: null
+supersedes: null
+depends_on: [R1-P]
+
+purpose: >
+  Estimate failure hazard, propagation, warning, attribution, and recoverability
+  on frozen tasks and fault assignments. Test H1 and H2 with grouped uncertainty.
+
+experimental_design:
+  design_type: partially_crossed_blocked_D_optimal
+  blocking: [task_instance, model_configuration, workload_family, resource_tier]
+  block_randomization: seeded_schedule
+  randomization_seed: "R1-C-2026-08-01-seed-v1"
+  run_order: block_randomized_no_batch_confounding
+  estimability: main_effects_and_prespecified_two_factor_interactions
+  unsupported: high_order_interactions_not_claimed_estimable
+
+workload_families:
+  - id: L0_repository_repair
+    task_instances_starting: 12
+    expand_to: 20
+    expand_condition: pilot_icc_requires
+  - id: L1_ml_experiment
+    task_instances_starting: 12
+    expand_to: 20
+    expand_condition: pilot_icc_requires
+  - id: L2_signal_detection
+    task_instances_starting: 12
+    expand_to: 20
+    expand_condition: pilot_icc_requires
+  - id: L3_nonstationary_noise
+    task_instances_starting: 12
+    expand_to: 20
+    expand_condition: pilot_icc_requires
+
+model_configurations:
+  primary:
+    - id: model_family_A
+      type: open_local_or_api
+      frozen_scaffold: true
+    - id: model_family_B
+      type: materially_different_provider
+      frozen_scaffold: true
+  shadow_transfer:
+    - id: model_family_C
+      type: third_model_stratified_subset
+      coverage: 20_to_25_percent
+
+conditions:
+  no_fault_control: true
+  retained_fault_mechanisms: 6
+  total_conditions: 7
+
+replicate_seeds_per_cell: 2
+
+core_minimum_trajectories: 1344
+calculation: 48_tasks × 2_models × 7_conditions × 2_seeds
+
+external_validity_arm:
+  enabled: true
+  workload: L4_real_data
+  fault_labels: natural_not_causal
+  sizing: after_pilot
+
+severity_and_timing_assignment:
+  method: blocked_mixed_level_D_optimal
+  severity_levels: [low, high]
+  timing_bands: [early, middle, late]
+  medium_severity_cases: small_set_for_nonlinearity_detection
+  estimability_checks: frozen_with_manifest
+
+split_regimes:
+  - id: development
+    construction: pilot_only_task_templates_and_injectors
+    purpose: instrument_and_model_development
+  - id: unseen_task
+    construction: entire_task_templates_and_instances_withheld
+    purpose: test_warning_transfer_within_workload_family
+  - id: unseen_injector
+    construction: new_implementation_of_known_causal_mechanism
+    purpose: test_mechanism_detection_not_injector_artifacts
+  - id: unseen_fault_family
+    construction: one_mechanism_absent_from_model_training
+    purpose: test_unknown_failure_warning
+    attribution_rule: forced_unknown_not_known_class
+  - id: unseen_composition
+    construction: new_pair_or_sequence_of_familiar_faults
+    purpose: test_warning_and_multilabel_attribution_under_interaction
+  - id: external_L4
+    construction: naturally_occurring_real_data_failures
+    purpose: test_signal_survival_outside_controlled_injection
+
+leakage_controls:
+  task_template_grouping: before_splitting
+  near_duplicate_isolation: text_or_code_similarity_screen_with_manual_audit
+  repository_and_dataset_grouping: before_splitting
+
+primary_endpoints:
+  H1_warning:
+    endpoint_id: R1-E2-primary-warning-lead-time
+    formula: median_normalized_warning_lead_time_for_terminally_invalid_at_5pct_false_alert
+    calibration_split: dedicated_not_test
+    reaction_window: minimum_declared
+    operating_point_selection: calibration_split_only
+  H2_recoverability:
+    endpoint_id: R1-E4-primary-recoverability
+    formula: marginal_change_in_verified_recovery_probability_per_10pct_delay
+
+secondary_endpoints:
+  - id: time_dependent_auprc_auroc
+  - id: integrated_brier_score_log_loss
+  - id: calibration_intercept_slope_reliability_plots
+  - id: risk_coverage_abstention_utility
+  - id: lead_time_distribution_by_fault_workload
+  - id: alert_burden_per_successful_trajectory
+  - id: post_shift_performance
+
+sample_size_simulation:
+  method: hierarchical_bootstrap_from_pilot
+  target_power: 0.80
+  power_at: minimum_practical_effect
+  simulation_freeze: before_confirmatory_runs
+  assumption_replacement: pilot_estimates_replace_initial_assumptions
+  assumptions_labeled: true
+  assumptions_not_converted_to_evidence: true
+
+analysis_identifiers:
+  - id: R1-E1
+    name: failure_hazard_and_propagation
+    model: discrete_time_mixed_effects_hazard_cloglog_link
+    random_effects: [task_instance, task_template]
+    fixed_effects: [model, workload, fault, prespecified_interactions]
+    uncertainty: clustered_bootstrap_over_task_templates
+  - id: R1-E2
+    name: calibrated_preterminal_warning
+    baselines: [terminal_verifier, runtime_rules, agent_confidence, text_only_critic, typed_event_no_diff, typed_event_with_diff, oracle_upper_bound]
+    metrics: [lead_time, brier, log_loss, calibration, risk_coverage]
+  - id: R1-E3
+    name: root_cause_attribution
+    hierarchy: [known_single, known_composition, unknown, ambiguous, insufficient_evidence]
+    metrics: [macro_f1, top_k_recall, hierarchical_distance, multilabel_set_f1, unknown_detection, cause_calibration]
+  - id: R1-E4
+    name: recoverability_window
+    probe: standardized_family_appropriate_canonical_recovery
+    delays: [early, middle, late]
+    model: mixed_effects_logistic_or_survival
+    random_effects: [task, fault_episode]
+    fixed_effects: [normalized_delay, fault_family, severity, workload]

@@ -1,0 +1,24 @@
+\begin{abstract}
+\label{sec:abstract}
+
+Detecting that a scientific-agent trajectory is failing does not determine
+whether evidence is worth purchasing or which recovery action is safe. This
+paper introduces a cost-sensitive decision framework that, given calibrated
+failure and cause beliefs from a frozen measurement benchmark, selects
+verification and recovery actions under an explicit utility-and-cost budget.
+We formalize the sequential decision problem over a partially observed
+trajectory state, define an action space spanning verify, continue, recover
+(retry, repair, rollback, re-plan), escalate, abstain, and terminate, and
+specify action-specific costs and postcondition checks enforced by an
+independent adjudicator. A randomized, matched-budget online study compares
+six policies—never verify, always verify, fixed periodic, random, threshold,
+and adaptive—on the primary estimand of independently verified scientific
+success at matched cost. We then construct a verified-intervention dataset
+from independently adjudicated transitions and test whether
+process-supervised training on those transitions improves unseen-fault
+recovery and selective risk over recovery SFT and outcome-only
+post-training, under a clean-task non-inferiority gate. The controller, the
+intervention dataset, and the training evaluation are built on a frozen
+benchmark contract, and all reward, verifier, and evaluation channels are
+audited for independence.
+\end{abstract}

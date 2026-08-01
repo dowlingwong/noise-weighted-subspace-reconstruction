@@ -46,6 +46,10 @@ REQUIRED_FIELDS = {
         "protocol_id", "version", "action_space", "controller_policies",
         "R2_C1_randomized_study"
     ],
+    "r2/intervention_dataset_protocol.yaml": [
+        "protocol_id", "version", "per_transition_record", "dataset_gates",
+        "counterfactual_representation"
+    ],
     "r2/training_protocol.yaml": [
         "protocol_id", "version", "training_arms", "evaluation_sets",
         "primary_endpoints"
@@ -193,10 +197,14 @@ def validate_r2_protocols() -> tuple[bool, list[str]]:
     all_valid = True
 
     controller = load_yaml(PROTOCOLS_DIR / "r2" / "controller_protocol.yaml")
+    dataset = load_yaml(PROTOCOLS_DIR / "r2" / "intervention_dataset_protocol.yaml")
     training = load_yaml(PROTOCOLS_DIR / "r2" / "training_protocol.yaml")
 
     ctrl_errors = check_required_fields(
         controller, REQUIRED_FIELDS["r2/controller_protocol.yaml"], "R2 controller"
+    )
+    dataset_errors = check_required_fields(
+        dataset, REQUIRED_FIELDS["r2/intervention_dataset_protocol.yaml"], "R2-C2 dataset"
     )
     train_errors = check_required_fields(
         training, REQUIRED_FIELDS["r2/training_protocol.yaml"], "R2 training"
@@ -205,6 +213,9 @@ def validate_r2_protocols() -> tuple[bool, list[str]]:
     if ctrl_errors:
         messages.extend(ctrl_errors)
         all_valid = False
+    if dataset_errors:
+        messages.extend(dataset_errors)
+        all_valid = False
     if train_errors:
         messages.extend(train_errors)
         all_valid = False
@@ -212,6 +223,10 @@ def validate_r2_protocols() -> tuple[bool, list[str]]:
     if controller.get("depends_on"):
         messages.append(
             f"  DEPENDENCY R2-C: depends on {controller['depends_on']}"
+        )
+    if dataset.get("depends_on"):
+        messages.append(
+            f"  DEPENDENCY R2-C2: depends on {dataset['depends_on']}"
         )
 
     arms = training.get("training_arms", [])
@@ -226,8 +241,10 @@ def validate_r2_protocols() -> tuple[bool, list[str]]:
     messages.extend(check_leakage_controls(training, "R2-T"))
 
     ctrl_hash = compute_content_hash(controller)
+    dataset_hash = compute_content_hash(dataset)
     train_hash = compute_content_hash(training)
     messages.append(f"  HASH R2-C: {ctrl_hash}")
+    messages.append(f"  HASH R2-C2: {dataset_hash}")
     messages.append(f"  HASH R2-T: {train_hash}")
 
     return all_valid, messages

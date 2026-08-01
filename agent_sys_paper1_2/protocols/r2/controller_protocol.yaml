@@ -140,25 +140,8 @@ R2_C1_evidence_thresholds:
   workload_consistency: benefit_on_at_least_2_families_no_catastrophic_reversal
   frontier: non_dominated_region_not_single_hand_selected_point
 
-R2_C2_verified_intervention_dataset:
-  purpose: process_labels_surviving_outside_current_controller
-  per_transition_record:
-    - observable_history_and_calibrated_belief_before_action
-    - all_actions_available_under_policy_and_resource_constraints
-    - selected_action_and_selection_propensity
-    - action_cost_state_difference_immediate_postcondition
-    - final_scientific_outcome_under_independent_adjudicator
-    - replayed_counterfactual_outcomes_when_valid
-    - ambiguity_verifier_disagreement_missing_evidence
-    - source_split_deduplication_cluster_eligibility_for_training_view
-  oversampling: rare_fault_action_combinations_for_training
-  prevalence_weights: retained_for_population_evaluation
-  dataset_gates:
-    - adequate_independent_episode_coverage_per_action
-    - no_single_task_template_exceeds_predeclared_share_of_action_class
-    - at_least_two_adjudicator_implementations_or_human_audit_high_reward
-    - duplicate_near_duplicate_clusters_isolated_by_split
-    - ambiguous_and_failed_transitions_available_for_audit
+# R2-C2 (verified-intervention dataset) is specified separately in
+# intervention_dataset_protocol.yaml.
 
 counterfactual_representation:
   supported: actions_with_replay_validity_or_matched_episodes

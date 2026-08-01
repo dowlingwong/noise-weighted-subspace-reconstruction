@@ -1,54 +1,81 @@
 \section{Discussion and limitations}
 \label{sec:discussion}
 
-\textit{[This section will be written after confirmatory analysis is
-complete. The structure below maps to the surviving claim cards; it does
-not pre-commit to interpreting results that have not been observed.]}
+The benchmark and its measurement protocol are designed to make failure
+dynamics—onset, propagation, and the closing recovery window—empirically
+observable, and to test whether a calibrated early-warning baseline can
+transfer to held-out task, fault, and composition regimes. This section
+discusses the interpretational boundaries that apply regardless of the
+observed outcomes, and the specific comparisons the confirmatory analysis
+will address.
 
 \subsection{Interpretation of primary results}
 
-\textit{[Interpret H1 and H2 against their preregistered evidence
-thresholds. If the warning lead-time improvement and the recoverability
-decline both survive their sensitivity conditions, discuss the practical
-meaning of the observed effect sizes in terms of actionable steps and
-recovery opportunity. If only one passes, interpret the partial result
-without claiming the other. If neither passes, discuss the benchmark value
-independently of the predictive claims.]}
+The confirmatory analysis is structured around two preregistered claims.
+The first (H1) is that execution-grounded state-difference and evidence
+histories predict terminal scientific failure earlier and more reliably
+than terminal checks, self-confidence, or trace-only critics on held-out
+task and fault families. The second (H2) is that warning lead time and
+causal fault class jointly predict whether a trajectory remains
+recoverable after controlling for task difficulty, model, and fault
+severity. Both claims are evaluated against their preregistered evidence
+thresholds in Section~\ref{sec:results}. If the warning lead-time
+improvement and the recoverability decline both survive their sensitivity
+conditions, the effect sizes are interpreted in terms of actionable steps
+and recovery opportunity. If only one passes, the surviving claim is
+interpreted without implying the other. If neither passes, the benchmark's
+value as a reusable measurement artifact is discussed independently of the
+predictive claims, and the predeclared fallback to a benchmark-and-negative
+measurement paper is followed.
 
 \subsection{Causal versus predictive language}
 
 Results from controlled fault injection (randomized assignment with known
 causal parent) support causal interpretation under the standard assumptions
-of no unmeasured confounders within the randomized block. Results from
-naturally occurring L4 failures are reported with associational language
-only. Warning lead time is a predictive claim; the warning model observes
-correlates of failure, not necessarily causes.
+of no unmeasured confounders within the randomized block and no interference
+across trajectories. Results from naturally occurring L4 failures are
+reported with associational language only; their fault labels are
+adjudicated but are not causally known. Warning lead time is a predictive
+claim: the warning model observes correlates of failure, not necessarily
+causes. Any sentence in the manuscript that uses causal language for an
+injected fault and predictive language for a warning result preserves this
+distinction.
 
 \subsection{Coverage limits}
 
 All primary results are conditional on the sampled models, task families,
 fault mechanisms, and resource budgets. The benchmark tests two model
-configurations, four workload families, and six retained fault mechanisms
-after pilot filtering. Generalization to substantially different agent
-architectures, scientific domains, or fault types is not claimed without
-further evidence. The external-validity L4 arm is sized after the pilot and
-is explicitly a transfer test, not a population estimate.
+configurations in the primary study, four workload families, and six
+retained fault mechanisms after pilot filtering. Generalization to
+substantially different agent architectures, scientific domains, or fault
+types is not claimed without further evidence. The external-validity L4
+arm is sized after the pilot and is explicitly a transfer test, not a
+population estimate. Repeated trajectories within a task are clustered
+observations; they do not inflate the independent sample count, and all
+reported intervals respect task-template and task-instance nesting.
 
 \subsection{Falsification failures and negative findings}
 
-All predeclared sensitivity tests that fail are reported. This includes
-any failure law that does not replicate, any warning improvement that
-disappears under terminal-event removal, any attribution degradation on
-unseen families, and any recoverability result explained entirely by
-severity rather than delay. A negative finding on a preregistered test is
-retained in the artifact and discussed; it does not trigger post-hoc
-outcome substitution.
+All predeclared sensitivity tests that fail are reported. This includes any
+failure law that does not replicate across two workload families, any
+warning improvement that disappears under terminal-event removal, any
+attribution degradation on unseen families, and any recoverability result
+explained entirely by severity rather than delay. A negative finding on a
+preregistered test is retained in the artifact and discussed; it does not
+trigger post-hoc outcome substitution. The protocol deviations log records
+any pilot-to-confirmatory instrument change with its scientific rationale,
+and the confirmatory sample size is justified by the pilot-driven power
+simulation rather than by a post-hoc appeal to the observed effects.
 
 \subsection{Comparison with prior benchmarks}
 
-\textit{[Position the obtained failure-dynamics measurements against the
+The failure-dynamics measurements are positioned against the
 failure-taxonomy results in MAST-Data~\citep{mast2025}, the critical-step
 localization in AgentRx~\citep{agentrx2026}, and the intervention-oriented
-taxonomy in Aegis~\citep{aegis2025}. Discuss whether the temporal,
-execution-grounded approach reveals structure that static or post-hoc
-labeling does not.]}
+taxonomy in Aegis~\citep{aegis2025}. The comparison is made on the temporal
+and causal dimensions that those resources do not control: governed
+injection with known causal parents, structured state-difference
+observation, and frozen transfer splits. Whether the execution-grounded
+approach reveals structure that static or post-hoc labeling does not is an
+empirical question answered by the confirmatory analysis, not assumed by
+the framing.

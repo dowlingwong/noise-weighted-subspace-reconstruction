@@ -139,11 +139,14 @@ identifiers with documented retrieval instructions.
 \begin{figure}[t]
 \centering
 \fbox{\parbox{0.9\textwidth}{\centering
-\textbf{Architecture diagram:} Governed harness with evidence channels,
-causal fault intervention model, and split geometry.\\
-\textit{[Replace with accessible text-source diagram using Mermaid or TikZ; see source in figures/]}}}
-\caption{System architecture showing the governed runtime, causal fault injection,
-split isolation, and the relationship between evidence channels and
-adjudication.}
+\textbf{Governed trace architecture.} The governed runtime emits typed
+events---proposal, action, state snapshot/difference, evidence, belief,
+terminal outcome---into an append-only trace store. A sealed fault injector
+may perturb execution with hidden truth. An independent adjudicator that
+never reads the policy's hidden state produces the terminal scientific
+outcome. Text source: \texttt{figures/architecture.mmd}.}}
+\caption{System architecture showing the governed runtime, causal fault
+injection with concealed truth, split isolation, and the separation of
+evidence channels from adjudication.}
 \label{fig:benchmark_architecture}
 \end{figure}

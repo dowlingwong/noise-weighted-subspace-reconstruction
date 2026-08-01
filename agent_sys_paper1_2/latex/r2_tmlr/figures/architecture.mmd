@@ -1,0 +1,34 @@
+# R2 belief-verify-recover-adjudicate architecture (R2 Figure 1 source)
+# Mermaid source — accessible text-source diagram.
+# Render to the manuscript figure or embed as described in figures/README.md.
+
+```mermaid
+flowchart LR
+    accTitle: R2 belief-verify-recover-adjudicate loop
+    accDescr: Frozen R1 beliefs feed a budget-aware controller; its selected verification and recovery actions are independently adjudicated and feed immutable training views.
+
+    belief["R1 calibrated failure hazard + cause belief"] --> controller["Budget-aware controller"]
+    controller --> action["verify | continue | recover | escalate | abstain | terminate"]
+    action --> adjudication["Independent adjudication"]
+    adjudication --> transition["Verified intervention transition"]
+    transition --> training["Process-supervised training views"]
+    training --> gates["Unseen-fault recovery + clean-task regression gates"]
+    belief -. hidden fault truth never consumed .-> controller
+
+    style belief stroke:#0369a1,stroke-width:2px
+    style adjudication stroke:#b45309,stroke-width:2px
+    style gates stroke:#15803d,stroke-width:2px
+```
+
+## Non-Mermaid description (accessible alternative)
+
+The frozen R1 benchmark supplies a calibrated failure hazard and cause
+belief to a budget-aware controller. The controller selects among verify,
+continue, recover, escalate, abstain, and terminate, each with a declared
+cost and postconditions. Every selected action is followed by independent
+adjudication that checks execution fidelity, fault removal, downstream
+state consistency, scientific validity, and verifier independence. Accepted
+transitions become verified intervention records that build immutable
+process-supervised training views. The trained policies are evaluated on
+unseen-fault recovery and clean-task regression gates. Hidden fault truth is
+never consumed by the controller.

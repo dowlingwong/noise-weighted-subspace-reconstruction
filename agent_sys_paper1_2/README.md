@@ -17,10 +17,11 @@ learning.
 | [Implementation plan](IMPLEMENTATION_PLAN.md) | System architecture, interfaces, phases, ownership, test strategy, resources, risks, and exit criteria |
 | [Experiment plan](EXPERIMENT_PLAN.md) | Experimental units, designs, baselines, endpoints, analysis models, evidence matrix, and success thresholds |
 | [Writing and submission plan](WRITING_AND_SUBMISSION_PLAN.md) | Manuscript narratives, section contracts, figure/table plans, venue compliance, and submission checklists |
-| [Agent priority and readiness guide](AGENT_PRIORITY_AND_READINESS.md) | Dependency-aware work order, followability audit, missing artifacts, and definition of agent-ready |
-| [Implementation-agent prompt](AGENT_IMPLEMENTATION_PROMPT.md) | Copy-ready instructions for refining experiments and manuscripts and building both paper scaffolds |
 | [R1 DMLR LaTeX project](latex/r1_dmlr/README.md) | Journal-formatted manuscript scaffold for the benchmark and evaluation paper |
 | [R2 TMLR LaTeX project](latex/r2_tmlr/README.md) | Journal-formatted manuscript scaffold for the verified-recovery method paper |
+| [Protocols](protocols/) | Machine-readable R1/R2 protocols, terminology, endpoint registry, claim–artifact matrix |
+| [Scripts](scripts/) | Protocol validator, design generator, and project readiness command |
+| [Archive](archive/) | Superseded planning and prompt documents retained for provenance |
 | [Venue alternatives](../sources/research_r1_venue_alternatives_2026-08-01.md) | Dated official-source check for DMLR, TMLR, KDD, ICLR, and non-archival workshops |
 
 ## 🎯 Locked publication strategy
@@ -90,12 +91,12 @@ flowchart LR
 
 ## ✅ Immediate next actions
 
-- Complete Phase 0 in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md): repair the
-  harness baseline, add the trace schema, and freeze terminology.
-- Implement the R1-P pilot in [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) before
-  committing to the full trajectory budget.
-- Run each LaTeX project's `make setup-template` target to obtain the pinned
-  official journal style files, then `make pdf` to verify the manuscript shell.
+- Authorize the R1-P pilot budget and concrete task/model manifest, then run
+  the frozen pilot protocol under `protocols/r1/pilot_protocol.yaml`.
+- Validate the current implementation state with the readiness command:
+  `python3 scripts/readiness.py --json readiness_report.json`.
+- Build both manuscripts against their pinned official templates:
+  `make pdf` in `latex/r1_dmlr` and `latex/r2_tmlr`.
 - Draft Methods and artifact documentation first; do not write result claims or
   the abstract before confirmatory outputs exist.
 

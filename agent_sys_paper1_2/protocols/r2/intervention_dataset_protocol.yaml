@@ -1,0 +1,60 @@
+# R2-C2: Verified-intervention dataset construction protocol
+# Version 1.0 · 2026-08-01
+# Depends on frozen R1 contract and R2-C1 controller study.
+
+protocol_id: R2-C2
+paper: R2
+version: "1.0"
+status: prospective
+frozen_date: null
+depends_on:
+  - R1-C_frozen_trace_schema
+  - R2-C1_randomized_online_policy_study
+
+purpose: >
+  Construct a process-label dataset whose meaning survives outside the
+  current controller, enabling R2-T training-view construction and off-policy
+  evaluation.
+
+per_transition_record:
+  - observable_history_and_calibrated_belief_before_action
+  - all_actions_available_under_policy_and_resource_constraints
+  - selected_action_and_selection_propensity
+  - action_cost_state_difference_immediate_postcondition
+  - final_scientific_outcome_under_independent_adjudicator
+  - replayed_counterfactual_outcomes_when_valid
+  - ambiguity_verifier_disagreement_missing_evidence
+  - source_split_deduplication_cluster_eligibility_for_training_view
+
+sampling:
+  oversampling: rare_fault_action_combinations_for_training
+  prevalence_weights: retained_for_population_evaluation
+  balance_note: training_balance_never_mistaken_for_deployment_prevalence
+
+dataset_gates:
+  - adequate_independent_episode_coverage_per_action
+  - no_single_task_template_exceeds_predeclared_share_of_action_class
+  - at_least_two_adjudicator_implementations_or_human_audit_high_reward
+  - duplicate_near_duplicate_clusters_isolated_by_split
+  - ambiguous_and_failed_transitions_available_for_audit
+
+counterfactual_representation:
+  supported: actions_with_replay_validity_or_matched_episodes
+  unsupported: explicitly_unknown_not_imputed_as_truth
+  sensitivity_bound: conservative_unsupported_action_sensitivity
+
+selection_propensity_logging:
+  required: true
+  purpose: support_off_policy_evaluation
+  fields: [policy_id, action_probability, eligibility_mask, budget_state_at_decision]
+
+transition_final_status_vocabulary:
+  - accepted
+  - rejected
+  - ambiguous
+  - insufficient_evidence
+  - verifier_failure
+
+eligibility_for_training_view:
+  rule: adjudicated_transitions_on_development_splits_only
+  excludes: [sealed_test_outcome, unseen_composition_evaluation_set]

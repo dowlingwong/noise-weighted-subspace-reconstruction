@@ -1,0 +1,36 @@
+# Golden outputs for the R1 design-generation script.
+# Regenerate with:  python3 scripts/design_generate.py --synthetic
+# Verify with:      python3 scripts/design_generate.py --synthetic --check cdb232862ed796ce
+#
+# These hashes are the deterministic golden record for the synthetic design
+# generator. A change to the materialization logic requires a reviewed
+# migration that updates this file and its explanation.
+
+version: "1.0"
+frozen: 2026-08-01
+
+synthetic:
+  input_hash: "d480aa396355f779"
+  output_hash: "cdb232862ed796ce"
+  n_rows: 12
+  rank: 12
+  columns: 18
+  balance_by_block:
+    repo_repair: 6
+    ml_experiment: 6
+  resolution_iv_supported: false
+  notes: >
+    Mixed-level design (7-level condition, 3-level severity, 3-level band).
+    Not resolution-IV by formal alias analysis. Interactions partially estimable.
+
+R1-C_subset:
+  output_hash: "7992ed01759ddb94"
+  n_rows: 56
+  rank: 34
+  columns: 38
+  balance_by_block:
+    L0_repository_repair: 14
+    L1_ml_experiment: 14
+    L2_signal_detection: 14
+    L3_nonstationary_noise: 14
+  resolution_iv_supported: false

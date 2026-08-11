@@ -102,12 +102,16 @@ def read_channel_pair(path, contract, start: int, length: int) -> tuple[np.ndarr
     import h5py
 
     with h5py.File(path, "r") as f:
-        squid = np.asarray(f["timeseries"][contract.squid_dataset][start : start + length], dtype=np.float64)
-        ref = np.asarray(f["timeseries"][contract.reference_dataset][start : start + length], dtype=np.float64)
+        # Contract fields are full release paths, e.g.
+        # ``timeseries/channel0001/timeseries``; do not prepend a group.
+        squid = np.asarray(f[contract.squid_dataset][start : start + length], dtype=np.float64)
+        ref = np.asarray(f[contract.reference_dataset][start : start + length], dtype=np.float64)
     return squid + 128.0, ref + 128.0
 
 
-def build_window_stft(path, contract, start: int, cfg: TidmadSTFTConfig) -> tuple[np.ndarray, np.ndarray]:
+def build_window_stft(
+    path, contract, start: int, cfg: TidmadSTFTConfig, window_samples: int
+) -> tuple[np.ndarray, np.ndarray]:
     """``(input_spectrogram, target_spectrogram)`` for one window of a file."""
-    squid, ref = read_channel_pair(path, contract, start, cfg.window_samples)
+    squid, ref = read_channel_pair(path, contract, start, window_samples)
     return series_to_spectrogram(squid, cfg), series_to_spectrogram(ref, cfg)

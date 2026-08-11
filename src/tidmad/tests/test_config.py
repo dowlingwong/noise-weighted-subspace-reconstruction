@@ -15,16 +15,18 @@ def test_frozen_config_consistency():
     # Round-2 T2: the band embedding is dimensioned to C independently, so M no
     # longer has to satisfy M // patch_len >= C.
     assert stft.n_bands_stacked == 2 * stft.n_bands_used
-    # Band range must cover the highest characterised injection frequency (~760 kHz).
+    # Frozen paired-contrast band reaches the pre-P1 file-0015 endpoint. P1
+    # showed later files are out of band, so external baseline comparison is dropped.
     assert stft.band_centre_frequencies_hz[-1] > 760_000
     # Window is a scientific choice (~20 ms), not an artefact of the band count.
     assert stft.frames_for_window(FROZEN.data.window_samples) == 96
     assert FROZEN.data.window_samples < 1_000_000, "window must be ~20 ms, not inflated by C"
+    assert __import__("pathlib").Path(FROZEN.data.contract_path).is_file()
 
 
 def test_arm_configs_differ_only_in_loss():
-    left = load_run_config(__import__("pathlib").Path("tidmad/configs/t_mse.yaml"))
-    right = load_run_config(__import__("pathlib").Path("tidmad/configs/t_chi2.yaml"))
+    left = load_run_config(__import__("pathlib").Path("src/tidmad/configs/t_mse.yaml"))
+    right = load_run_config(__import__("pathlib").Path("src/tidmad/configs/t_chi2.yaml"))
     assert left.train.loss == "mse"
     assert right.train.loss == "chi2"
     # This is the gate: fails loudly if anything else drifted.
@@ -32,8 +34,8 @@ def test_arm_configs_differ_only_in_loss():
 
 
 def test_chi2_of_arm_shares_config():
-    of = load_run_config(__import__("pathlib").Path("tidmad/configs/t_chi2_of.yaml"))
-    chi2 = load_run_config(__import__("pathlib").Path("tidmad/configs/t_chi2.yaml"))
+    of = load_run_config(__import__("pathlib").Path("src/tidmad/configs/t_chi2_of.yaml"))
+    chi2 = load_run_config(__import__("pathlib").Path("src/tidmad/configs/t_chi2.yaml"))
     assert_configs_differ_only_in_loss(chi2, of)
     assert of.train.loss == "chi2_of"
 
@@ -72,10 +74,13 @@ def test_training_loop_smoke_two_steps():
         cosine_scheduler_with_linear_warmup(adamw, 0, run.train.num_steps),
         cosine_scheduler_with_linear_warmup(muon, 0, run.train.num_steps),
     ]
-    spec_in = torch.randn(1, run.stft.n_bands_stacked, run.frames_per_window)
+    # One streamed window is (2F, M); train_step adds the batch dimension.
+    # The real NumPy STFT path produces float64; train_step must cast it to the
+    # model's float32 dtype at the device boundary.
+    spec_in = torch.randn(run.stft.n_bands_stacked, run.frames_per_window, dtype=torch.float64)
     spec_tgt = torch.randn_like(spec_in)
     for _ in range(2):
-        metrics = train_step(model, [adamw, muon], scheds, (spec_in, spec_tgt), run, j_stack, "cpu")
+        metrics = train_step(model, [adamw, muon], scheds, [(spec_in, spec_tgt)], run, j_stack, "cpu")
         assert np.isfinite(metrics["mse"]) and np.isfinite(metrics["chi2"])
 
 

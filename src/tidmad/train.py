@@ -107,7 +107,7 @@ def build_model(run: TidmadRunConfig) -> TidmadTransformer:
         rope_base=cfg.rope_base,
         norm_eps=cfg.norm_eps,
     )
-    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_stacked)
+    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_used)
     model.init_weights()
     return model
 
@@ -132,8 +132,8 @@ def train_step(model, optimisers, schedulers, batch, run, j_stack, device):
 
     totals = {"mse": 0.0, "chi2": 0.0}
     for input_spec, target_spec in batch:
-        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device)
-        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device)
+        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device=device, dtype=torch.float32)
+        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device=device, dtype=torch.float32)
         out_std = model(input_spec)
         losses = reconstruction_losses(out_std, target_spec, input_spec, j_stack)
         (losses[key] / n).backward()
@@ -162,8 +162,8 @@ def evaluate(model, windows, run, j_stack, device, max_batches: int) -> dict:
     for input_spec, target_spec in windows:
         if seen >= max_batches:
             break
-        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device)
-        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device)
+        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device=device, dtype=torch.float32)
+        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device=device, dtype=torch.float32)
         losses = reconstruction_losses(model(input_spec), target_spec, input_spec, j_stack)
         for k, v in losses.items():
             totals[k] += float(v.item())
@@ -244,7 +244,7 @@ def _window_positions(data_dir: Path, run: TidmadRunConfig) -> list[tuple[Path, 
     files = [Path(f) for f in run.data.train_files] or sorted(data_dir.glob("abra_training_*.h5"))
     if not files:
         raise FileNotFoundError(f"no training files found under {data_dir}")
-    n = run.stft.window_samples
+    n = run.data.window_samples
     positions: list[tuple[Path, int]] = []
     for path in files:
         with TidmadFile(path, contract) as fh:
@@ -281,7 +281,7 @@ def _stream(positions, run: TidmadRunConfig, *, loop: bool):
     contract = _load(run.data.contract_path)
     while True:
         for path, pos in positions:
-            yield build_window_stft(path, contract, pos, run.stft)
+            yield build_window_stft(path, contract, pos, run.stft, run.data.window_samples)
         if not loop:
             return
 

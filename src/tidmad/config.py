@@ -16,11 +16,14 @@ window is ~20 ms (198 656 samples at 10 MHz), a length comparable to the
 upstream transformer's 20 000-sample windows but long enough for ``M = 96``
 frames at a 4096-sample/2048-hop spectrogram — Paper 1's 4096-sample analysis
 window scaled to a sensible frame count; and (c) the band range ``[0, 328)
-bins`` covers 0 to ~800 kHz, the maximum injection frequency characterized in
-the data contract (file 0015 sweeps to ~760 kHz). ``C`` is therefore
-``2 × 328 = 656`` bands (real and imaginary stacked), independent of the frame
-count (the band positional embedding is dimensioned to ``C``, decoupled from
-``max_seq_len // patch_len``).
+bins`` covers 0 to ~800 kHz. The P1 survey found injections above that edge in
+files 0016--0019; the representation is deliberately retained for the paired
+metric contrast and the published full-band baseline comparison is dropped.
+Real and imaginary components
+are paired as two features of each of the 328 physical frequency tokens, rather
+than treated as 656 unrelated bands. With ``patch_len = 4``, the temporal stage
+attends over 24 positions. The band positional embedding is dimensioned to the
+328 physical bands, independently of ``max_seq_len // patch_len``.
 """
 
 from __future__ import annotations
@@ -38,13 +41,13 @@ class TidmadSTFTConfig:
     win_length: int = 4096
     window: str = "hann"  # window function applied in the STFT
     center: bool = False  # frames extracted without padding; see frames_per_window
-    n_bands_used: int = 328  # bins 0..327 -> 0..~800 kHz (covers every characterised injection frequency)
+    n_bands_used: int = 328  # bins 0..327 -> 0..~800 kHz; paired contrast only after P1
     sample_shift: int = 128  # upstream convention: int8 + 128
     sampling_frequency_hz: float = 10_000_000.0
 
     @property
     def n_bands_stacked(self) -> int:
-        """Model band dimension: real + imaginary parts as separate bands."""
+        """External measurement representation: real then imaginary rows."""
         return 2 * self.n_bands_used
 
     def frames_for_window(self, window_samples: int) -> int:
@@ -73,7 +76,9 @@ class TidmadModelConfig:
     n_channel_layers: int = 1
     rope_base: float = 10000.0
     norm_eps: float = 1e-6
-    patch_len: int = 8  # frame patch size; stride == patch_len (non-overlapping)
+    # M=96 -> 24 temporal positions. Four frames keeps the temporal factor
+    # meaningful while retaining non-overlapping patches at modest cost (D2).
+    patch_len: int = 4
 
 
 @dataclass(frozen=True)
@@ -100,7 +105,7 @@ class TidmadTrainConfig:
 @dataclass(frozen=True)
 class TidmadDataConfig:
     data_root: str = ""  # directory holding abra_training_*.h5 / abra_validation_*.h5
-    contract_path: str = "tidmad_data_contract.json"
+    contract_path: str = "docs/tidmad_data_contract.json"
     train_files: tuple[str, ...] = ()
     window_samples: int = 198_656  # ~19.9 ms at 10 MHz; M = (L-n_fft)//hop+1 = 96 frames (scientific choice, T2)
     fit_fraction: float = 0.7

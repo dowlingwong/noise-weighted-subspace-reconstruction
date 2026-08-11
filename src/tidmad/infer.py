@@ -73,16 +73,20 @@ def infer(config: Path, checkpoint: Path, data_dir: Path, out_dir: Path, model_t
     out_dir.mkdir(parents=True, exist_ok=True)
     import h5py
 
-    for path in sorted(data_dir.glob("abra_validation_*.h5")):
+    # Select the 20 raw release files only. The legacy server root also contains
+    # pre-existing abra_validation_denoised_* products.
+    for path in sorted(data_dir.glob("abra_validation_00??.h5")):
         index = path.name.split("_")[-1].split(".")[0]
         with h5py.File(path, "r") as f:
             n_samples = int(f["timeseries"]["channel0001"]["timeseries"].shape[0])
-        n = run.stft.window_samples
+        n = run.data.window_samples
         denoised = np.empty(n_samples, dtype=np.float64)
         pos = 0
         with torch.no_grad():
             while pos + n <= n_samples:
-                spec_in, _ = build_window_stft(path, contract, pos, run.stft)
+                spec_in, _ = build_window_stft(
+                    path, contract, pos, run.stft, run.data.window_samples
+                )
                 z = torch.as_tensor(spec_in, dtype=torch.float32).unsqueeze(0).to(device)
                 out_std = model(z)
                 mean_in = torch.nanmean(torch.as_tensor(spec_in), dim=-1, keepdim=True)

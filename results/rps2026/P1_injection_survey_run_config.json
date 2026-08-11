@@ -1,0 +1,7 @@
+{
+  "command": "PYTHONPATH=src timeout 30m nice -n 10 .venv/bin/python -u -m tidmad.characterise_injections --data-dir /ceph/dwong/paper1_dataset/tidmad/raw --glob 'abra_validation_00??.h5' --out results/rps2026/P1_injection_survey.json",
+  "git_commit": "3461a4300ed1b54253d2fba781a675937b9fdc26",
+  "path_migration": "planned root /ceph/dwong/datasets/tidmad/raw is absent on deepthought as of 2026-08-11; actual read-only source remains /ceph/dwong/paper1_dataset/tidmad/raw",
+  "returncode": 2,
+  "selection_note": "The exact four-digit glob selects the 20 release validation inputs and excludes 20 pre-existing abra_validation_denoised_savgol_* products in the legacy root."
+}

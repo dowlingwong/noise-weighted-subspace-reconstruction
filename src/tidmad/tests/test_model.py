@@ -16,7 +16,7 @@ from tidmad.backbone.model import TransformerConfig
 
 
 def _small_cfg():
-    """Small run config: C = 8 bands (re/im of 4 bins), M = 32 frames."""
+    """Small run config: F=4 physical bands, 8 external rows, M=32."""
     stft = TidmadSTFTConfig(n_fft=64, hop_length=32, win_length=64, n_bands_used=4)
     patch_len = 4
     frames = 32  # multiple of patch_len; no longer tied to C (round-2 T2)
@@ -69,7 +69,7 @@ def test_reconstruction_head_output_shape_matches_input():
         d_ff=run.model.d_ff,
         n_head=run.model.n_head,
     )
-    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_stacked)
+    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_used)
     batch, bands = 2, run.stft.n_bands_stacked
     x = torch.randn(batch, bands, run.frames_per_window)
     out = model(x)
@@ -87,16 +87,29 @@ def test_band_embedding_dimensioned_to_bands():
         d_ff=run.model.d_ff,
         n_head=run.model.n_head,
     )
-    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_stacked)
-    assert model.band_pos_embd.pos_embed.shape[1] == run.stft.n_bands_stacked
-    assert model.n_bands == run.stft.n_bands_stacked
+    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_used)
+    assert model.band_pos_embd.pos_embed.shape[1] == run.stft.n_bands_used
+    assert model.n_bands == run.stft.n_bands_used
 
 
-def test_temporal_stage_parity_with_current_compact():
-    """Round-2 T2: temporal stage matches the backbone exactly; the band stage is
-    deliberately divergent (band embedding sized to C instead of max_patches)."""
-    from tidmad.backbone.model import Transformer as BaseTransformer
+def test_real_imaginary_are_patch_features_not_band_tokens():
+    run = _small_cfg()
+    torch_cfg = TransformerConfig(
+        max_seq_len=run.frames_per_window,
+        patch_len=run.model.patch_len,
+        patch_stride=run.model.patch_len,
+        d_model=run.model.d_model,
+        d_ff=run.model.d_ff,
+        n_head=run.model.n_head,
+    )
+    model = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_used)
+    assert model.patch_embedding.in_features == 2 * run.model.patch_len
+    assert model.reconstruction_head.out_features == 2 * run.model.patch_len
+    assert model.n_bands == run.stft.n_bands_used
 
+
+def test_temporal_stage_shape_with_complex_features():
+    """D1/D2: temporal attention has F streams and M/patch_len positions."""
     run = _small_cfg()
     torch_cfg = TransformerConfig(
         max_seq_len=run.frames_per_window,
@@ -108,25 +121,19 @@ def test_temporal_stage_parity_with_current_compact():
         n_time_layers=run.model.n_time_layers,
         n_channel_layers=run.model.n_channel_layers,
     )
-    base = BaseTransformer(torch_cfg)
-    tid = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_stacked)
-    # Share the backbone weights (temporal + spatial + norm) so the comparison is
-    # of the forward path, not of two differently-initialised models. strict=False
-    # ignores each model's private embedding/head keys.
-    tid.load_state_dict(base.state_dict(), strict=False)
-
-    captured: dict[str, torch.Tensor] = {}
-
-    # The temporal stage ends where the band embedding is applied: capture the
-    # embedding *input* on both models.
-    base.abs_pos_embd.register_forward_pre_hook(lambda _m, args: captured.__setitem__("base", args[0].detach().clone()))
-    tid.band_pos_embd.register_forward_pre_hook(lambda _m, args: captured.__setitem__("tid", args[0].detach().clone()))
-
+    tid = TidmadTransformer(torch_cfg, n_bands=run.stft.n_bands_used)
     x = torch.randn(2, run.stft.n_bands_stacked, run.frames_per_window)
-    _ = base(x)
-    _ = tid(x)
-    assert "base" in captured and "tid" in captured
-    assert torch.allclose(captured["base"], captured["tid"], atol=1e-6), (
-        "tidmad_stft and current_compact diverge before the band embedding; "
-        "the band-embedding swap changed the temporal stage"
+    temporal = tid._temporal_stage(x)
+    assert temporal.shape == (
+        2 * run.stft.n_bands_used,
+        run.frames_per_window // run.model.patch_len,
+        run.model.d_model,
     )
+
+
+def test_frozen_temporal_axis_has_24_positions():
+    from tidmad.config import FROZEN
+
+    assert FROZEN.frames_per_window == 96
+    assert FROZEN.model.patch_len == 4
+    assert FROZEN.frames_per_window // FROZEN.model.patch_len == 24

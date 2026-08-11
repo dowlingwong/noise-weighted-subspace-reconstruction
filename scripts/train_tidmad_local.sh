@@ -48,6 +48,11 @@ fi
 
 export CUDA_VISIBLE_DEVICES="$GPU_INDEX"
 export TORCHDYNAMO_DISABLE="${TORCHDYNAMO_DISABLE:-1}"
+# Muon's decorator is evaluated at import time and does not honor
+# TORCHDYNAMO_DISABLE on every PyTorch release. The RHEL 8 compiler on the
+# remote host cannot compile PyTorch 2.12's generated C++20 kernel, so use the
+# numerically identical eager Newton--Schulz path for both arms.
+export RECONSTRUCTION_DISABLE_TORCH_COMPILE="${RECONSTRUCTION_DISABLE_TORCH_COMPILE:-1}"
 export PYTHONUNBUFFERED=1          # so `screen -L` and `tee` see output live
 export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 

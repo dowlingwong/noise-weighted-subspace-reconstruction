@@ -14,8 +14,6 @@ absolute embeddings across bands.
 
 from __future__ import annotations
 
-import math
-
 import torch
 import torch.nn as nn
 
@@ -24,17 +22,17 @@ from .backbone.model import (
     Transformer,
     TransformerConfig,
     normalise_input_sequence,
-    patch_input_sequence,
 )
 
 
 class TidmadTransformer(Transformer):
     """``current_compact`` backbone with a reconstruction head.
 
-    Input: ``(B, C, M)`` real spectrogram with ``C`` bands (real and imaginary
-    parts stacked) and ``M`` frames. Output: ``(B, C, M)`` reconstruction in the
-    same (standardised) coordinates; the caller maps it back to measurement
-    coordinates before any loss (see :mod:`tidmad.loss`).
+    Input and output use the external ``(B, 2F, M)`` real-valued measurement
+    representation (all real rows followed by all imaginary rows). Internally,
+    real and imaginary values are paired as two features of each physical
+    frequency band, so cross-band attention has ``F`` tokens rather than
+    ``2F`` unrelated tokens.
     """
 
     def __init__(self, config: TransformerConfig, n_bands: int | None = None):
@@ -51,8 +49,10 @@ class TidmadTransformer(Transformer):
                 f"patch_len ({self.patch_len}); got {self.max_patches} patches"
             )
         self.n_bands = int(n_bands) if n_bands is not None else self.max_patches
+        del self.patch_embedding
+        self.patch_embedding = nn.Linear(2 * self.patch_len, config.d_model, bias=True)
         self.band_pos_embd = AbsolutePositionalEmbedding(self.n_bands, config.d_model)
-        self.reconstruction_head = nn.Linear(config.d_model, self.patch_len, bias=True)
+        self.reconstruction_head = nn.Linear(config.d_model, 2 * self.patch_len, bias=True)
 
     def init_weights(self):
         # Replicate the backbone init (muP spectral init + zeroed residual
@@ -105,11 +105,21 @@ class TidmadTransformer(Transformer):
         return [adamw, muon]
 
     def _temporal_stage(self, x: torch.Tensor) -> torch.Tensor:
-        """Input ``(B, C, M)`` -> temporal-stage activations ``(B*C, N, d)``."""
-        batch_size, channel_dim, seq_len = x.size()
-        x = x.reshape(batch_size * channel_dim, seq_len)
-        x = normalise_input_sequence(x)
-        x = patch_input_sequence(x, self.config.patch_len, self.config.patch_stride)
+        """Input ``(B, 2F, M)`` -> temporal activations ``(B*F, N, d)``."""
+        batch_size, stacked_dim, seq_len = x.size()
+        if stacked_dim != 2 * self.n_bands:
+            raise ValueError(
+                f"expected 2F={2 * self.n_bands} stacked real/imag rows, got {stacked_dim}"
+            )
+        # Match the original per-row standardisation, then pair real/imaginary
+        # components inside each non-overlapping temporal patch.
+        x = normalise_input_sequence(x.reshape(batch_size * stacked_dim, seq_len))
+        x = x.view(batch_size, 2, self.n_bands, seq_len).permute(0, 2, 3, 1)
+        x = x.unfold(2, self.patch_len, self.config.patch_stride)
+        # unfold: (B,F,N,2,P) -> (B*F,N,2P), one physical-frequency token.
+        x = x.permute(0, 1, 2, 4, 3).reshape(
+            batch_size * self.n_bands, self.max_patches, 2 * self.patch_len
+        )
         x = self.patch_embedding(x)
         for layer in self.temporal_layers:
             x = layer(x, self._rope_cache)
@@ -126,9 +136,12 @@ class TidmadTransformer(Transformer):
         return x.view(batch_size, -1, channel_dim, self.config.d_model)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        batch_size, channel_dim, _ = x.size()
+        batch_size, stacked_dim, _ = x.size()
+        if stacked_dim != 2 * self.n_bands:
+            raise ValueError(f"expected {2 * self.n_bands} input rows, got {stacked_dim}")
         x = self._temporal_stage(x)
-        x = self._band_stage(x, batch_size, channel_dim)
-        x = self.reconstruction_head(x)  # (B, N, C, patch_len)
-        x = x.transpose(1, 2)  # (B, C, N, patch_len)
-        return x.reshape(x.size(0), x.size(1), -1)  # (B, C, M)
+        x = self._band_stage(x, batch_size, self.n_bands)
+        x = self.reconstruction_head(x)  # (B,N,F,2*patch_len)
+        x = x.view(batch_size, self.max_patches, self.n_bands, 2, self.patch_len)
+        x = x.permute(0, 3, 2, 1, 4).reshape(batch_size, 2 * self.n_bands, -1)
+        return x  # (B,2F,M), real rows followed by imaginary rows

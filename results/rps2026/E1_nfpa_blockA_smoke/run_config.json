@@ -1,0 +1,9 @@
+{
+  "command": "OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 timeout 1h nice -n 10 taskset -c 0-3 /usr/bin/time -v .venv/bin/python -u -m experiments.synthetic.nfpa_confirmatory.run_blocks --smoke",
+  "config_hash": "98001a62855cb9a5",
+  "git_commit": "60f110ea928c42f5a4e69c286efba083b6bb11b4",
+  "returncode": 1,
+  "wall_time_seconds": 17.89,
+  "gate_failure": "monte_carlo_covariance_relative_error=0.0820 exceeded frozen tolerance 0.05 before any method fit",
+  "rows_written": 0
+}

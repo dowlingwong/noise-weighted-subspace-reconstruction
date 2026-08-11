@@ -194,3 +194,80 @@ inspected, two stale pre-amendment settings were found: Block A still encoded
 freeze commit: Block A reads `PRIMARY.n_seeds = 10`, and smoke/E1/E2 write only
 to their experiment IDs below `results/rps2026/`. No confirmatory or smoke
 result existed when this correction was made.
+
+Corrected frozen commit:
+`60f110ea928c42f5a4e69c286efba083b6bb11b4`, timestamp
+2026-08-11 17:54:56 CEST. This is the frozen basis for subsequent runs.
+
+## E1 — NFPA Block A
+
+Two-seed smoke command:
+
+```text
+OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 timeout 1h \
+  nice -n 10 taskset -c 0-3 /usr/bin/time -v \
+  .venv/bin/python -u \
+  -m experiments.synthetic.nfpa_confirmatory.run_blocks --smoke
+```
+
+GPU: none. Screen: none (CPU-bound harness, per checklist). Wall time: 17.89 s.
+Maximum RSS: 492,240 KiB. Config hash: `98001a62855cb9a5`. Return code 1.
+
+Gate: **FAIL before any method fit or result row**. The runner's deterministic
+covariance report returned raw-Frobenius Monte Carlo relative error 0.0820,
+above the frozen 0.05 tolerance. No raw CSV was written. The exact command and
+stderr are archived in `results/rps2026/E1_nfpa_blockA_smoke/run.log` and the
+metadata in the adjacent `run_config.json`.
+
+The failure also exposes an implementation mismatch: the audited correctness
+test deliberately checks Monte Carlo covariance agreement in whitened space,
+with a source comment that raw Frobenius error is dominated by the Brownian
+covariance's large low-frequency eigenvalues. The runner instead applies the
+0.05 threshold to raw covariance. This was not changed after observing the
+failure. The 10-seed Block A run was **not launched**.
+
+## E2 — NFPA Block B
+
+**Not launched.** It uses the same runner-level raw Monte Carlo covariance
+gate that stopped E1 before fitting. Changing the statistic or tolerance after
+the failed smoke would be a post-gate configuration change, which the checklist
+forbids. E2 remains pending a new author-approved predeclaration/freeze.
+
+## E3/E4 — rung-4 GPU arms
+
+**Not launched.** P4's GPU gate is blocked by the CUDA 13/driver mismatch and,
+independently, by the GTX TITAN X compute capability 5.2 being below the
+launcher's required 7.0. With no measured GPU steps/s, no defensible full-arm
+timeout exists. The supplied W&B credential was therefore not used and no W&B
+run was created.
+
+## Final machine and archival state
+
+Checked 2026-08-11 17:57 CEST:
+
+- `nvidia-smi`: all four GPUs at 0 MiB with no running compute processes;
+- `screen -ls`: no sessions;
+- no `run.pid` below `artifacts/` and no experiment/test/training process owned
+  by `dwong`; only the pre-existing VS Code/Codex session and interactive-shell
+  sleep remained;
+- load averages 0.27, 0.95, 5.22; 461 GiB RAM available;
+- `results/rps2026` is 49 KiB, containing only small tracked JSON, raw stdout,
+  and logs;
+- CPU smoke checkpoints/logs remain under
+  `artifacts/tidmad/smoke_cpu_p4/` and are intentionally outside the tracked
+  results tree;
+- nothing under `/ceph/dwong/paper1_dataset/tidmad/raw` or the absent
+  `/ceph/dwong/datasets` path was modified.
+
+## What these runs do and do not support
+
+The prerequisites support the TIDMAD channel contract on this server, reproduce
+the unmodified `none` anchor, show that four validation files lie above the
+frozen 800.8 kHz band, and mechanically validate the revised D1/D2 architecture
+and exact checkpoint resume on real data using CPU. They therefore support only
+the decision to retain a band-limited paired metric contrast and drop the
+published full-band baseline comparison. They do **not** provide an NFPA Block
+A/B result or a rung-4 T-mse/T-chi2 result: NFPA stopped at a pre-fit covariance
+gate, and the GPU arms stopped at incompatible hardware/runtime preflight. No
+claim about metric reversal, nonlinear performance, leaderboard position, or
+training-seed variability can be made from this execution.

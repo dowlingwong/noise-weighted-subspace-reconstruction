@@ -24,7 +24,8 @@ class PrimaryConfig:
     N_validation: int = 400
     N_test: int = 2000
     N_calibration: int = 2048
-    n_seeds: int = 30
+    # 2026-08-08 scope amendment: Block A is 10 seeds, not the superseded 30.
+    n_seeds: int = 10
     n_restarts: int = 10
     n_als_iter: int = 150
     target_snr: float = 10.0
@@ -47,11 +48,11 @@ def seed_list(n: int) -> list[int]:
 
 @dataclass(frozen=True)
 class RunPaths:
-    root: str = "results/synthetic/nfpa_confirmatory"
-    raw: str = "results/synthetic/nfpa_confirmatory/raw"
-    aggregates: str = "results/synthetic/nfpa_confirmatory/aggregates"
-    figures: str = "results/synthetic/nfpa_confirmatory/figures"
-    logs: str = "results/synthetic/nfpa_confirmatory/logs"
+    root: str = "results/rps2026"
+    raw: str = "results/rps2026"
+    aggregates: str = "results/rps2026"
+    figures: str = "results/rps2026"
+    logs: str = "results/rps2026"
 
 
 def config_hash(cfg: PrimaryConfig) -> str:

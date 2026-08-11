@@ -69,9 +69,19 @@ def main() -> None:
     parser.add_argument("--smoke", action="store_true", help="2-seed smoke run")
     args = parser.parse_args()
 
-    paths = RunPaths()
     regime = args.regime or ("colored" if args.block == "A" else "white")
-    seeds = args.seeds or ([0, 1] if args.smoke else seed_list(30 if args.block == "A" else 20))
+    experiment_id = (
+        "E1_nfpa_blockA_smoke" if args.smoke else
+        ("E1_nfpa_blockA" if args.block == "A" else "E2_nfpa_blockB")
+    )
+    root = Path("results/rps2026") / experiment_id
+    paths = RunPaths(
+        root=str(root), raw=str(root), aggregates=str(root / "aggregates"),
+        figures=str(root / "figures"), logs=str(root / "logs")
+    )
+    seeds = args.seeds or (
+        [0, 1] if args.smoke else seed_list(PRIMARY.n_seeds if args.block == "A" else 20)
+    )
     if args.smoke:
         seeds = [0, 1]
     print(f"config_hash={PRIMARY_HASH}")

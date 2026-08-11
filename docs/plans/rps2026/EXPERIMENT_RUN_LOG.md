@@ -182,3 +182,15 @@ Successful CPU smoke output:
 Mechanical checkpoint/resume gate: **PASS on CPU**. GPU throughput and the
 full-run wall-clock arithmetic remain **BLOCKED**, so the CPU rate is not used
 to choose an E3/E4 timeout.
+
+## Freeze record
+
+The first freeze candidate was committed as
+`023e18031e0aca32e80c3050c3315a60a0b1e58c` at 2026-08-11 17:53:03 CEST.
+During the mandatory pre-smoke command review, before any NFPA aggregate was
+inspected, two stale pre-amendment settings were found: Block A still encoded
+30 seeds rather than 10, and the harness defaulted to the gitignored
+`results/synthetic/nfpa_confirmatory` tree. Both are corrected in the follow-up
+freeze commit: Block A reads `PRIMARY.n_seeds = 10`, and smoke/E1/E2 write only
+to their experiment IDs below `results/rps2026/`. No confirmatory or smoke
+result existed when this correction was made.

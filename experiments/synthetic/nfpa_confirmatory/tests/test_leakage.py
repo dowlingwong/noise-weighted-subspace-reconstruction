@@ -37,6 +37,13 @@ def test_generator_rejects_degenerate_configuration():
         make_dataset(0, "colored", bad_t)
 
 
+def test_scope_amendment_and_tracked_result_root_are_frozen():
+    from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, RunPaths
+
+    assert PRIMARY.n_seeds == 10
+    assert RunPaths().root == "results/rps2026"
+
+
 def test_train_mean_uses_training_split_only():
     ds = make_dataset(0, "colored")
     assert np.allclose(ds.train_mean, ds.X_train.mean(axis=0))

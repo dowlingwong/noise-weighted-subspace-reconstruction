@@ -1,33 +1,57 @@
-# Dependencies of `tidmad/` (round-2 correction T6)
+# Dependencies of `src/tidmad`
 
-`tidmad/` is not self-contained by design: it reuses Paper 1's noise/PSD/h5
-machinery by import so the `J(f)` used here is the same object the paper cites
-(PLAN_04 §3.2, §3.5). For the working setup this is fine — the parent repo's
-`src/` is placed on `sys.path` by `tidmad/__init__.py`. For the **D5 anonymized
-artifact** it must be declared or vendored.
+*Updated 2026-08-08 after the migration into this repository. The earlier version
+of this note described a cross-repository arrangement that no longer exists.*
 
-## Import surface (the full set)
+## What changed
+
+`tidmad` previously lived in a separate `transformer` repository and reached
+outward for two things: the backbone (`reconstruction_model.*`, a sibling
+package) and Paper 1's noise machinery (`noise_geometry`, reached by a
+`sys.path` insertion that walked up two directories). Both couplings are gone.
+
+- **The backbone is vendored** at `src/tidmad/backbone/` — `model.py`, `muon.py`,
+  `schedulers.py`, `checkpoints.py`, `registry.py`. No import of
+  `reconstruction_model` remains anywhere in the package.
+- **`noise_geometry` is now a same-repository import**, resolved normally via
+  `src/` on the path. No `sys.path` manipulation.
+
+## Internal dependency: `noise_geometry`
+
+`tidmad` reuses Paper 1's TIDMAD machinery by import, deliberately, so that the
+`J(f)` used at rung 4 is the same object the paper cites (PLAN_04 §3.2, §3.5). A
+reimplementation that disagreed by a normalisation factor would silently break
+comparability with the archived Phase-4 result.
 
 | `tidmad` module | Imports from `noise_geometry` |
 |---|---|
-| `psd.py` | `noise_geometry.tidmad.psd.welch_psd_from_windows` |
-| `data.py` | (none — self-contained STFT) |
-| `train.py` | `noise_geometry.tidmad.loader` (`TidmadFile`, `load_contract`) |
-| `infer.py` | `noise_geometry.tidmad.loader`, `noise_geometry.tidmad.score` (`DenoisedFileSpec`, `write_denoised_file`) |
-| `score.py` | `noise_geometry.tidmad.score` (`run_upstream_benchmark`) |
-| tests | `noise_geometry.tidmad.splits` (chronological split, leakage audit) |
+| `train.py` | `noise_geometry.tidmad.loader` — `TidmadFile`, `load_contract` |
+| `psd.py` | Paper 1 Phase-4 median-periodogram estimator |
+| `score.py` | `noise_geometry.tidmad.score.run_upstream_benchmark` |
+| `infer.py` | Paper 1's denoised-h5 writer |
 
-## Decision (recorded 2026-08-08)
+`characterise_injections.py` deliberately depends on **nothing** beyond `numpy`
+and `h5py`: it must be runnable before any of the above is trusted, since it
+decides whether the modelled band is valid at all.
 
-**Vendor** the four `noise_geometry.tidmad` modules (`psd.py`, `loader.py`,
-`score.py`, `splits.py`) into the D5 artifact's subtree. They are small (~700
-lines total), have no detector coupling, and are the same estimator the paper
-cites; vendoring keeps the published subtree self-contained and the J(f) object
-identical. Do not vendor the whole `noise_geometry` package — only the four
-modules and their direct imports (`noise_geometry.noise.psd`,
-`noise_geometry.noise` for `inverse_psd_weights`).
+## External
 
-If vendoring is rejected, the alternative is to declare `noise_geometry` as a
-dependency in the artifact's `pyproject.toml` and document the pinned commit —
-but that couples the public artifact to a non-public repo, so vendoring is
-preferred.
+`numpy`, `scipy`, `h5py`, `PyYAML` from the base install; `torch` from the
+`tidmad` extra; `wandb` (optional, only with `--wandb`) from the `paper2` extra.
+
+## Running
+
+`python -m tidmad.*` needs `src/` on the path:
+
+```bash
+PYTHONPATH=src python -m tidmad.train ...
+```
+
+`scripts/train_tidmad_local.sh` sets this itself.
+
+## For the D5 anonymized artifact
+
+The published subtree must carry `src/tidmad/` **and** the `noise_geometry`
+modules listed above, or vendor them. The backbone no longer needs declaring —
+it is inside the package. Nothing in this package imports detector-derived code:
+`src/transformer/` was removed and `src/tidmad` never depended on it.

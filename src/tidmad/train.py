@@ -4,9 +4,10 @@ Only the residual metric in the objective differs between arms (``train.loss``
 in the run config). Everything else — architecture, data, budget, seeds — is
 identical and asserted by :func:`assert_configs_differ_only_in_loss`.
 
-Reuses the backbone optimisers (Muon + AdamW), the cosine-with-warmup
-schedulers, the checkpoint helpers, and ``set_seed`` from the DELight
-vendored backbone in ``tidmad.backbone``.
+Reuses the backbone optimisers (Muon + AdamW) and the cosine-with-warmup
+schedulers from the vendored backbone in ``tidmad.backbone``. Checkpointing is
+local to this module because it must round-trip both optimisers, both
+schedulers and the step counter for ``--resume`` to be exact.
 """
 
 from __future__ import annotations
@@ -14,13 +15,14 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import signal
+import time
 import sys
 from pathlib import Path
 
 import numpy as np
 import torch
 
-from .backbone.checkpoints import save_checkpoint
 from .backbone.schedulers import cosine_scheduler_with_linear_warmup
 from .seeding import set_seed
 from .backbone.model import TransformerConfig
@@ -110,21 +112,107 @@ def build_model(run: TidmadRunConfig) -> TidmadTransformer:
     return model
 
 
+def objective_key(run: TidmadRunConfig) -> str:
+    """Which loss the arm optimises. ``chi2_of`` trains on the chi2 objective."""
+    return "chi2" if run.train.loss == "chi2_of" else run.train.loss
+
+
 def train_step(model, optimisers, schedulers, batch, run, j_stack, device):
-    input_spec, target_spec = batch  # both (B, C, M) measurement-coordinate
-    input_spec = input_spec.to(device)
-    target_spec = target_spec.to(device)
-    out_std = model(input_spec)
-    losses = reconstruction_losses(out_std, target_spec, input_spec, j_stack)
-    objective = losses[run.train.loss if run.train.loss != "chi2_of" else "chi2"]
+    """One optimiser step over ``device_batch_size`` windows.
+
+    ``batch`` is a list of ``(input_spec, target_spec)`` pairs, each a
+    measurement-coordinate ``(C, M)`` spectrogram. Gradients are accumulated
+    across the list so the effective batch matches the frozen config; before
+    round 2 this consumed a single window and ``device_batch_size`` was ignored.
+    """
+    key = objective_key(run)
+    n = max(len(batch), 1)
     for opt in optimisers:
         opt.zero_grad()
-    objective.backward()
+
+    totals = {"mse": 0.0, "chi2": 0.0}
+    for input_spec, target_spec in batch:
+        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device)
+        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device)
+        out_std = model(input_spec)
+        losses = reconstruction_losses(out_std, target_spec, input_spec, j_stack)
+        (losses[key] / n).backward()
+        for k, v in losses.items():
+            totals[k] += float(v.item()) / n
+
+    if run.train.grad_clip:
+        torch.nn.utils.clip_grad_norm_(model.parameters(), run.train.grad_clip)
     for opt in optimisers:
         opt.step()
     for sched in schedulers:
         sched.step()
-    return {k: float(v.item()) for k, v in losses.items()}
+    return totals
+
+
+@torch.no_grad()
+def evaluate(model, windows, run, j_stack, device, max_batches: int) -> dict:
+    """Held-out evaluation on the chronological validation split.
+
+    Reports *both* metrics for both arms, always: the paired contrast is
+    between objectives, so each arm must be scored under both.
+    """
+    model.eval()
+    totals = {"mse": 0.0, "chi2": 0.0}
+    seen = 0
+    for input_spec, target_spec in windows:
+        if seen >= max_batches:
+            break
+        input_spec = torch.as_tensor(input_spec).unsqueeze(0).to(device)
+        target_spec = torch.as_tensor(target_spec).unsqueeze(0).to(device)
+        losses = reconstruction_losses(model(input_spec), target_spec, input_spec, j_stack)
+        for k, v in losses.items():
+            totals[k] += float(v.item())
+        seen += 1
+    model.train()
+    if seen == 0:
+        return {"val_mse": float("nan"), "val_chi2": float("nan"), "val_windows": 0}
+    return {
+        "val_mse": totals["mse"] / seen,
+        "val_chi2": totals["chi2"] / seen,
+        "val_windows": seen,
+    }
+
+
+def _checkpoint(out: Path, model, adamw, muon, schedulers, step: int, run: TidmadRunConfig) -> Path:
+    """Write a resumable checkpoint. Returns the path written."""
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / f"checkpoint_{step:08d}.pt"
+    torch.save(
+        {
+            "step": step,
+            "model": model.state_dict(),
+            "adamw": adamw.state_dict(),
+            "muon": muon.state_dict(),
+            "adamw_scheduler": schedulers[0].state_dict(),
+            "muon_scheduler": schedulers[1].state_dict(),
+            "run_config": run.as_dict(),
+            "loss": run.train.loss,
+        },
+        path,
+    )
+    latest = out / "latest.pt"
+    if latest.exists() or latest.is_symlink():
+        latest.unlink()
+    torch.save(torch.load(path, map_location="cpu", weights_only=False), latest)
+    return path
+
+
+def _restore(resume: Path, model, adamw, muon, schedulers, device) -> int:
+    """Restore model, both optimisers, both schedulers and the step counter."""
+    state = torch.load(resume, map_location=device, weights_only=False)
+    model.load_state_dict(state["model"])
+    adamw.load_state_dict(state["adamw"])
+    muon.load_state_dict(state["muon"])
+    schedulers[0].load_state_dict(state["adamw_scheduler"])
+    schedulers[1].load_state_dict(state["muon_scheduler"])
+    step = int(state["step"])
+    print(f"[tidmad.train] resumed from {resume} at step {step}")
+    return step
 
 
 def _noise_only_windows(data_dir: Path, run: TidmadRunConfig):
@@ -147,26 +235,67 @@ def _noise_only_windows(data_dir: Path, run: TidmadRunConfig):
                     return
 
 
-def _train_windows(data_dir: Path, run: TidmadRunConfig):
-    """Yield ``(input_spec, target_spec)`` measurement-coordinate spectrograms."""
+def _window_positions(data_dir: Path, run: TidmadRunConfig) -> list[tuple[Path, int]]:
+    """All ``(file, sample_offset)`` window starts, in chronological order."""
     from noise_geometry.tidmad.loader import TidmadFile, load_contract
-
-    from .data import build_window_stft
 
     contract = load_contract(run.data.contract_path)
     contract.require_verified()
     files = [Path(f) for f in run.data.train_files] or sorted(data_dir.glob("abra_training_*.h5"))
     if not files:
         raise FileNotFoundError(f"no training files found under {data_dir}")
+    n = run.stft.window_samples
+    positions: list[tuple[Path, int]] = []
     for path in files:
         with TidmadFile(path, contract) as fh:
-            n = run.stft.window_samples
             pos = 0
-            while True:
-                if pos + n > fh.n_samples:
-                    break
-                yield build_window_stft(path, contract, pos, run.stft)
+            while pos + n <= fh.n_samples:
+                positions.append((path, pos))
                 pos += n
+    return positions
+
+
+def chronological_split(
+    positions: list[tuple[Path, int]], run: TidmadRunConfig
+) -> tuple[list[tuple[Path, int]], list[tuple[Path, int]]]:
+    """Split chronologically with a guard gap, mirroring Paper 1's TIDMAD protocol.
+
+    The gap between fit and evaluation is dropped entirely so no evaluation
+    window shares samples with a training window.
+    """
+    n_fit = int(len(positions) * run.data.fit_fraction)
+    guard = run.data.guard_windows
+    fit = positions[:n_fit]
+    val = positions[n_fit + guard :]
+    return fit, val
+
+
+def _stream(positions, run: TidmadRunConfig, *, loop: bool):
+    """Yield ``(input_spec, target_spec)`` for the given window positions."""
+    from noise_geometry.tidmad.loader import TidmadFile, load_contract  # noqa: F401
+
+    from .data import build_window_stft
+
+    from noise_geometry.tidmad.loader import load_contract as _load
+
+    contract = _load(run.data.contract_path)
+    while True:
+        for path, pos in positions:
+            yield build_window_stft(path, contract, pos, run.stft)
+        if not loop:
+            return
+
+
+def _batches(stream, size: int):
+    """Group a window stream into lists of ``size``."""
+    batch = []
+    for item in stream:
+        batch.append(item)
+        if len(batch) == size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
 
 
 def main() -> None:
@@ -176,6 +305,14 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--steps", type=int, default=None)
+    parser.add_argument(
+        "--resume",
+        type=Path,
+        default=None,
+        help="checkpoint to resume from; 'auto' picks <out>/latest.pt if present",
+    )
+    parser.add_argument("--wandb", action="store_true", help="log to Weights & Biases")
+    parser.add_argument("--wandb-project", default="rps-tidmad-rung4")
     args = parser.parse_args()
 
     run = load_run_config(args.config)
@@ -213,23 +350,119 @@ def main() -> None:
         cosine_scheduler_with_linear_warmup(muon, run.train.warmup_steps, run.train.num_steps),
     ]
 
-    write_run_config(run, args.out, sum(p.numel() for p in model.parameters()))
-    print(f"[tidmad.train] arm loss={run.train.loss} model_params={sum(p.numel() for p in model.parameters())}")
+    n_params = sum(p.numel() for p in model.parameters())
+    write_run_config(run, args.out, n_params)
+    print(f"[tidmad.train] arm loss={run.train.loss} model_params={n_params}")
 
-    for step, (spec_in, spec_tgt) in enumerate(_train_windows(args.data_dir, run)):
-        if step >= run.train.num_steps:
+    j_stack = j_stack.to(device)
+
+    # ---- resume -----------------------------------------------------------
+    start_step = 0
+    resume = args.resume
+    if resume is not None and str(resume) == "auto":
+        candidate = args.out / "latest.pt"
+        resume = candidate if candidate.exists() else None
+    if resume is not None:
+        start_step = _restore(resume, model, adamw, muon, schedulers, device)
+
+    # ---- data splits ------------------------------------------------------
+    positions = _window_positions(args.data_dir, run)
+    fit_positions, val_positions = chronological_split(positions, run)
+    print(
+        f"[tidmad.train] windows: {len(positions)} total, "
+        f"{len(fit_positions)} fit, {len(val_positions)} held out "
+        f"(guard {run.data.guard_windows})"
+    )
+    if not fit_positions:
+        raise RuntimeError("no training windows after the chronological split")
+
+    # ---- clean stop on SIGTERM / SIGINT ------------------------------------
+    # `timeout` sends SIGTERM. Without this a capped run dies with no
+    # checkpoint and the whole segment is lost.
+    stop = {"requested": False}
+
+    def _request_stop(signum, _frame):
+        stop["requested"] = True
+        print(f"\n[tidmad.train] signal {signum} received; checkpointing then exiting.", flush=True)
+
+    signal.signal(signal.SIGTERM, _request_stop)
+    signal.signal(signal.SIGINT, _request_stop)
+
+    # ---- optional experiment tracking -------------------------------------
+    wb = None
+    if args.wandb:
+        try:
+            import wandb as wb  # type: ignore
+
+            wb.init(
+                project=args.wandb_project,
+                name=f"{run.train.loss}_{args.out.name}",
+                config=run.as_dict(),
+                resume="allow",
+            )
+        except ImportError:
+            print("[tidmad.train] wandb requested but not installed; continuing without it")
+            wb = None
+
+    # ---- training ---------------------------------------------------------
+    stream = _stream(fit_positions, run, loop=True)
+    started = time.time()
+    last_report = started
+    step = start_step
+    final_path = None
+
+    for batch in _batches(stream, run.train.device_batch_size):
+        if step >= run.train.num_steps or stop["requested"]:
             break
-        metrics = train_step(
-            model,
-            [adamw, muon],
-            schedulers,
-            (torch.as_tensor(spec_in), torch.as_tensor(spec_tgt)),
-            run,
-            j_stack,
-            device,
-        )
+        metrics = train_step(model, [adamw, muon], schedulers, batch, run, j_stack, device)
+        step += 1
+
         if step % run.train.eval_period == 0:
-            print(f"step {step}: {metrics}")
+            now = time.time()
+            steps_per_s = run.train.eval_period / max(now - last_report, 1e-9)
+            last_report = now
+            val = evaluate(
+                model,
+                _stream(val_positions, run, loop=False),
+                run,
+                j_stack,
+                device,
+                max_batches=run.train.eval_num_windows,
+            )
+            elapsed = now - started
+            remaining = (run.train.num_steps - step) / max(steps_per_s, 1e-9)
+            record = {
+                "step": step,
+                "train_mse": metrics["mse"],
+                "train_chi2": metrics["chi2"],
+                **val,
+                "steps_per_s": steps_per_s,
+                "elapsed_s": elapsed,
+                "eta_s": remaining,
+            }
+            print(
+                f"step {step:>8}  train_mse={metrics['mse']:.6g} train_chi2={metrics['chi2']:.6g}  "
+                f"val_mse={val['val_mse']:.6g} val_chi2={val['val_chi2']:.6g}  "
+                f"{steps_per_s:.2f} steps/s  eta {remaining/3600:.2f} h",
+                flush=True,
+            )
+            if wb is not None:
+                wb.log(record, step=step)
+
+        if step % run.train.checkpoint_period == 0:
+            final_path = _checkpoint(args.out, model, adamw, muon, schedulers, step, run)
+
+    final_path = _checkpoint(args.out, model, adamw, muon, schedulers, step, run)
+    total = time.time() - started
+    print(
+        f"[tidmad.train] stopped at step {step}/{run.train.num_steps} "
+        f"after {total/3600:.2f} h ({(step - start_step)/max(total, 1e-9):.2f} steps/s). "
+        f"Final checkpoint: {final_path}"
+    )
+    if stop["requested"]:
+        print("[tidmad.train] stop was requested; resume with --resume auto")
+    if wb is not None:
+        wb.finish()
 
 
 if __name__ == "__main__":

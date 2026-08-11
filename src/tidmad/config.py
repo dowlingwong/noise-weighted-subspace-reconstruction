@@ -90,6 +90,8 @@ class TidmadTrainConfig:
     muon_ns_steps: int = 5
     warmup_steps: int = 1000
     eval_period: int = 500
+    eval_num_windows: int = 32   # held-out windows scored at each eval
+    grad_clip: float = 1.0       # 0 disables clipping
     checkpoint_period: int = 2500
     seed: int = 20260808
     loss: str = "mse"  # "mse" | "chi2" | "chi2_of"  -- THE ONLY field that differs between arms

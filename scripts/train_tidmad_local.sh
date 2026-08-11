@@ -25,6 +25,8 @@
 #   TIDMAD_DATA_ROOT            default /ceph/dwong/datasets/tidmad/raw
 #   TIDMAD_STEPS                override num_steps (smoke defaults to 20)
 #   TIDMAD_TIMEOUT              wall-clock cap, e.g. 6h (default: none for smoke/check)
+#   TIDMAD_RESUME=auto          resume from <out_dir>/latest.pt (or give a path)
+#   TIDMAD_WANDB=1              log to Weights & Biases
 #   EXPECT_GPU_NAME             substring the GPU name must contain (optional)
 #
 set -euo pipefail
@@ -157,6 +159,17 @@ fi
 # ------------------------------------------------------------------- run set-up
 mkdir -p "$OUT_DIR"
 
+RESUME_ARG=()
+if [ "${TIDMAD_RESUME:-}" = "auto" ] || [ -n "${TIDMAD_RESUME:-}" ]; then
+    RESUME_ARG=(--resume "${TIDMAD_RESUME}")
+    echo "Resume: ${TIDMAD_RESUME}"
+fi
+
+WANDB_ARG=()
+if [ "${TIDMAD_WANDB:-0}" = "1" ]; then
+    WANDB_ARG=(--wandb)
+fi
+
 STEPS_ARG=()
 if [ "$PROFILE" = "smoke" ]; then
     STEPS_ARG=(--steps "${TIDMAD_STEPS:-20}")
@@ -190,7 +203,7 @@ nice -n 10 "${TIMEOUT_PREFIX[@]}" \
         --config "$CONFIG" \
         --data-dir "$TIDMAD_DATA_ROOT" \
         --out "$OUT_DIR" \
-        "${STEPS_ARG[@]}" \
+        "${STEPS_ARG[@]}" "${RESUME_ARG[@]}" "${WANDB_ARG[@]}" \
     2>&1 | tee "$OUT_DIR/training.log"
 
 STATUS=${PIPESTATUS[0]}

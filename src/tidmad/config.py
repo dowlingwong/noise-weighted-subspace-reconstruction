@@ -83,7 +83,7 @@ class TidmadModelConfig:
 
 @dataclass(frozen=True)
 class TidmadTrainConfig:
-    num_steps: int = 150_000
+    num_steps: int = 25_000
     device_batch_size: int = 4
     num_workers: int = 4
     adamw_lr: float = 1e-3

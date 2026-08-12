@@ -107,7 +107,11 @@ def build_row(ds: Dataset, fit: MethodFit, cw_pca: MethodFit, *, runtime: float)
         "runtime_seconds": runtime,
         "covariance_symmetry_error": cr.get("symmetry_error", float("nan")),
         "covariance_whitening_error": cr.get("whitening_identity_error", float("nan")),
-        "covariance_mc_error": cr.get("monte_carlo_covariance_relative_error", float("nan")),
+        # The gated statistic is the whitened one (see covariance.py); the raw
+        # relative error is retained as an ungated diagnostic. Both are archived
+        # so a reader can see which was checked.
+        "covariance_mc_error_whitened": cr.get("monte_carlo_whitened_covariance_error", float("nan")),
+        "covariance_mc_error_raw": cr.get("monte_carlo_covariance_relative_error", float("nan")),
     }
 
 

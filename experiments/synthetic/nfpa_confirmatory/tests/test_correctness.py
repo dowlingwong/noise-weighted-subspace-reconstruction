@@ -130,6 +130,57 @@ def test_generated_noise_matches_covariance():
     assert err < 5e-2, f"generator noise whitened covariance error {err:.2e}"
 
 
+def test_runner_gate_matches_the_audited_monte_carlo_statistic():
+    """The runner must gate on the same statistic this file audits.
+
+    Regression test for the 2026-08-11 Block A failure. `run_numerical_checks`
+    gated on the RAW relative Frobenius error while
+    :func:`test_generated_noise_matches_covariance` above audits the WHITENED
+    error against the identity, and both used a 5e-2 tolerance. Those are
+    different quantities: with cond(Sigma) ~ 1e5 the raw error is dominated by
+    the Brownian covariance's large low-frequency eigenvalues and cannot meet
+    that tolerance at any practical sample count. The smoke run stopped at
+    8.20e-02 before fitting a single method, while this file's audit passed.
+
+    If the two ever diverge again this test fails rather than a confirmatory run.
+    """
+    from experiments.synthetic.nfpa_confirmatory.covariance import (
+        _sqrt_inv,
+        assert_checks_pass,
+        run_numerical_checks,
+    )
+
+    cfg = PrimaryConfig()
+    cov = full_covariance(cfg, "colored")
+    Sigma = cov["Sigma"]
+    report = run_numerical_checks(cfg, Sigma)
+
+    # The gated key exists and is the whitened statistic.
+    assert "monte_carlo_whitened_covariance_error" in report
+    assert_checks_pass(report)
+
+    # Reproduce the audited statistic independently and confirm the runner's
+    # gated value is the same quantity, to Monte Carlo agreement.
+    d = Sigma.shape[0]
+    rng = np.random.default_rng(11)
+    noise = rng.standard_normal((report["monte_carlo_draws"], d)) @ np.linalg.cholesky(Sigma).T
+    whitened = noise @ _sqrt_inv(Sigma).T
+    empirical = (whitened.T @ whitened) / whitened.shape[0]
+    independent = float(np.linalg.norm(empirical - np.eye(d), ord="fro") / d)
+
+    assert independent < 5e-2, f"independent whitened error {independent:.2e}"
+    assert abs(report["monte_carlo_whitened_covariance_error"] - independent) < 2e-2, (
+        "runner's gated statistic is not the audited whitened statistic: "
+        f"{report['monte_carlo_whitened_covariance_error']:.3e} vs {independent:.3e}"
+    )
+
+    # And the raw error really is the larger, ill-conditioned quantity that
+    # motivated the whitened comparison — kept as a diagnostic, never gated.
+    assert report["monte_carlo_covariance_relative_error"] > report[
+        "monte_carlo_whitened_covariance_error"
+    ], "raw error should exceed whitened error for this covariance"
+
+
 def test_nonseparable_component_orthogonal_to_product_subspace():
     cfg = PrimaryConfig()
     ds = make_dataset(0, "colored")

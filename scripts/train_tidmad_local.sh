@@ -11,6 +11,7 @@
 # Usage:
 #   ./scripts/train_tidmad_local.sh check          # GPU + data preflight only
 #   ./scripts/train_tidmad_local.sh smoke          # a few steps, measures throughput
+#   ./scripts/train_tidmad_local.sh bench          # 200 steps, prints a budget table
 #   ./scripts/train_tidmad_local.sh mse            # arm T-mse
 #   ./scripts/train_tidmad_local.sh chi2           # arm T-chi2
 #   ./scripts/train_tidmad_local.sh chi2_of        # secondary arm
@@ -59,6 +60,7 @@ export PYTHONPATH="$REPO_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
 case "$PROFILE" in
     check)   CONFIG=""                            ; TAG="check" ;;
     smoke)   CONFIG="src/tidmad/configs/t_mse.yaml"   ; TAG="smoke" ;;
+    bench)   CONFIG="src/tidmad/configs/t_mse.yaml"   ; TAG="bench" ;;
     mse)     CONFIG="src/tidmad/configs/t_mse.yaml"   ; TAG="t_mse" ;;
     chi2)    CONFIG="src/tidmad/configs/t_chi2.yaml"  ; TAG="t_chi2" ;;
     chi2_of) CONFIG="src/tidmad/configs/t_chi2_of.yaml"; TAG="t_chi2_of" ;;
@@ -94,14 +96,30 @@ props = torch.cuda.get_device_properties(0)
 expect = os.environ.get("EXPECT_GPU_NAME", "").strip()
 if expect and expect.upper() not in name.upper():
     raise RuntimeError(f"Selected GPU is {name!r}, expected it to contain {expect!r}.")
-if cap < (7, 0):
-    raise RuntimeError(f"Compute capability {cap} < 7.0; BF16/FP16 path unsupported.")
+
+# Minimum capability: 5.2 (Maxwell), not 7.0.
+#
+# This check previously required 7.0 with the message "BF16/FP16 path
+# unsupported", inherited from the DELight launcher whose training loop used
+# BF16/FP16 autocast. `tidmad.train` has no autocast, no GradScaler and no
+# half-precision anywhere: it is pure FP32. Requiring 7.0 therefore rejected
+# hardware that runs this loop correctly — it blocked the GTX TITAN X
+# (capability 5.2) on 2026-08-11 for a code path that does not exist.
+#
+# If a mixed-precision path is ever added, raise this back to (7, 0) *and* say
+# so in the same commit.
+MIN_CAPABILITY = (5, 2)
+if cap < MIN_CAPABILITY:
+    raise RuntimeError(
+        f"Compute capability {cap} < {MIN_CAPABILITY}; FP32 training unsupported."
+    )
 
 # Force allocation, arithmetic and synchronisation: catches driver/ECC faults
-# before any data indexing or checkpoint creation begins.
-x = torch.randn((2048, 2048), device="cuda", dtype=torch.float16)
+# before any data indexing or checkpoint creation begins. FP32 deliberately —
+# it must exercise the same precision the training loop uses.
+x = torch.randn((2048, 2048), device="cuda", dtype=torch.float32)
 y = x @ x
-checksum = y.float().mean().item()
+checksum = y.mean().item()
 torch.cuda.synchronize()
 del x, y
 torch.cuda.empty_cache()
@@ -178,6 +196,9 @@ fi
 STEPS_ARG=()
 if [ "$PROFILE" = "smoke" ]; then
     STEPS_ARG=(--steps "${TIDMAD_STEPS:-20}")
+elif [ "$PROFILE" = "bench" ]; then
+    # Enough steps that the reported rate is not dominated by warmup.
+    STEPS_ARG=(--steps "${TIDMAD_STEPS:-200}")
 elif [ -n "${TIDMAD_STEPS:-}" ]; then
     STEPS_ARG=(--steps "$TIDMAD_STEPS")
 fi
@@ -217,6 +238,13 @@ rm -f "$OUT_DIR/run.pid"
 if [ "$STATUS" -eq 124 ]; then
     echo "Run hit the wall-clock cap ($TIDMAD_TIMEOUT) and was terminated." >&2
     echo "This is a clean stop, not a crash. Resume from the latest checkpoint." >&2
+fi
+
+if [ "$PROFILE" = "bench" ] && [ "$STATUS" -eq 0 ]; then
+    echo
+    echo "=== measured throughput -> budget ==="
+    "$PYTHON" "$REPO_ROOT/scripts/budget_from_rate.py" --log "$OUT_DIR/training.log" || \
+        echo "  could not parse a rate; read steps/s from $OUT_DIR/training.log manually"
 fi
 
 echo "Exit status: $STATUS. Saved files:"

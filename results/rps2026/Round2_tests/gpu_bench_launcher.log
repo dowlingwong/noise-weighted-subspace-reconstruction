@@ -1,0 +1,43 @@
+Checking GPU index 0...
+TIDMAD_GPU_OK name='NVIDIA GeForce GTX TITAN X' capability=5.2 total_mib=12207 free_mib=11649 checksum=-0.003678
+Checking dataset at /ceph/dwong/paper1_dataset/tidmad/raw...
+  training: 1 files
+  validation: 40 files
+  science: 2 files
+  channels in abra_training_0000.h5: ['channel0001', 'channel0002']
+TIDMAD_DATA_OK
+Wall-clock cap: 30m
+Starting TIDMAD training
+  Profile:  bench
+  Config:   src/tidmad/configs/t_mse.yaml
+  Data:     /ceph/dwong/paper1_dataset/tidmad/raw
+  Out:      /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/bench/round2_bench_20260812
+  GPU:      index 0
+  PID:      4183890 (recorded at /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/bench/round2_bench_20260812/run.pid)
+  Git:      075f938
+[tidmad.train] arm loss=mse model_params=569352
+[tidmad.train] windows: 10067 total, 7046 fit, 3017 held out (guard 4)
+[tidmad.train] stopped at step 200/200 after 0.04 h (1.58 steps/s). Final checkpoint: /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/bench/round2_bench_20260812/checkpoint_00000200.pt
+
+=== measured throughput -> budget ===
+  measured rate: 1.580 steps/s
+
+     steps     per arm      2 arms  note
+      5000        0.9 h        1.8 h  
+     10000        1.8 h        3.5 h  
+     25000        4.4 h        8.8 h  
+     50000        8.8 h       17.6 h  
+    150000       26.4 h       52.7 h  frozen budget  overnight is not enough
+
+  The frozen 150,000 steps needs 26.4 h per arm.
+  Either run resumable segments with TIDMAD_RESUME=auto, or reduce
+  num_steps to a budget above — and RE-FREEZE if you change it, since
+  num_steps is part of the predeclared configuration.
+
+  Both arms must use the SAME num_steps. The contrast is only valid at
+  matched budget; that is what the config-equality assertion enforces.
+Exit status: 0. Saved files:
+checkpoint_00000200.pt
+latest.pt
+run_config.json
+training.log

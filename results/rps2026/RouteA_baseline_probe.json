@@ -1,0 +1,47 @@
+{
+  "denoised_counts": {
+    "savgol": 20
+  },
+  "have_outputs_on_disk": [
+    "savgol"
+  ],
+  "inference_accepts_checkpoint": false,
+  "inference_cli": {
+    "arguments": [
+      "--data_dir",
+      "--denoising_model",
+      "--savgol_order",
+      "--window_size"
+    ],
+    "model_choices": [],
+    "notes": [
+      "inference.py exposes no checkpoint/weights argument; it may train before inferring, or load a hard-coded path"
+    ],
+    "script": "/home/dwong/src/TIDMAD/inference.py"
+  },
+  "recoverable_tags": [
+    "savgol"
+  ],
+  "strong_baselines_recoverable": [],
+  "weights": [
+    {
+      "matched_tag": null,
+      "path": "/home/dwong/src/TIDMAD/.venv/lib/python3.12/site-packages/_virtualenv.pth",
+      "relative": ".venv/lib/python3.12/site-packages/_virtualenv.pth",
+      "size_bytes": 18
+    },
+    {
+      "matched_tag": null,
+      "path": "/home/dwong/src/TIDMAD/.venv/lib/python3.12/site-packages/distutils-precedence.pth",
+      "relative": ".venv/lib/python3.12/site-packages/distutils-precedence.pth",
+      "size_bytes": 151
+    },
+    {
+      "matched_tag": null,
+      "path": "/home/dwong/src/TIDMAD/.venv/lib/python3.12/site-packages/torch/bin/test_interpreter_async.pt",
+      "relative": ".venv/lib/python3.12/site-packages/torch/bin/test_interpreter_async.pt",
+      "size_bytes": 2840
+    }
+  ],
+  "weights_found": []
+}

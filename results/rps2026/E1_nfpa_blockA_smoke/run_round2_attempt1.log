@@ -1,0 +1,54 @@
+config_hash=98001a62855cb9a5
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_blocks.py", line 92, in <module>
+    main()
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_blocks.py", line 88, in main
+    run_block(args.block, regime, seeds, args.methods, paths)
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_blocks.py", line 54, in run_block
+    rows = run_seed(seed, regime, methods, paths)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_blocks.py", line 47, in run_seed
+    rows.append(build_row(ds, fit, cw_pca, runtime=runtime))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/output.py", line 68, in build_row
+    semantics = evaluate_semantics(fit, ds)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/semantic.py", line 99, in evaluate_semantics
+    train_codes, test_codes, params = _decoder_inputs(fit, ds)
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/semantic.py", line 39, in _decoder_inputs
+    train_codes = latent_codes(fit, ds, ds.X_train)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/semantic.py", line 34, in latent_codes
+    code = np.einsum("nct,ck,tl->nkl", Z, fit.U_c, fit.U_t)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dwong/anaconda3/lib/python3.12/site-packages/numpy/core/einsumfunc.py", line 1371, in einsum
+    return c_einsum(*operands, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: einstein sum subscripts string contains too many subscripts for operand 1
+Command exited with non-zero status 1
+	Command being timed: "/home/dwong/anaconda3/bin/python -u -m experiments.synthetic.nfpa_confirmatory.run_blocks --smoke"
+	User time (seconds): 110.35
+	System time (seconds): 1.45
+	Percent of CPU this job got: 125%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:28.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 851796
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 87257
+	Voluntary context switches: 2233
+	Involuntary context switches: 161
+	Swaps: 0
+	File system inputs: 104
+	File system outputs: 24
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 1

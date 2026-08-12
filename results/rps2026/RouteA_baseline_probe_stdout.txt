@@ -1,0 +1,25 @@
+=== checkpoint-like files in the upstream checkout ===
+  .venv/lib/python3.12/site-packages/_virtualenv.pth  (0.0 MB)
+  .venv/lib/python3.12/site-packages/distutils-precedence.pth  (0.0 MB)
+  .venv/lib/python3.12/site-packages/torch/bin/test_interpreter_async.pt  (0.0 MB)
+
+=== release inference entry point ===
+  script: /home/dwong/src/TIDMAD/inference.py
+  arguments: --data_dir --denoising_model --savgol_order --window_size
+  note: inference.py exposes no checkpoint/weights argument; it may train before inferring, or load a hard-coded path
+
+=== denoised outputs already on disk ===
+  savgol: 20 files  (published 20-file score -2.35)
+
+=== VERDICT ===
+  NOT RECOVERABLE from this checkout: no usable weights or outputs for
+  FCNet / PUNet / Transformer.
+  Fall back to Route C: report the published numbers as regime context,
+  not as a comparison, and rest the claim on the paired T-mse/T-chi2
+  contrast scored in band. Do NOT train the baselines yourself -- that is
+  a separate project and not what this paper claims.
+
+  Note: ['savgol'] already on disk; savgol is not a useful
+  comparison point (the contract records it as not bit-reproducible).
+
+  probe record written to results/rps2026/RouteA_baseline_probe.json

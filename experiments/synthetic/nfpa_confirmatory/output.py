@@ -10,13 +10,10 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-import numpy as np
-
 from .config import PRIMARY, PRIMARY_HASH, PrimaryConfig
 from .generator import Dataset
 from .methods import FIT_FACTORY, MethodFit, fit_cw_pca
 from .metrics import evaluate_fit
-from .semantic import evaluate_semantics
 
 COLUMNS = [
     "config_hash",
@@ -45,19 +42,13 @@ COLUMNS = [
     "test_normalized_chi2",
     "angle_to_cw_pca_mean_deg",
     "angle_to_cw_pca_max_deg",
-    "amplitude_bias",
-    "amplitude_rmse",
-    "amplitude_correlation",
-    "rise_time_rmse",
-    "decay_time_rmse",
-    "channel_projector_error",
-    "temporal_projector_error",
     "selected_restart",
     "converged",
     "runtime_seconds",
     "covariance_symmetry_error",
     "covariance_whitening_error",
-    "covariance_mc_error",
+    "covariance_mc_error_whitened",
+    "covariance_mc_error_raw",
 ]
 
 
@@ -65,7 +56,6 @@ def build_row(ds: Dataset, fit: MethodFit, cw_pca: MethodFit, *, runtime: float)
     cfg: PrimaryConfig = ds.cfg
     test_metrics = evaluate_fit(ds, fit, cw_pca, ds.X_test)
     train_metrics = evaluate_fit(ds, fit, cw_pca, ds.X_train)
-    semantics = evaluate_semantics(fit, ds)
     diag = fit.diag
     cr = ds.covariance_report
     return {
@@ -95,13 +85,6 @@ def build_row(ds: Dataset, fit: MethodFit, cw_pca: MethodFit, *, runtime: float)
         "test_normalized_chi2": test_metrics["normalized_chi2"],
         "angle_to_cw_pca_mean_deg": test_metrics["angle_to_cw_pca_mean_deg"],
         "angle_to_cw_pca_max_deg": test_metrics["angle_to_cw_pca_max_deg"],
-        "amplitude_bias": semantics["amplitude_bias"],
-        "amplitude_rmse": semantics["amplitude_rmse"],
-        "amplitude_correlation": semantics["amplitude_correlation"],
-        "rise_time_rmse": semantics["rise_time_rmse"],
-        "decay_time_rmse": semantics["decay_time_rmse"],
-        "channel_projector_error": semantics["channel_projector_error"],
-        "temporal_projector_error": semantics["temporal_projector_error"],
         "selected_restart": diag.get("selected_restart", -1),
         "converged": diag.get("converged", True),
         "runtime_seconds": runtime,

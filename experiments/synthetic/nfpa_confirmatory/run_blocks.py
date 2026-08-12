@@ -1,9 +1,9 @@
-"""Run Blocks A, B, and H for the NFPA confirmatory study.
+"""Run Blocks A and B for the NFPA confirmatory study.
 
 For each seed and noise regime: build the dataset, run the covariance checks,
 fit every method at matched total rank on the training split only, evaluate on
-the held-out test split, fit the semantic decoders (Block H), and write one raw
-row per (seed, method) to disk before any aggregation.
+the held-out test split, and write one raw row per (seed, method) to disk before
+any aggregation. Block H was dropped by the 2026-08-08 scope amendment.
 
 Usage:
     python -m experiments.synthetic.nfpa_confirmatory.run_blocks --block A --seeds 0 1

@@ -53,9 +53,23 @@ def full_covariance(cfg: PrimaryConfig, regime: str) -> dict[str, np.ndarray]:
 
 
 def _sqrt_inv(A: np.ndarray) -> np.ndarray:
+    """Symmetric inverse square root ``A^{-1/2}`` via eigendecomposition."""
     vals, vecs = np.linalg.eigh(0.5 * (A + A.T))
     vals = np.clip(vals, np.finfo(float).eps, None)
     return (vecs / np.sqrt(vals)[None, :]) @ vecs.T
+
+
+def _sqrt(A: np.ndarray) -> np.ndarray:
+    """Symmetric square root ``A^{1/2}``, the exact inverse of :func:`_sqrt_inv`.
+
+    Must be the *symmetric* root, not a Cholesky factor. Both satisfy
+    ``R R^T = A``, but they differ by an orthogonal factor, so a Cholesky factor
+    does not invert the symmetric whitening applied by
+    :func:`whiten_separable`.
+    """
+    vals, vecs = np.linalg.eigh(0.5 * (A + A.T))
+    vals = np.clip(vals, np.finfo(float).eps, None)
+    return (vecs * np.sqrt(vals)[None, :]) @ vecs.T
 
 
 def whiten_separable(X: np.ndarray, Sigma_c: np.ndarray, Sigma_t: np.ndarray) -> np.ndarray:
@@ -70,10 +84,32 @@ def whiten_separable(X: np.ndarray, Sigma_c: np.ndarray, Sigma_t: np.ndarray) ->
 
 
 def unwhiten_separable(Z: np.ndarray, Sigma_c: np.ndarray, Sigma_t: np.ndarray) -> np.ndarray:
-    """Invert :func:`whiten_separable`."""
-    Sc = np.linalg.cholesky(Sigma_c)
-    St = np.linalg.cholesky(Sigma_t)
-    return np.einsum("ab,...bd,de->...ae", Sc, Z, St.T)
+    """Invert :func:`whiten_separable` exactly.
+
+    Applies the *symmetric* square roots, matching the symmetric inverse roots
+    used on the way in, so ``unwhiten(whiten(X)) == X``.
+
+    This previously used Cholesky factors. ``Sigma = L L^T`` and
+    ``Sigma = Sigma^{1/2} Sigma^{1/2}`` are both true, but ``L`` and
+    ``Sigma^{1/2}`` differ by an orthogonal factor (26.9% apart for this
+    configuration's channel covariance), so the round trip returned a rotated
+    copy of its input: relative error 5.04, not ~0.
+
+    Every method with ``coord="whitened"`` -- CW-PCA, NFPA, OF -- reconstructs
+    through this function, so all three were evaluated on rotated
+    reconstructions while the isotropic methods were not. On 2026-08-12 that
+    put CW-PCA's *training* normalized chi-square at 1.0411 against a rank-6
+    whitened SVD optimum of 0.9959, and above IsoPCA's 1.0202 -- impossible for
+    a correct implementation, since CW-PCA minimises exactly that objective over
+    a feasible set containing IsoPCA's subspace. The apparent conclusion, that
+    covariance-aware methods were worse, was entirely this bug.
+
+    Guarded by ``test_whiten_unwhiten_round_trip_is_identity`` and
+    ``test_cw_pca_attains_the_rank_k_whitened_optimum``.
+    """
+    A = _sqrt(Sigma_c)
+    B = _sqrt(Sigma_t)
+    return np.einsum("ab,...bd,de->...ae", A, Z, B)
 
 
 def run_numerical_checks(cfg: PrimaryConfig, Sigma: np.ndarray) -> dict[str, float]:

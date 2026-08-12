@@ -130,6 +130,73 @@ def test_generated_noise_matches_covariance():
     assert err < 5e-2, f"generator noise whitened covariance error {err:.2e}"
 
 
+def test_whiten_unwhiten_round_trip_is_identity():
+    """``unwhiten(whiten(X)) == X``. Regression for the 2026-08-12 rotation bug.
+
+    ``whiten_separable`` applies symmetric inverse square roots;
+    ``unwhiten_separable`` applied Cholesky factors. Both are square roots of
+    Sigma but differ by an orthogonal factor, so the round trip returned a
+    rotated copy of its input at 5.04 relative error. Every method that
+    reconstructs through whitened coordinates was affected.
+    """
+    from experiments.synthetic.nfpa_confirmatory.covariance import (
+        unwhiten_separable,
+        whiten_separable,
+    )
+
+    cfg = PrimaryConfig()
+    for regime in ("colored", "white"):
+        cov = full_covariance(cfg, regime)
+        Sc, St = cov["Sigma_c"], cov["Sigma_t"]
+        rng = np.random.default_rng(3)
+        X = rng.standard_normal((16, Sc.shape[0], St.shape[0]))
+        back = unwhiten_separable(whiten_separable(X, Sc, St), Sc, St)
+        err = float(np.linalg.norm(back - X) / np.linalg.norm(X))
+        assert err < 1e-10, f"{regime}: round-trip relative error {err:.3e}"
+
+
+def test_cw_pca_attains_the_rank_k_whitened_optimum():
+    """CW-PCA must achieve the best rank-k whitened residual, and beat IsoPCA.
+
+    CW-PCA is by definition the minimiser of the whitened residual over rank-k
+    subspaces, and IsoPCA's subspace is a feasible point of that same problem.
+    So on the *training* split CW-PCA's normalized chi-square cannot exceed
+    IsoPCA's. This invariant is independent of any scientific claim: if it
+    fails, the implementation is wrong, not the hypothesis.
+
+    It caught the whitening round-trip bug that a full 16-test suite missed.
+    """
+    from experiments.synthetic.nfpa_confirmatory.methods import (
+        FIT_FACTORY,
+        _whiten_batch,
+        reconstruct,
+    )
+    from experiments.synthetic.nfpa_confirmatory.metrics import normalized_chi2
+
+    ds = make_dataset(0, "colored")
+    rank = ds.cfg.k_c * ds.cfg.k_t
+
+    # Best achievable rank-k whitened residual, computed directly.
+    flat = _whiten_batch(ds, ds.X_train).reshape(ds.cfg.N_train, -1, order="F")
+    _, _, vh = np.linalg.svd(flat, full_matrices=False)
+    optimum = float(np.mean((flat - flat @ (vh[:rank].T @ vh[:rank])) ** 2))
+
+    chi2 = {}
+    for name in ("CW-PCA", "IsoPCA"):
+        fit = FIT_FACTORY[name](ds)
+        chi2[name] = normalized_chi2(ds, ds.X_train, reconstruct(fit, ds, ds.X_train))
+
+    assert chi2["CW-PCA"] <= optimum + 1e-6, (
+        f"CW-PCA train chi2 {chi2['CW-PCA']:.6f} exceeds the rank-{rank} whitened "
+        f"optimum {optimum:.6f}; it cannot beat its own objective, so the "
+        "reconstruction path disagrees with the fitting path"
+    )
+    assert chi2["CW-PCA"] <= chi2["IsoPCA"] + 1e-9, (
+        f"CW-PCA train chi2 {chi2['CW-PCA']:.6f} > IsoPCA {chi2['IsoPCA']:.6f}; "
+        "impossible, since IsoPCA's subspace is feasible for CW-PCA's problem"
+    )
+
+
 def test_runner_gate_matches_the_audited_monte_carlo_statistic():
     """The runner must gate on the same statistic this file audits.
 

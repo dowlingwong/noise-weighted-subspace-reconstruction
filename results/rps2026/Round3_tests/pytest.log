@@ -1,0 +1,35 @@
+..........................................                               [100%]
+=============================== warnings summary ===============================
+experiments/synthetic/nfpa_confirmatory/tests/test_correctness.py::test_archived_degenerate_case_reproduced
+  /ceph/dwong/noise-weighted-subspace-reconstruction/src/NFPA/nfpa_demo.py:64: RuntimeWarning: divide by zero encountered in divide
+    _cf_raw  = np.where(white_f > 1e-10, 1.0/white_f, 0.0)
+
+src/tidmad/tests/test_train_loop.py::test_checkpoint_round_trips_exactly
+  /home/dwong/anaconda3/lib/python3.12/site-packages/torch/optim/lr_scheduler.py:224: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+42 passed, 2 warnings in 582.81s (0:09:42)
+	Command being timed: "env PYTHONPATH=.:src:/tmp/rps2026_pydeps.fpBaHT /home/dwong/anaconda3/bin/python -m pytest experiments/synthetic/nfpa_confirmatory/tests src/tidmad/tests -q"
+	User time (seconds): 1800.51
+	System time (seconds): 82.39
+	Percent of CPU this job got: 320%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 9:46.86
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1552184
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 10
+	Minor (reclaiming a frame) page faults: 1054232
+	Voluntary context switches: 11347
+	Involuntary context switches: 3324
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 848
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

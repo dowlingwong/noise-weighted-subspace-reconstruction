@@ -1,0 +1,85 @@
+Checking GPU index 0...
+TIDMAD_GPU_OK name='NVIDIA GeForce GTX TITAN X' capability=5.2 total_mib=12207 free_mib=11649 checksum=-0.018724
+Checking dataset at /ceph/dwong/paper1_dataset/tidmad/raw...
+  training: 1 files
+  validation: 40 files
+  science: 2 files
+  channels in abra_training_0000.h5: ['channel0001', 'channel0002']
+TIDMAD_DATA_OK
+Wall-clock cap: 6h
+Starting TIDMAD training
+  Profile:  mse
+  Config:   src/tidmad/configs/t_mse.yaml
+  Data:     /ceph/dwong/paper1_dataset/tidmad/raw
+  Out:      /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse
+  GPU:      index 0
+  PID:      13780 (recorded at /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse/run.pid)
+  Git:      89a4a06
+[tidmad.train] arm loss=mse model_params=569352
+[tidmad.train] windows: 10067 total, 7046 fit, 3017 held out (guard 4)
+step      500  train_mse=11872.1 train_chi2=0.0153518  val_mse=13068.9 val_chi2=0.0148757  1.66 steps/s  eta 4.10 h
+step     1000  train_mse=11757.3 train_chi2=0.0146405  val_mse=12325.6 val_chi2=0.0143806  1.63 steps/s  eta 4.08 h
+step     1500  train_mse=10988.2 train_chi2=0.0137203  val_mse=12053.8 val_chi2=0.0140318  1.63 steps/s  eta 4.01 h
+step     2000  train_mse=11285.6 train_chi2=0.0138235  val_mse=11984.7 val_chi2=0.0139594  1.64 steps/s  eta 3.89 h
+step     2500  train_mse=10874.8 train_chi2=0.0135235  val_mse=11910.6 val_chi2=0.0139113  1.61 steps/s  eta 3.88 h
+step     3000  train_mse=12619.7 train_chi2=0.0140323  val_mse=11863 val_chi2=0.0138779  1.61 steps/s  eta 3.81 h
+step     3500  train_mse=11490.7 train_chi2=0.0122512  val_mse=11852.9 val_chi2=0.0138589  1.56 steps/s  eta 3.82 h
+step     4000  train_mse=10836.6 train_chi2=0.0127513  val_mse=11862.4 val_chi2=0.0138843  1.61 steps/s  eta 3.63 h
+step     4500  train_mse=12211.2 train_chi2=0.0140302  val_mse=11826.3 val_chi2=0.0138489  1.59 steps/s  eta 3.57 h
+step     5000  train_mse=11841.3 train_chi2=0.0146945  val_mse=11834.8 val_chi2=0.0138189  1.53 steps/s  eta 3.63 h
+step     5500  train_mse=14760.7 train_chi2=0.0142089  val_mse=11847.5 val_chi2=0.0138145  1.57 steps/s  eta 3.44 h
+step     6000  train_mse=13986.9 train_chi2=0.0127531  val_mse=11785.3 val_chi2=0.0137827  1.64 steps/s  eta 3.22 h
+step     6500  train_mse=11453.4 train_chi2=0.013344  val_mse=11803.9 val_chi2=0.0137692  1.56 steps/s  eta 3.29 h
+step     7000  train_mse=10655.8 train_chi2=0.013166  val_mse=11802.8 val_chi2=0.0137798  1.64 steps/s  eta 3.04 h
+step     7500  train_mse=10631.7 train_chi2=0.0131184  val_mse=11777.5 val_chi2=0.0137561  1.66 steps/s  eta 2.92 h
+step     8000  train_mse=10953.1 train_chi2=0.0126232  val_mse=11785.1 val_chi2=0.0137885  1.65 steps/s  eta 2.86 h
+step     8500  train_mse=10939.3 train_chi2=0.0134563  val_mse=11773.1 val_chi2=0.013765  1.63 steps/s  eta 2.81 h
+step     9000  train_mse=11163.5 train_chi2=0.013381  val_mse=11744.4 val_chi2=0.013736  1.67 steps/s  eta 2.66 h
+step     9500  train_mse=10963 train_chi2=0.0133074  val_mse=11731.6 val_chi2=0.0137239  1.70 steps/s  eta 2.54 h
+step    10000  train_mse=11279.4 train_chi2=0.0142183  val_mse=11724.4 val_chi2=0.0137071  1.68 steps/s  eta 2.48 h
+step    10500  train_mse=11086.4 train_chi2=0.0133277  val_mse=11787.9 val_chi2=0.0137239  1.69 steps/s  eta 2.38 h
+step    11000  train_mse=10603.2 train_chi2=0.0128728  val_mse=11733.4 val_chi2=0.0137142  1.68 steps/s  eta 2.31 h
+step    11500  train_mse=11150.6 train_chi2=0.0140883  val_mse=11683.1 val_chi2=0.0136912  1.69 steps/s  eta 2.22 h
+step    12000  train_mse=10382.9 train_chi2=0.012991  val_mse=11676.4 val_chi2=0.013676  1.64 steps/s  eta 2.21 h
+step    12500  train_mse=11518.5 train_chi2=0.0128628  val_mse=11664.1 val_chi2=0.0136559  1.65 steps/s  eta 2.11 h
+step    13000  train_mse=12433.9 train_chi2=0.0126177  val_mse=11646 val_chi2=0.0136759  1.64 steps/s  eta 2.03 h
+step    13500  train_mse=10653.6 train_chi2=0.0132191  val_mse=11613.1 val_chi2=0.0136256  1.67 steps/s  eta 1.91 h
+step    14000  train_mse=10451.3 train_chi2=0.0133216  val_mse=11687.2 val_chi2=0.0136361  1.67 steps/s  eta 1.83 h
+step    14500  train_mse=11698 train_chi2=0.0133535  val_mse=11613.1 val_chi2=0.0136065  1.65 steps/s  eta 1.76 h
+step    15000  train_mse=12506.7 train_chi2=0.014092  val_mse=11598.2 val_chi2=0.0135873  1.69 steps/s  eta 1.64 h
+step    15500  train_mse=11354.7 train_chi2=0.0144873  val_mse=11595.3 val_chi2=0.013582  1.65 steps/s  eta 1.60 h
+step    16000  train_mse=10456.6 train_chi2=0.0129685  val_mse=11570.2 val_chi2=0.0135648  1.68 steps/s  eta 1.48 h
+step    16500  train_mse=11329.9 train_chi2=0.0133088  val_mse=11554.7 val_chi2=0.0135514  1.67 steps/s  eta 1.41 h
+step    17000  train_mse=11190.2 train_chi2=0.0134632  val_mse=11571 val_chi2=0.0135606  1.69 steps/s  eta 1.32 h
+step    17500  train_mse=12444.4 train_chi2=0.013462  val_mse=11593.8 val_chi2=0.0135631  1.67 steps/s  eta 1.25 h
+step    18000  train_mse=10624.9 train_chi2=0.01307  val_mse=11569.3 val_chi2=0.01354  1.68 steps/s  eta 1.16 h
+step    18500  train_mse=13342.7 train_chi2=0.0138927  val_mse=11535.9 val_chi2=0.0135312  1.64 steps/s  eta 1.10 h
+step    19000  train_mse=11285.6 train_chi2=0.013345  val_mse=11536 val_chi2=0.0135236  1.63 steps/s  eta 1.02 h
+step    19500  train_mse=10323.7 train_chi2=0.0130771  val_mse=11545.4 val_chi2=0.0135321  1.63 steps/s  eta 0.94 h
+step    20000  train_mse=10975.6 train_chi2=0.0133455  val_mse=11543.6 val_chi2=0.0135279  1.65 steps/s  eta 0.84 h
+step    20500  train_mse=11391.8 train_chi2=0.0136466  val_mse=11529.2 val_chi2=0.0135196  1.64 steps/s  eta 0.76 h
+step    21000  train_mse=10917 train_chi2=0.0135832  val_mse=11551.9 val_chi2=0.0135214  1.65 steps/s  eta 0.68 h
+step    21500  train_mse=13450.1 train_chi2=0.0143435  val_mse=11532.8 val_chi2=0.0135146  1.63 steps/s  eta 0.60 h
+step    22000  train_mse=12054.3 train_chi2=0.0136121  val_mse=11518.7 val_chi2=0.0135118  1.65 steps/s  eta 0.51 h
+step    22500  train_mse=11816.5 train_chi2=0.014286  val_mse=11517.4 val_chi2=0.0135071  1.64 steps/s  eta 0.42 h
+step    23000  train_mse=10750.1 train_chi2=0.0133697  val_mse=11528.5 val_chi2=0.013514  1.65 steps/s  eta 0.34 h
+step    23500  train_mse=10547 train_chi2=0.0128892  val_mse=11522 val_chi2=0.0135091  1.65 steps/s  eta 0.25 h
+step    24000  train_mse=11539.5 train_chi2=0.0134269  val_mse=11519.1 val_chi2=0.0135081  1.64 steps/s  eta 0.17 h
+step    24500  train_mse=11589.8 train_chi2=0.0133103  val_mse=11519.1 val_chi2=0.0135075  1.65 steps/s  eta 0.08 h
+step    25000  train_mse=10455.1 train_chi2=0.0133139  val_mse=11519.3 val_chi2=0.0135078  1.65 steps/s  eta 0.00 h
+[tidmad.train] stopped at step 25000/25000 after 4.23 h (1.64 steps/s). Final checkpoint: /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse/checkpoint_00025000.pt
+Exit status: 0. Saved files:
+checkpoint_00000427.pt
+checkpoint_00002500.pt
+checkpoint_00005000.pt
+checkpoint_00007500.pt
+checkpoint_00010000.pt
+checkpoint_00012500.pt
+checkpoint_00015000.pt
+checkpoint_00017500.pt
+checkpoint_00020000.pt
+checkpoint_00022500.pt
+checkpoint_00025000.pt
+latest.pt
+run_config.json
+training.log

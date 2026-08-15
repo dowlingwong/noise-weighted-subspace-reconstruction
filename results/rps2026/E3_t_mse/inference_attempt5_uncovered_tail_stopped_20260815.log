@@ -1,0 +1,1 @@
+bash: line 1: 510886 Terminated              timeout 6h nice -n 10 taskset -c 0-3 /home/dwong/anaconda3/bin/python -u -m tidmad.infer --config src/tidmad/configs/t_mse.yaml --checkpoint artifacts/tidmad/t_mse/latest.pt --data-dir /ceph/dwong/paper1_dataset/tidmad/raw --out /ceph/dwong/paper1_dataset/tidmad/denoised --model-tag t_mse --device cuda:0

@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 116, in <module>
+    main()
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 112, in main
+    infer(args.config, args.checkpoint, args.data_dir, args.out, args.model_tag, args.device)
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 64, in infer
+    load_checkpoint(model, checkpoint, device)
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/backbone/checkpoints.py", line 224, in load_checkpoint
+    model.load_state_dict(model_state_dict, strict=True)
+  File "/home/dwong/anaconda3/lib/python3.12/site-packages/torch/nn/modules/module.py", line 2584, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for TidmadTransformer:
+        Missing key(s) in state_dict: "temporal_layers.0.attn_norm.weight", "temporal_layers.0.attn.qkv_proj.weight", "temporal_layers.0.attn.o_proj.weight", "temporal_layers.0.attn.o_proj.bias", "temporal_layers.0.ffn_norm.weight", "temporal_layers.0.ffn.up_proj.weight", "temporal_layers.0.ffn.gate_proj.weight", "temporal_layers.0.ffn.down_proj.weight", "spatial_layers.0.attn_norm.weight", "spatial_layers.0.attn.qkv_proj.weight", "spatial_layers.0.attn.o_proj.weight", "spatial_layers.0.attn.o_proj.bias", "spatial_layers.0.ffn_norm.weight", "spatial_layers.0.ffn.up_proj.weight", "spatial_layers.0.ffn.gate_proj.weight", "spatial_layers.0.ffn.down_proj.weight", "final_proj_norm.weight", "patch_embedding.weight", "patch_embedding.bias", "band_pos_embd.pos_embed", "reconstruction_head.weight", "reconstruction_head.bias". 
+        Unexpected key(s) in state_dict: "step", "model", "adamw", "muon", "adamw_scheduler", "muon_scheduler", "run_config", "loss". 

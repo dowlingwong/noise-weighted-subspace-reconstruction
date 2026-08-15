@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 116, in <module>
+    main()
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 112, in main
+    infer(args.config, args.checkpoint, args.data_dir, args.out, args.model_tag, args.device)
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/infer.py", line 94, in infer
+    out_meas = out_std * (std_in + 1e-6) + mean_in
+               ~~~~~~~~^~~~~~~~~~~~~~~~~
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!

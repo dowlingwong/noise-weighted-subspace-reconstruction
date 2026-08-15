@@ -1,0 +1,28 @@
+Checking GPU index 0...
+TIDMAD_GPU_OK name='NVIDIA GeForce GTX TITAN X' capability=5.2 total_mib=12207 free_mib=11649 checksum=-0.005496
+Checking dataset at /ceph/dwong/paper1_dataset/tidmad/raw...
+  training: 1 files
+  validation: 40 files
+  science: 2 files
+  channels in abra_training_0000.h5: ['channel0001', 'channel0002']
+TIDMAD_DATA_OK
+Wall-clock cap: 6h
+Starting TIDMAD training
+  Profile:  mse
+  Config:   src/tidmad/configs/t_mse.yaml
+  Data:     /ceph/dwong/paper1_dataset/tidmad/raw
+  Out:      /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse
+  GPU:      index 0
+  PID:      12032 (recorded at /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse/run.pid)
+  Git:      89a4a06
+[tidmad.train] arm loss=mse model_params=569352
+[tidmad.train] windows: 10067 total, 7046 fit, 3017 held out (guard 4)
+
+[tidmad.train] signal 15 received; checkpointing then exiting.
+[tidmad.train] stopped at step 427/25000 after 0.08 h (1.41 steps/s). Final checkpoint: /ceph/dwong/noise-weighted-subspace-reconstruction/artifacts/tidmad/t_mse/checkpoint_00000427.pt
+[tidmad.train] stop was requested; resume with --resume auto
+Exit status: 0. Saved files:
+checkpoint_00000427.pt
+latest.pt
+run_config.json
+training.log

@@ -1,0 +1,185 @@
+{
+  "config_hash": "98001a62855cb9a5",
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20260808,
+    "interval": "seed-level paired percentile 95% CI"
+  },
+  "block_a": {
+    "source": "results/rps2026/E1_nfpa_blockA/block_A_colored_raw.csv",
+    "validation": {
+      "rows": 50,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "seed_count": 10,
+      "methods": [
+        "CW-PCA",
+        "Iso-MPCA",
+        "IsoPCA",
+        "NFPA",
+        "OF"
+      ],
+      "all_converged": true,
+      "config_hashes": [
+        "98001a62855cb9a5"
+      ],
+      "expected_shape": true,
+      "C": [
+        8
+      ],
+      "k_c": [
+        2
+      ],
+      "k_t": [
+        3
+      ],
+      "max_covariance_whitening_error": 8.9527790278115e-14,
+      "max_covariance_mc_error_whitened": 0.0110480395740204
+    },
+    "contrasts": {
+      "nfpa_minus_iso_mpca_chi2": {
+        "method_a": "NFPA",
+        "method_b": "Iso-MPCA",
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "mean_difference": -0.01920114153704282,
+        "median_difference": -0.0192433174373573,
+        "percentile_95_ci": [
+          -0.01941405146768592,
+          -0.019000086073891018
+        ],
+        "standardized_paired_effect": -55.06851582634886
+      },
+      "nfpa_minus_iso_mpca_mse": {
+        "method_a": "NFPA",
+        "method_b": "Iso-MPCA",
+        "metric": "test_raw_mse",
+        "n_seeds": 10,
+        "mean_difference": 0.00341426337139764,
+        "median_difference": 0.0034002781366648,
+        "percentile_95_ci": [
+          0.003394590263746655,
+          0.0034345105793963703
+        ],
+        "standardized_paired_effect": 99.53421864595994
+      },
+      "nfpa_minus_cw_pca_chi2": {
+        "method_a": "NFPA",
+        "method_b": "CW-PCA",
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "mean_difference": -0.0025575935547366814,
+        "median_difference": -0.0025487316520518277,
+        "percentile_95_ci": [
+          -0.002591639368313814,
+          -0.0025199598475970936
+        ],
+        "standardized_paired_effect": -41.81904860529132
+      }
+    },
+    "gate": {
+      "C_greater_than_k_c": true,
+      "predicted_chi2_interval_below_zero": true,
+      "predicted_mse_interval_above_zero": true,
+      "pass": true
+    }
+  },
+  "block_b": {
+    "source": "results/rps2026/E2_nfpa_blockB/block_B_white_raw.csv",
+    "validation": {
+      "rows": 100,
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "seed_count": 20,
+      "methods": [
+        "CW-PCA",
+        "Iso-MPCA",
+        "IsoPCA",
+        "NFPA",
+        "OF"
+      ],
+      "all_converged": true,
+      "config_hashes": [
+        "98001a62855cb9a5"
+      ],
+      "expected_shape": true,
+      "C": [
+        8
+      ],
+      "k_c": [
+        2
+      ],
+      "k_t": [
+        3
+      ],
+      "max_covariance_whitening_error": 0.0,
+      "max_covariance_mc_error_whitened": 0.0110480395740206
+    },
+    "contrasts": {
+      "nfpa_minus_iso_mpca_chi2": {
+        "method_a": "NFPA",
+        "method_b": "Iso-MPCA",
+        "metric": "test_normalized_chi2",
+        "n_seeds": 20,
+        "mean_difference": 0.0,
+        "median_difference": 0.0,
+        "percentile_95_ci": [
+          0.0,
+          0.0
+        ],
+        "standardized_paired_effect": 0.0
+      },
+      "nfpa_minus_iso_mpca_mse": {
+        "method_a": "NFPA",
+        "method_b": "Iso-MPCA",
+        "metric": "test_raw_mse",
+        "n_seeds": 20,
+        "mean_difference": 0.0,
+        "median_difference": 0.0,
+        "percentile_95_ci": [
+          0.0,
+          0.0
+        ],
+        "standardized_paired_effect": 0.0
+      }
+    },
+    "gate": {
+      "predeclared_chi2_margin": 0.005,
+      "predeclared_projector_angle_margin_deg": 0.01,
+      "max_cw_pca_iso_pca_projector_angle_deg": 2.4148365394514667e-06,
+      "full_projectors_agree": true,
+      "fixed_architecture_chi2_interval_inside_margin": true,
+      "pass": true
+    }
+  }
+}

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the Round 3 NFPA summary from archived seed-level results."""
+"""Generate the Round 3 summary from archived seed-level and rung-4 results."""
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 import numpy as np
@@ -72,15 +73,68 @@ def validate_frame(frame: pd.DataFrame, expected_seeds: int) -> dict[str, object
     }
 
 
+def method_means(frame: pd.DataFrame) -> dict[str, dict[str, float]]:
+    metrics = [
+        "train_normalized_chi2",
+        "test_normalized_chi2",
+        "test_raw_mse",
+        "angle_to_cw_pca_mean_deg",
+    ]
+    return {
+        str(method): {metric: float(group[metric].mean()) for metric in metrics}
+        for method, group in frame.groupby("method")
+    }
+
+
+def nested_differences(left: object, right: object, path: str = "") -> list[dict]:
+    if isinstance(left, dict) and isinstance(right, dict):
+        differences = []
+        for key in sorted(set(left) | set(right)):
+            differences.extend(
+                nested_differences(left.get(key), right.get(key), f"{path}/{key}")
+            )
+        return differences
+    if left == right:
+        return []
+    return [{"path": path, "left": left, "right": right}]
+
+
+def benchmark_summary(path: Path) -> dict[str, object]:
+    record = json.loads(path.read_text(encoding="utf-8"))
+    match = re.search(
+        r"Coarse Denoising Score for Model \S+: ([^\s]+)", record["stdout"]
+    )
+    if match is None:
+        raise ValueError(f"score missing from {path}")
+    return {
+        "source": str(path),
+        "returncode": int(record["returncode"]),
+        "succeeded": bool(record["succeeded"]),
+        "file_set": record["file_set"],
+        "scored_files": record.get("scored_files"),
+        "excluded_files": record.get("excluded_files", []),
+        "score": float(match.group(1)),
+        "command": record["command"],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--block-a", type=Path, required=True)
     parser.add_argument("--block-b", type=Path, required=True)
+    parser.add_argument("--smoke", type=Path, required=True)
+    parser.add_argument("--t-mse-config", type=Path, required=True)
+    parser.add_argument("--t-chi2-config", type=Path, required=True)
+    parser.add_argument("--t-mse-inband", type=Path, required=True)
+    parser.add_argument("--t-mse-all20", type=Path, required=True)
+    parser.add_argument("--t-chi2-inband", type=Path, required=True)
+    parser.add_argument("--t-chi2-all20", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
     block_a = pd.read_csv(args.block_a)
     block_b = pd.read_csv(args.block_b)
+    smoke = pd.read_csv(args.smoke)
     a_validation = validate_frame(block_a, PRIMARY.n_seeds)
     b_validation = validate_frame(block_b, 20)
 
@@ -135,6 +189,11 @@ def main() -> None:
                 > 0,
             },
         },
+        "smoke": {
+            "source": str(args.smoke),
+            "validation": validate_frame(smoke, 2),
+            "method_means": method_means(smoke),
+        },
         "block_b": {
             "source": str(args.block_b),
             "validation": b_validation,
@@ -173,6 +232,33 @@ def main() -> None:
             "fixed_architecture_chi2_interval_inside_margin"
         ]
     )
+
+    mse_config = json.loads(args.t_mse_config.read_text(encoding="utf-8"))
+    chi2_config = json.loads(args.t_chi2_config.read_text(encoding="utf-8"))
+    rung4 = {
+        "config_sources": [str(args.t_mse_config), str(args.t_chi2_config)],
+        "config_differences": nested_differences(mse_config, chi2_config),
+        "t_mse": {
+            "in_band": benchmark_summary(args.t_mse_inband),
+            "all_20": benchmark_summary(args.t_mse_all20),
+        },
+        "t_chi2": {
+            "in_band": benchmark_summary(args.t_chi2_inband),
+            "all_20": benchmark_summary(args.t_chi2_all20),
+        },
+    }
+    rung4["in_band_contrast_t_chi2_minus_t_mse"] = (
+        rung4["t_chi2"]["in_band"]["score"]
+        - rung4["t_mse"]["in_band"]["score"]
+    )
+    rung4["all_20_contrast_t_chi2_minus_t_mse"] = (
+        rung4["t_chi2"]["all_20"]["score"]
+        - rung4["t_mse"]["all_20"]["score"]
+    )
+    rung4["config_gate_pass"] = rung4["config_differences"] == [
+        {"path": "/run_config/train/loss", "left": "mse", "right": "chi2"}
+    ]
+    summary["rung4"] = rung4
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

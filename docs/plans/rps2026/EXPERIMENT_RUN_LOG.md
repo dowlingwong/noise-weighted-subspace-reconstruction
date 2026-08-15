@@ -271,3 +271,124 @@ A/B result or a rung-4 T-mse/T-chi2 result: NFPA stopped at a pre-fit covariance
 gate, and the GPU arms stopped at incompatible hardware/runtime preflight. No
 claim about metric reversal, nonlinear performance, leaderboard position, or
 training-seed variability can be made from this execution.
+
+# Round 3 remote execution (2026-08-14 to 2026-08-15)
+
+## Scope and revisions
+
+Execution started from `38b64749dacf69988dd83c84461e220da81b5c1b`, a
+descendant of the prescribed `89a4a06` and whitening fix `442ce55`. The accepted
+rung-4 training runs themselves record Git commit `89a4a06`. Inference exposed
+four scaffold defects: the loader did not unwrap resumable checkpoints,
+normalization statistics stayed on CPU, inference transformed an unused target
+channel one window at a time, and non-divisible file tails were left
+uninitialized. These were fixed with regression coverage in
+`c8617997ee72b86a1fe192fe7db42eac25c64012`; the final inference outputs were
+generated only after all four fixes. The NFPA frozen config was not edited and
+retained hash `98001a62855cb9a5`.
+
+**The round-2 E1 smoke numbers are void.** Only those smoke rows are discarded.
+The archived `C = k_c = 2` appendix reproduction uses the separate
+`src/NFPA/nfpa_demo.py` implementation and remains unaffected.
+
+## Test gates
+
+The prescribed initial combined suites passed 42/42 under the cu121 interpreter.
+The three explicitly named gates then passed 3/3:
+
+- `test_whiten_unwhiten_round_trip_is_identity`;
+- `test_cw_pca_attains_the_rank_k_whitened_optimum`;
+- `test_runner_gate_matches_the_audited_monte_carlo_statistic`.
+
+After the inference fixes, the complete combined suites passed 51/51 (18 NFPA,
+33 TIDMAD) in 583.19 s with two known warnings. Logs are in
+`results/rps2026/Round3_tests/`, including
+`full_suites_remote_20260814.log`, `named_gates_remote_20260814.log`, and
+`full_suites_post_inference_20260815.log`.
+
+## E1 smoke and Blocks A/B
+
+The corrected two-seed smoke completed 10 rows. Values below are method means
+generated from `results/rps2026/E1_nfpa_blockA_smoke/block_A_colored_raw.csv`:
+
+| Predicted comparison | Measured values | Result |
+|---|---:|---|
+| CW-PCA train chi2 <= IsoPCA | 0.998069 <= 1.022363 | matched, gate pass |
+| CW-PCA test chi2 < IsoPCA | 1.016815 < 1.040109 | matched |
+| CW-PCA test MSE > IsoPCA | 0.0104335 > 0.00678418 | matched |
+| NFPA test chi2 < Iso-MPCA | 1.014236 < 1.033337 | matched |
+| NFPA test MSE > Iso-MPCA | 0.0103761 > 0.00695559 | matched |
+| NFPA angle < Iso-MPCA angle | 63.5741 deg < 87.5661 deg | matched |
+
+Block A completed seeds 0-9, 50/50 rows, with all fits converged, `C = 8`,
+`k_c = 2`, `C > k_c`, `k_t = 3`, and both planted projectors non-trivial. Seed-paired
+percentile 95% intervals used 10,000 resamples and seed 20260808:
+
+| Block A contrast | Mean difference | Median difference | 95% CI | Gate |
+|---|---:|---:|---:|---|
+| NFPA - Iso-MPCA, test chi2 | -0.0192011 | -0.0192433 | [-0.0194141, -0.0190001] | pass, below zero |
+| NFPA - Iso-MPCA, test raw MSE | +0.00341426 | +0.00340028 | [0.00339459, 0.00343451] | pass, above zero |
+| NFPA - CW-PCA, test chi2 | -0.00255759 | -0.00254873 | [-0.00259164, -0.00251996] | held-out finite-sample result |
+
+Block B completed seeds 0-19, 100/100 rows, with all fits converged. NFPA minus
+Iso-MPCA was exactly 0.0 for both test chi2 and raw MSE, with 95% intervals
+`[0.0, 0.0]`, inside the predeclared chi2 margin 0.005. The maximum white-noise
+CW-PCA/IsoPCA projector angle was `2.41484e-6` degrees, inside the predeclared
+0.01-degree tolerance. Block B gate: pass.
+
+Raw evidence is in `results/rps2026/E1_nfpa_blockA/` and
+`results/rps2026/E2_nfpa_blockB/`. The deterministic aggregate is
+`results/rps2026/Round3_summary.json`.
+
+## Rung-4 training
+
+Both accepted runs used 25,000 steps, seed 20260808, 569,352 parameters, and no
+resume. Earlier unbounded-thread diagnostic attempts were stopped and excluded.
+
+| Arm | GPU | Screen | Wall time | Throughput | Final held-out MSE | Final held-out chi2 |
+|---|---:|---|---:|---:|---:|---:|
+| T-mse | 0 | `rps_t_mse` | 4.23 h | 1.64 steps/s | 11519.3 | 0.0135078 |
+| T-chi2 | 1 | `rps_t_chi2` | 4.25 h | 1.63 steps/s | 11484.4 | 0.0134244 |
+
+`CONFIG_EQUALITY_ASSERTION=PASS` for both arms. Structural comparison of
+`artifacts/tidmad/t_mse/run_config.json` and
+`artifacts/tidmad/t_chi2/run_config.json` found exactly one differing path:
+`/run_config/train/loss`, with values `mse` and `chi2`; both record 25,000
+steps. Training logs and checkpoints remain under `artifacts/tidmad/t_mse/`
+and `artifacts/tidmad/t_chi2/`; screen logs are `screenlog_t_mse.txt` and
+`screenlog_t_chi2.txt`.
+
+## Inference and upstream scores
+
+Each final inference produced and metadata-validated 20/20 release-format HDF5
+files under `/ceph/dwong/paper1_dataset/tidmad/denoised/`. All four scoring passes
+used the unmodified `/home/dwong/src/TIDMAD/benchmark.py -c` and returned 0.
+
+| Arm | In-band score, files 0000-0015 | All-20 score, files 0000-0019 |
+|---|---:|---:|
+| T-mse | -2.353761452599672 | -2.7708098959837675 |
+| T-chi2 | -2.353761452599672 | -2.7708098959837675 |
+| T-chi2 minus T-mse | 0.0 | 0.0 |
+
+The in-band score is the reported result. Files 0016-0019 are the registered
+out-of-band set excluded from that comparison; the all-20 score documents their
+cost. Benchmark JSON and raw stdout are `results/rps2026/E5_t_mse_{inband,all20}.*`
+and `results/rps2026/E5_t_chi2_{inband,all20}.*`.
+
+The rung-4 contrast is exactly null at reported precision. This is the
+predeclared publishable finding and was not tuned. It suggests that, in this
+single-seed attention experiment, changing only the training metric did not
+change the upstream denoising score. Both negative scores also show that neither
+band-limited arm is competitive on this benchmark; the 16-file scores are not
+comparable to published 20-file baselines. Training-seed variance remains
+uncharacterized.
+
+## Final machine state
+
+Checked 2026-08-15 19:42:49 UTC on `deepthought`: all four GPUs reported 0 MiB
+used and no compute processes; `screen -ls` reported no sockets; no `run.pid`
+remained below `artifacts/tidmad`; and no experiment, benchmark, or pytest
+process remained. The host had 465 GiB available RAM, load averages
+2.96/3.00/2.06, and `results/rps2026` occupied 439 KiB. Large denoised outputs
+remain outside Git as required (20 T-mse files, 24,625,288,802 bytes; 20 T-chi2
+files, 24,564,667,015 bytes).

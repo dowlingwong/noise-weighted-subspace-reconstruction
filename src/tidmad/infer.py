@@ -22,8 +22,27 @@ import torch
 from .backbone.checkpoints import load_checkpoint
 
 from .config import FROZEN
-from .data import build_window_stft, spectrogram_to_series
+from .data import build_input_window_stft, spectrogram_to_series
 from .train import build_model, load_run_config
+
+
+def _restore_measurement_scale(out_std: torch.Tensor, spec_in: np.ndarray) -> torch.Tensor:
+    """Undo input standardization on the model output's device."""
+    input_tensor = torch.as_tensor(spec_in, device=out_std.device)
+    mean_in = torch.nanmean(input_tensor, dim=-1, keepdim=True)
+    std_in = torch.std(input_tensor, dim=-1, keepdim=True)
+    return out_std * (std_in + 1e-6) + mean_in
+
+
+def _window_positions(n_samples: int, window_samples: int) -> list[int]:
+    """Tile a file and add one overlapping window to cover any final suffix."""
+    if n_samples < window_samples:
+        raise ValueError("validation file is shorter than one inference window")
+    positions = list(range(0, n_samples - window_samples + 1, window_samples))
+    final_start = n_samples - window_samples
+    if positions[-1] != final_start:
+        positions.append(final_start)
+    return positions
 
 
 def _write_denoised_channel(denoised: np.ndarray, source: Path, destination_dir: Path, model_tag: str):
@@ -81,20 +100,33 @@ def infer(config: Path, checkpoint: Path, data_dir: Path, out_dir: Path, model_t
             n_samples = int(f["timeseries"]["channel0001"]["timeseries"].shape[0])
         n = run.data.window_samples
         denoised = np.empty(n_samples, dtype=np.float64)
-        pos = 0
+        positions = _window_positions(n_samples, n)
+        batch_size = run.train.device_batch_size
+        filled_until = 0
         with torch.no_grad():
-            while pos + n <= n_samples:
-                spec_in, _ = build_window_stft(
-                    path, contract, pos, run.stft, run.data.window_samples
-                )
-                z = torch.as_tensor(spec_in, dtype=torch.float32).unsqueeze(0).to(device)
+            for batch_start in range(0, len(positions), batch_size):
+                batch_positions = positions[batch_start : batch_start + batch_size]
+                specs = [
+                    build_input_window_stft(
+                        path, contract, pos, run.stft, run.data.window_samples
+                    )
+                    for pos in batch_positions
+                ]
+                spec_in = np.stack(specs)
+                z = torch.as_tensor(spec_in, dtype=torch.float32, device=device)
                 out_std = model(z)
-                mean_in = torch.nanmean(torch.as_tensor(spec_in), dim=-1, keepdim=True)
-                std_in = torch.std(torch.as_tensor(spec_in), dim=-1, keepdim=True)
-                out_meas = out_std * (std_in + 1e-6) + mean_in
-                seg = spectrogram_to_series(out_meas.squeeze(0).cpu().numpy(), run.stft, n)
-                denoised[pos : pos + n] = seg
-                pos += n
+                out_meas = _restore_measurement_scale(out_std, spec_in)
+                for batch_index, pos in enumerate(batch_positions):
+                    seg = spectrogram_to_series(
+                        out_meas[batch_index].cpu().numpy(), run.stft, n
+                    )
+                    copy_start = max(pos, filled_until)
+                    denoised[copy_start : pos + n] = seg[copy_start - pos :]
+                    filled_until = pos + n
+        if filled_until != n_samples:
+            raise RuntimeError(
+                f"inference covered {filled_until} of {n_samples} samples for {path}"
+            )
         _write_denoised_channel(denoised, path, out_dir, model_tag)
         _copy_reference_channel(path, out_dir, model_tag)
         print(f"wrote {out_dir / f'abra_validation_denoised_{model_tag}_{index}.h5'}")

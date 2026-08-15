@@ -30,6 +30,7 @@ from tidmad.train import (  # noqa: E402
     objective_key,
 )
 from tidmad.backbone.schedulers import cosine_scheduler_with_linear_warmup  # noqa: E402
+from tidmad.backbone.checkpoints import load_checkpoint  # noqa: E402
 
 
 def _tiny_run(**train_overrides) -> TidmadRunConfig:
@@ -88,6 +89,24 @@ def test_checkpoint_round_trips_exactly(tmp_path: Path):
     for key, value in fresh.state_dict().items():
         assert torch.allclose(value, before[key]), f"{key} did not restore"
     assert [s.get_last_lr() for s in f_scheds] == lrs_before, "scheduler state did not restore"
+
+
+def test_training_checkpoint_loads_for_inference(tmp_path: Path):
+    """Inference must unwrap the model state from the resumable checkpoint."""
+    run = _tiny_run()
+    model = build_model(run)
+    adamw, muon = model.configure_optimisers(adamw_fused=False)
+    scheds = [
+        cosine_scheduler_with_linear_warmup(adamw, run.train.warmup_steps, run.train.num_steps),
+        cosine_scheduler_with_linear_warmup(muon, run.train.warmup_steps, run.train.num_steps),
+    ]
+    path = _checkpoint(tmp_path, model, adamw, muon, scheds, step=7, run=run)
+
+    fresh = build_model(run)
+    load_checkpoint(fresh, path, "cpu")
+
+    for key, value in fresh.state_dict().items():
+        assert torch.equal(value, model.state_dict()[key]), f"{key} did not load"
 
 
 def test_chronological_split_leaves_a_guard_gap():

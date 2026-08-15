@@ -38,11 +38,8 @@ def stft(x: np.ndarray, cfg: TidmadSTFTConfig) -> np.ndarray:
     m = (x.size - n_fft) // hop + 1
     if m <= 0:
         raise ValueError(f"window_samples {x.size} too short for n_fft {n_fft}")
-    out = np.empty((n_fft // 2 + 1, m), dtype=np.complex128)
-    for j in range(m):
-        seg = x[j * hop : j * hop + n_fft] * win
-        out[:, j] = np.fft.rfft(seg, n=n_fft)
-    return out
+    frames = np.lib.stride_tricks.sliding_window_view(x, n_fft)[::hop][:m]
+    return np.fft.rfft(frames * win, n=n_fft, axis=-1).T
 
 
 def istft(X: np.ndarray, cfg: TidmadSTFTConfig, length: int | None = None) -> np.ndarray:
@@ -60,8 +57,8 @@ def istft(X: np.ndarray, cfg: TidmadSTFTConfig, length: int | None = None) -> np
     length = length if length is not None else (m - 1) * hop + n_fft
     out = np.zeros(length, dtype=np.float64)
     wsum = np.zeros(length, dtype=np.float64)
-    for j in range(m):
-        seg = np.fft.irfft(X[:, j], n=n_fft)
+    segments = np.fft.irfft(X.T, n=n_fft, axis=-1)
+    for j, seg in enumerate(segments):
         start = j * hop
         stop = start + n_fft
         out[start:stop] += seg
@@ -107,6 +104,26 @@ def read_channel_pair(path, contract, start: int, length: int) -> tuple[np.ndarr
         squid = np.asarray(f[contract.squid_dataset][start : start + length], dtype=np.float64)
         ref = np.asarray(f[contract.reference_dataset][start : start + length], dtype=np.float64)
     return squid + 128.0, ref + 128.0
+
+
+def read_input_channel(path, contract, start: int, length: int) -> np.ndarray:
+    """Read only the SQUID channel for inference."""
+    import h5py
+
+    with h5py.File(path, "r") as f:
+        squid = np.asarray(
+            f[contract.squid_dataset][start : start + length], dtype=np.float64
+        )
+    return squid + 128.0
+
+
+def build_input_window_stft(
+    path, contract, start: int, cfg: TidmadSTFTConfig, window_samples: int
+) -> np.ndarray:
+    """Build an input spectrogram without reading the unused target channel."""
+    return series_to_spectrogram(
+        read_input_channel(path, contract, start, window_samples), cfg
+    )
 
 
 def build_window_stft(

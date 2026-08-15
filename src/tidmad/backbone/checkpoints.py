@@ -218,8 +218,9 @@ def load_resume_checkpoint(
 
 
 def load_checkpoint(model, model_path: str | Path, device: str):
-    """Load a model-only inference checkpoint."""
+    """Load a model-only or TIDMAD resumable checkpoint for inference."""
 
-    model_state_dict = torch.load(model_path, map_location=device, weights_only=True)
+    payload = torch.load(model_path, map_location=device, weights_only=True)
+    model_state_dict = payload.get("model", payload) if isinstance(payload, dict) else payload
     model.load_state_dict(model_state_dict, strict=True)
     return model

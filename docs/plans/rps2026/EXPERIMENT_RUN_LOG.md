@@ -375,10 +375,35 @@ out-of-band set excluded from that comparison; the all-20 score documents their
 cost. Benchmark JSON and raw stdout are `results/rps2026/E5_t_mse_{inband,all20}.*`
 and `results/rps2026/E5_t_chi2_{inband,all20}.*`.
 
-The rung-4 contrast is exactly null at reported precision. This is the
+> **WITHDRAWN 2026-08-16.** The paragraph below reported the rung-4 contrast as
+> a publishable null. **It is not a null result; it is a display-resolution
+> artifact, and no claim may be based on it.**
+>
+> `benchmark.py:139` aggregates as
+> `np.round(sum(snr_sg * snr_squid)/n, decimals=2) + 1e-10` before taking
+> `log(score, 5.27)`. The raw score is **rounded to two decimal places**, so any
+> two methods differing by less than 0.005 return bit-identical values.
+> Inverting the logarithms: both arms sit at a rounded raw score of **0.02**
+> in band and **0.01** over all twenty files. Savitzky-Golay rounds to the same
+> 0.01, which is why round 1's reproduction matched to all 17 figures.
+>
+> Two consequences. First, the benchmark cannot resolve this contrast at this
+> operating point, so the correct statement is *"the upstream coarse score
+> cannot resolve the comparison"*, not *"changing the metric made no
+> difference"*. Second, both band-limited arms sit at raw 0.01-0.02 against
+> FCNet's 53,439 -- roughly six orders of magnitude below the published
+> baselines, which is expected for a band-limited 569k-parameter model at
+> 25,000 steps but should be stated plainly.
+>
+> Resolution: `tidmad.score_unrounded` recomputes the same quantity from the
+> release's own `GetOneSecPSD`/`getSNR`/`process_iteration`, without the
+> rounding. Rung-4 evidence should rest on the held-out chi-square and raw-MSE
+> contrast from training, with the unrounded benchmark score as support.
+
+~~The rung-4 contrast is exactly null at reported precision. This is the
 predeclared publishable finding and was not tuned. It suggests that, in this
 single-seed attention experiment, changing only the training metric did not
-change the upstream denoising score. Both negative scores also show that neither
+change the upstream denoising score.~~ Both negative scores also show that neither
 band-limited arm is competitive on this benchmark; the 16-file scores are not
 comparable to published 20-file baselines. Training-seed variance remains
 uncharacterized.

@@ -502,3 +502,57 @@ arms. Does not support: metric reversal at rung 4 (predicted, not observed);
 any claim that the benchmark distinguishes the arms (interval includes zero);
 any claim stronger than a paired difference for the held-out contrast, since
 each arm is a single seed.
+
+# Round 8 (2026-08-18) — Task A: whitening dynamic range
+
+Data root auto-resolved by `tidmad.paths` to `/ceph/dwong/paper1_dataset/tidmad/raw`,
+the same tree rounds 3–6 used. Record: `results/rps2026/E6_whitening_range.json`.
+
+| statistic | value (including DC) |
+|---|---|
+| `J` range | 1.27e+05 .. 5.602e+07 (median 7.455e+05) |
+| `ratio_max_min` | 441 |
+| `ratio_p99_p01` | 124 |
+| **`cv_inverse_J`** | **0.6914** |
+| `effective_n_bands` | 221.9 of 328 |
+
+**Gate: FAILED, and decisively.** The threshold was `cv_inverse_J` ≲ 0.1. The measured
+0.69 is nearly seven times that, and about 3.5× what a mere 2× dynamic range produces
+(0.20 on synthetic vectors). The SQUID noise has real structure across 0–800 kHz.
+
+**Consequence: the paper's near-collinearity explanation for the rung-4 non-reversal is
+refuted.** `chi2 = mean(r²/J)` and `mean(r²)` are genuinely different objectives over
+this band, so the absence of reversal at rung 4 is not metric degeneracy. This was
+pre-declared as a possible outcome in `ROUND7_WHITENING_RUNBOOK.md` §"If the gate fails"
+and the threshold was not adjusted after seeing the number.
+
+Environment note from the operator: the runbook's
+`PYTHON=/home/dwong/anaconda3/bin/python` lacks `jaxtyping`, which the module needs via
+the `train.py` import chain. Task A was run with the repository `.venv` interpreter —
+the launcher's default and the one rounds 3–6 used. The runbook has been corrected.
+
+## Desk follow-up (same day)
+
+Manuscript revised to match the measurement rather than the prior inference:
+
+- §4 now states the test and its outcome — `J` spans a factor 441 over the modelled
+  band, whitening weights have coefficient of variation 0.69, far from proportional —
+  and attributes the absence to this instantiation (capacity absorbing the weighting)
+  with one seed per arm, rather than to a degenerate metric.
+- The abstract's causal clause ("because the two objectives stop separating once
+  whitening approaches a constant rescaling") was **false as written** and is replaced
+  by a statement that the obvious explanation is ruled out by measurement.
+- §5's caveat "the near-collinearity account is inferred from the effect signature, not
+  measured" is replaced: the objectives are measurably non-degenerate, and what does
+  account for the absence is unknown.
+
+Rebuilt: main content 4 pages, references from p5, 0 overfull boxes, 0 undefined
+references or citations.
+
+An additional check on data already on disk, from the round-6 series: over 50
+evaluations the χ²-trained arm's advantage on *training* MSE is **not** resolved
+(paired −14.3, 95% [−30.3, +2.1], favouring it in 60% of evaluations), while its
+advantage on training χ² is (paired −9.94e-05, [−1.14, −0.86]e-04, 98% of
+evaluations). So the raw-MSE advantage seen on held-out data is not explained by the
+χ² arm simply optimising better; note these intervals are over evaluation points on a
+single trajectory, not over seeds, which is exactly what Task B addresses.

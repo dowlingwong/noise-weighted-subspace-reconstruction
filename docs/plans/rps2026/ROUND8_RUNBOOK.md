@@ -43,7 +43,9 @@ objectives are nearly collinear and there is no metric contrast to detect.
 ```bash
 export CODE_ROOT=~/noise-weighted-subspace-reconstruction
 cd $CODE_ROOT && git pull && export PYTHONPATH=src
-export PYTHON=/home/dwong/anaconda3/bin/python
+# Use the repository .venv, not the anaconda interpreter: the latter lacks
+# jaxtyping, which tidmad modules need via the train.py import chain.
+export PYTHON=$CODE_ROOT/.venv/bin/python
 
 # New this round; without the pull neither task can run.
 ls src/tidmad/paths.py && grep -c '"--seed"' src/tidmad/train.py    # must print the file and >= 1
@@ -140,6 +142,12 @@ out — the point is to measure what the loss actually divided by.
 
 ## 3. Task B — a second seed for both rung-4 arms (~5 h wall clock, 2 GPUs)
 
+**Task A's outcome makes this task more valuable, not less.** With `cv_inverse_J = 0.69`
+the two objectives are measurably far from proportional, so the non-reversal is no longer
+attributable to a degenerate metric. Two candidates remain — the architecture absorbing
+the weighting at this capacity and budget, or the contrast being within seed variance —
+and only the second is testable before the deadline. Task B tests it.
+
 **Why this and not something else.** The rung-4 non-reversal is the paper's most
 interesting claim and its weakest evidence. Round 6 measured a paired difference between
 one run and one run; the honest reading is that we cannot yet separate the objective from
@@ -205,6 +213,14 @@ Convert each to `E7_${ARM}_s${SEED}_eval_series.csv` with the round-6 columns
 
 Write `results/rps2026/E7_rung4_seed_replication.json` with both seeds' paired
 differences, both intervals, and a boolean for sign agreement on each metric.
+
+**Also report the training columns, not only the held-out ones.** On seed 20260808 the
+χ²-trained arm's advantage on *training* MSE is not resolved (paired −14.3, 95 %
+[−30.3, +2.1], favouring it in 60 % of evaluations) while its advantage on training χ² is
+(−9.94e-05, [−1.14, −0.86]e-04, 98 %). If the second seed reproduces that pattern, the
+held-out raw-MSE advantage is not simply the χ² arm optimising better, which is the first
+alternative a referee will reach for. Report `train_mse` and `train_chi2` paired
+differences with intervals alongside the held-out ones.
 
 ### What each outcome means — decided in advance
 

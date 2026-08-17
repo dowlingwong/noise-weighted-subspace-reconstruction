@@ -109,7 +109,9 @@ def main() -> int:
          _rung4_panel(rng)),
     ]
 
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.1), sharey=False)
+    # 9.6 x 2.1: short enough that the figure plus caption fits the main
+    # text's page budget when scaled to \linewidth (height ~1.2 in at 5.5 in).
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.1), sharey=False)
     for ax, (title, p) in zip(axes, panels):
         for i, (key, colour, label) in enumerate(
             ((("chi2"), C_CHI2, "likelihood residual $\\bar\\chi^2$"),

@@ -1,6 +1,14 @@
 \begin{table}[t]
   \centering
-  \caption{TIDMAD coarse denoising scores (higher is better) from published baselines, the archived linear estimate, and this paper's two rung-4 arms, which share architecture, data, and budget and differ only in the training objective.}
+  \caption{TIDMAD coarse denoising scores (higher is better) from published
+  baselines, the archived linear estimate, and this paper's two rung-4 arms,
+  which share architecture, data, and budget and differ only in the training
+  objective. The two arms return bit-identical values because the upstream
+  aggregation rounds the raw score to $0.01$ before the logarithm and both
+  band-limited arms fall in the same bin; rescoring without the rounding gives
+  $0.0241$ vs.\ $0.0231$ in band, a contrast whose bootstrap interval spans zero
+  (Section~4). Band-limited arms are not comparable to the full-band published
+  rows.}
   \label{tab:rung4}
   \small
   \setlength{\tabcolsep}{5pt}
@@ -13,8 +21,8 @@
     PUNet & 3.84 \\
     none & 1.10 (1.1026) \\
     linear Wiener (archived) & $-1.8025$ \\
-    \texttt{T-mse} & \PENDING{coarse score --- PLAN\_03} \\
-    \texttt{T-chi2} & \PENDING{coarse score --- PLAN\_03} \\
+    \texttt{T-mse} & $-2.7708$ \\
+    \texttt{T-chi2} & $-2.7708$ \\
     \bottomrule
   \end{tabular}
 \end{table}

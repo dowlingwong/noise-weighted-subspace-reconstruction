@@ -417,3 +417,88 @@ process remained. The host had 465 GiB available RAM, load averages
 2.96/3.00/2.06, and `results/rps2026` occupied 439 KiB. Large denoised outputs
 remain outside Git as required (20 T-mse files, 24,625,288,802 bytes; 20 T-chi2
 files, 24,564,667,015 bytes).
+
+# Round 6 (2026-08-17) — T2a held-out series and T2b benchmark interval
+
+No training, no new experiments; everything read files already on disk.
+
+## T2a — held-out χ² and raw MSE series
+
+Resolved logs (latest `training.log`, top-level):
+`artifacts/tidmad/t_mse/training.log` and
+`artifacts/tidmad/t_chi2/training.log`. Extracted 50 evaluation lines per arm
+(steps 500–25000, period 500) to
+`results/rps2026/E5_{t_mse,t_chi2}_eval_series.txt`, converted to
+`E5_{t_mse,t_chi2}_eval_series.csv` with columns
+`step,train_mse,train_chi2,val_mse,val_chi2,steps_per_s,eta_s`
+(the console line does not carry `elapsed_s`, which is wandb-only, so that
+column was dropped and `eta_s` converted from the logged hours).
+
+**Step-grid gate passed:** both arms have exactly 50 evaluations at the same
+step values (500, 1000, …, 25000); matched budget and seed handling.
+
+Final evaluation (step 25000), lower is better:
+
+| metric | `t_mse` | `t_chi2` | paired `t_chi2 − t_mse` |
+|---|---|---|---|
+| `val_chi2` | 0.0135078 | 0.0134244 | −8.34e-05 |
+| `val_mse` | 11519.3 | 11484.4 | −34.9 |
+
+Mean over the last ten evaluations (steps 20500–25000): `val_chi2` 0.0135121
+vs 0.0134277 (paired −8.44e-05); `val_mse` 11525.8 vs 11487.8 (paired −37.99).
+
+Per-evaluation paired difference series `t_chi2 − t_mse` (50 evaluations),
+percentile bootstrap 95 %, 100 000 resamples, seed 20260817:
+
+| metric | mean paired diff | 95 % interval | excludes zero |
+|---|---|---|---|
+| `val_chi2`, all 50 | −1.148e-04 | [−1.269e-04, −1.034e-04] | yes |
+| `val_chi2`, last 10 | −8.444e-05 | [−8.603e-05, −8.297e-05] | yes |
+| `val_mse`, all 50 | −57.18 | [−71.52, −42.52] | yes |
+| `val_mse`, last 10 | −37.99 | [−42.26, −34.93] | yes |
+
+**The predicted signature does not occur.** `t_chi2` is better on *both*
+metrics; there is no metric reversal at rung 4. The Σ⁻¹-weighted objective
+improves the whitened residual and does not sacrifice raw MSE. This is a real,
+pre-anticipated finding about whether the metric question survives into a
+nonlinear architecture at this scale, reported exactly as measured — no
+re-running, no subset selection.
+
+## T2b — interval for the benchmark contrast
+
+Re-ran the in-band rescore per `ROUND6_T2_RUNBOOK.md` §3 with the same
+`~`-resolved denoised directory as round 5
+(`/ceph/dwong/paper1_dataset/tidmad/denoised`; the `/ceph/dwong/datasets`
+path from round 5's plan does not exist). 16 in-band files, 320 one-second
+windows scored, `per_window_products` captured in the refreshed
+`results/rps2026/E5_{t_mse,t_chi2}_inband_unrounded.json`.
+
+- **Determinism:** `raw_score_unrounded` reproduces round 5 exactly —
+  t_mse 0.024149077851187167, t_chi2 0.023130609616883405 (bit-identical).
+- **Reference-channel identity:** `snr_sg_normalised` is identical between
+  arms (320/320 entries), confirming the audit prediction that the entire
+  contrast is carried by `snr_squid`.
+- **Paired difference per window** (mean, `t_chi2 − t_mse`): −0.0010184682.
+- **Percentile bootstrap 95 %, 10 000 resamples, seed 20260817:**
+  window-level [−0.0033273, +0.0013807]; file-block bootstrap (16 blocks × 20
+  windows) [−0.0046086, +0.0023744]. **Both include zero.**
+- Result written to `results/rps2026/E5_benchmark_contrast_interval.json`.
+
+**Statement the round supports:** the benchmark does not distinguish the arms
+at this operating point; round 5's point estimate (4.4 %) is not resolvable
+once the per-window structure is taken into account. This is weaker than the
+point estimate suggested, but is not a null about the training metric — the
+benchmark is a narrowband SNR-recovery measure neither arm optimised, both
+arms sit ~6 orders of magnitude below the published baselines, and the
+held-out contrast in T2a does resolve.
+
+## What Round 6 does and does not support
+
+Supports: a resolvable held-out paired contrast (χ²-trained arm better on
+both metrics, intervals excluding zero, matched step grids); the benchmark
+score's point estimate and the fact that its uncertainty spans zero; the
+determinism of the unrounded scorer; the reference-channel identity across
+arms. Does not support: metric reversal at rung 4 (predicted, not observed);
+any claim that the benchmark distinguishes the arms (interval includes zero);
+any claim stronger than a paired difference for the held-out contrast, since
+each arm is a single seed.

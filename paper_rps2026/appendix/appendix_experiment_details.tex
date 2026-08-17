@@ -1,0 +1,20 @@
+\section{Experiment details and reporting limits}
+
+The controlled NFPA experiment uses $C=2$ channels, $T=256$ samples, a sampling rate of $1\,\mathrm{kHz}$, channel weights $(1.0,0.65)$, and amplitude $A\sim\mathcal{N}(1,0.3^2)$. The noise is Brownian with $S_n(f)\propto1/f^2$ and is whitened using the matched temporal frequency-domain filter. The train and test sets contain 800 and 300 events. NFPA and IsoAE use $(k_c,k_t)=(2,3)$, while CW-PCA and IsoPCA use rank six.
+
+Because $C=k_c=2$, $U_cU_c^\top=I_2$ in this experiment: the reconstruction restricts a temporal subspace shared by both channels but does not compress the channel axis. Principal angles between NFPA and CW-PCA are $0.0^\circ$, $59.3^\circ$, $64.6^\circ$, $73.8^\circ$, $84.8^\circ$, and $87.8^\circ$ (mean $61.7^\circ$). The corresponding IsoAE--CW-PCA angles are $82.1^\circ$, $83.7^\circ$, $86.0^\circ$, $86.6^\circ$, $88.2^\circ$, and $89.4^\circ$ (mean $86.0^\circ$). These are point estimates from one seed and split. The exact held-out raw-MSE values for IsoAE and IsoPCA are re-exported at full precision from the archived run ($4.58\times10^{-9}$ and $4.33\times10^{-9}$).
+
+\input{tables/results_summary}
+
+\subsection{TIDMAD rung-4 baselines}
+\label{app:rung4-baselines}
+
+\input{tables/rung4_baselines}
+
+A submission-strength empirical study should repeat this comparison across seeds and train/test splits and sweep SNR, noise color, channel count, rank pair, and controlled nonseparability. It should report confidence intervals for held-out $\bar\chi^2$, raw MSE, and subspace angles. No such uncertainty estimate is claimed here.
+
+\subsection{Predeclared confirmatory protocol}
+\label{app:protocol}
+The multi-seed confirmatory study is predeclared before execution and tests three hypotheses. H1 (metric reversal at fixed architecture): under colored or correlated noise, NFPA and an isotropically trained multilinear projection with the same $(k_c,k_t)$ should disagree in ranking, with paired across-seed confidence intervals excluding zero in the predicted directions. H2 (white-noise control): when $\Sigma=\sigma^2I$, covariance-aware and Euclidean projectors should agree to numerical tolerance. H3 (active restriction): with $C>k_c$ and $T>k_t$, NFPA should recover the planted channel and temporal subspaces for separable signals. Truth-referenced recovery (an earlier fourth hypothesis) is now covered by the rung-4 amplitude error against TIDMAD's real injected reference channel and is not run synthetically. The primary configuration uses $C=8$ channels, $T=256$ samples, ranks $(k_c,k_t)=(2,3)$, $800/400/2000$ training/validation/test events, $10$ independent seeds, $10$ ALS restarts per seed, SNR $10$ under $\mathrm{SNR}^2=\mathbb{E}[s^\top\Sigma^{-1}s]$, Brownian $1/f^2$ temporal noise with channel correlation, oracle covariance, and nonseparability $\alpha=0.1$. Results enter the main text only if every acceptance gate holds: all seeds complete without post-result configuration changes; the fixed-architecture reversal intervals exclude zero in the predicted directions; the white-noise control passes its predeclared equivalence margin; and the table and figure are generated directly from archived seed-level results.
+
+The factored representation (Section~3, generic form) has $O(k_1n_1+k_2n_2)$ basis parameters rather than $O(k_1k_2n_1n_2)$ for an unstructured basis, trading approximation flexibility for a two-axis inductive bias related to classical tensor factorizations \citep{kolda2009,lu2008mpca}. Alternating spectral updates solve each factor subproblem exactly, although the joint product-manifold objective remains nonconvex.

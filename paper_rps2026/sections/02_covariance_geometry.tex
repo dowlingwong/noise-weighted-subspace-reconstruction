@@ -1,0 +1,26 @@
+\section{Covariance-weighted representation geometry}
+
+Let $x_i=s_i+n_i\in\R^d$ be a mean-subtracted observation with $n_i\sim\mathcal{N}(0,\Sigma)$ and $\Sigma\succ0$. The training mean is estimated once, applied to held-out observations, and added back after reconstruction. For a candidate reconstruction $\hat{s}_i$, the Gaussian negative log-likelihood is, up to constants,
+\begin{equation}
+  \chi^2(\hat{s}_i)=(x_i-\hat{s}_i)^\top\Sigma^{-1}(x_i-\hat{s}_i).
+  \label{eq:mahalanobis}
+\end{equation}
+Whitening, $\tilde{x}_i=\Sigma^{-1/2}x_i$, maps this quadratic form to $\|\tilde{x}_i-\hat{\tilde{s}}_i\|_2^2$: the noise-aware problem is Euclidean projection in whitened coordinates and $\Sigma^{-1}$-orthogonal projection in measurement coordinates. We report the mean per-trace residual $N^{-1}\sum_i\chi_i^2$ or the per-coordinate normalized residual
+\begin{equation}
+ \bar\chi^2=\frac{1}{Nd}\sum_{i=1}^{N}\chi^2(\hat{s}_i),
+ \label{eq:normalized-chi2}
+\end{equation}
+stating explicitly which normalization is used.
+
+The theory treats $\Sigma$ as specified; in practice it comes from instrument calibration or noise-only records, is estimated and regularized without evaluation data, and a misspecified $\Sigma$ defines a misspecified geometry (Appendix~\ref{app:protocol}).
+
+\begin{proposition}[Noise-weighted projection bridge]
+\label{prop:bridge}
+Under the model above, OF, rank-$k$ covariance-weighted PCA (CW-PCA), and a tied noise-aware linear autoencoder minimize Eq.~\eqref{eq:mahalanobis} over different admissible subspaces. OF fixes a rank-one template; CW-PCA learns a rank-$k$ subspace; and the tied autoencoder parameterizes the same learned projection when its encoder is the $\Sigma^{-1}$-adjoint of its decoder.
+\end{proposition}
+
+\paragraph{Proof sketch.}
+Whitening reduces the problem to ordinary rank-$k$ approximation, so every minimizer spans a leading eigenspace of the whitened sample covariance; at rank one this is the optimal filter, and the tied $\Sigma^{-1}$-adjoint encoder follows from the same geometry rather than from an architectural choice. Unlike the latent-variable precedents of Section~1, the full covariance is kept specified rather than assumed isotropic or diagonal. Details in Appendix~\ref{app:proofs}.
+
+\paragraph{Metric reversal.}
+Raw MSE replaces $\Sigma^{-1}$ by $I$ and is likelihood-correct only when $\Sigma=\sigma^2I$. With colored or correlated noise, the two objectives rank residual directions differently: MSE follows raw variance, whereas Eq.~\eqref{eq:mahalanobis} emphasizes high-information directions. Consequently, two equal-rank models can satisfy $\mathrm{MSE}(A)<\mathrm{MSE}(B)$ but $\chi^2(A)>\chi^2(B)$, with learned subspaces nearly orthogonal after whitening. This is not an evaluation paradox: each model is optimal in a different geometry.

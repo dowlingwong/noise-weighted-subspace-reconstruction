@@ -1,0 +1,17 @@
+\begin{table}[t]
+  \centering
+  \caption{Implementation check: the single-split $C=k_c=2$ run reported by the earlier draft, retained for provenance. $\bar\chi^2$ is the per-coordinate normalized whitened residual from Eq.~\eqref{eq:normalized-chi2}; $\bar\theta$ is the mean principal angle to CW-PCA in whitened space.}
+  \label{tab:results}
+  \small
+  \setlength{\tabcolsep}{3.8pt}
+  \begin{tabular}{lccccc}
+    \toprule
+    Method & Training & Class & $\bar\chi^2$ & Raw MSE & $\bar\theta$ \\
+    \midrule
+    CW-PCA & $\Sigma^{-1}$ & full & 0.9929 & $4.95\!\times\!10^{-3}$ & $0^\circ$ \\
+    NFPA & $\Sigma^{-1}$ & factored & 0.9916 & $4.95\!\times\!10^{-3}$ & $61.7^\circ$ \\
+    IsoAE & MSE & factored & 0.9995 & $4.58\!\times\!10^{-9}$ & $86.0^\circ$ \\
+    IsoPCA & MSE & full & 1.0007 & $4.33\!\times\!10^{-9}$ & --- \\
+    \bottomrule
+  \end{tabular}
+\end{table}

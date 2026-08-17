@@ -18,3 +18,33 @@ A submission-strength empirical study should repeat this comparison across seeds
 The multi-seed confirmatory study is predeclared before execution and tests three hypotheses. H1 (metric reversal at fixed architecture): under colored or correlated noise, NFPA and an isotropically trained multilinear projection with the same $(k_c,k_t)$ should disagree in ranking, with paired across-seed confidence intervals excluding zero in the predicted directions. H2 (white-noise control): when $\Sigma=\sigma^2I$, covariance-aware and Euclidean projectors should agree to numerical tolerance. H3 (active restriction): with $C>k_c$ and $T>k_t$, NFPA should recover the planted channel and temporal subspaces for separable signals. Truth-referenced recovery (an earlier fourth hypothesis) is now covered by the rung-4 amplitude error against TIDMAD's real injected reference channel and is not run synthetically. The primary configuration uses $C=8$ channels, $T=256$ samples, ranks $(k_c,k_t)=(2,3)$, $800/400/2000$ training/validation/test events, $10$ independent seeds, $10$ ALS restarts per seed, SNR $10$ under $\mathrm{SNR}^2=\mathbb{E}[s^\top\Sigma^{-1}s]$, Brownian $1/f^2$ temporal noise with channel correlation, oracle covariance, and nonseparability $\alpha=0.1$. Results enter the main text only if every acceptance gate holds: all seeds complete without post-result configuration changes; the fixed-architecture reversal intervals exclude zero in the predicted directions; the white-noise control passes its predeclared equivalence margin; and the table and figure are generated directly from archived seed-level results.
 
 The factored representation (Section~3, generic form) has $O(k_1n_1+k_2n_2)$ basis parameters rather than $O(k_1k_2n_1n_2)$ for an unstructured basis, trading approximation flexibility for a two-axis inductive bias related to classical tensor factorizations \citep{kolda2009,lu2008mpca}. Alternating spectral updates solve each factor subproblem exactly, although the joint product-manifold objective remains nonconvex.
+
+\subsection{Evidence figure}
+\label{app:evidence-figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{figures/evidence}
+  \caption{Paired contrasts at fixed architecture, as relative differences so
+  the rungs are comparable. \textbf{A}, rung 3 under colored noise, ten seeds:
+  NFPA minus the isotropically trained factored baseline is $-1.86\%$ on the
+  normalized likelihood residual and $+49.6\%$ on raw MSE. The two point in
+  opposite directions --- metric reversal, with both intervals excluding zero.
+  \textbf{B}, the same contrast with $\Sigma=\sigma^2I$ over twenty seeds is
+  exactly zero, isolating covariance geometry rather than rank or optimization as
+  the cause of A. \textbf{C}, rung 4, fifty held-out evaluations at a matched
+  step grid: the $\Sigma^{-1}$-trained arm is better on \emph{both} criteria
+  ($-0.84\%$ and $-0.49\%$), so the reversal does not survive into this
+  instantiation. Intervals are seed-level (A, B) or evaluation-level (C)
+  percentile bootstraps, $10^4$ resamples. Every value is computed from the
+  archived per-seed and per-evaluation records by
+  \texttt{scripts/make\_rps\_figure.py}.}
+  \label{fig:evidence}
+\end{figure}
+
+\paragraph{Rung-2 numbers carried from the companion work.}
+In the 30-seed rank-two benchmark ($512$ traces of dimension $256$ per seed), PCA and CW-PCA had held-out
+weighted residuals $48.419$ and $47.869$ (paired difference $0.550$, $[0.530,0.571]$) while raw MSE
+preferred the opposite reconstruction, their whitened subspaces $86.25^\circ$ apart. The ten-seed
+white-noise control gave a maximum angle of $1.48\times10^{-6}$ degrees. On the TIDMAD file the amplitude
+RMSE fell from $0.1209$ to $0.0880$.

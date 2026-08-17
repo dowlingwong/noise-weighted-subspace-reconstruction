@@ -79,10 +79,19 @@ outcome.
 (The earlier draft's "not explained by better optimisation" claimed more than the
 evidence supports; do not use it.)
 
-## Page budget
+## Page budget — **both outcomes dry-run compiled 2026-08-18, both fit**
 
-Each replacement is 1–3 lines longer than the current text. Donors, in order: the
-§3 sentence "Injecting the optimal-filter statistic..." (design mention, movable
-to the appendix); §4's "The single-split $C=k_c=2$ run is in Appendix~B.2.";
-caption last sentence. After the swap, re-verify: references start p5, 0 overfull,
-0 undefined.
+With realistic-width placeholder numbers:
+
+- **Outcome 1** + donor 1 (the §3 OF-injection sentence): references start p5,
+  0 overfull, 0 undefined.
+- **Outcome 2** (all four edits: §4 text, abstract, caption relabel, §5 caveat)
+  + donors 1 and 2 (§4's single-split pointer): references start p5, 0 overfull,
+  0 undefined.
+
+So on sync day: substitute the real numbers into the applicable version, apply
+the listed donor(s), rebuild, re-verify the same three gates. The donor removals
+are pre-tested; no new cutting will be needed. Note donor 1 removes the paper's
+only `priorThesis` citation — if Outcome 1 (which needs just one donor line)
+leaves room, prefer keeping donor 1 and trimming the caption's last sentence
+instead, so the attribution stays.

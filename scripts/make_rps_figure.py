@@ -72,14 +72,26 @@ def _nfpa_panel(csv_path: Path, rng: np.random.Generator) -> dict:
     return out
 
 
-def _rung4_panel(rng: np.random.Generator) -> dict:
-    """Rung 4 contrast from the two arms' held-out evaluation series."""
-    series = {
-        arm: _rows(RESULTS / f"E5_{arm}_eval_series.csv") for arm in ("t_mse", "t_chi2")
-    }
+def _rung4_panel(rng: np.random.Generator, prefix: str = "E5") -> dict:
+    """Rung 4 contrast from the two arms' held-out evaluation series.
+
+    ``prefix`` selects the series pair: ``E5`` is the archived first seed;
+    a replication seed passes e.g. ``E7`` with files named
+    ``E7_t_{mse,chi2}_s<seed>_eval_series.csv`` (any single match per arm).
+    """
+    series = {}
+    for arm in ("t_mse", "t_chi2"):
+        exact = RESULTS / f"{prefix}_{arm}_eval_series.csv"
+        candidates = [exact] if exact.exists() else sorted(RESULTS.glob(f"{prefix}_{arm}_s*_eval_series.csv"))
+        if len(candidates) != 1:
+            raise SystemExit(
+                f"expected exactly one {prefix} series for {arm}, found "
+                f"{[c.name for c in candidates]}"
+            )
+        series[arm] = _rows(candidates[0])
     steps = {arm: [r["step"] for r in rows] for arm, rows in series.items()}
     if steps["t_mse"] != steps["t_chi2"]:
-        raise SystemExit("rung-4 arms have different evaluation grids; not comparable")
+        raise SystemExit(f"{prefix}: rung-4 arms have different evaluation grids; not comparable")
 
     out = {}
     for key, col in (("chi2", "val_chi2"), ("mse", "val_mse")):
@@ -93,20 +105,32 @@ def _rung4_panel(rng: np.random.Generator) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", type=Path, default=Path("paper_rps2026/figures/evidence.pdf"))
+    ap.add_argument("--with-seed2", metavar="PREFIX", default=None,
+                    help="add the replication seed's contrast to panel C as hatched "
+                         "bars, read from <PREFIX>_t_{mse,chi2}[_s*]_eval_series.csv "
+                         "(e.g. E7). Default: seed 1 only, output unchanged.")
     args = ap.parse_args()
 
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    # Panel order A, B, C matters: the shared rng is consumed in this order, so
+    # the archived figure's intervals reproduce bit-identically. The optional
+    # seed-2 panel draws after C, leaving the first three panels' draws intact.
     rng = np.random.default_rng(BOOTSTRAP_SEED)
+    panel_a = _nfpa_panel(RESULTS / "E1_nfpa_blockA" / "block_A_colored_raw.csv", rng)
+    panel_b = _nfpa_panel(RESULTS / "E2_nfpa_blockB" / "block_B_white_raw.csv", rng)
+    rung4 = _rung4_panel(rng)
+    c_title = "C  rung 4, factored attention\n$\\chi^2$-trained $-$ MSE-trained"
+    if args.with_seed2:
+        rung4["seed2"] = _rung4_panel(rng, prefix=args.with_seed2)
+        c_title = ("C  rung 4, factored attention\n"
+                   "$\\chi^2$-trained $-$ MSE-trained, two seeds")
     panels = [
-        ("A  rung 3, colored noise\nNFPA $-$ isotropic, same architecture",
-         _nfpa_panel(RESULTS / "E1_nfpa_blockA" / "block_A_colored_raw.csv", rng)),
-        ("B  rung 3, white noise\ncontrol: $\\Sigma=\\sigma^2 I$",
-         _nfpa_panel(RESULTS / "E2_nfpa_blockB" / "block_B_white_raw.csv", rng)),
-        ("C  rung 4, factored attention\n$\\chi^2$-trained $-$ MSE-trained",
-         _rung4_panel(rng)),
+        ("A  rung 3, colored noise\nNFPA $-$ isotropic, same architecture", panel_a),
+        ("B  rung 3, white noise\ncontrol: $\\Sigma=\\sigma^2 I$", panel_b),
+        (c_title, rung4),
     ]
 
     # 9.6 x 2.1: short enough that the figure plus caption fits the main
@@ -117,11 +141,19 @@ def main() -> int:
             ((("chi2"), C_CHI2, "likelihood residual $\\bar\\chi^2$"),
              (("mse"), C_MSE, "raw MSE"))
         ):
-            mean, lo, hi = p[key]
-            ax.barh(i, mean, height=0.5, color=colour, zorder=3)
-            ax.plot([lo, hi], [i, i], color="0.15", lw=1.6, zorder=4)
-            ax.plot([lo, lo], [i - .1, i + .1], color="0.15", lw=1.6, zorder=4)
-            ax.plot([hi, hi], [i - .1, i + .1], color="0.15", lw=1.6, zorder=4)
+            def _bar(y, stats, height, hatch=None):
+                mean, lo, hi = stats
+                ax.barh(y, mean, height=height, color=colour, zorder=3,
+                        hatch=hatch, edgecolor="white" if hatch else None, lw=0)
+                ax.plot([lo, hi], [y, y], color="0.15", lw=1.6, zorder=4)
+                for x in (lo, hi):
+                    ax.plot([x, x], [y - .08, y + .08], color="0.15", lw=1.6, zorder=4)
+
+            if "seed2" in p:
+                _bar(i - 0.15, p[key], 0.26)
+                _bar(i + 0.15, p["seed2"][key], 0.26, hatch="////")
+            else:
+                _bar(i, p[key], 0.5)
             if i == 0:
                 ax.set_yticks([0, 1])
                 ax.set_yticklabels([])
@@ -136,6 +168,8 @@ def main() -> int:
         # Symmetric so the *sign* of each bar -- which is the whole point -- is
         # read off the zero line rather than inferred from the axis.
         extent = max(abs(v) for k in ("chi2", "mse") for v in p[k])
+        if "seed2" in p:
+            extent = max(extent, max(abs(v) for k in ("chi2", "mse") for v in p["seed2"][k]))
         if extent < 1e-9:
             # The white-noise control is identically zero. A tiny auto-range
             # collides its tick labels and implies precision that is not the
@@ -172,6 +206,12 @@ def main() -> int:
             m, lo, hi = p[key]
             print(f"     {key:<5} {m:+8.3f}%  CI [{lo:+.3f}, {hi:+.3f}]"
                   f"   {'excludes 0' if (lo > 0 or hi < 0) else 'includes 0'}")
+        if "seed2" in p:
+            for key in ("chi2", "mse"):
+                m, lo, hi = p["seed2"][key]
+                s1_sign, s2_sign = np.sign(p[key][0]), np.sign(m)
+                print(f"     {key:<5} {m:+8.3f}%  CI [{lo:+.3f}, {hi:+.3f}]   seed 2, "
+                      f"sign {'AGREES' if s1_sign == s2_sign else 'DISAGREES'} with seed 1")
     return 0
 
 

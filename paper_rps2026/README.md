@@ -1,20 +1,58 @@
 # Noise Covariance as Representation Geometry for Scientific Reconstruction
 
-Target: NeurIPS 2026 Workshop on Representations for the Physical Sciences (R/PS)
+Target: NeurIPS 2026 Workshop on Representations for the Physical Sciences (R/PS).
+Deadline **29 Aug 2026 AoE**; submit via OpenReview
+(`NeurIPS.cc/2026/Workshop/RPS`), single PDF, double-blind, non-archival.
 
-This is a four-page, non-archival workshop paper distilled from:
+A four-page workshop paper distilled from Paper 1 (likelihood geometry,
+OF/CW-PCA/tied-linear-AE bridge, metric reversal), Paper 2 (NFPA,
+Kronecker-restricted representation geometry), and the rung-4 TIDMAD
+factored-attention experiment. Main thesis: a reconstruction method is the pair
+`(Σ⁻¹, F)` — the measurement likelihood fixes the residual geometry, the
+architecture the admissible representation class — and whether the metric choice
+bites is a measurable property of the instrument and the representation.
 
-- Paper 1: likelihood geometry, OF/EMPCA/tied-linear-AE bridge, and metric reversal.
-- Paper 2: NFPA and Kronecker-restricted representation geometry.
-
-Main thesis: scientific reconstruction under structured noise should learn representations in the covariance-induced metric, not raw Euclidean MSE.
-
-The submission build is anonymous (`dblblindworkshop`) and uses the official R/PS 2026 template downloaded from the workshop website on 2026-08-07. The main text is separated from references and appendices by an explicit page break.
-
-Build:
+## Build and verify
 
 ```sh
-make
+make                      # latexmk; output paper.pdf
 ```
 
-The OpenReview submission must be the single generated `paper.pdf`; do not upload source files or supplementary files. Any future code/data link must be anonymized.
+Gates every edit must preserve: **4 pages of main content** (references start on
+p5), 0 overfull boxes, 0 undefined references, 0 `\PENDING`, empty PDF Author
+field, and a clean anonymity sweep
+(`pdftotext paper.pdf - | grep -iE 'dowling|wong|karlsruhe|kit.edu|delight|acknowledg'`).
+
+Figure 1 is generated, never hand-edited:
+
+```sh
+cd .. && python scripts/make_rps_figure.py            # seed 1 (current paper)
+python scripts/make_rps_figure.py --with-seed2 E7     # after the E7 sync
+```
+
+The template (`neurips_2026.sty`) is byte-identical to the official R/PS zip,
+vendored under `vendor/`.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `sections/`, `appendix/`, `tables/`, `figures/` | manuscript source |
+| `plan/ROUND8_DESK_PLAN.md`, `plan/ROUND8_DESK_REPORT.md` | current round's plan and report |
+| `plan/archive/` | superseded plans |
+| `notes/round8_contingency.md` | drop-in text for the E7 seed replication, **both outcomes pre-compiled and fitting** |
+| `notes/anonymized_code_release.md` | code-link recipe (v2) and gate status |
+| `notes/openreview_metadata.md` | paste-ready submission fields + submission-day checklist |
+| `notes/claim_audit.md` | claim-by-claim status ledger (kept current) |
+
+The anonymized code snapshot is built by `../scripts/build_anonymized_export.sh`
+into `../export/` (gitignored); the anonymity grep runs inside the build and
+fails it on any hit.
+
+## State (2026-08-18)
+
+Manuscript complete at 4 pages with zero placeholders. Waiting on: the remote
+Task B seed replication (contingency text ready), the author's code-link go-live
+(gates 1–4 pass except the full NFPA suite, which exceeds local sandbox limits —
+run `PYTHONPATH=src:. pytest experiments/synthetic/nfpa_confirmatory/tests` on
+the server), and a reviewer-verifiable source for the `priorThesis` citation.

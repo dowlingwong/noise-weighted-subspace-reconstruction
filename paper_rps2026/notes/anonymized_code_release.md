@@ -42,6 +42,21 @@ broken link is worse than no link.
 4. A README: TIDMAD is public (CC-BY-4.0, Fry et al. 2024) with download source;
    one command per figure and table; neutral tone, no names.
 
+## Gate status (2026-08-18, builder `scripts/build_anonymized_export.sh`)
+
+| Gate | Status |
+|---|---|
+| 1 whitelist build | **PASS** — 78 files, nothing outside the whitelist |
+| 2 anonymity grep | **PASS** — zero hits; runs inside the build and fails it on any hit (first run caught 3 survivors in the launcher, since fixed) |
+| 3 manual read of every file | open — operator |
+| 4a figure reproduction from the export | **PASS** — identical statistics to the archived figure |
+| 4b tests from the export | **PARTIAL** — tidmad suite 10 passed / 5 torch-skipped; all 18 NFPA tests collect; the full NFPA suite (~12 min of ALS fits) exceeds the local sandbox's ~3-minute call cap — run once on the server: `PYTHONPATH=src:. pytest experiments/synthetic/nfpa_confirmatory/tests` |
+| 5 upload immutable commit | open — author |
+| 6 signed-out URL check | open — author |
+
+Still to add before upload: `E6_whitening_range.json` and validated `E7_*`
+artifacts (the builder picks both up automatically once synced).
+
 ## Gates (all mandatory, in order)
 
 1. Fresh export builds; no file outside the whitelist.

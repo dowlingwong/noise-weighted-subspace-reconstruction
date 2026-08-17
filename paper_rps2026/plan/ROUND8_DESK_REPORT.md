@@ -131,6 +131,54 @@ GWOSC dispersions, and all §5 caveats survive.
 whitening refutation are recorded as archived experiments; `T-chi2+OF` is marked
 not-run with a no-result-claimed control.
 
+## Round 8b — the six executable items (2026-08-18, same day)
+
+All six items that did not require the server or the author were implemented and
+verified; `paper_rps2026/README.md` is brought current.
+
+1. **Anonymized export built and gated.** `scripts/build_anonymized_export.sh`
+   builds the whitelist release (78 files) with every neutralization as a visible
+   sed and the anonymity grep inside the build (fails on any hit — its first run
+   caught three survivors my sed rules missed, proving the gate earns its keep).
+   From the export itself: Figure 1 reproduces with identical statistics, the
+   rung-3 dispersion script reproduces 1.0964/0.0000, tidmad tests 10 pass /
+   5 torch-skip, all 18 NFPA tests collect. The full NFPA suite (~12 min) exceeds
+   the local sandbox's call cap; one server command finishes gate 4b. Gates 3,
+   5, 6 are the author's.
+2. **Both contingency swaps dry-run compiled — both fit.** Outcome 1 + donor 1,
+   and Outcome 2 (all four coordinated edits) + donors 1–2, each: references
+   start p5, 0 overfull, 0 undefined. Recorded in `round8_contingency.md`; sync
+   day is substitution, not composition. Also noted: donor 1 removes the only
+   `priorThesis` citation, so prefer the caption donor under Outcome 1.
+3. **Figure script takes `--with-seed2 E7`.** Panel C then shows both seeds
+   (seed 2 hatched), the title says "two seeds", the console prints per-metric
+   sign AGREES/DISAGREES, and axis limits cover both seeds. Verified with
+   stand-in data including a forced sign flip (clearly visible), then stand-ins
+   deleted. **The default path reproduces the archived figure bit-identically**
+   — an initial version changed the shared RNG's consumption order and shifted
+   third-decimal interval bounds; panels now compute in fixed A→B→C order with
+   seed 2 drawn after C.
+4. **Cold referee pass.** Two real defects found and fixed: rung 2 used $P$
+   without defining it (a compression casualty — now "for a learned-subspace
+   basis $P$"), and §1 had an awkward clause splice from the roadmap merge (now
+   two sentences). Everything else read cleanly.
+5. **`chi2_of` sentence resolved.** Now: "Injecting the optimal-filter statistic
+   into the forward pass \citep{priorThesis} is compatible with this
+   architecture but not evaluated here." — attribution kept, no result promised.
+   The cut-entirely alternative (which would drop the paper's only `priorThesis`
+   citation and dissolve the anonymity question with it) remains available and
+   is pre-tested as contingency donor 1.
+6. **OpenReview metadata drafted** (`notes/openreview_metadata.md`): title,
+   plain-text abstract (with the Outcome-2 substitution rule), TL;DR, keywords,
+   theme mapping, and a submission-day checklist.
+
+**Sjostrom PDF: not in any connected folder** (it was a chat upload in an
+earlier session). To have the acknowledgements-stripped copy prepared, drop the
+PDF into the workspace; otherwise the stripping and deposit stay with you.
+
+After the fixes, re-verified: 4 pages main content, references from p5,
+0 overfull, 0 undefined, 0 PENDING.
+
 ## Pre-submission repairs still open
 
 1. **Sync `E6_whitening_range.json` from the server** — the paper's 0.69/441×

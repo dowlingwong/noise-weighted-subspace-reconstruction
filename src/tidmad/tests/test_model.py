@@ -7,7 +7,9 @@ run quickly on CPU while exercising the same code paths.
 from __future__ import annotations
 
 import numpy as np
-import torch
+import pytest
+
+torch = pytest.importorskip("torch")
 
 from tidmad.config import TidmadDataConfig, TidmadRunConfig, TidmadSTFTConfig, TidmadModelConfig, TidmadTrainConfig
 from tidmad.data import series_to_spectrogram, spectrogram_to_series, stft, istft

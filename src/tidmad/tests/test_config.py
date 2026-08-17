@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
+
+pytest.importorskip("torch")
 
 from tidmad.config import FROZEN, TidmadRunConfig, TidmadTrainConfig
-from tidmad.train import assert_configs_differ_only_in_loss, load_run_config
+from tidmad.train import assert_configs_differ_only_in_loss, load_run_config  # noqa: E402
 
 
 def test_frozen_config_consistency():

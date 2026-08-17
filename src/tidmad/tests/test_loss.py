@@ -12,7 +12,9 @@ cannot do.
 from __future__ import annotations
 
 import numpy as np
-import torch
+import pytest
+
+torch = pytest.importorskip("torch")
 
 from tidmad.loss import reconstruction_losses
 

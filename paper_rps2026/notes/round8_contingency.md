@@ -1,69 +1,88 @@
-# Round 8 Task B contingency — drop-in text for the seed replication
+# Round 8 Task B contingency — drop-in text for the seed replication (v2)
 
-When `E7_rung4_seed_replication.json` lands, replace the rung-4 paragraph's final
-sentence (currently ending "...the architecture absorbs the weighting, with one seed
-per arm.") with ONE of the two versions below, filling the `<>` values from the JSON,
-and update §5's first caveat as indicated. Nothing else in the paper changes.
+Revised 2026-08-18 after external audit. **Do not insert anything until the E7
+artifacts are synced and validated locally** (`E7_rung4_seed_replication.json`,
+both `E7_*_s20260818_eval_series.csv`).
 
-The C1 caveat sentence ("These evaluations lie along one training trajectory and are
-autocorrelated...") stays in both outcomes — it applies per seed.
+## Gate: which outcome applies
+
+1. **Both seeds agree in sign on both validation metrics** → Outcome 1.
+2. **Either metric changes sign between seeds** → Outcome 2.
+3. **One arm incomplete, configurations differ beyond `loss`, or evaluation grids
+   differ** → **neither.** Keep the current one-seed account unchanged; mention the
+   incomplete run, if at all, only as a diagnostic. Do not average or mix seeds.
+
+The C1 caveat sentence ("These evaluations lie along one training trajectory and
+are autocorrelated...") stays under every outcome — it applies per seed.
 
 ---
 
-## Outcome 1 — both seeds agree in sign on both metrics
-
-§4 replacement:
+## Outcome 1 — signs agree (§4 replacement for the final sentence)
 
 > A degenerate metric would explain it, and we tested for one: $J$ spans a factor
 > $441$ over the modelled band and the whitening weights have coefficient of
 > variation $0.69$ --- the same order as the synthetic rung-3 geometry where the
 > reversal \emph{is} observed ($1.10$; the white control is $0$ by construction).
-> A second seed replicates the signature: paired differences
+> A second seed shows the same qualitative signs: paired differences
 > $<\text{val\_chi2 diff, seed 2}>$ on the likelihood residual and
-> $<\text{val\_mse diff, seed 2}>$ on raw MSE, agreeing in sign with the first
-> seed on both metrics. The metric is comparably non-degenerate at both rungs and
-> the finding replicates, so we read the absence as a property of this
-> instantiation, not of the ladder: at this capacity and budget the architecture
-> absorbs the weighting.
+> $<\text{val\_mse diff, seed 2}>$ on raw MSE. Two seeds bound seed variability
+> rather than establish replication, but the metric is comparably non-degenerate
+> at both rungs, so we read the absence as a property of this instantiation, not
+> of the ladder: at this capacity and budget the architecture absorbs the
+> weighting.
 
-§5 caveat edit: change "Rung 4 is one seed per arm, so its held-out differences are
-contrasts over evaluations rather than evidence about seed variability" to
-"Rung 4 rests on two seeds per arm, which bounds but does not characterize seed
-variability".
+§5 caveat: "Rung 4 is one seed per arm..." → "Rung 4 rests on two seeds per arm,
+which bounds but does not characterize seed variability".
 
-## Outcome 2 — signs disagree on either metric
+Figure 1 panel C: still shows seed 1 only. Either add the seed-2 contrast as a
+second pair of bars (preferred; `make_rps_figure.py` gains an `E7` input) or state
+"first seed shown; the second agrees in sign" in the caption.
 
-§4 replacement:
+## Outcome 2 — signs disagree (four coordinated edits, not one)
+
+**Changing only §4/§5 would leave misleading claims elsewhere. All four:**
+
+1. **§4** replacement for the final sentence:
 
 > A degenerate metric would explain it, and we tested for one: $J$ spans a factor
 > $441$ over the modelled band and the whitening weights have coefficient of
 > variation $0.69$ --- the same order as the synthetic rung-3 geometry where the
 > reversal \emph{is} observed ($1.10$; the white control is $0$ by construction).
-> A second seed does not reproduce the signature: the paired difference on
-> $<\text{metric(s) that flipped}>$ changes sign
-> ($<\text{seed-1 value}>$ vs.\ $<\text{seed-2 value}>$), so the rung-4 contrast
-> is within seed variance at this scale. The honest statement is that this
-> experiment does not resolve whether the metric matters for this architecture at
-> this budget --- the metric is measurably non-degenerate, and the contrast it
-> produces is smaller than the variation between training runs.
+> A second seed does not reproduce the signs: the paired difference on
+> $<\text{metric(s)}>$ reverses ($<\text{seed-1}>$ vs.\ $<\text{seed-2}>$), so the
+> rung-4 contrast is within seed variance at this scale. Two seeds do not resolve
+> a consistent metric effect here: the metric is measurably non-degenerate, and
+> the contrast it produces is smaller than the variation between training runs.
 
-§5 caveat edit: change the first caveat to "Rung 4's paired contrast is within
-seed variance (two seeds per arm), so the experiment bounds the effect rather than
-detecting it".
+2. **Abstract**: "At the attention rung the reversal does not appear, and the
+   obvious explanation --- a near-degenerate whitening there --- is ruled out by
+   measurement." → "At the attention rung two seeds do not resolve a consistent
+   metric effect, and the obvious explanation --- a near-degenerate whitening
+   there --- is ruled out by measurement."
 
-## Also report (both outcomes)
+3. **Figure 1 panel C**: currently labeled as *the* rung-4 result ("no reversal").
+   Show both seed-level contrasts, or relabel title/caption as "first seed"; the
+   caption's "both point the same way --- no reversal" must not survive a sign
+   flip.
 
-If the new seed reproduces the training-column pattern (training-MSE difference
-unresolved, training-χ² resolved), add after the held-out numbers:
+4. **§5 caveat**: → "Rung 4's paired contrast is within seed variance (two seeds
+   per arm), so the experiment bounds the effect rather than detecting it."
 
-> The $\Sigma^{-1}$-trained arm's advantage on \emph{training} MSE is not resolved
-> in either seed, so its held-out raw-MSE advantage is not explained by better
-> optimisation of the raw objective.
+Also update `notes/claim_audit.md` rung-4 rows to the two-seed status under either
+outcome.
+
+## Training-column sentence (both outcomes, only if seed 2 reproduces the pattern)
+
+> The $\chi^2$-trained arm shows no resolved training-MSE advantage in either
+> seed, despite a resolved training-$\chi^2$ advantage.
+
+(The earlier draft's "not explained by better optimisation" claimed more than the
+evidence supports; do not use it.)
 
 ## Page budget
 
-Each replacement is 1–3 lines longer than the current sentence. Donors, in order:
-the §3 sentence "Injecting the optimal-filter statistic..." (secondary contrast,
-can move to the appendix); the §4 sentence "The single-split $C=k_c=2$ run is in
-Appendix~B.2."; caption last sentence. Verify references still start on p5 after
-the swap.
+Each replacement is 1–3 lines longer than the current text. Donors, in order: the
+§3 sentence "Injecting the optimal-filter statistic..." (design mention, movable
+to the appendix); §4's "The single-split $C=k_c=2$ run is in Appendix~B.2.";
+caption last sentence. After the swap, re-verify: references start p5, 0 overfull,
+0 undefined.

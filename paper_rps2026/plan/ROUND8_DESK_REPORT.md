@@ -111,9 +111,35 @@ sentence to the appendix (text preserved there), and sentence-level compression 
 the metric-reversal statement, the novelty boundary, the non-replication caveat, the
 GWOSC dispersions, and all §5 caveats survive.
 
-## Open items (yours)
+## Decisions taken (author, 2026-08-18, after external audit)
 
-1. **Title** — options in the plan doc.
-2. **Anonymized code link** — go/no-go and hosting.
-3. When Task B syncs: apply the matching contingency paragraph from
-   `notes/round8_contingency.md`, rebuild, re-verify the p5 gate.
+1. **Title: keep option 1** (current title). No file change needed.
+2. **Code link: conditional GO.** The v1 export recipe was audited NO-GO (53 files
+   with identity/host strings; leaks in four source files, not two;
+   `pyproject.toml`/`LICENSE` name the author; `noise_geometry` dependency
+   missing). `notes/anonymized_code_release.md` v2 now specifies a fresh
+   whitelist-built repository with eight mandatory gates, and the fallback:
+   **no link is better than a leaking link.**
+3. **Task B: wait for validated E7 artifacts.** `notes/round8_contingency.md` v2
+   adds the third gate (incomplete/mismatched runs → keep the one-seed account),
+   softens Outcome 1's wording ("same qualitative signs", not "replicates"), and
+   for Outcome 2 coordinates **four** edits — §4, abstract, Figure 1 panel C
+   labeling, §5 — plus the claim audit, since a sign flip falsifies text beyond
+   §4. The training-column sentence is weakened to what the evidence supports.
+
+`notes/claim_audit.md` is brought current: Block A, the rung-4 contrast, and the
+whitening refutation are recorded as archived experiments; `T-chi2+OF` is marked
+not-run with a no-result-claimed control.
+
+## Pre-submission repairs still open
+
+1. **Sync `E6_whitening_range.json` from the server** — the paper's 0.69/441×
+   claims currently trace only to the run log locally. It is in the Round 8
+   sync-back list, so it arrives with Task B; verify it is committed.
+2. **`priorThesis` needs a reviewer-verifiable source** — "available on request"
+   is weak under double-blind. Options: deposit the (acknowledgements-stripped)
+   report at a DOI service and cite the DOI, or include it as properly anonymized
+   supplementary material if the venue's single-PDF rule allows an appendix link.
+   Author action; preserves the attribution requirement either way.
+3. When E7 syncs: apply the matching contingency per the gate, rebuild, re-verify
+   (refs p5, 0 overfull, 0 undefined), and update the claim audit row.

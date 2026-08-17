@@ -306,6 +306,16 @@ def main() -> None:
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--steps", type=int, default=None)
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help=(
+            "override train.seed for a replication run. Both arms of a paired "
+            "contrast MUST be given the same value, or the comparison confounds "
+            "the objective with the seed."
+        ),
+    )
+    parser.add_argument(
         "--resume",
         type=Path,
         default=None,
@@ -316,11 +326,19 @@ def main() -> None:
     args = parser.parse_args()
 
     run = load_run_config(args.config)
+    # Command-line overrides are applied before write_run_config, so the config
+    # archived beside the checkpoints is the one the run actually used.
+    overrides = {}
     if args.steps is not None:
+        overrides["num_steps"] = args.steps
+    if args.seed is not None:
+        overrides["seed"] = args.seed
+    if overrides:
         run = TidmadRunConfig(
-            run.stft, run.model, run.train.__class__(**{**run.train.__dict__, "num_steps": args.steps}), run.data
+            run.stft, run.model, run.train.__class__(**{**run.train.__dict__, **overrides}), run.data
         )
     set_seed(run.train.seed)
+    print(f"[tidmad.train] seed={run.train.seed} steps={run.train.num_steps}")
     device = torch.device(args.device)
 
     from .psd import estimate_band_psd, tile_for_stacked_bands

@@ -84,10 +84,16 @@ def _stats(J: np.ndarray, label: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--data-dir", type=Path, required=True,
-                    help="directory holding abra_science_*.h5 (the noise-only files J is fitted on)")
+    ap.add_argument("--data-dir", type=Path, default=None,
+                    help="directory holding abra_science_*.h5 (the noise-only files J is "
+                         "fitted on). Omit to auto-resolve via tidmad.paths.")
     ap.add_argument("--out", type=Path, default=None)
     args = ap.parse_args()
+
+    if args.data_dir is None:
+        from .paths import resolve_raw_root
+        args.data_dir = resolve_raw_root()
+        print(f"  resolved data dir: {args.data_dir}")
 
     run = FROZEN
     from .psd import estimate_band_psd
@@ -106,6 +112,8 @@ def main() -> int:
 
     bin_hz = run.stft.sampling_frequency_hz / run.stft.n_fft
     record = {
+        "data_dir": str(args.data_dir),
+        "n_science_files": len(sorted(Path(args.data_dir).glob("abra_science_*.h5"))),
         "n_bands_used": run.stft.n_bands_used,
         "bin_width_hz": bin_hz,
         "band_edge_hz": run.stft.n_bands_used * bin_hz,

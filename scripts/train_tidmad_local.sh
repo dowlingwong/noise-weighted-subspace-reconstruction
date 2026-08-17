@@ -23,8 +23,11 @@
 #
 # Environment overrides:
 #   GPU_INDEX=0                 which single GPU to pin
-#   TIDMAD_DATA_ROOT            default /ceph/dwong/datasets/tidmad/raw
+#   TIDMAD_DATA_ROOT            raw TIDMAD root; auto-resolved if unset (see below)
 #   TIDMAD_STEPS                override num_steps (smoke defaults to 20)
+#   TIDMAD_SEED                 override train.seed; both arms MUST share one value.
+#                               Tags the run directory <arm>_s<seed> so a
+#                               replication cannot overwrite the first seed.
 #   TIDMAD_TIMEOUT              wall-clock cap, e.g. 6h (default: none for smoke/check)
 #   TIDMAD_RESUME=auto          resume from <out_dir>/latest.pt (or give a path)
 #   TIDMAD_WANDB=1              log to Weights & Biases
@@ -39,7 +42,35 @@ PROFILE="${1:-check}"
 GPU_INDEX="${GPU_INDEX:-0}"
 RUN_STAMP="${RUN_STAMP:-$(date +%Y%m%d_%H%M%S)}"
 PYTHON="${PYTHON:-$REPO_ROOT/.venv/bin/python}"
-TIDMAD_DATA_ROOT="${TIDMAD_DATA_ROOT:-/ceph/dwong/datasets/tidmad/raw}"
+
+# ------------------------------------------------------------ dataset location
+# The checklist's planned root /ceph/dwong/datasets/tidmad/raw does not exist on
+# deepthought; every run so far has read the archived Paper-1 tree instead
+# (recorded under `path_migration` in EXPERIMENT_RUN_LOG.md, Phase 1). Hard-coding
+# either one has already cost a run, so resolve: take TIDMAD_DATA_ROOT if given,
+# otherwise the first candidate that actually holds abra_science_*.h5 -- the
+# noise-only files J(f) is fitted on, without which nothing downstream is valid.
+TIDMAD_DATA_CANDIDATES=(
+    /ceph/dwong/datasets/tidmad/raw
+    /ceph/dwong/paper1_dataset/tidmad/raw
+    "$HOME/datasets/tidmad/raw"
+)
+if [ -z "${TIDMAD_DATA_ROOT:-}" ]; then
+    for candidate in "${TIDMAD_DATA_CANDIDATES[@]}"; do
+        if compgen -G "$candidate/abra_science_*.h5" > /dev/null 2>&1; then
+            TIDMAD_DATA_ROOT="$candidate"
+            echo "Resolved TIDMAD_DATA_ROOT=$TIDMAD_DATA_ROOT (auto)"
+            break
+        fi
+    done
+fi
+if [ -z "${TIDMAD_DATA_ROOT:-}" ]; then
+    echo "ERROR: no TIDMAD root holding abra_science_*.h5 among:" >&2
+    printf '  %s\n' "${TIDMAD_DATA_CANDIDATES[@]}" >&2
+    echo "Locate it and pass TIDMAD_DATA_ROOT explicitly, e.g." >&2
+    echo "  find /ceph/dwong -maxdepth 6 -name 'abra_science_*.h5' -printf '%h\\n' | sort -u" >&2
+    exit 1
+fi
 
 if [ ! -x "$PYTHON" ]; then
     echo "ERROR: Python environment not found at $PYTHON" >&2
@@ -69,6 +100,10 @@ case "$PROFILE" in
         exit 2
         ;;
 esac
+
+if [ -n "${TIDMAD_SEED:-}" ]; then
+    TAG="${TAG}_s${TIDMAD_SEED}"
+fi
 
 OUT_DIR="${TIDMAD_OUT_DIR:-$REPO_ROOT/artifacts/tidmad/$TAG/$RUN_STAMP}"
 
@@ -137,7 +172,7 @@ PY
 echo "Checking dataset at $TIDMAD_DATA_ROOT..."
 if [ ! -d "$TIDMAD_DATA_ROOT" ]; then
     echo "ERROR: dataset root not found: $TIDMAD_DATA_ROOT" >&2
-    echo "Datasets live under /ceph/dwong/datasets (see EXPERIMENT_CHECKLIST §0.1)." >&2
+    echo "Run 'python -m tidmad.paths' to locate the TIDMAD tree on this host." >&2
     exit 1
 fi
 
@@ -203,6 +238,11 @@ elif [ -n "${TIDMAD_STEPS:-}" ]; then
     STEPS_ARG=(--steps "$TIDMAD_STEPS")
 fi
 
+SEED_ARG=()
+if [ -n "${TIDMAD_SEED:-}" ]; then
+    SEED_ARG=(--seed "$TIDMAD_SEED")
+fi
+
 TIMEOUT_PREFIX=()
 if [ -n "${TIDMAD_TIMEOUT:-}" ]; then
     TIMEOUT_PREFIX=(timeout "$TIDMAD_TIMEOUT")
@@ -220,6 +260,7 @@ echo "  Profile:  $PROFILE"
 echo "  Config:   $CONFIG"
 echo "  Data:     $TIDMAD_DATA_ROOT"
 echo "  Out:      $OUT_DIR"
+echo "  Seed:     ${TIDMAD_SEED:-config default (20260808)}"
 echo "  GPU:      index $GPU_INDEX"
 echo "  PID:      $$ (recorded at $OUT_DIR/run.pid)"
 echo "  Git:      $(git rev-parse --short HEAD 2>/dev/null || echo 'not a git repo')"
@@ -229,7 +270,7 @@ nice -n 10 "${TIMEOUT_PREFIX[@]}" \
         --config "$CONFIG" \
         --data-dir "$TIDMAD_DATA_ROOT" \
         --out "$OUT_DIR" \
-        "${STEPS_ARG[@]}" "${RESUME_ARG[@]}" "${WANDB_ARG[@]}" \
+        "${STEPS_ARG[@]}" "${SEED_ARG[@]}" "${RESUME_ARG[@]}" "${WANDB_ARG[@]}" \
     2>&1 | tee "$OUT_DIR/training.log"
 
 STATUS=${PIPESTATUS[0]}

@@ -131,7 +131,17 @@ def score_unrounded(upstream: Path, data_dir: Path, model_tag: str, *, coarse: b
     raw = float(np.sum(np.multiply(snr_sg_norm, snr_squid)) / snr_squid.size)
 
     rounded = float(np.round(raw, decimals=2) + 1e-10)
+
+    # Per-window products. The score is their mean, so these are the paired
+    # samples an interval must be built from. snr_sg is taken from the
+    # reference channel, which every method copies through unchanged, so it is
+    # identical across arms and the contrast is carried entirely by snr_squid.
+    per_window = np.multiply(snr_sg_norm, snr_squid)
+
     return {
+        "per_window_products": per_window.tolist(),
+        "snr_sg_normalised": snr_sg_norm.tolist(),
+        "snr_squid": snr_squid.tolist(),
         "model_tag": model_tag,
         "n_files": len(files),
         "n_seconds_scored": n,

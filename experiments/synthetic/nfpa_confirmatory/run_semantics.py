@@ -144,7 +144,18 @@ def fit_seed(seed: int, cfg, *, regime: str = "colored"):
     return ds, cw_pca, fits, runtimes
 
 
-def run_reproduction_gate(seed: int, ds, cw_pca, fits, archived) -> tuple[list[dict], bool]:
+def evaluate_all(ds, cw_pca, fits) -> dict[str, dict]:
+    """Held-out metrics for every method, computed once and reused.
+
+    ``evaluate_fit`` is the dominant per-seed cost after the ALS fits, and both
+    the reproduction gate and the output rows need the same numbers. Computing
+    it once is not an approximation: it is a deterministic function of the
+    dataset and the fit.
+    """
+    return {name: evaluate_fit(ds, fits[name], cw_pca, ds.X_test) for name in rc.REGISTERED_METHODS}
+
+
+def run_reproduction_gate(seed: int, ds, cw_pca, fits, archived, test_metrics) -> tuple[list[dict], bool]:
     """Compare each refit's held-out chi-square with the archived value."""
     audit_rows: list[dict] = []
     ok = True
@@ -152,7 +163,7 @@ def run_reproduction_gate(seed: int, ds, cw_pca, fits, archived) -> tuple[list[d
         expected = archived.get((seed, name))
         if expected is None:
             raise rc.IntegrityError(f"archived Block A has no row for seed {seed} method {name}")
-        observed = evaluate_fit(ds, fits[name], cw_pca, ds.X_test)["normalized_chi2"]
+        observed = test_metrics[name]["normalized_chi2"]
         rel = relative_error(observed, expected)
         passed = rel <= rc.REPRODUCTION_RTOL
         ok = ok and passed
@@ -171,7 +182,7 @@ def run_reproduction_gate(seed: int, ds, cw_pca, fits, archived) -> tuple[list[d
     return audit_rows, ok
 
 
-def build_rows(seed: int, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method) -> tuple[list[dict], dict]:
+def build_rows(seed: int, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method, test_metrics) -> tuple[list[dict], dict]:
     cfg_hash = config_hash(cfg)
     rows = []
     decoders = {}
@@ -179,7 +190,7 @@ def build_rows(seed: int, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method
         fit = fits[name]
         sem = evaluate_semantics(fit, ds)
         decoders[name] = sem.pop("decoder")
-        test_metrics = evaluate_fit(ds, fit, cw_pca, ds.X_test)
+        metrics = test_metrics[name]
         row = {
             "config_hash": cfg_hash,
             "seed": seed,
@@ -201,8 +212,8 @@ def build_rows(seed: int, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method
             "code_dimension": sem["code_dimension"],
             "decoder_numerical_rank": decoders[name]["numerical_rank"],
             "decoder_zero_variance_columns": len(decoders[name]["zero_variance_columns"]),
-            "test_raw_mse": test_metrics["raw_mse"],
-            "test_normalized_chi2": test_metrics["normalized_chi2"],
+            "test_raw_mse": metrics["raw_mse"],
+            "test_normalized_chi2": metrics["normalized_chi2"],
             "archived_reproduction_rel_error": repro_by_method.get(name),
             "runtime_seconds": runtimes[name],
         }
@@ -318,7 +329,9 @@ def main(argv: list[str] | None = None) -> int:
         ok = True
         for seed in seeds:
             ds, cw_pca, fits, _ = fit_seed(seed, cfg)
-            rows, seed_ok = run_reproduction_gate(seed, ds, cw_pca, fits, archived)
+            rows, seed_ok = run_reproduction_gate(
+                seed, ds, cw_pca, fits, archived, evaluate_all(ds, cw_pca, fits)
+            )
             audit.extend(rows)
             ok = ok and seed_ok
             print(f"[E8] gate seed {seed}: {'PASS' if seed_ok else 'FAIL'}", flush=True)
@@ -343,6 +356,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[E8] INTEGRITY FAILURE: {exc}", file=sys.stderr)
         return 2
 
+    # Written before the first fit: shards are atomic per seed, so a run that is
+    # killed or hits its wall-clock cap must be resumable, and --resume requires
+    # a manifest to validate the existing shards against.
+    rc.write_json(cond_dir / "manifest.json", {**expected_manifest, "status": "in_progress"})
+
     audit_rows: list[dict] = []
     for seed in seeds:
         if seed in existing:
@@ -350,22 +368,33 @@ def main(argv: list[str] | None = None) -> int:
             continue
         t0 = time.time()
         ds, cw_pca, fits, runtimes = fit_seed(seed, cfg)
+        test_metrics = evaluate_all(ds, cw_pca, fits)
         repro_by_method: dict[str, float] = {}
         if archived is not None:
-            rows_audit, seed_ok = run_reproduction_gate(seed, ds, cw_pca, fits, archived)
+            rows_audit, seed_ok = run_reproduction_gate(
+                seed, ds, cw_pca, fits, archived, test_metrics
+            )
             audit_rows.extend(rows_audit)
             repro_by_method = {r["method"]: r["relative_error"] for r in rows_audit}
             if not seed_ok:
-                rc.write_rows_csv(out_dir / "archived_fit_reproduction.csv", audit_rows, AUDIT_COLUMNS)
+                rc.write_rows_csv(
+                    out_dir / "archived_fit_reproduction_FAILED.csv", audit_rows, AUDIT_COLUMNS
+                )
                 print(
                     f"[E8] ARCHIVED-FIT REPRODUCTION FAILED at seed {seed}; "
                     f"audit written, no semantic result recorded for this seed",
                     file=sys.stderr,
                 )
                 return 4
-        rows, decoders = build_rows(seed, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method)
+        rows, decoders = build_rows(
+            seed, ds, cw_pca, fits, runtimes, spec, cfg, repro_by_method, test_metrics
+        )
         rc.write_rows_csv(rc.shard_path(cond_dir, seed), rows, COLUMNS)
         rc.write_json(cond_dir / f"decoder_seed_{seed:02d}.json", {"seed": seed, "decoders": decoders})
+        if archived is not None:
+            # Persisted per seed so a resumed run still assembles the complete
+            # reproduction audit rather than one covering only recomputed seeds.
+            rc.write_rows_csv(cond_dir / f"repro_seed_{seed:02d}.csv", rows_audit, AUDIT_COLUMNS)
         print(f"[E8] seed {seed}: wrote shard in {time.time() - t0:.1f}s", flush=True)
 
     # ---------------- deterministic aggregation ----------------
@@ -376,8 +405,18 @@ def main(argv: list[str] | None = None) -> int:
     raw = rc.concat_shards(shards)
     rc.write_rows_csv(cond_dir / "raw.csv", raw, COLUMNS)
     rc.write_json(cond_dir / "summary.json", summarize(raw, spec, cfg, seeds))
-    if audit_rows:
-        rc.write_rows_csv(out_dir / "archived_fit_reproduction.csv", audit_rows, AUDIT_COLUMNS)
+    if archived is not None:
+        assembled: list[dict] = []
+        for f in sorted(cond_dir.glob("repro_seed_*.csv")):
+            assembled.extend(rc.read_rows_csv(f))
+        missing = set(seeds) - {int(r["seed"]) for r in assembled}
+        if missing:
+            print(
+                f"[E8] reproduction audit incomplete: missing seeds {sorted(missing)}",
+                file=sys.stderr,
+            )
+            return 6
+        rc.write_rows_csv(out_dir / "archived_fit_reproduction.csv", assembled, AUDIT_COLUMNS)
 
     ended = datetime.now(timezone.utc)
     manifest = dict(expected_manifest)

@@ -121,6 +121,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[E9] INTEGRITY FAILURE: {exc}", file=sys.stderr)
         return 2
 
+    # Written before the first fit so a killed or capped run stays resumable.
+    rc.write_json(out_dir / "manifest.json", {**expected_manifest, "status": "in_progress"})
+
     for seed in seeds:
         if seed in existing:
             print(f"[E9] seed {seed}: reusing validated shard {existing[seed]}", flush=True)

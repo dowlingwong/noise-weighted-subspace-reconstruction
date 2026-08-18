@@ -482,3 +482,19 @@ def test_archived_basis_whitened_defect_is_confined_to_iso_mpca(smoke_dataset):
     A = basis_whitened(fits["Iso-MPCA"], ds)
     B = rs.fitted_basis_whitened(fits["Iso-MPCA"], ds)
     assert np.linalg.norm(A @ A.T - B @ B.T, "fro") > 1e-3
+
+
+def test_auxiliary_per_seed_files_are_not_mistaken_for_shards(tmp_path):
+    """``repro_seed_*.csv`` and ``decoder_seed_*.json`` must not glob as shards."""
+    out = tmp_path / "run"
+    out.mkdir()
+    rc.write_json(out / "manifest.json", _manifest(out, [0]))
+    rc.write_rows_csv(rc.shard_path(out, 0), [_row(0, "A", 1.0), _row(0, "B", 2.0)], COLS)
+    # auxiliary artefacts written alongside the shard
+    rc.write_rows_csv(out / "repro_seed_00.csv", [_row(0, "A", 9.0), _row(0, "B", 9.0)], COLS)
+    rc.write_json(out / "decoder_seed_00.json", {"seed": 0})
+
+    found = rc.prepare_output_dir(out, resume=True, expected=_manifest(out, [0]))
+    assert set(found) == {0}
+    assert found[0].name == "seed_00.csv"
+    assert sorted(p.name for p in out.glob("seed_*.csv")) == ["seed_00.csv"]

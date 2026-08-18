@@ -129,7 +129,7 @@ dirty checkout overnight.
 
 ```bash
 export HANDOFF_BRANCH=codex/rps-round9-overnight-handoff
-export HANDOFF_CONTENT_COMMIT=HANDOFF_CONTENT_COMMIT_TO_BE_PINNED
+export HANDOFF_CONTENT_COMMIT=ff50d7184a2ab66275f01d076e9750ae8c367107
 
 git fetch origin "$HANDOFF_BRANCH" || {
   echo ROUND9_HANDOFF_FETCH_FAILED

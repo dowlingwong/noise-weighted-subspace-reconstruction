@@ -11,7 +11,7 @@ Repository and immutable handoff identifiers:
 
 - repository: `https://github.com/dowlingwong/noise-weighted-subspace-reconstruction.git`
 - handoff branch: `codex/rps-round9-overnight-handoff`
-- handoff content commit: `HANDOFF_CONTENT_COMMIT_TO_BE_PINNED`
+- handoff content commit: `ff50d7184a2ab66275f01d076e9750ae8c367107`
 - output branch: `round9/remote-evidence`
 
 Synchronize this repository only. Fetch the exact handoff branch, verify that
@@ -46,7 +46,7 @@ Commit and push only the `round9/remote-evidence` branch. Finish with the exact
 terminal line required by the runbook and include these literal report fields:
 
 - `handoff_branch: codex/rps-round9-overnight-handoff`
-- `handoff_content_commit: HANDOFF_CONTENT_COMMIT_TO_BE_PINNED`
+- `handoff_content_commit: ff50d7184a2ab66275f01d076e9750ae8c367107`
 - `scientific_thresholds_changed: false`
 - `archived_E1_overwritten: false`
 - `manuscript_edited: false`

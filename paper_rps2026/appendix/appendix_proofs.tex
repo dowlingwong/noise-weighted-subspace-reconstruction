@@ -11,6 +11,14 @@ Let $W=\Sigma^{-1/2}P$. The constraint $P^\top\Sigma^{-1}P=I_k$ becomes $W^\top 
 \]
 The empirical loss is therefore $N^{-1}\sum_i\|\tilde{x}_i-WW^\top\tilde{x}_i\|_2^2$. By Rayleigh--Ritz, every minimizer spans a leading rank-$k$ eigenspace of the whitened sample covariance. Mapping back yields the CW-PCA subspace. The objective depends on $W$ only through $WW^\top$, so $W$ is identified up to an orthogonal rotation.
 
+\subsection{Whitened signal-plus-identity decomposition}
+
+For $x=s+n$ with $s\perp n$, both zero mean, and $\mathrm{Cov}(n)=\Sigma$: independence gives $\mathrm{Cov}(x)=\mathrm{Cov}(s)+\Sigma$, and conjugating by $\Sigma^{-1/2}$,
+\[
+ \mathrm{Cov}(\Sigma^{-1/2}x)=\mathrm{Cov}(\Sigma^{-1/2}s)+I.
+\]
+Adding $I$ shifts every eigenvalue by one and changes no eigenvector, so the eigenvectors of the whitened data covariance are those of the whitened \emph{signal} covariance, in the same order. Rank-$k$ CW-PCA on noisy data therefore recovers the leading whitened signal eigenspace at the population level, which is the precise sense in which the likelihood metric supplies a self-supervised training signal.
+
 \subsection{Kronecker-restricted bridge}
 
 For every $Z\in\R^{C\times T}$, the vectorization identity gives

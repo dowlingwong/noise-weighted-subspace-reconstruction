@@ -1,3 +1,10 @@
+> **SUPERSEDED (archived 2026-08-19).** This design specified 30 seeds and
+> semantic-recovery blocks that the executed protocol did not run. The executed,
+> frozen protocol is 10 seeds (2026-08-08 amendment; see the freeze record in
+> `docs/plans/rps2026/EXPERIMENT_RUN_LOG.md`). The unexecuted H3/semantic
+> evaluation is queued as Round 9 E8 (`docs/plans/rps2026/ROUND9_RUNBOOK.md`).
+> Kept only for provenance; do not cite as the protocol.
+
 # NFPA submission-strength experiment plan
 
 Status: designed but not executed. No result in this document may be copied into the paper until the corresponding run, validation, and audit are complete.

@@ -32,3 +32,16 @@
 | savgol (−2.35) is a comparison point | **cut** | — | No | Not bit-reproducible; excluded from the table (PLAN_03 §1) |
 | The rung-4 claim is a leaderboard/benchmark rank | **cut** | — | No | The claim is the paired contrast; ranks are context only (PLAN_03 §3.3) |
 | A null rung-4 contrast invalidates the paper's thesis | **cut** | — | No | A null is a publishable finding (capacity can absorb misspecification); reported honestly |
+
+## Round 9 corrections (2026-08-19, external audit)
+
+| Claim | Status | Source | Main text? | Risk and control |
+|---|---|---|---|---|
+| "When either factor is full rank the restriction is inactive and rung 3 reduces to rung 2" | **retracted — was false** | counterexample: `C=k_c=2` run, NFPA–CW-PCA mean angle 61.7° (appendix B.2) | corrected in §3 | With `k₁=n₁` the family is `ℝ^{n₁}⊗U₂`, still a strict separable subset; inactivity holds only under Proposition 2's condition |
+| Rank-one CW-PCA is the optimal filter | **corrected** — fixed template vs. learned leading direction; equal only under Corollary 1's assumptions | §2 proof sketch | Yes | Do not conflate again in compressions |
+| NFPA reconstruction formulas apply to the raw measurement `Z` | **corrected** — formulas act on the per-axis whitened `Z̃`, mapped back; implementation was always correct, notation was not | §3 rung 3 | Yes | — |
+| Attention is "the same factorization at different levels of nonlinearity" | **weakened** — "analogous axis-factored architecture"; no containment claimed | §3 rung 4, §1 | Yes | A containment proof would restore the stronger claim; none exists |
+| Rungs 1–3 are "closed-form" | **weakened** — exact geometric characterization; NFPA's joint problem is nonconvex, subproblems exact | abstract, §1 | Yes | — |
+| Rung-4 evaluation-bootstrap intervals support "excluding zero" claims | **reframed** — exploratory case study; within-trajectory stability only; no across-run inference; panel C whiskers removed | §4, §5, Figure 1C | Yes | E7/E11 independent seeds are the only path to an architecture-level statement |
+| White-noise control is independent empirical confirmation | **reframed** — implementation identity check (objectives coincide up to scale at σ²I) | §4, Figure 1B, appendix H2 | Yes | — |
+| H3 planted-subspace recovery was tested | **retracted from appendix** — predeclared, code exists (`semantic.py`), never executed; queued as Round 9 E8 | appendix B.2 | corrected | The "covered by rung-4 amplitude error" sentence was also false (no such result exists) and is deleted |

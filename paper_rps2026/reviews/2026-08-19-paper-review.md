@@ -153,3 +153,81 @@ Single-seed rung 4 + E7 in progress; autocorrelation caveat; E6 JSON sync;
   condition, the measured metric-reversal boundary, and a benchmark-anchored
   negative result with its obvious explanation tested and refuted. That is
   workshop-appropriate novelty, and the paper never claims more.
+
+---
+
+# Addendum — same day, after the second external audit
+
+**The verdict above was too lenient and is corrected here.**
+
+**Corrected verdict:** *Numerically traceable and promising, but a **major
+revision** at the time of the original review: several mathematical statements
+were incorrect, a predeclared semantic test was silently untested, and the
+nonlinear evidence was framed with pseudo-inferential intervals. Appropriate
+for advisor feedback only after the immediate mathematical corrections; not
+submittable unchanged.* The revision was carried out the same day
+(`ROUND9_CORRECTION_PLAN.md`); the post-correction state is below.
+
+## What the first review missed, and why
+
+1. **"When either factor is full rank the restriction is inactive" — false.**
+   With `k₁=n₁` the admissible family is `ℝ^{n₁}⊗U₂`, a strict separable
+   subset; the paper's own `C=k_c=2` appendix run (mean angle 61.7° to CW-PCA)
+   is the counterexample. The first review verified the numbers around this
+   sentence and the vec identity, but not this limiting claim. *Corrected in
+   §3, with the appendix run now cited as the counterexample.*
+2. **Rank-one CW-PCA conflated with the optimal filter** in §2's proof sketch —
+   learned leading direction vs. fixed template; equal only under Corollary
+   1's assumptions. *Corrected.*
+3. **NFPA's displayed formulas acted on the raw measurement `Z`** while being
+   valid for the per-axis whitened `Z̃` — the implementation was right, the
+   notation wrong. *Corrected (`Z̃ = Σ₁^{-1/2} Z Σ₂^{-1/2}`, mapped back).*
+4. **"Same factorization at different levels of nonlinearity" overclaimed** —
+   no containment result exists. *Now "analogous axis-factored architecture
+   (no containment ... claimed)", in §1 and §3.*
+5. **"Closed-form" for rungs 1–3** — NFPA's joint problem is nonconvex. *Now
+   "exact geometric characterization", with the nonconvexity stated in §1.*
+6. **H3 (planted-subspace recovery) was predeclared and never run**, and the
+   appendix claimed truth-referenced recovery was "covered by the rung-4
+   amplitude error" — no such result exists. *Appendix B.2 now separates
+   executed (H1, H2) from not-executed (H3); the false coverage sentence is
+   deleted; E8 in `ROUND9_RUNBOOK.md` runs the existing `semantic.py`
+   evaluation with a reproduce-the-archived-fit gate.*
+7. **Rung-4 checkpoint bootstraps were pseudo-replication** despite the
+   disclosed autocorrelation — the "intervals excluding zero" framing carried
+   inferential weight one seed cannot support. *Rung 4 is now titled and
+   framed exploratory throughout (abstract, §4, §5); Figure 1C shows bars
+   without whiskers and the caption says why; "not distinguished by one seed
+   per arm" replaces the absorption reading as sole account.*
+8. **The white-noise control was presented as evidence** rather than the
+   algebraic identity check it is. *Reframed in §4, the caption, and appendix
+   H2.*
+
+Also actioned from the audit: the stale 30-seed plan archived with a
+supersession header; the 10-vs-30-seed history stated in the appendix;
+Matrix Normal PCA cited; the population lemma
+`Cov(Σ^{-1/2}x)=Cov(Σ^{-1/2}s)+I` added to §2 with proof in Appendix A —
+the self-supervision claim now has its precise statement; workshop fit no
+longer claimed as uniformly "strong" (self-supervision primary, tokenization
+and transfer secondary); full-band baselines flagged as not directly
+comparable to the band-limited arms in §5.
+
+## Post-correction status
+
+Build: 4 pages main content, refs p5, 0 overfull/undefined/PENDING, anonymity
+clean, figure regenerated (panel A/B numbers unchanged; C bars unchanged, no
+whiskers). **Ready for the advisor as an advanced draft with experiments
+pending.** Submission additionally requires, beyond the Round 8 items
+(E6 sync + variant check, E7 contingency, priorThesis): **E8** (the
+now-declared untested H3), and ideally E9 (20-seed frozen replication) and
+E10 (estimated covariance) — all specified with predeclared signatures in
+`ROUND9_RUNBOOK.md`.
+
+## Lesson for this review process
+
+The first review verified every number against files and still passed four
+false mathematical sentences, because it checked *quantities* harder than
+*quantified statements*. Limiting-case claims ("when X is full rank...",
+"at rank one this is...") need the same trace-to-source discipline as
+numbers: each should be checked against a constructed example or the
+paper's own experiments.

@@ -122,9 +122,16 @@ def main() -> int:
     panel_a = _nfpa_panel(RESULTS / "E1_nfpa_blockA" / "block_A_colored_raw.csv", rng)
     panel_b = _nfpa_panel(RESULTS / "E2_nfpa_blockB" / "block_B_white_raw.csv", rng)
     rung4 = _rung4_panel(rng)
-    c_title = "C  rung 4, factored attention\n$\\chi^2$-trained $-$ MSE-trained"
+    # Single-seed mode: no whiskers. The bootstrap over evaluation checkpoints
+    # of ONE trajectory describes within-run stability, not across-run
+    # uncertainty; drawing it as an interval invites the pseudoreplication
+    # reading. The bar (the mean paired difference) is what one seed supports.
+    rung4["suppress_intervals"] = True
+    c_title = ("C  rung 4, factored attention\n"
+               "single seed per arm (exploratory)")
     if args.with_seed2:
         rung4["seed2"] = _rung4_panel(rng, prefix=args.with_seed2)
+        rung4["suppress_intervals"] = False
         c_title = ("C  rung 4, factored attention\n"
                    "$\\chi^2$-trained $-$ MSE-trained, two seeds")
     panels = [
@@ -133,9 +140,9 @@ def main() -> int:
         (c_title, rung4),
     ]
 
-    # 9.6 x 2.1: short enough that the figure plus caption fits the main
-    # text's page budget when scaled to \linewidth (height ~1.2 in at 5.5 in).
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.1), sharey=False)
+    # 9.6 x 1.9: short enough that the figure plus caption fits the main
+    # text's page budget when scaled to \linewidth (height ~1.1 in at 5.5 in).
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 1.9), sharey=False)
     for ax, (title, p) in zip(axes, panels):
         for i, (key, colour, label) in enumerate(
             ((("chi2"), C_CHI2, "likelihood residual $\\bar\\chi^2$"),
@@ -145,6 +152,8 @@ def main() -> int:
                 mean, lo, hi = stats
                 ax.barh(y, mean, height=height, color=colour, zorder=3,
                         hatch=hatch, edgecolor="white" if hatch else None, lw=0)
+                if p.get("suppress_intervals"):
+                    return
                 ax.plot([lo, hi], [y, y], color="0.15", lw=1.6, zorder=4)
                 for x in (lo, hi):
                     ax.plot([x, x], [y - .08, y + .08], color="0.15", lw=1.6, zorder=4)

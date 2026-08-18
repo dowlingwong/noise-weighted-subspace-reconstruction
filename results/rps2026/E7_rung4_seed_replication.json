@@ -1,0 +1,245 @@
+{
+  "all_gates_passed": true,
+  "bootstrap": {
+    "resamples": 10000,
+    "seed": 20260818,
+    "unit": "evaluation (paired at identical step values)"
+  },
+  "eval_series_files": {
+    "t_chi2": {
+      "csv": "results/rps2026/E7_t_chi2_s20260818_eval_series.csv",
+      "txt": "results/rps2026/E7_t_chi2_s20260818_eval_series.txt"
+    },
+    "t_mse": {
+      "csv": "results/rps2026/E7_t_mse_s20260818_eval_series.csv",
+      "txt": "results/rps2026/E7_t_mse_s20260818_eval_series.txt"
+    }
+  },
+  "experiment": "E7_rung4_seed_replication",
+  "gates": {
+    "gate_1_same_seed_and_data_root": {
+      "note": "The seed-specific screen logs were not retained, so the resolved data-root string is not available for these two arms. Data identity is instead established by content: both arms report an identical window partition (10067 total / 7046 fit / 3017 held out), which a different data root or guard setting could not reproduce.",
+      "passed": true,
+      "seeds": {
+        "t_chi2": 20260818,
+        "t_mse": 20260818
+      },
+      "window_partition": {
+        "t_chi2": [
+          10067,
+          7046,
+          3017
+        ],
+        "t_mse": [
+          10067,
+          7046,
+          3017
+        ]
+      }
+    },
+    "gate_2_configs_differ_only_in_loss": {
+      "differing_fields": [
+        {
+          "field": "train.loss",
+          "t_chi2": "chi2",
+          "t_mse": "mse"
+        }
+      ],
+      "expected_model_params": 569352,
+      "model_params": {
+        "t_chi2": 569352,
+        "t_mse": 569352
+      },
+      "passed": true
+    },
+    "gate_3_both_reached_target_steps": {
+      "cap_hours": 8,
+      "final_checkpoint_exists": {
+        "t_chi2": true,
+        "t_mse": true
+      },
+      "final_step": {
+        "t_chi2": 25000,
+        "t_mse": 25000
+      },
+      "passed": true,
+      "wall_hours": {
+        "t_chi2": 4.93,
+        "t_mse": 4.98
+      }
+    },
+    "gate_4_identical_evaluation_grids": {
+      "expected": 50,
+      "grids_identical": true,
+      "n_evaluations": {
+        "t_chi2": 50,
+        "t_mse": 50
+      },
+      "passed": true
+    }
+  },
+  "held_out_at_final_step": {
+    "t_chi2": {
+      "train_chi2": 0.0131566,
+      "train_mse": 10353.0,
+      "val_chi2": 0.0134164,
+      "val_mse": 11475.4
+    },
+    "t_mse": {
+      "train_chi2": 0.0132753,
+      "train_mse": 10424.9,
+      "val_chi2": 0.0134786,
+      "val_mse": 11461.0
+    }
+  },
+  "interpretation_boundary": "The resampling unit is the evaluation, not an independent training run, so these intervals describe the paired difference along one pair of trajectories. With two seeds the seed-level uncertainty itself remains unquantified.",
+  "mean_over_last_ten_evaluations": {
+    "t_chi2": {
+      "train_chi2": 0.0134605,
+      "train_mse": 11414.880000000001,
+      "val_chi2": 0.013420070000000001,
+      "val_mse": 11479.39
+    },
+    "t_mse": {
+      "train_chi2": 0.01355433,
+      "train_mse": 11405.88,
+      "val_chi2": 0.013484000000000001,
+      "val_mse": 11472.82
+    }
+  },
+  "provenance": {
+    "code_commit": "ff50d7184a2ab66275f01d076e9750ae8c367107",
+    "run_dirs": {
+      "t_chi2": "artifacts/tidmad/t_chi2_s20260818/20260817_195350",
+      "t_mse": "artifacts/tidmad/t_mse_s20260818/20260817_195350"
+    },
+    "wall_hours": {
+      "t_chi2": 4.93,
+      "t_mse": 4.98
+    }
+  },
+  "round6_seed_paired_differences": {
+    "train_chi2": {
+      "ci95_high": -8.566789999999996e-05,
+      "ci95_low": -0.00011313000000000008,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 0.98,
+      "mean_difference": -9.943000000000004e-05,
+      "metric": "train_chi2",
+      "n_evaluations": 50
+    },
+    "train_mse": {
+      "ci95_high": 2.1367000000000442,
+      "ci95_low": -30.29075000000025,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": false,
+      "fraction_favouring_chi2_arm": 0.6,
+      "mean_difference": -14.25800000000003,
+      "metric": "train_mse",
+      "n_evaluations": 50
+    },
+    "val_chi2": {
+      "ci95_high": -0.00010336165000000032,
+      "ci95_low": -0.0001267902500000003,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 1.0,
+      "mean_difference": -0.00011479400000000028,
+      "metric": "val_chi2",
+      "n_evaluations": 50
+    },
+    "val_mse": {
+      "ci95_high": -42.3394999999999,
+      "ci95_low": -71.34839999999981,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 0.88,
+      "mean_difference": -57.183999999999834,
+      "metric": "val_mse",
+      "n_evaluations": 50
+    }
+  },
+  "round9_seed_paired_differences": {
+    "train_chi2": {
+      "ci95_high": -8.878775000000014e-05,
+      "ci95_low": -0.00011830030000000008,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 0.98,
+      "mean_difference": -0.00010363400000000013,
+      "metric": "train_chi2",
+      "n_evaluations": 50
+    },
+    "train_mse": {
+      "ci95_high": -1.7095500000001205,
+      "ci95_low": -37.53885000000046,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 0.62,
+      "mean_difference": -19.86200000000026,
+      "metric": "train_mse",
+      "n_evaluations": 50
+    },
+    "val_chi2": {
+      "ci95_high": -0.0001017239000000002,
+      "ci95_low": -0.00013301100000000007,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 1.0,
+      "mean_difference": -0.00011689600000000019,
+      "metric": "val_chi2",
+      "n_evaluations": 50
+    },
+    "val_mse": {
+      "ci95_high": -39.36760000000018,
+      "ci95_low": -76.15199999999983,
+      "contrast": "t_chi2 - t_mse",
+      "excludes_zero": true,
+      "fraction_favouring_chi2_arm": 0.8,
+      "mean_difference": -57.40799999999992,
+      "metric": "val_mse",
+      "n_evaluations": 50
+    }
+  },
+  "seeds": {
+    "round6": 20260808,
+    "round9": 20260818
+  },
+  "sign_agreement": {
+    "train_chi2": {
+      "both_intervals_exclude_zero": true,
+      "round6_mean_difference": -9.943000000000004e-05,
+      "round6_seed": 20260808,
+      "round9_mean_difference": -0.00010363400000000013,
+      "round9_seed": 20260818,
+      "sign_agrees": true
+    },
+    "train_mse": {
+      "both_intervals_exclude_zero": false,
+      "round6_mean_difference": -14.25800000000003,
+      "round6_seed": 20260808,
+      "round9_mean_difference": -19.86200000000026,
+      "round9_seed": 20260818,
+      "sign_agrees": true
+    },
+    "val_chi2": {
+      "both_intervals_exclude_zero": true,
+      "round6_mean_difference": -0.00011479400000000028,
+      "round6_seed": 20260808,
+      "round9_mean_difference": -0.00011689600000000019,
+      "round9_seed": 20260818,
+      "sign_agrees": true
+    },
+    "val_mse": {
+      "both_intervals_exclude_zero": true,
+      "round6_mean_difference": -57.183999999999834,
+      "round6_seed": 20260808,
+      "round9_mean_difference": -57.40799999999992,
+      "round9_seed": 20260818,
+      "sign_agrees": true
+    }
+  },
+  "sign_convention": "t_chi2 minus t_mse on every metric. All four metrics are errors, so a negative difference favours the chi-square-trained arm.",
+  "status": "complete_on_arrival_not_relaunched"
+}

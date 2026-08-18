@@ -1,5 +1,12 @@
 # Round 9 runbook — the submission-level evidence the external audit requires
 
+> **Superseded for execution on 2026-08-19.** This file remains the scientific
+> motivation and outcome map, but it is not safe as an unattended command
+> sequence: E8 needs method-specific semantic handling, E9 needs an output-safe
+> runner, and E10 needs a frozen estimator. Execute
+> `ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` instead. That playbook preserves the
+> priorities and claim boundaries below while supplying the missing gates.
+
 **Date:** 2026-08-19. **Deadline:** 29 Aug AoE. **Standing rules:**
 `AGENT_PROMPT_REMOTE_EXPERIMENTS.md` applies in full.
 **Relation to Round 8:** Task B (E7 second attention seed) continues unchanged.

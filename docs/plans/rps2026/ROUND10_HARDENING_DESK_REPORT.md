@@ -1,4 +1,4 @@
-# Round 10 hardening — desktop report
+# Round 10 hardening — desktop report (rev 2)
 
 **Date:** 2026-08-19 · **Branch:** `codex/rps-round10-handoff-hardening`
 **Started from:** `873ad272721968c1634ac502decc29ed2262c86d`
@@ -11,9 +11,10 @@ handoff instructions must not be merged into `main`.** No merge was attempted.
 
 | Item | Value |
 |---|---|
-| `NEW_ROUND10_IMPLEMENTATION_FREEZE` | `34c47ae71a79b9569457dc54915e36ba5791ebb9` |
-| `NEW_ROUND10_CONTENT_COMMIT` | `f9c844d967b4d268d1c5beaf5c52f59edacbb199` |
-| metadata pin (branch tip) | `5d67c4b66a0deea862c0f71e8e6a10b6b1ea6ad0` |
+| `NEW_ROUND10_IMPLEMENTATION_FREEZE` | **`048f1bd96acf943ad4d143ea50333b194099f170`** (rev 2) |
+| `NEW_ROUND10_CONTENT_COMMIT` | **`3eee165ad1cab76cb61101ddce072b189cbdc453`** (rev 2) |
+| metadata pin (branch tip) | **`6407ba79aa00a8f1cf63a248630055193de593b8`** (rev 2) |
+| superseded rev-1 freeze / content / pin | `34c47ae` / `f9c844d` / `5d67c4b` — **do not dispatch** |
 | evidence base | `c9686a0179bae0435d35bce1bbdaafb11839ef86` |
 | `main` (untouched) | `220df0a375af226aa964811535c0316c49f2bea8` |
 
@@ -45,7 +46,25 @@ git push origin main
 **not** rebase, squash, cherry-pick or amend — the pinned SHAs above are
 referenced by the dispatch prompt and must survive verbatim.
 
-## Corrections implemented
+## Rev 2 — the seven review blockers
+
+All seven were reproduced before being fixed.
+
+| # | Blocker | Resolution |
+|---|---|---|
+| 1 | Remote flow wrote into the worktree, so E10b's clean-tree gate would reject it | `R10_RUNTIME_ROOT` permits fully out-of-tree execution; runbook runs tests, audits, both experiments and smoke in `$RUNTIME` and copies results in only at step 12 |
+| 2 | `pytest \| tee` masked a failed or timed-out suite | redirect to a file, capture and test the exit status explicitly; `set -euo pipefail`; explicit "never pipe pytest into tee" |
+| 3 | **Validators trusted stored error columns** — a corrupted metric with a small stored error was accepted (reproduced: both runners) | validators load the authoritative E1/E9 tables and **recompute** archived values, both reproduction errors and both deltas, requiring the stored columns to agree; pinned by tests that replay the original bypass |
+| 4 | Resume did not bind shards to the run identity | in-progress manifest carries freeze/execution/config identity from the start; each shard registered with its SHA-256 at creation; resume rejects unregistered shards, digest mismatches, and foreign identities |
+| 5 | Completion-time `git status` recorded the run's own outputs as source dirtiness | records `source_tree_dirty_at_start`, `source_commit`, and `expected_output_changes_at_completion` |
+| 6 | Report committed before the push it was supposed to describe | report with `push_status: pending` → push → synchronization addendum with the verified SHA → push; evidence commit never amended |
+| 7 | Not published | still blocked: no Git credentials in this environment (see below) |
+
+Also fixed: the full suite rewrote the tracked `src/NFPA/nfpa_demo_results.png`,
+dirtying the tree and blocking the runners. `nfpa_demo.py` honours
+`NFPA_DEMO_OUT_DIR`; the test redirects it; default behaviour unchanged.
+
+## Corrections implemented (rev 1, retained)
 
 1. **Provenance** (`r10_provenance.py`) — non-smoke runs require
    `--implementation-freeze-commit`; the SHA must exist, be a commit, and be an
@@ -77,8 +96,9 @@ referenced by the dispatch prompt and must survive verbatim.
 
 | Suite | Result |
 |---|---|
-| Focused R9 + R10 + hardening, **no FAST** | **81 passed** (128 s; includes the full-config Iso-MPCA control) |
-| Hardening suite alone | 34 passed |
+| Focused R9 + R10 + hardening, **no FAST** | **94 passed** (112 s; includes the full-config Iso-MPCA control) |
+| Hardening suite alone | **47 passed** (was 34) |
+| Adversarial bypass replay | both reported bypasses now **rejected** |
 | TIDMAD (`src/tidmad/tests`) | 10 passed, 5 skipped |
 | Complete suite | **NOT run locally** — exceeds the desktop execution cap. Collection: **364 tests**, 2 collection errors from sandbox-only missing deps (`tomllib` needs Python ≥3.11, sandbox has 3.10; `numba`, a declared dev extra, absent). Both resolve on the server's `.venv` (Python 3.12.2). The complete-suite gate is the server's. |
 

@@ -198,3 +198,13 @@ Round 10 implementation.
 run, detailed above.
 
 push_status: pending
+
+## Synchronization addendum
+
+evidence_commit: 3e6ba9c0a31faeb4c00e1129e2b36b0796e167b5
+push_status: verified
+origin_tip_after_push: 3e6ba9c0a31faeb4c00e1129e2b36b0796e167b5
+
+The evidence commit was written and pushed before this addendum, and the
+evidence commit was not amended to backfill the push result. The `push_status:
+pending` line above is the value that was true when the report was written.

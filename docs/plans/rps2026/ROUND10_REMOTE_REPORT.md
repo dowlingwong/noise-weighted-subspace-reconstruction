@@ -282,3 +282,65 @@ authoritative E1/E9 tables, and both report
 `worst_stored_vs_recomputed_disagreement = 0.0`.
 
 push_status: pending
+
+## Synchronization addendum
+
+evidence_commit: 64df3c7b5da61f48aaaebbf31c0e8daf963d7c67
+push_status: FAILED
+origin_tip_after_push: 41cb5fbe1f5f159838b23124deb352f24f7011ac (unchanged — the halted run)
+
+### Exact error
+
+```text
+$ git push -u origin round10/remote-corrections
+ ! [rejected]        round10/remote-corrections -> round10/remote-corrections (non-fast-forward)
+error: failed to push some refs to 'github.com:dowlingwong/noise-weighted-subspace-reconstruction.git'
+hint: Updates were rejected because the tip of your current branch is behind
+hint: its remote counterpart.
+exit 1
+```
+
+### Why, and why it was not forced
+
+The remote `round10/remote-corrections` still carries `41cb5fb`, the halted
+2026-08-19 attempt, which was built on the **old** content commit `3eee165`.
+This run was built on the new `76aaff6`, which reaches `3eee165` only through
+the desk commit `ef1f785`. Their merge base is `3eee165`, and `41cb5fb` is
+**not** an ancestor of `64df3c7b5da61f48aaaebbf31c0e8daf963d7c67`, so the histories have genuinely
+diverged and the push cannot fast-forward.
+
+Advancing the branch therefore requires a force-push, which the dispatch
+forbids ("Never force-reset `$OUTPUT_BRANCH`") and which the runbook's Step 4
+lists among the operations never to perform on this branch. It is also an
+irreversible, outward-facing rewrite of a published branch. It was not
+performed, and synchronization is not claimed.
+
+### What was done instead
+
+The halted record was pushed to its own remote branch, purely additively:
+
+```text
+round10/remote-corrections-halted-20260819  ->  41cb5fbe1f5f159838b23124deb352f24f7011ac  (new remote branch)
+round10/remote-corrections                  ->  41cb5fbe1f5f159838b23124deb352f24f7011ac  (unchanged)
+```
+
+Nothing was overwritten or deleted. The halted attempt is now preserved in three
+places: the local branch `round10/remote-corrections-halted-20260819`, the new
+remote branch of the same name, and the still-unchanged remote
+`round10/remote-corrections`.
+
+### To complete synchronization (a desk decision)
+
+The evidence commit `64df3c7b5da61f48aaaebbf31c0e8daf963d7c67` is complete and validated locally. Since
+the halted record is now independently preserved on the remote, advancing the
+branch destroys nothing:
+
+```bash
+git push --force-with-lease=round10/remote-corrections:41cb5fbe1f5f159838b23124deb352f24f7011ac \
+    origin round10/remote-corrections
+```
+
+The `--force-with-lease` guard makes the push refuse if the remote has moved
+since this run observed it. Alternatively, publish under a fresh branch name and
+leave `round10/remote-corrections` as the halted record permanently. Either is
+the desk's call, not the remote agent's.

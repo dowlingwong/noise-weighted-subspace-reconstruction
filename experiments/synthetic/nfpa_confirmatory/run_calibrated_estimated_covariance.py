@@ -33,6 +33,8 @@ from dataclasses import replace
 import numpy as np
 
 from . import r10_common as rc
+from . import r10_provenance as prov
+from . import r10_validation as rv
 from .config import PRIMARY, config_hash
 from .covariance import assert_checks_pass, run_numerical_checks
 from .covariance_estimation_v2 import estimate_calibrated_axis_covariances
@@ -187,11 +189,11 @@ def run_seed(seed: int, cfg, archived: dict | None) -> tuple[list[dict], bool]:
     return rows, control_ok
 
 
-def summarize(rows, seeds) -> dict:
+def summarize(rows, seeds=None) -> dict:
     out = {
         "experiment": EXPERIMENT,
         "analysis_label": ANALYSIS_LABEL,
-        "n_seeds": len(seeds),
+        "n_seeds": len({int(r["seed"]) for r in rows}),
         "scope_note": (
             "One fixed calibration size and covariance condition. This measures "
             "sensitivity to estimation at N_cal=2048 under the frozen colored model; "
@@ -235,9 +237,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--seeds", type=int, nargs="*", default=None)
+    prov.add_freeze_argument(ap)
     args = ap.parse_args(argv)
 
     smoke = bool(args.smoke)
+    # Fail closed BEFORE any scientific computation.
+    freeze_sha, execution_head = prov.validate_freeze_commit(
+        args.implementation_freeze_commit, smoke=smoke
+    )
+    started_at_utc = prov._utc_now()
+    archive_audit_before = None if smoke else rv.require_authoritative_archive_unchanged()
     cfg = rc.smoke_config() if smoke else PRIMARY
     seeds = args.seeds if args.seeds is not None else (list(rc.SMOKE_SEEDS) if smoke else list(SEEDS))
     seeds = rc.guard_seed_set(seeds, SEEDS, smoke=smoke)
@@ -285,20 +294,48 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     all_rows = rc.concat_shards(shards)
     rc.write_rows_csv(out_dir / "raw.csv", all_rows, COLUMNS)
-    if not smoke:
-        rc.write_json(out_dir / "summary.json", summarize(all_rows, seeds))
 
+    # Every gate is re-derived from the FINAL rows — fresh and resumed alike —
+    # so a tampered or stale reused shard cannot inherit a passing verdict.
+    gate_record: dict = {"validated": False}
+    summary_audit: dict = {"passed": None}
+    if not smoke:
+        gate_record = rv.validate_e10b_final_rows(
+            all_rows, columns=COLUMNS, config_hash=config_hash(cfg),
+            analysis_label=ANALYSIS_LABEL, tolerance=rc.REPRODUCTION_RTOL,
+        )
+        summary = summarize(all_rows)
+        rc.write_json(out_dir / "summary.json", summary)
+        summary_audit = rv.assert_summary_regenerates(
+            out_dir / "raw.csv", summary, summarize
+        )
+        rv.require_authoritative_archive_unchanged()
+
+    # The completed manifest is the FINAL atomic write: everything above must
+    # have passed first, so an interrupted run stays status=in_progress and can
+    # never be cited as complete.
+    provenance = prov.provenance_block(
+        [sys.executable, "-m", "nfpa_confirmatory.run_calibrated_estimated_covariance", *sys.argv[1:]],
+        cfg, freeze_sha=freeze_sha, execution_head=execution_head, smoke=smoke,
+        started_at_utc=started_at_utc,
+    )
+    provenance["completed_at_utc"] = prov._utc_now()
     manifest = dict(expected_manifest)
     manifest.update(
         {
             "status": "complete",
-            "control_gate_passed": controls_ok,
+            "control_gate_passed": bool(gate_record.get("control_gate_passed", False)),
+            "gate_record": gate_record,
+            "summary_regeneration_audit": summary_audit,
+            "archive_audit_before": archive_audit_before,
+            "archive_audit_after": None if smoke else rv.audit_authoritative_archive(),
             "wall_seconds": time.time() - t_start,
             "shard_digests": {p.name: rc.sha256_of(p) for p in shards},
             "raw_digest": rc.sha256_of(out_dir / "raw.csv"),
-            "provenance": rc.provenance(
-                [sys.executable, "-m", "nfpa_confirmatory.run_calibrated_estimated_covariance", *sys.argv[1:]], cfg
+            "summary_digest": (
+                rc.sha256_of(out_dir / "summary.json") if (out_dir / "summary.json").exists() else None
             ),
+            "provenance": provenance,
         }
     )
     rc.write_json(out_dir / "manifest.json", manifest)

@@ -44,6 +44,8 @@ from pathlib import Path
 import numpy as np
 
 from . import r10_common as rc
+from . import r10_provenance as prov
+from . import r10_validation as rv
 from .angles_v2 import angle_metrics_v2
 from .config import PRIMARY, config_hash
 from .covariance import assert_checks_pass, run_numerical_checks
@@ -202,15 +204,36 @@ def summarize_cohort(rows, label: str, seeds) -> dict:
     return out
 
 
+def build_summary(rows) -> dict:
+    """Deterministic summary from raw rows alone (regeneration-audit safe)."""
+    return {
+        "experiment": EXPERIMENT,
+        "analysis_label": ANALYSIS_LABEL,
+        "frozen": summarize_cohort(rows, "frozen_0_9", FROZEN_SEEDS),
+        "replication": summarize_cohort(rows, "replication_10_29", REPLICATION_SEEDS),
+        # Pooled is computed only after both subsets above exist.
+        "pooled_post_hoc": {
+            **summarize_cohort(rows, "post_hoc_pooled_0_29", ALL_SEEDS),
+            "pooling_note": "post-hoc pooled cohort; not a 30-seed confirmatory experiment",
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--out", default=str(rc.RESULTS_ROOT / EXPERIMENT))
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--smoke", action="store_true")
     ap.add_argument("--seeds", type=int, nargs="*", default=None)
+    prov.add_freeze_argument(ap)
     args = ap.parse_args(argv)
 
     smoke = bool(args.smoke)
+    freeze_sha, execution_head = prov.validate_freeze_commit(
+        args.implementation_freeze_commit, smoke=smoke
+    )
+    started_at_utc = prov._utc_now()
+    archive_audit_before = None if smoke else rv.require_authoritative_archive_unchanged()
     cfg = rc.smoke_config() if smoke else PRIMARY
     seeds = args.seeds if args.seeds is not None else (list(rc.SMOKE_SEEDS) if smoke else list(ALL_SEEDS))
     seeds = rc.guard_seed_set(seeds, ALL_SEEDS, smoke=smoke)
@@ -247,28 +270,43 @@ def main(argv: list[str] | None = None) -> int:
     all_rows = rc.concat_shards(shards)
     rc.write_rows_csv(out_dir / "raw.csv", all_rows, COLUMNS)
 
+    gate_record: dict = {"validated": False}
+    summary_audit: dict = {"passed": None}
     if not smoke:
-        summary = {
-            "experiment": EXPERIMENT,
-            "analysis_label": ANALYSIS_LABEL,
-            "frozen": summarize_cohort(all_rows, "frozen_0_9", FROZEN_SEEDS),
-            "replication": summarize_cohort(all_rows, "replication_10_29", REPLICATION_SEEDS),
-        }
-        # The pooled cohort is computed only after both subsets exist above.
-        summary["pooled_post_hoc"] = {
-            **summarize_cohort(all_rows, "post_hoc_pooled_0_29", ALL_SEEDS),
-            "pooling_note": "post-hoc pooled cohort; not a 30-seed confirmatory experiment",
-        }
+        # Gates re-derived from the FINAL rows, fresh and resumed alike.
+        gate_record = rv.validate_e11_final_rows(
+            all_rows, columns=COLUMNS, config_hash=config_hash(cfg),
+            analysis_label=ANALYSIS_LABEL, tolerance=rc.REPRODUCTION_RTOL,
+        )
+        summary = build_summary(all_rows)
         rc.write_json(out_dir / "summary.json", summary)
+        summary_audit = rv.assert_summary_regenerates(
+            out_dir / "raw.csv", summary, build_summary
+        )
+        rv.require_authoritative_archive_unchanged()
 
+    # Final atomic write, after every gate, digest and audit above.
+    provenance = prov.provenance_block(
+        [sys.executable, "-m", "nfpa_confirmatory.run_corrected_angles", *sys.argv[1:]],
+        cfg, freeze_sha=freeze_sha, execution_head=execution_head, smoke=smoke,
+        started_at_utc=started_at_utc,
+    )
+    provenance["completed_at_utc"] = prov._utc_now()
     manifest = dict(expected_manifest)
     manifest.update(
         {
             "status": "complete",
+            "gate_record": gate_record,
+            "summary_regeneration_audit": summary_audit,
+            "archive_audit_before": archive_audit_before,
+            "archive_audit_after": None if smoke else rv.audit_authoritative_archive(),
             "wall_seconds": time.time() - t_start,
             "shard_digests": {p.name: rc.sha256_of(p) for p in shards},
             "raw_digest": rc.sha256_of(out_dir / "raw.csv"),
-            "provenance": rc.provenance([sys.executable, "-m", "nfpa_confirmatory.run_corrected_angles", *sys.argv[1:]], cfg),
+            "summary_digest": (
+                rc.sha256_of(out_dir / "summary.json") if (out_dir / "summary.json").exists() else None
+            ),
+            "provenance": provenance,
             "reproduction_gate": {
                 "tolerance_rel": rc.REPRODUCTION_RTOL,
                 "sources": {"seeds_0_9": "E1_nfpa_blockA/block_A_colored_raw.csv",

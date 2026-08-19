@@ -1,4 +1,4 @@
-# Round 10 remote rerun runbook — E10b and E11 only (hardened)
+# Round 10 remote rerun runbook — E10b and E11 only (hardened, rev 2)
 
 _Server execution of the two frozen corrected runners._
 _Standing rules: `AGENT_PROMPT_REMOTE_EXPERIMENTS.md` and the shared-server
@@ -12,19 +12,24 @@ evidence**: read-only inputs to the gates, never rerun or modified. No
 manuscript, figure, table, bibliography, threshold, seed-set, covariance-setting
 or hypothesis edit of any kind.
 
-## Identifiers — supplied by the dispatch prompt, not by this file
+## The one structural rule: run OUTSIDE the worktree
 
-A commit cannot contain its own SHA, so this runbook does not hard-code one.
-Take these from the dispatch prompt (`ROUND10_REMOTE_RERUN_AGENT_PROMPT.md`,
-whose metadata-only pin commit carries the values) or from the environment:
+The non-smoke runners require a **clean source tree**. Anything written into the
+repository before they start — an audit file, a pytest log, a smoke directory —
+would make them refuse to run. So **every byte this session produces goes to
+`$RUNTIME` outside the Git worktree**, and results are copied into the
+repository only after both scientific runs have finished.
 
-| Variable | Meaning |
-|---|---|
-| `HANDOFF_BRANCH` | `codex/rps-round10-handoff-hardening` |
-| `CONTENT_COMMIT` | exact commit to execute (`NEW_ROUND10_CONTENT_COMMIT`) |
-| `FREEZE_COMMIT` | `NEW_ROUND10_IMPLEMENTATION_FREEZE`, passed to both runners |
-| `EVIDENCE_BASE` | `c9686a0179bae0435d35bce1bbdaafb11839ef86` |
-| `OUTPUT_BRANCH` | `round10/remote-corrections` |
+```bash
+export RUNTIME=${RUNTIME:-$HOME/round10_runtime_$(date +%Y%m%d_%H%M%S)}
+mkdir -p "$RUNTIME"
+export R10_RUNTIME_ROOT="$RUNTIME"      # also permits an out-of-tree smoke root
+```
+
+## Identifiers — supplied by the dispatch prompt
+
+A commit cannot contain its own SHA, so this file hard-codes none. Export the
+values from `ROUND10_REMOTE_RERUN_AGENT_PROMPT.md`:
 
 ```bash
 export HANDOFF_BRANCH=codex/rps-round10-handoff-hardening
@@ -32,6 +37,12 @@ export CONTENT_COMMIT=<from dispatch prompt>
 export FREEZE_COMMIT=<from dispatch prompt>
 export EVIDENCE_BASE=c9686a0179bae0435d35bce1bbdaafb11839ef86
 export OUTPUT_BRANCH=round10/remote-corrections
+```
+
+Use a strict shell throughout:
+
+```bash
+set -euo pipefail
 ```
 
 ## Step 1 — fetch and verify the exact handoff
@@ -46,29 +57,25 @@ git cat-file -e "$FREEZE_COMMIT^{commit}"
 ## Step 2 — verify ancestry
 
 ```bash
-git merge-base --is-ancestor "$EVIDENCE_BASE"  "$CONTENT_COMMIT"
-git merge-base --is-ancestor "$FREEZE_COMMIT"  "$CONTENT_COMMIT"
+git merge-base --is-ancestor "$EVIDENCE_BASE" "$CONTENT_COMMIT"
+git merge-base --is-ancestor "$FREEZE_COMMIT" "$CONTENT_COMMIT"
 ```
 
-Both must succeed. A failure is a global stop.
+Both must succeed; a failure is a global stop.
 
 ## Step 3 — verify a clean worktree
 
 ```bash
-test -z "$(git status --porcelain)"   # dirty => STOP, report the paths, do not stash
+test -z "$(git status --porcelain)"   # dirty => STOP, report the paths, never stash
 ```
-
-The runners enforce this again themselves for non-smoke runs.
 
 ## Step 4 — create or safely resume the output branch
 
 ```bash
 if git show-ref --verify --quiet "refs/heads/$OUTPUT_BRANCH"; then
-  # Interrupted earlier run: verify, never overwrite.
   git switch "$OUTPUT_BRANCH"
   git merge-base --is-ancestor "$CONTENT_COMMIT" HEAD   # must descend from the pin
   git status --short                                     # record what already exists
-  # Record which experiment directories exist and their manifest "status" fields.
 else
   git switch --detach "$CONTENT_COMMIT"
   git switch -c "$OUTPUT_BRANCH"
@@ -78,11 +85,11 @@ fi
 **Never** `git branch -f`, `reset --hard`, `checkout -B`, or delete this branch.
 If it exists but does not descend from `$CONTENT_COMMIT`, stop and report.
 
-## Step 5 — record all 15 archive digests (before)
+## Step 5 — record all 15 archive digests (before), out of tree
 
 ```bash
 export PYTHONPATH=src:experiments/synthetic
-.venv/bin/python - <<'PY'
+.venv/bin/python - > "$RUNTIME/archive_audit_before.json" <<'PY'
 import json
 from experiments.synthetic.nfpa_confirmatory import r10_validation as rv
 audit = rv.audit_authoritative_archive()
@@ -91,108 +98,131 @@ assert audit["passed"], "ARCHIVE CHANGED BEFORE EXECUTION — GLOBAL STOP"
 PY
 ```
 
-Save the output as `results/rps2026/Round10_remote/archive_audit_before.json`.
-
-## Step 6 — the complete repository test suite
-
-This is the real gate. Run the **whole suite**, from the repository root,
-without `NFPA_CONFIRMATORY_FAST`, so the full-config Round 10 control and the
-TIDMAD tests actually execute:
+## Step 6 — the complete repository test suite (exit code propagated)
 
 ```bash
 export OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
-nice -n 10 timeout 90m .venv/bin/python -m pytest -q 2>&1 | tee results/rps2026/Round10_remote/pytest_full.log
+set +e
+nice -n 10 timeout 90m .venv/bin/python -m pytest -q \
+  > "$RUNTIME/pytest_full.log" 2>&1
+PYTEST_STATUS=$?
+set -e
+tail -5 "$RUNTIME/pytest_full.log"
+grep -E "tests? collected|passed|failed" "$RUNTIME/pytest_full.log" | tail -3
+test "$PYTEST_STATUS" -eq 0 || { echo "COMPLETE SUITE FAILED (exit $PYTEST_STATUS) — GLOBAL STOP"; exit 1; }
 ```
 
-Record the **collected test count** and the final line. Any failure is a global
-stop. (A short focused run beforehand is fine, but it is not the suite and must
-not be described as one.)
+**Do not pipe pytest into `tee`.** A pipeline reports the exit status of the
+last command, so `pytest ... | tee log` returns `tee`'s success and a failed or
+timed-out suite passes silently. Redirect to a file and test the captured status
+explicitly, as above. Record the collected count and the final line.
 
-## Step 7 — server smoke on reserved seeds
+The log lives in `$RUNTIME`, not in the repository, so the suite does not dirty
+the tree. (The suite no longer rewrites `src/NFPA/nfpa_demo_results.png`: the
+demo honours `NFPA_DEMO_OUT_DIR` and the test redirects it.)
 
-```bash
-nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_corrected_angles \
-  --smoke --out results/rps2026/Round10_smoke/E11_server
-nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_calibrated_estimated_covariance \
-  --smoke --out results/rps2026/Round10_smoke/E10b_server
-```
-
-Smoke manifests carry `evidence_class = implementation_check_not_scientific_evidence`.
-They are never cited as evidence.
-
-## Step 8 — E10b, then E11, sequentially, with the explicit freeze SHA
+## Step 7 — E10b, then E11, sequentially, out of tree, with the freeze SHA
 
 ```bash
 nice -n 10 timeout 3h .venv/bin/python -m nfpa_confirmatory.run_calibrated_estimated_covariance \
   --implementation-freeze-commit "$FREEZE_COMMIT" \
-  --out results/rps2026/E10b_calibrated_estimated_covariance
+  --out "$RUNTIME/E10b_calibrated_estimated_covariance"
 
 nice -n 10 timeout 4h .venv/bin/python -m nfpa_confirmatory.run_corrected_angles \
   --implementation-freeze-commit "$FREEZE_COMMIT" \
-  --out results/rps2026/E11_corrected_angles
+  --out "$RUNTIME/E11_corrected_angles"
 ```
 
-Do not parallelize seeds. Caps may be **raised only before launch**, justified
-from measured smoke or archived per-seed timing, and never reduced after an
-outcome. The runners refuse to start without the freeze SHA, refuse a dirty
-tree, and record `implementation_freeze_commit` and `execution_content_commit`
-separately.
+Sequential; never parallelize seeds. Caps may be **raised only before launch**,
+justified from measured smoke or archived per-seed timing, and never reduced
+after an outcome.
 
-## Step 9 — resume only through the strengthened validation
+Each runner: refuses to start without the freeze SHA; refuses a dirty source
+tree; records `implementation_freeze_commit`, `execution_content_commit` and
+`source_tree_dirty_at_start` separately; registers every shard with its SHA-256;
+re-derives every gate from the final rows with the reproduction errors
+**recomputed from the authoritative E1/E9 tables**; runs the deterministic
+summary-regeneration audit; and writes the completed manifest last.
+
+## Step 8 — resume only through the strengthened validation
 
 If a cap or interruption stops a run, resume with the same command plus
-`--resume`. Every gate is re-derived from the **final** rows — fresh and reused
-alike — so a stale or altered shard cannot inherit a passing verdict. An
-interrupted run leaves `status = in_progress`; only a fully validated run
-writes `status = complete`. **Never cite an `in_progress` directory as a
-result.**
+`--resume`. Resume rejects an unregistered shard, a digest mismatch, or shards
+from a different freeze/execution identity. An interrupted run leaves
+`status = in_progress`; **never cite an `in_progress` directory as a result.**
 
 **Continuation rule:** an experiment-specific *scientific* outcome, however
 unfavorable, is never a reason to stop, rerun, or adjust anything. A shared
 configuration, test, provenance, or archive-integrity failure stops everything.
 
-## Step 10 — regenerate summaries and audits from the raw archived outputs
-
-Both runners already perform the deterministic summary-regeneration audit and
-write `summary_digest`. Confirm in each manifest:
+## Step 9 — server smoke (after the scientific runs)
 
 ```bash
-.venv/bin/python - <<'PY'
+nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_corrected_angles \
+  --smoke --out "$RUNTIME/Round10_smoke/E11_server"
+nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_calibrated_estimated_covariance \
+  --smoke --out "$RUNTIME/Round10_smoke/E10b_server"
+```
+
+Smoke runs last precisely because it is an implementation check, not evidence;
+its manifests carry `evidence_class = implementation_check_not_scientific_evidence`.
+
+## Step 10 — verify the completed manifests
+
+```bash
+.venv/bin/python - <<PY
 import json, pathlib
 for name in ("E10b_calibrated_estimated_covariance", "E11_corrected_angles"):
-    m = json.loads(pathlib.Path("results/rps2026", name, "manifest.json").read_text())
-    print(name, m["status"], m["summary_regeneration_audit"], m.get("summary_digest"))
-    assert m["status"] == "complete"
+    m = json.loads((pathlib.Path("$RUNTIME")/name/"manifest.json").read_text())
+    assert m["status"] == "complete", (name, m["status"])
     assert m["summary_regeneration_audit"]["passed"] is True
+    assert m["provenance"]["implementation_freeze_commit"] == "$FREEZE_COMMIT"
+    assert m["provenance"]["source_tree_dirty_at_start"] is False
+    print(name, "OK", m["summary_digest"])
 PY
 ```
 
 ## Step 11 — recheck all 15 archive digests (after)
 
-Repeat Step 5, saving `archive_audit_after.json`. Any difference from
-`archive_audit_before.json` is a global stop, reported loudly.
+Repeat Step 5 into `$RUNTIME/archive_audit_after.json` and diff against the
+before file. Any difference is a global stop, reported loudly.
 
-## Step 12 — write the report BEFORE committing
+## Step 12 — copy results into the repository
 
-Write `docs/plans/rps2026/ROUND10_REMOTE_REPORT.md` now, while the evidence is
-in front of you: identifiers actually used; machine state before/after; the
-complete-suite collected count and result; smoke paths; per-experiment wall
-times; every gate passed or failed; digests before/after; the exact commands
-run; and the push outcome (filled in after Step 15, or marked as failed).
-
-The previous revision of this runbook committed before writing the report,
-which invited a report reconstructed from memory. The report is part of the
-evidence, not a summary of it.
-
-## Steps 13–14 — check, then commit results and report together
+Only now does anything enter the worktree:
 
 ```bash
-git status --short          # only new files under results/rps2026/{E10b_*,E11_*,Round10_smoke,Round10_remote}
+cp -a "$RUNTIME/E10b_calibrated_estimated_covariance" results/rps2026/
+cp -a "$RUNTIME/E11_corrected_angles"                 results/rps2026/
+mkdir -p results/rps2026/Round10_remote
+cp -a "$RUNTIME/archive_audit_before.json" "$RUNTIME/archive_audit_after.json" \
+      "$RUNTIME/pytest_full.log" results/rps2026/Round10_remote/
+cp -a "$RUNTIME/Round10_smoke" results/rps2026/ 2>/dev/null || true
+git status --short
 git diff --check
-git add -A && git commit -m "round10 remote: E10b and E11 corrected results with report"
 ```
 
-## Steps 15–17 — push and verify
+## Step 13 — write the report BEFORE the evidence commit
+
+Write `docs/plans/rps2026/ROUND10_REMOTE_REPORT.md` now: identifiers actually
+used; machine state; the complete-suite collected count, exit status and result;
+per-experiment wall times; every gate passed or failed; digests before/after;
+the exact commands; and
+
+```text
+push_status: pending
+```
+
+The report is part of the evidence, not a recollection of it.
+
+## Step 14 — commit the evidence and report together
+
+```bash
+git add -A && git commit -m "round10 remote: E10b and E11 corrected results with report"
+EVIDENCE_COMMIT=$(git rev-parse HEAD)
+```
+
+## Step 15 — push and verify
 
 ```bash
 git push -u origin "$OUTPUT_BRANCH"
@@ -200,9 +230,34 @@ git fetch origin "$OUTPUT_BRANCH"
 test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$OUTPUT_BRANCH)"
 ```
 
-If credentials prevent the push: commit locally, report the exact local SHA and
-the exact failure text, and mark synchronization as NOT achieved. Never claim a
-push that did not happen.
+## Step 16 — synchronization addendum, then push it
+
+Because the push status could not honestly be known when the report was
+written, record it in an addendum rather than amending the evidence commit:
+
+```bash
+cat >> docs/plans/rps2026/ROUND10_REMOTE_REPORT.md <<EOF
+
+## Synchronization addendum
+
+evidence_commit: $EVIDENCE_COMMIT
+push_status: verified
+origin_tip_after_push: $(git rev-parse origin/$OUTPUT_BRANCH)
+EOF
+git add -A && git commit -m "round10 remote: synchronization addendum"
+git push origin "$OUTPUT_BRANCH"
+```
+
+If the push failed, write `push_status: FAILED`, the exact error, and the local
+`$EVIDENCE_COMMIT`; commit the addendum locally; never claim synchronization.
+
+## Step 17 — verify the final remote tip
+
+```bash
+git fetch origin "$OUTPUT_BRANCH"
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$OUTPUT_BRANCH)" \
+  && echo "REMOTE TIP VERIFIED"
+```
 
 ## Required literal terminal fields
 
@@ -217,6 +272,7 @@ summary_regeneration_audit_passed: true
 complete_repository_test_suite_passed: true
 ```
 
-Report the true value of every field. If any is false, explain it and end with
+Report each field's true value. If any is false, explain it and end with
 `ROUND10_REMOTE_CORRECTIONS_PARTIAL_WITH_RECORDED_FAILURES`. Print
-`ROUND10_REMOTE_CORRECTIONS_READY` only when every field above is true.
+`ROUND10_REMOTE_CORRECTIONS_READY` only when every field is true **and** the
+remote tip is verified.

@@ -1,0 +1,108 @@
+{
+  "analysis_label": "single_condition_covariance_estimation_sensitivity",
+  "calibration": {
+    "n_calibration_events": 64,
+    "regularization": "unchanged from E10 (shrinkage=0.0, floor=None)",
+    "rng": "unchanged from E10 (same SeedSequence stream)",
+    "scale_correction": "v_hat = sqrt(v_c*v_t); factors / sqrt(v_hat); frozen before any full rerun"
+  },
+  "columns": [
+    "config_hash",
+    "seed",
+    "regime",
+    "method",
+    "analysis_label",
+    "whitening",
+    "n_calibration_events",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "archived_oracle_test_raw_mse",
+    "archived_oracle_test_normalized_chi2",
+    "delta_raw_mse_estimated_minus_oracle",
+    "delta_normalized_chi2_estimated_minus_oracle",
+    "control_reproduction_rel_error_raw_mse",
+    "control_reproduction_rel_error_normalized_chi2",
+    "v_c",
+    "v_t",
+    "v_hat",
+    "product_scale_ratio_vs_oracle",
+    "channel_shape_error",
+    "temporal_shape_error",
+    "kronecker_relative_frobenius_error",
+    "oracle_whitening_residual",
+    "channel_min_eigenvalue",
+    "channel_condition_number",
+    "temporal_min_eigenvalue",
+    "temporal_condition_number",
+    "runtime_seconds"
+  ],
+  "config_hash": "381a5cbc7972e147",
+  "control_gate_passed": true,
+  "experiment": "E10b_calibrated_estimated_covariance",
+  "methods": [
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "provenance": {
+    "code_commit": "e951d451909c78ad52a15c3ea95b5a36d9f17aac",
+    "command": [
+      "/usr/bin/python3",
+      "-m",
+      "nfpa_confirmatory.run_calibrated_estimated_covariance",
+      "--smoke",
+      "--out",
+      "results/rps2026/Round10_smoke/E10b"
+    ],
+    "config": {
+      "C": 6,
+      "N_calibration": 64,
+      "N_test": 80,
+      "N_train": 60,
+      "N_validation": 30,
+      "T": 32,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 200,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 8,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "381a5cbc7972e147",
+    "git_tree_dirty": true,
+    "hostname": "claude",
+    "implementation_freeze_commit": "e951d451909c78ad52a15c3ea95b5a36d9f17aac",
+    "numpy_version": "2.2.6",
+    "platform": "Linux-6.8.0-136-generic-aarch64-with-glibc2.35",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/usr/bin/python3",
+    "python_version": "3.10.12",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": "4"
+    }
+  },
+  "raw_digest": "548bc07fa71271322d644afc853f11786894b84b37c0eb2a0b4f5541d5b875e1",
+  "regime": "colored",
+  "seeds": [
+    910000,
+    910001
+  ],
+  "shard_digests": {
+    "seed_910000.csv": "798c6e1902bdb17b5563e11723662ac9fef872e521ed35680026f98dee9f5764",
+    "seed_910001.csv": "fcd069e0b5e1bfd09d32c1224dc0c9f35081b788864bdee3078b8c1b4fe4761f"
+  },
+  "smoke": true,
+  "status": "complete",
+  "wall_seconds": 0.15718722343444824
+}

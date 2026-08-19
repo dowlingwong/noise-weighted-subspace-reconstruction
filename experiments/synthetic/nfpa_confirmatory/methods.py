@@ -196,7 +196,20 @@ FIT_FACTORY = {
 
 
 def basis_whitened(fit: MethodFit, ds: Dataset) -> np.ndarray:
-    """Orthonormal ``(CT, rank)`` basis of the fitted subspace in whitened coords."""
+    """Orthonormal ``(CT, rank)`` basis of the fitted subspace in whitened coords.
+
+    .. warning:: **ARCHIVAL — known defect in the raw factored branch.**
+       ``B.reshape(rank, C, T, order="F")`` on a ``(C*T, rank)`` matrix does not
+       unstack basis columns; it interleaves them. Only Iso-MPCA reaches that
+       branch, so the archived E1/E9 ``angle_to_cw_pca_*`` columns for Iso-MPCA
+       are invalid as subspace angles. This function is retained solely to
+       reproduce those archived columns byte-for-byte. Every NEW computation
+       must use :func:`nfpa_confirmatory.angles_v2.basis_whitened_v2`, which
+       emits the corrected ``*_v2`` columns. Pinned by
+       ``tests/test_round9.py`` (defect) and ``tests/test_round10.py``
+       (correction). Do not "fix" this function: that would silently redefine
+       an archived CSV column.
+    """
     rank = ds.cfg.k_c * ds.cfg.k_t
     if fit.name == "OF":
         v = fit.template_whitened.reshape(-1, order="F")

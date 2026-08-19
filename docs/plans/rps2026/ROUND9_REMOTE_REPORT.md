@@ -236,3 +236,29 @@ outputs remain outside Git.
 - Any statement about `angle_to_cw_pca_*` for Iso-MPCA until the desk resolves
   the `basis_whitened` defect.
 - A 30-seed confirmatory Block A. The pooled set is `post_hoc_pooled`.
+
+---
+
+## Synchronization addendum (desk, 2026-08-19, Round 10 Phase 1)
+
+*This addendum records later desktop reconciliation. Nothing above is edited:
+the sections above are the contemporaneous execution record, and the
+`ROUND9_HANDOFF_FETCH_FAILED` gate result remains a truthful description of
+the remote session as it happened — the machine had no Git credentials, and
+the report correctly refused to claim a synchronization that had not occurred.*
+
+Subsequently, from an authenticated session, the evidence branch **was pushed
+successfully**. Verified at Round 10 Phase 0 preflight
+(`results/rps2026/Round10_desktop/preflight.txt`):
+
+- local `round9/remote-evidence`, `origin/round9/remote-evidence`, and the
+  Round 10 evidence base all resolve to the same commit:
+  `c9686a0179bae0435d35bce1bbdaafb11839ef86`;
+- `git fsck --no-dangling` is clean; the archived E1 digest
+  (`e9778eb2d663…`) matches this report's final-state value exactly.
+
+The report's "committed locally at `386fd6b4…`" value was an **intermediate
+execution commit**: it is not present in the synchronized history (not in the
+object store after fetch), and the branch content was finalized as
+`c9686a0…` before the authenticated push. The synchronized tip, not the
+intermediate SHA, is the Round 10 immutable starting point.

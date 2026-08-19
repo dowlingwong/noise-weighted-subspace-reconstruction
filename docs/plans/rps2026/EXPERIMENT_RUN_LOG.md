@@ -556,3 +556,257 @@ advantage on training χ² is (paired −9.94e-05, [−1.14, −0.86]e-04, 98% o
 evaluations). So the raw-MSE advantage seen on held-out data is not explained by the
 χ² arm simply optimising better; note these intervals are over evaluation points on a
 single trajectory, not over seeds, which is exactly what Task B addresses.
+
+---
+
+# Round 9 — overnight remote run (2026-08-18/19, `deepthought`)
+
+Executed from `ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` on branch
+`round9/remote-evidence`, created from the pinned handoff content commit
+`ff50d7184a2ab66275f01d076e9750ae8c367107`. No manuscript file was touched, no
+scientific threshold was changed, and the archived Block A CSV was neither
+overwritten nor appended to.
+
+## Machine at preflight
+
+`deepthought`, Linux 4.18.0, 40 cores, 503 GB RAM (460 GB available), `/ceph`
+318 TB free. No interactive users, no screen sessions, load average 4.18. All
+four GPUs were occupied by this account's own `llama-server` processes
+(GPUs 1–3 at 98% utilisation, ~7.7 GB resident each). No E7 process, PID file
+or screen session existed. Interpreter: `.venv/bin/python` → Python 3.12.2,
+NumPy 2.4.6, SciPy 1.17.1.
+
+## Gate deviation: no network credentials
+
+`git fetch origin codex/rps-round9-overnight-handoff` failed with
+`could not read Username for 'https://github.com'` (exit 128). There is no
+credential helper in this non-interactive session, so the runbook's Phase 0
+`ROUND9_HANDOFF_FETCH_FAILED` condition is met and is recorded as an
+infrastructure gate failure. Identity and ancestry were verified against the
+local object store instead: `ff50d71` is present by exact SHA and is an
+ancestor of the fetched remote-tracking ref. The same missing credentials mean
+`git push -u origin round9/remote-evidence` cannot be run from this machine.
+
+## E6 — whitening range
+
+`results/rps2026/E6_whitening_range.json` was absent from this branch's
+ancestry. It was produced by the Round 8 remote run and committed on `8ee9eb1`,
+which sits on an unmerged side branch that is *not* an ancestor of the Round 9
+handoff commit (they diverge at `27fcfc5`). `scripts/round9_verify_e6.py`
+recovered it from the Git object store and verified, in code:
+
+| Check | Value |
+|---|---|
+| `excluding_dc.cv_inverse_J` | 0.6883439500348468 → rounds to 0.69 |
+| `all_bands.cv_inverse_J` (not the gated one) | 0.6914499950682564 |
+| `collinearity_supported` | `false` |
+| bands before DC exclusion | 328 |
+| estimator | boxcar window, median average, 512 calibration windows |
+| source = destination SHA-256 | `7f85a6b5b7ebd14c…` |
+
+Not recomputed: the Round 7 data root and estimator were not re-derived.
+
+## E7 — second rung-4 seed (20260818)
+
+**Already complete on arrival; nothing was relaunched.** Both arms held
+`checkpoint_00025000.pt` and a 50-evaluation log from `20260817_195350`.
+
+| Gate | Result |
+|---|---|
+| 1. same seed and data root | PASS — both banners `seed=20260818`; identical window partition 10067/7046/3017 |
+| 2. configs differ only in loss | PASS — both `model_params=569352`; the only differing field is `train.loss` |
+| 3. reached 25000 steps in cap | PASS — 4.98 h and 4.93 h against an 8 h cap |
+| 4. identical evaluation grids | PASS — 50 evaluations each, identical step values |
+
+Gate 1 note: the seed-specific screen logs were not retained, so data-root
+identity rests on the window-partition content signature rather than a logged
+path string.
+
+Paired differences, `t_chi2 − t_mse`, all four metrics errors:
+
+| Metric | Round 9 (20260818) | 95% CI | Round 6 (20260808) | Sign agrees |
+|---|---|---|---|---|
+| `val_chi2` | −1.169e-04 | [−1.330e-04, −1.017e-04] | −1.148e-04 | yes |
+| `val_mse` | −57.41 | [−76.15, −39.37] | −57.18 | yes |
+| `train_chi2` | −1.036e-04 | [−1.183e-04, −8.879e-05] | −9.943e-05 | yes |
+| `train_mse` | −19.86 | [−37.54, −1.71] | −14.26 | yes |
+
+Every round-9 interval excludes zero. Round 6's `train_mse` interval included
+zero; round 9's does not. This is the Round 8 table's "both seeds agree" branch:
+rung 4 does not reproduce the metric reversal, and the non-reversal replicates
+across two seeds. Bootstrap unit is the evaluation, not an independent run, so
+seed-level uncertainty is still unquantified at n=2.
+
+## Implementation freeze
+
+- `51711aa` — output-safe E8/E9/E10 runners, method-aware semantics, tests.
+- `391cd44` — resumability, evaluate-once-per-fit, caps raised from measured
+  timings. No scientific choice changed; every output value is unchanged.
+
+Caps were raised, never lowered, and justified from two recorded measurements:
+the archived Block A run took 1:12:05 for 10 seeds × 5 methods (432 s/seed end
+to end), and this run's E8 one-seed gate took 488 s. E8 2h→3h per condition,
+E9 4h→6h, E10 unchanged at 3h.
+
+## Phase 3 execution
+
+Screen session `rps_round9_cpu`, `nice -n 10`, four BLAS threads, every command
+under `timeout`. All steps returned 0.
+
+| Step | rc | Wall (s) | Cap |
+|---|---:|---:|---:|
+| E8 one-seed reproduction gate | 0 | 488 | 30 m |
+| E8 primary (α=0.1, seeds 0–9) | 0 | 5084 | 3 h |
+| E8 separable (α=0, seeds 0–9) | 0 | 5100 | 3 h |
+| E9 replication (seeds 10–29) | 0 | 10551 | 6 h |
+| E10 estimated covariance (seeds 0–9) | 0 | 3885 | 3 h |
+
+### E8 — archived-fit reproduction gate
+
+All 50 rows (10 seeds × 5 methods) reproduce the archived
+`test_normalized_chi2`. Maximum relative error **6.356e-15** against a 1e-9
+tolerance. The refits are the archived fits.
+
+### E8 — `primary_alpha_0p1`, `analysis_status: post_hoc_exploratory`
+
+Post-hoc completion of the superseded Block H, not a confirmatory result.
+Paired NFPA − Iso-MPCA (negative favours NFPA; every quantity is an error):
+
+| Metric | Mean | 95% CI | Excludes 0 | Seeds negative |
+|---|---:|---|:--:|:--:|
+| `amplitude_rmse` | −0.046481 | [−0.04857, −0.04424] | yes | 10/10 |
+| `rise_time_rmse` | −0.090324 | [−0.09180, −0.08877] | yes | 10/10 |
+| `decay_time_rmse` | −0.015516 | [−0.01685, −0.01422] | yes | 10/10 |
+| `channel_projector_error` | −0.97811 | [−0.9857, −0.9708] | yes | 10/10 |
+| `temporal_projector_error` | −0.46270 | [−0.4754, −0.4507] | yes | 10/10 |
+| `joint_projector_error` | −0.53286 | [−0.5457, −0.5212] | yes | 10/10 |
+| `joint_projector_error_whitened` | −0.58591 | [−0.5987, −0.5742] | yes | 10/10 |
+
+Per-method means: NFPA channel 0.0432 / temporal 0.8186 / joint 0.8194;
+Iso-MPCA 1.021 / 1.281 / 1.352; CW-PCA and IsoPCA report joint only (1.189 and
+1.354) because an unrestricted subspace identifies no axis factors; OF reports
+amplitude only. Those fields are null, not zero.
+
+### E8 — `separable_alpha_0`, `analysis_status: delayed_predeclared_no_numeric_threshold`
+
+The delayed execution of H3. Config hash `09f7dbd811814c55`, distinct from the
+archived `98001a62855cb9a5`. No archived-fit gate applies.
+
+| Metric | Mean | 95% CI | Excludes 0 | Seeds negative |
+|---|---:|---|:--:|:--:|
+| `amplitude_rmse` | −0.055033 | [−0.05724, −0.05278] | yes | 10/10 |
+| `rise_time_rmse` | −0.096727 | [−0.09828, −0.09512] | yes | 10/10 |
+| `decay_time_rmse` | −0.021259 | [−0.02387, −0.01861] | yes | 10/10 |
+| `channel_projector_error` | −0.98580 | [−0.9935, −0.9784] | yes | 10/10 |
+| `temporal_projector_error` | −0.51190 | [−0.5342, −0.4890] | yes | 10/10 |
+| `joint_projector_error` | −0.58309 | [−0.6055, −0.5604] | yes | 10/10 |
+| `joint_projector_error_whitened` | −0.63517 | [−0.6578, −0.6123] | yes | 10/10 |
+
+Per-method planted-factor means: NFPA channel 0.0349 / temporal 0.7677 / joint
+0.7683; Iso-MPCA 1.021 / 1.280 / 1.351. NFPA recovers the planted channel
+subspace almost exactly while temporal recovery is much weaker — an asymmetry
+the desk should look at rather than average away.
+
+The original protocol supplied no quantitative recovery threshold, so these are
+reported as continuous errors and paired intervals. **No binary H3 verdict is
+derived here**, and the two conditions are never pooled.
+
+### E9 — 20-seed post-hoc replication
+
+Seeds 10–29, frozen `PRIMARY` unchanged, written only to
+`E9_blockA_replication/`. The replication summary was generated before any
+pooling.
+
+| Contrast | Seeds 0–9 (`frozen_confirmatory`) | Seeds 10–29 (`post_hoc_replication`) | Sign agrees |
+|---|---:|---:|:--:|
+| `test_normalized_chi2` | −0.0192011 | −0.0190460 | yes |
+| `test_raw_mse` | +0.00341426 | +0.00341312 | yes |
+| `angle_to_cw_pca_mean_deg` (secondary) | −24.6215 | −24.4378 | yes |
+
+All intervals exclude zero. The opposite signs of the two primary contrasts
+*are* the metric reversal: NFPA is better on normalized chi-square and worse on
+raw MSE. Both directions agree between subsets, so `pooling_permitted: true`
+and `pooled_summary.json` was written, displaying all three sets side by side:
+pooled `test_normalized_chi2` −0.0190977 [−0.019210, −0.018988], `test_raw_mse`
++0.0034135 [+0.0033978, +0.0034281]. The 30-seed aggregate is labelled
+`post_hoc_pooled` and is **not** a 30-seed confirmatory experiment.
+
+Secondary-contrast caveat: `angle_to_cw_pca_*` is computed by
+`methods.basis_whitened`, whose raw-plus-factored branch is defective (see
+below). It affects Iso-MPCA only. The two primary contrasts do not use that
+function.
+
+### E10 — estimated covariance
+
+Seeds 0–9, `N_cal = 2048` noise-only calibration events per seed, calibration
+RNG `SeedSequence([20260819, seed, 10])`, `regularize_covariance(shrinkage=0.0,
+floor=None)`. NFPA fits and reconstructs through the estimated axis
+covariances; every reported metric is computed with the **oracle** covariance
+on the unchanged held-out test set. The Iso-MPCA control reproduced its
+archived primary metrics to a maximum relative error of **6.022e-15**.
+
+Degradation, estimated minus archived oracle NFPA (positive = estimation made
+it worse):
+
+| Metric | Mean | 95% CI | Excludes 0 |
+|---|---:|---|:--:|
+| `normalized_chi2` | +7.905e-05 | [+6.301e-05, +9.635e-05] | yes |
+| `raw_mse` | +3.548e-06 | [+1.154e-06, +6.692e-06] | yes |
+
+Against an archived NFPA held-out chi-square near 1.015 that is a relative
+degradation of order 0.008%: resolved, but tiny.
+
+NFPA − Iso-MPCA under estimated whitening: `test_normalized_chi2` −0.0191221
+[−0.019340, −0.018914], `test_raw_mse` +0.00341781 [+0.0033963, +0.0034393].
+Compared with the oracle values (−0.0192011 and +0.00341426), **the reversal
+survives estimated whitening essentially intact.**
+
+Covariance diagnostics (means over 10 seeds): channel shape error 0.0282,
+temporal shape error 0.0197, channel condition number 4.79, temporal condition
+number 34654, channel minimum eigenvalue 4.52e-03, temporal minimum eigenvalue
+2.88e-05, Kronecker scale ratio 0.0103, Kronecker relative Frobenius error
+0.9897, oracle-whitening residual 2.197.
+
+The last three are dominated by the *non-identified* reciprocal Kronecker
+scale, not by estimation error: the per-axis estimators satisfy
+`E[Sigma_c_hat] = Sigma_c · tr(Sigma_t)/T` and
+`E[Sigma_t_hat] = Sigma_t · tr(Sigma_c)/C`, so the scale ratio's expected value
+is `tr(Sigma_t)·tr(Sigma_c)/(C·T)`, not 1. This was verified numerically on a
+small fixture (predicted 93.89 vs observed 93.75). The scale-free accuracy
+statements are the two shape errors, and NFPA's fitted subspace and
+reconstruction are invariant to a global rescaling of the whitening transform,
+so the factor does not propagate into the reported metrics. This is one fixed
+condition — a measured sensitivity check, not a general robustness boundary.
+
+## Defect found and deliberately not fixed
+
+`methods.basis_whitened` unstacks a `(C·T, rank)` basis with
+`B.reshape(rank, C, T, order="F")` where the vec convention requires
+`B.T.reshape(rank, C, T, order="F")`. The two have the same shape but the
+former interleaves the basis index with the channel index. Verified against a
+column-by-column ground truth.
+
+Blast radius: the defective branch is reached **only by Iso-MPCA** (CW-PCA and
+NFPA are whitened-coordinate and take a different branch; IsoPCA's `P`-branch
+is correct), and `basis_whitened` feeds **only** `angle_to_cw_pca_*`.
+Reconstruction metrics, the E8 reproduction gate and both E9 primary contrasts
+are unaffected.
+
+It was left unchanged because fixing it would silently redefine an archived
+Block A column and break comparability between E9's replication rows and seeds
+0–9. It is pinned by `test_archived_basis_whitened_defect_is_confined_to_iso_mpca`,
+annotated in E9's `replication_summary.json`, and left to the desk. Round 9's
+own metrics use the corrected `r9_semantics.fitted_basis_whitened`.
+
+## Evidence audit and final state
+
+`scripts/round9_evidence_audit.py`: **61/61 checks pass**, including that the
+archived E1 digest is unchanged (`e9778eb2d663…`), exact seed sets
+(E8 {0..9}, E9 {10..29}, E10 {0..9}), no duplicate keys, config hashes agreeing
+within and differing between conditions, and every summary regenerating
+byte-for-byte from its seed shards.
+
+Final tests: 49 pass (18 existing NFPA correctness and leakage, 31 new Round 9).
+`git diff --check` clean. `results/rps2026` is 1.1 MB. No Round 9 process, no
+screen session, no stale PID file. Nothing under the TIDMAD raw-data tree was
+modified. Checkpoints and denoised outputs remain outside Git.

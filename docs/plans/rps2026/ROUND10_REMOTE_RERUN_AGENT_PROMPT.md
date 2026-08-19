@@ -20,8 +20,8 @@ SHA.
 
 ```text
 HANDOFF_BRANCH   = codex/rps-round10-handoff-hardening
-CONTENT_COMMIT   = f9c844d967b4d268d1c5beaf5c52f59edacbb199
-FREEZE_COMMIT    = 34c47ae71a79b9569457dc54915e36ba5791ebb9
+CONTENT_COMMIT   = 3eee165ad1cab76cb61101ddce072b189cbdc453
+FREEZE_COMMIT    = 048f1bd96acf943ad4d143ea50333b194099f170
 EVIDENCE_BASE    = c9686a0179bae0435d35bce1bbdaafb11839ef86
 OUTPUT_BRANCH    = round10/remote-corrections
 ```
@@ -30,8 +30,8 @@ Export them before starting:
 
 ```bash
 export HANDOFF_BRANCH=codex/rps-round10-handoff-hardening
-export CONTENT_COMMIT=f9c844d967b4d268d1c5beaf5c52f59edacbb199
-export FREEZE_COMMIT=34c47ae71a79b9569457dc54915e36ba5791ebb9
+export CONTENT_COMMIT=3eee165ad1cab76cb61101ddce072b189cbdc453
+export FREEZE_COMMIT=048f1bd96acf943ad4d143ea50333b194099f170
 export EVIDENCE_BASE=c9686a0179bae0435d35bce1bbdaafb11839ef86
 export OUTPUT_BRANCH=round10/remote-corrections
 ```

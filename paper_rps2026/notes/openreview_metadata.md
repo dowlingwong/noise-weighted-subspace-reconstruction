@@ -36,9 +36,14 @@ whether that choice bites is a property of the instrument and the
 representation.
 ```
 
-**If Task B lands as Outcome 2 before submission**, replace the second-to-last
-sentence per `round8_contingency.md` ("At the attention rung two seeds do not
-resolve a consistent metric effect, ..."). The abstract field must match the PDF.
+**Updated 2026-08-19 (Round 10 evidence integration).** The abstract above is
+superseded — regenerate it from `sections/00_abstract.tex`, which now states the
+twenty-seed replication, the channel/temporal recovery asymmetry, and two
+independent rung-4 seeds. The abstract field must match the PDF exactly; paste
+from the built `paper.pdf`, not from this file.
+
+Still pending before submission: E10b (estimated-covariance sensitivity) and
+E11 (corrected angles) from the server; neither changes the abstract.
 
 ## TL;DR (one sentence)
 

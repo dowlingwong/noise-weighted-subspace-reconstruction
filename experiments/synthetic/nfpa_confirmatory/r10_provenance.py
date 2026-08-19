@@ -135,8 +135,20 @@ def provenance_block(
     execution_head: str,
     smoke: bool,
     started_at_utc: str,
+    source_tree_dirty_at_start: bool | None = None,
+    expected_output_changes_at_completion: Sequence[str] = (),
 ) -> dict[str, Any]:
-    """The Round 10 manifest provenance block."""
+    """The Round 10 manifest provenance block.
+
+    Dirty-state semantics. The only meaningful question is whether the SOURCE
+    tree was clean when the run started — that is what makes the recorded
+    commit a faithful description of the code that ran. Re-running
+    ``git status`` at completion would additionally see the run's own freshly
+    written result files and record them as "dirty", which conflates expected
+    output with an uncommitted source modification. So the start-of-run value
+    is captured once and carried, and the expected output paths are listed
+    explicitly instead.
+    """
     try:
         import scipy  # noqa: F401 — version only
 
@@ -144,12 +156,23 @@ def provenance_block(
     except Exception:  # pragma: no cover - scipy is a hard dep of the runners
         scipy_version = "unavailable"
 
+    if source_tree_dirty_at_start is None:
+        # Best effort for callers that did not capture it at start; never used
+        # by the runners, which always pass the value observed before compute.
+        source_tree_dirty_at_start = worktree_is_dirty()
+
     return {
         "evidence_class": EVIDENCE_SMOKE if smoke else EVIDENCE_SCIENTIFIC,
         "implementation_freeze_commit": freeze_sha,
         "execution_content_commit": execution_head,
+        "source_commit": execution_head,
         "freeze_is_ancestor_of_execution": bool(freeze_sha) or None,
-        "git_tree_dirty": worktree_is_dirty(),
+        "source_tree_dirty_at_start": bool(source_tree_dirty_at_start),
+        "expected_output_changes_at_completion": list(expected_output_changes_at_completion),
+        "dirty_state_note": (
+            "source_tree_dirty_at_start is the gate. Result files written by this "
+            "run are expected output, listed above, and are not source dirtiness."
+        ),
         "command": list(command),
         "config_hash": config_hash(cfg),
         "primary_config_hash": PRIMARY_HASH,

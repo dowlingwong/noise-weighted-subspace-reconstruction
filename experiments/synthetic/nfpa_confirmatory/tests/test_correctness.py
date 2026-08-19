@@ -96,7 +96,10 @@ def test_nfpa_full_rank_is_identity():
     assert err < 1e-10, f"identity reconstruction error {err:.2e}"
 
 
-def test_archived_degenerate_case_reproduced():
+def test_archived_degenerate_case_reproduced(tmp_path, monkeypatch):
+    # Redirect the demo's figure so executing it does not rewrite the tracked
+    # PNG; a dirty source tree now blocks the Round 10 runners by design.
+    monkeypatch.setenv("NFPA_DEMO_OUT_DIR", str(tmp_path))
     spec = importlib.util.spec_from_file_location("nfpa_demo_archive", DEMO_PATH)
     mod = importlib.util.module_from_spec(spec)
     sys.modules["nfpa_demo_archive"] = mod

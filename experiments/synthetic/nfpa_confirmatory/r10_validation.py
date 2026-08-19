@@ -28,6 +28,9 @@ from typing import Any, Iterable, Sequence
 
 from .r9_common import IntegrityError, REPO_ROOT, read_rows_csv, sha256_of
 
+ARCHIVED_E1_CSV = REPO_ROOT / "results/rps2026/E1_nfpa_blockA/block_A_colored_raw.csv"
+ARCHIVED_E9_CSV = REPO_ROOT / "results/rps2026/E9_blockA_replication/replication_raw.csv"
+
 # --------------------------------------------------------------------------
 # Authoritative archive set (all 15 paths from Round10_desktop/preflight.txt)
 # --------------------------------------------------------------------------
@@ -169,6 +172,49 @@ def _check_common(
 
 
 # --------------------------------------------------------------------------
+# Authoritative archived metrics — the ONLY trusted source for the gates
+# --------------------------------------------------------------------------
+
+
+def load_authoritative_metrics() -> dict[tuple[int, str], dict[str, Any]]:
+    """``(seed, method) -> {test_raw_mse, test_normalized_chi2, source}``.
+
+    Read straight from the archived E1 (seeds 0-9) and E9 (seeds 10-29) raw
+    tables, whose digests are pinned in :data:`AUTHORITATIVE_ARCHIVE`. The
+    validators recompute every reproduction error and every archived-value
+    column against THIS table. A stored error column is treated as a claim to
+    be checked, never as evidence: corrupting a metric while leaving a small
+    error value in place must fail, and does.
+    """
+    table: dict[tuple[int, str], dict[str, Any]] = {}
+    for path, source in ((ARCHIVED_E1_CSV, "E1"), (ARCHIVED_E9_CSV, "E9")):
+        if not path.exists():
+            raise IntegrityError(f"authoritative archive table missing: {path}")
+        for row in read_rows_csv(path):
+            table[(int(row["seed"]), row["method"])] = {
+                "test_raw_mse": float(row["test_raw_mse"]),
+                "test_normalized_chi2": float(row["test_normalized_chi2"]),
+                "source": source,
+            }
+    return table
+
+
+#: Agreement required between a stored column and its recomputation.
+RECOMPUTE_RTOL = 1e-9
+RECOMPUTE_ATOL = 1e-12
+
+
+def _agrees(stored: float, recomputed: float) -> bool:
+    return abs(stored - recomputed) <= max(
+        RECOMPUTE_ATOL, RECOMPUTE_RTOL * max(abs(stored), abs(recomputed))
+    )
+
+
+def _rel_error(observed: float, archived: float) -> float:
+    return abs(observed - archived) / max(abs(archived), 1e-15)
+
+
+# --------------------------------------------------------------------------
 # E10b
 # --------------------------------------------------------------------------
 
@@ -193,8 +239,16 @@ E10B_REQUIRED_FINITE = (
 def validate_e10b_final_rows(
     rows: Sequence[dict], *, columns: Sequence[str], config_hash: str,
     analysis_label: str, tolerance: float,
+    authoritative: dict[tuple[int, str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Re-derive every E10b gate from the final rows. Returns the gate record."""
+    """Re-derive every E10b gate from the final rows. Returns the gate record.
+
+    ``authoritative`` defaults to :func:`load_authoritative_metrics`. Pass an
+    explicit table only in tests. Every archived value, reproduction error and
+    delta is RECOMPUTED from it and compared with the stored column.
+    """
+    if authoritative is None:
+        authoritative = load_authoritative_metrics()
     _check_common(
         rows, experiment="E10b", seeds=range(10), methods=("Iso-MPCA", "NFPA"),
         columns=columns, config_hash=config_hash, regime="colored",
@@ -202,7 +256,18 @@ def validate_e10b_final_rows(
     )
 
     worst_control = 0.0
+    worst_recompute_disagreement = 0.0
     for row in rows:
+        seed = int(row["seed"])
+        arch = authoritative.get((seed, row["method"]))
+        _require(
+            arch is not None,
+            f"E10b: seed {seed} method {row['method']} has no authoritative archived record",
+        )
+        _require(
+            arch["source"] == "E1",
+            f"E10b: seed {seed} must reference E1, authoritative table says {arch['source']}",
+        )
         for col in E10B_REQUIRED_FINITE:
             _require(
                 _finite(row[col]),
@@ -223,45 +288,85 @@ def validate_e10b_final_rows(
                     _finite(row[col]),
                     f"E10b: seed {row['seed']} NFPA missing/non-finite {col}",
                 )
-            # The recorded delta must equal the recorded values it is derived from.
-            for got_col, cur_col, arch_col in (
-                ("delta_raw_mse_estimated_minus_oracle", "test_raw_mse", "archived_oracle_test_raw_mse"),
-                ("delta_normalized_chi2_estimated_minus_oracle", "test_normalized_chi2",
-                 "archived_oracle_test_normalized_chi2"),
+            # Archived columns must equal the AUTHORITATIVE archive, not merely
+            # be self-consistent, and the deltas are recomputed from it.
+            for stored_col, key in (
+                ("archived_oracle_test_raw_mse", "test_raw_mse"),
+                ("archived_oracle_test_normalized_chi2", "test_normalized_chi2"),
             ):
-                expect = _f(row[cur_col]) - _f(row[arch_col])
                 _require(
-                    abs(_f(row[got_col]) - expect) <= 1e-12 * max(1.0, abs(expect)),
-                    f"E10b: seed {row['seed']} {got_col} is inconsistent with its own columns",
+                    _agrees(_f(row[stored_col]), arch[key]),
+                    f"E10b: seed {seed} {stored_col}={row[stored_col]} disagrees with the "
+                    f"authoritative archive value {arch[key]!r}",
+                )
+            for got_col, cur_col, key in (
+                ("delta_raw_mse_estimated_minus_oracle", "test_raw_mse", "test_raw_mse"),
+                ("delta_normalized_chi2_estimated_minus_oracle", "test_normalized_chi2",
+                 "test_normalized_chi2"),
+            ):
+                expect = _f(row[cur_col]) - arch[key]
+                _require(
+                    _agrees(_f(row[got_col]), expect),
+                    f"E10b: seed {seed} {got_col}={row[got_col]} disagrees with the value "
+                    f"recomputed from the authoritative archive ({expect!r})",
+                )
+                worst_recompute_disagreement = max(
+                    worst_recompute_disagreement, abs(_f(row[got_col]) - expect)
                 )
         else:
             _require(
                 row["whitening"] == "none_covariance_independent_control",
                 f"E10b: seed {row['seed']} control whitening label altered",
             )
-            for col in (
-                "control_reproduction_rel_error_raw_mse",
-                "control_reproduction_rel_error_normalized_chi2",
+            # RECOMPUTE the control reproduction errors from the authoritative
+            # archive and the row's own metrics. The stored columns are claims;
+            # this is the check. Corrupting a metric while leaving a small
+            # stored error in place fails here.
+            for col, metric_col, key in (
+                ("control_reproduction_rel_error_raw_mse", "test_raw_mse", "test_raw_mse"),
+                ("control_reproduction_rel_error_normalized_chi2", "test_normalized_chi2",
+                 "test_normalized_chi2"),
             ):
                 _require(
                     _finite(row[col]),
-                    f"E10b: seed {row['seed']} control missing/non-finite {col}",
+                    f"E10b: seed {seed} control missing/non-finite {col}",
                 )
-                value = _f(row[col])
+                recomputed = _rel_error(_f(row[metric_col]), arch[key])
                 _require(
-                    value <= tolerance,
-                    f"E10b: seed {row['seed']} control reproduction {col}={value:.3e} > {tolerance:.0e}",
+                    recomputed <= tolerance,
+                    f"E10b: seed {seed} control reproduction RECOMPUTED from the archive is "
+                    f"{recomputed:.3e} > {tolerance:.0e} (stored column said {row[col]})",
                 )
-                worst_control = max(worst_control, value)
-            for col in ("archived_oracle_test_raw_mse", "archived_oracle_test_normalized_chi2"):
-                _require(_finite(row[col]), f"E10b: seed {row['seed']} control missing {col}")
+                _require(
+                    _agrees(_f(row[col]), recomputed),
+                    f"E10b: seed {seed} stored {col}={row[col]} disagrees with the recomputed "
+                    f"value {recomputed!r}",
+                )
+                worst_control = max(worst_control, recomputed)
+                worst_recompute_disagreement = max(
+                    worst_recompute_disagreement, abs(_f(row[col]) - recomputed)
+                )
+            for stored_col, key in (
+                ("archived_oracle_test_raw_mse", "test_raw_mse"),
+                ("archived_oracle_test_normalized_chi2", "test_normalized_chi2"),
+            ):
+                _require(_finite(row[stored_col]), f"E10b: seed {seed} control missing {stored_col}")
+                _require(
+                    _agrees(_f(row[stored_col]), arch[key]),
+                    f"E10b: seed {seed} {stored_col} disagrees with the authoritative archive",
+                )
 
     return {
         "control_gate_passed": True,  # recomputed above; any failure raised
         "worst_control_reproduction_rel_error": worst_control,
+        "worst_stored_vs_recomputed_disagreement": worst_recompute_disagreement,
         "tolerance_rel": tolerance,
         "n_rows_validated": len(rows),
-        "recomputed_from": "final concatenated rows (fresh and resumed alike)",
+        "recomputed_from": (
+            "final concatenated rows (fresh and resumed alike), with every archived "
+            "value, reproduction error and delta recomputed from the authoritative "
+            "E1 table rather than trusted from the stored columns"
+        ),
     }
 
 
@@ -273,8 +378,16 @@ def validate_e10b_final_rows(
 def validate_e11_final_rows(
     rows: Sequence[dict], *, columns: Sequence[str], config_hash: str,
     analysis_label: str, tolerance: float,
+    authoritative: dict[tuple[int, str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Re-derive every E11 gate from the final rows. Returns the gate record."""
+    """Re-derive every E11 gate from the final rows. Returns the gate record.
+
+    Reproduction errors are RECOMPUTED from the authoritative E1/E9 tables and
+    compared with the stored columns; a corrupted metric fails even when the
+    stored error column still looks small.
+    """
+    if authoritative is None:
+        authoritative = load_authoritative_metrics()
     _check_common(
         rows, experiment="E11", seeds=range(30), methods=("CW-PCA", "Iso-MPCA", "NFPA"),
         columns=columns, config_hash=config_hash, regime="colored",
@@ -282,10 +395,20 @@ def validate_e11_final_rows(
     )
 
     worst = 0.0
+    worst_recompute_disagreement = 0.0
     for row in rows:
         seed = int(row["seed"])
         want_cohort = "frozen_0_9" if seed < 10 else "replication_10_29"
         want_source = "E1" if seed < 10 else "E9"
+        arch = authoritative.get((seed, row["method"]))
+        _require(
+            arch is not None,
+            f"E11: seed {seed} method {row['method']} has no authoritative archived record",
+        )
+        _require(
+            arch["source"] == want_source,
+            f"E11: seed {seed} authoritative source is {arch['source']}, expected {want_source}",
+        )
         _require(
             row["cohort"] == want_cohort,
             f"E11: seed {seed} cohort {row['cohort']!r} != {want_cohort!r}",
@@ -296,20 +419,31 @@ def validate_e11_final_rows(
         )
         for col in ("test_raw_mse", "test_normalized_chi2"):
             _require(_finite(row[col]), f"E11: seed {seed} {row['method']} non-finite {col}")
-        for col in (
-            "reproduction_rel_error_raw_mse",
-            "reproduction_rel_error_normalized_chi2",
+        # RECOMPUTE both reproduction errors from the authoritative archive.
+        for col, metric_col, key in (
+            ("reproduction_rel_error_raw_mse", "test_raw_mse", "test_raw_mse"),
+            ("reproduction_rel_error_normalized_chi2", "test_normalized_chi2",
+             "test_normalized_chi2"),
         ):
             _require(
                 _finite(row[col]),
                 f"E11: seed {seed} {row['method']} missing/non-finite {col}",
             )
-            value = _f(row[col])
+            recomputed = _rel_error(_f(row[metric_col]), arch[key])
             _require(
-                value <= tolerance,
-                f"E11: seed {seed} {row['method']} {col}={value:.3e} > {tolerance:.0e}",
+                recomputed <= tolerance,
+                f"E11: seed {seed} {row['method']} reproduction RECOMPUTED from the archive "
+                f"is {recomputed:.3e} > {tolerance:.0e} (stored column said {row[col]})",
             )
-            worst = max(worst, value)
+            _require(
+                _agrees(_f(row[col]), recomputed),
+                f"E11: seed {seed} {row['method']} stored {col}={row[col]} disagrees with "
+                f"the recomputed value {recomputed!r}",
+            )
+            worst = max(worst, recomputed)
+            worst_recompute_disagreement = max(
+                worst_recompute_disagreement, abs(_f(row[col]) - recomputed)
+            )
 
         angle_cols = (
             "angle_to_cw_pca_mean_deg_v2",
@@ -336,9 +470,14 @@ def validate_e11_final_rows(
     return {
         "reproduction_gate_passed": True,  # recomputed above; any failure raised
         "worst_reproduction_rel_error": worst,
+        "worst_stored_vs_recomputed_disagreement": worst_recompute_disagreement,
         "tolerance_rel": tolerance,
         "n_rows_validated": len(rows),
-        "recomputed_from": "final concatenated rows (fresh and resumed alike)",
+        "recomputed_from": (
+            "final concatenated rows (fresh and resumed alike), with both reproduction "
+            "errors recomputed from the authoritative E1/E9 tables rather than trusted "
+            "from the stored columns"
+        ),
     }
 
 
@@ -376,3 +515,81 @@ def assert_summary_regenerates(raw_csv: Path, written_summary: dict, summarize_f
         "canonical_digest": got,
         "regenerated_from": str(raw_csv.name),
     }
+
+
+# --------------------------------------------------------------------------
+# Shard registry — binds every shard to the run identity that produced it
+# --------------------------------------------------------------------------
+#
+# Structural resume validation still allowed a partial directory produced by a
+# DIFFERENT code revision to be reused and then attributed to the current
+# execution commit. The registry closes that: the in-progress manifest carries
+# the freeze/execution identity from the start, and each shard is registered
+# with its SHA-256 immediately after it is written. Resume rejects an
+# unregistered shard, a digest mismatch, or a freeze/execution mismatch.
+
+
+def run_identity(freeze_sha: str | None, execution_head: str, config_hash: str) -> dict[str, Any]:
+    return {
+        "implementation_freeze_commit": freeze_sha,
+        "execution_content_commit": execution_head,
+        "config_hash": config_hash,
+    }
+
+
+def register_shard(out_dir: Path, seed: int, shard: Path, identity: dict[str, Any]) -> None:
+    """Atomically add ``seed -> {digest, identity}`` to the shard registry."""
+    from .r9_common import write_json
+
+    registry_path = Path(out_dir) / "shard_registry.json"
+    registry = (
+        json.loads(registry_path.read_text()) if registry_path.exists()
+        else {"identity": identity, "shards": {}}
+    )
+    if registry.get("identity") != identity:
+        raise IntegrityError(
+            "shard registry identity mismatch: this directory was started by a "
+            f"different run.\n  registry: {registry.get('identity')}\n  current:  {identity}"
+        )
+    registry["shards"][str(seed)] = {
+        "file": shard.name,
+        "sha256": sha256_of(shard),
+    }
+    write_json(registry_path, registry)
+
+
+def validate_registered_shards(
+    out_dir: Path, existing: dict[int, Path], identity: dict[str, Any]
+) -> dict[int, Path]:
+    """Reject unregistered shards, digest mismatches and identity mismatches."""
+    out_dir = Path(out_dir)
+    if not existing:
+        return {}
+    registry_path = out_dir / "shard_registry.json"
+    if not registry_path.exists():
+        raise IntegrityError(
+            f"{len(existing)} shard(s) present but {registry_path.name} is missing; "
+            "this directory was produced before shard registration existed or was "
+            "modified out of band. Refusing to reuse it."
+        )
+    registry = json.loads(registry_path.read_text())
+    recorded = registry.get("identity")
+    if recorded != identity:
+        raise IntegrityError(
+            "refusing to resume: the existing shards were produced by a different "
+            f"run identity.\n  registry: {recorded}\n  current:  {identity}"
+        )
+    shards = registry.get("shards", {})
+    for seed, path in sorted(existing.items()):
+        entry = shards.get(str(seed))
+        if entry is None:
+            raise IntegrityError(
+                f"shard {path.name} is not registered; it did not come from this run"
+            )
+        got = sha256_of(path)
+        if got != entry["sha256"]:
+            raise IntegrityError(
+                f"shard {path.name} digest mismatch — it was modified after it was "
+                f"written.\n  registered: {entry['sha256']}\n  observed:   {got}"
+            )
+    return existing

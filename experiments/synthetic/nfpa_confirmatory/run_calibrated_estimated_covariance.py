@@ -246,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
         args.implementation_freeze_commit, smoke=smoke
     )
     started_at_utc = prov._utc_now()
+    source_dirty_at_start = prov.worktree_is_dirty()
     archive_audit_before = None if smoke else rv.require_authoritative_archive_unchanged()
     cfg = rc.smoke_config() if smoke else PRIMARY
     seeds = args.seeds if args.seeds is not None else (list(rc.SMOKE_SEEDS) if smoke else list(SEEDS))
@@ -269,8 +270,18 @@ def main(argv: list[str] | None = None) -> int:
             "scale_correction": "v_hat = sqrt(v_c*v_t); factors / sqrt(v_hat); frozen before any full rerun",
         },
     }
+    identity = rv.run_identity(freeze_sha, execution_head, config_hash(cfg))
     existing = rc.prepare_output_dir(out_dir, resume=args.resume, expected=expected_manifest)
-    rc.write_json(out_dir / "manifest.json", {**expected_manifest, "status": "in_progress"})
+    # Structural validation is not enough: bind the shards to the run identity
+    # and their recorded digests, so a partial directory from another revision
+    # cannot be reused and then attributed to this execution commit.
+    existing = rv.validate_registered_shards(out_dir, existing, identity)
+    rc.write_json(out_dir / "manifest.json", {
+        **expected_manifest,
+        "status": "in_progress",
+        "run_identity": identity,
+        "started_at_utc": started_at_utc,
+    })
 
     t_start = time.time()
     controls_ok = True
@@ -285,8 +296,10 @@ def main(argv: list[str] | None = None) -> int:
                 "provenance failure — stopping before writing the shard"
             )
         controls_ok = controls_ok and control_ok
-        rc.write_rows_csv(rc.shard_path(out_dir, seed), rows, COLUMNS)
-        print(f"[E10b] seed {seed}: wrote shard", flush=True)
+        shard = rc.shard_path(out_dir, seed)
+        rc.write_rows_csv(shard, rows, COLUMNS)
+        rv.register_shard(out_dir, seed, shard, identity)
+        print(f"[E10b] seed {seed}: wrote and registered shard", flush=True)
 
     shards = sorted(out_dir.glob("seed_*.csv"))
     if len(shards) != len(seeds):
@@ -318,6 +331,12 @@ def main(argv: list[str] | None = None) -> int:
         [sys.executable, "-m", "nfpa_confirmatory.run_calibrated_estimated_covariance", *sys.argv[1:]],
         cfg, freeze_sha=freeze_sha, execution_head=execution_head, smoke=smoke,
         started_at_utc=started_at_utc,
+        source_tree_dirty_at_start=source_dirty_at_start,
+        expected_output_changes_at_completion=[
+            str(out_dir.relative_to(rc.RESULTS_ROOT.parent.parent))
+            if str(out_dir).startswith(str(rc.RESULTS_ROOT.parent.parent))
+            else str(out_dir)
+        ],
     )
     provenance["completed_at_utc"] = prov._utc_now()
     manifest = dict(expected_manifest)
@@ -336,6 +355,11 @@ def main(argv: list[str] | None = None) -> int:
                 rc.sha256_of(out_dir / "summary.json") if (out_dir / "summary.json").exists() else None
             ),
             "provenance": provenance,
+            "run_identity": identity,
+            "shard_registry_digest": (
+                rc.sha256_of(out_dir / "shard_registry.json")
+                if (out_dir / "shard_registry.json").exists() else None
+            ),
         }
     )
     rc.write_json(out_dir / "manifest.json", manifest)

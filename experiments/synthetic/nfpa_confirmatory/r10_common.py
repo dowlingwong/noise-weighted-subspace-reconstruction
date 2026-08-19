@@ -45,6 +45,22 @@ RESULTS_ROOT = rc.RESULTS_ROOT
 SMOKE_ROOT = RESULTS_ROOT / "Round10_smoke"
 SMOKE_SEEDS = (910000, 910001)
 
+#: Optional stable runtime root OUTSIDE the Git worktree.
+#:
+#: The non-smoke runners require a clean source tree, so a flow that writes
+#: results into the repository before they start deadlocks itself. Setting
+#: ``R10_RUNTIME_ROOT`` lets tests, logs, audits, smoke and the scientific runs
+#: all land outside the worktree; the completed directories are copied into the
+#: repository once both scientific runs have finished.
+def runtime_root() -> Path | None:
+    value = os.environ.get("R10_RUNTIME_ROOT")
+    return Path(value).expanduser().resolve() if value else None
+
+
+def _permitted_smoke_roots() -> tuple[Path, ...]:
+    rt = runtime_root()
+    return (SMOKE_ROOT,) if rt is None else (SMOKE_ROOT, rt / "Round10_smoke")
+
 #: Every archived evidence directory is read-only for Round 10 runners.
 ARCHIVED_DIRS = (
     RESULTS_ROOT / "E1_nfpa_blockA",
@@ -77,11 +93,15 @@ def resolve_out_dir(out_dir: str | os.PathLike[str], *, smoke: bool) -> Path:
                 f"output directory {resolved} resolves into the archived evidence "
                 f"directory {archived}; Round 10 archives are read-only"
             )
-    if smoke and not rc._is_within(resolved, SMOKE_ROOT):
-        raise IntegrityError(f"--smoke output must live below {SMOKE_ROOT}, got {resolved}")
-    if not smoke and rc._is_within(resolved, SMOKE_ROOT):
+    permitted = _permitted_smoke_roots()
+    if smoke and not any(rc._is_within(resolved, root) for root in permitted):
         raise IntegrityError(
-            f"non-smoke output must not be written below the smoke root {SMOKE_ROOT}"
+            f"--smoke output must live below one of {[str(p) for p in permitted]}, "
+            f"got {resolved} (set R10_RUNTIME_ROOT to allow an out-of-tree smoke root)"
+        )
+    if not smoke and any(rc._is_within(resolved, root) for root in permitted):
+        raise IntegrityError(
+            f"non-smoke output must not be written below a smoke root {[str(p) for p in permitted]}"
         )
     # Round 9's smoke root is equally off-limits in either mode.
     if rc._is_within(resolved, rc.SMOKE_ROOT):

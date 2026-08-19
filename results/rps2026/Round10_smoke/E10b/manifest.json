@@ -1,0 +1,135 @@
+{
+  "analysis_label": "single_condition_covariance_estimation_sensitivity",
+  "archive_audit_after": null,
+  "archive_audit_before": null,
+  "calibration": {
+    "n_calibration_events": 64,
+    "regularization": "unchanged from E10 (shrinkage=0.0, floor=None)",
+    "rng": "unchanged from E10 (same SeedSequence stream)",
+    "scale_correction": "v_hat = sqrt(v_c*v_t); factors / sqrt(v_hat); frozen before any full rerun"
+  },
+  "columns": [
+    "config_hash",
+    "seed",
+    "regime",
+    "method",
+    "analysis_label",
+    "whitening",
+    "n_calibration_events",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "archived_oracle_test_raw_mse",
+    "archived_oracle_test_normalized_chi2",
+    "delta_raw_mse_estimated_minus_oracle",
+    "delta_normalized_chi2_estimated_minus_oracle",
+    "control_reproduction_rel_error_raw_mse",
+    "control_reproduction_rel_error_normalized_chi2",
+    "v_c",
+    "v_t",
+    "v_hat",
+    "product_scale_ratio_vs_oracle",
+    "channel_shape_error",
+    "temporal_shape_error",
+    "kronecker_relative_frobenius_error",
+    "oracle_whitening_residual",
+    "channel_min_eigenvalue",
+    "channel_condition_number",
+    "temporal_min_eigenvalue",
+    "temporal_condition_number",
+    "runtime_seconds"
+  ],
+  "config_hash": "381a5cbc7972e147",
+  "control_gate_passed": false,
+  "experiment": "E10b_calibrated_estimated_covariance",
+  "gate_record": {
+    "validated": false
+  },
+  "methods": [
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "provenance": {
+    "command": [
+      "/usr/bin/python3",
+      "-m",
+      "nfpa_confirmatory.run_calibrated_estimated_covariance",
+      "--smoke",
+      "--implementation-freeze-commit",
+      "048f1bd96acf943ad4d143ea50333b194099f170",
+      "--out",
+      "results/rps2026/Round10_smoke/E10b"
+    ],
+    "completed_at_utc": "2026-08-19T08:15:54Z",
+    "config": {
+      "C": 6,
+      "N_calibration": 64,
+      "N_test": 80,
+      "N_train": 60,
+      "N_validation": 30,
+      "T": 32,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 200,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 8,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "381a5cbc7972e147",
+    "dirty_state_note": "source_tree_dirty_at_start is the gate. Result files written by this run are expected output, listed above, and are not source dirtiness.",
+    "evidence_class": "implementation_check_not_scientific_evidence",
+    "execution_content_commit": "048f1bd96acf943ad4d143ea50333b194099f170",
+    "expected_output_changes_at_completion": [
+      "results/rps2026/Round10_smoke/E10b"
+    ],
+    "freeze_is_ancestor_of_execution": true,
+    "hostname": "claude",
+    "implementation_freeze_commit": "048f1bd96acf943ad4d143ea50333b194099f170",
+    "numpy_version": "2.2.6",
+    "platform": "Linux-6.8.0-136-generic-aarch64-with-glibc2.35",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/usr/bin/python3",
+    "python_version": "3.10.12",
+    "scipy_version": "1.15.3",
+    "source_commit": "048f1bd96acf943ad4d143ea50333b194099f170",
+    "source_tree_dirty_at_start": true,
+    "started_at_utc": "2026-08-19T08:15:54Z",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": "4"
+    }
+  },
+  "raw_digest": "b0e538d700014d8c8d68310f7ca5a19f1281328406012bc66ac1a250c27b0ed7",
+  "regime": "colored",
+  "run_identity": {
+    "config_hash": "381a5cbc7972e147",
+    "execution_content_commit": "048f1bd96acf943ad4d143ea50333b194099f170",
+    "implementation_freeze_commit": "048f1bd96acf943ad4d143ea50333b194099f170"
+  },
+  "seeds": [
+    910000,
+    910001
+  ],
+  "shard_digests": {
+    "seed_910000.csv": "fe1b5c6338f70fe8394c365a7f79eb4b7a49eb3383aaecb6704fb07ea51c01a7",
+    "seed_910001.csv": "442b7a907939432a174f9bf0f74f7860f27b9808b339c5d491d5c27079fb9b08"
+  },
+  "shard_registry_digest": "d49853797ba612e86d34c532a473e245ac3ea83fb41394a59e51a75ed69e2916",
+  "smoke": true,
+  "status": "complete",
+  "summary_digest": null,
+  "summary_regeneration_audit": {
+    "passed": null
+  },
+  "wall_seconds": 0.15435481071472168
+}

@@ -42,6 +42,11 @@ tidmad = [
 ]
 
 [tool.pytest.ini_options]
+# `export/` holds generated anonymized snapshots of this repository (built by
+# scripts/build_anonymized_export.sh, gitignored). Collecting it would run a
+# duplicate copy of the suite under a second import path and can break
+# collection outright, so the complete-suite gate must skip it.
+norecursedirs = ["export", ".venv", "build", "dist", "*.egg-info"]
 markers = [
   "statistical: confidence-aware ensemble statistical tests",
   "integration: composed pipeline tests",

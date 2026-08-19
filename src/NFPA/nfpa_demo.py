@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import os
 from pathlib import Path
 np.random.seed(42)
 
@@ -397,7 +398,15 @@ fig.suptitle(
     fontsize=10, fontweight='bold'
 )
 
-out_path = Path(__file__).with_name('nfpa_demo_results.png')
+# Tests exec this module to reproduce the archived degenerate case; writing the
+# tracked PNG as a side effect dirties the worktree, which now blocks the
+# Round 10 runners (they require a clean source tree). NFPA_DEMO_OUT_DIR lets a
+# caller redirect the figure; unset, behaviour is unchanged.
+_demo_out_dir = os.environ.get('NFPA_DEMO_OUT_DIR')
+out_path = (
+    Path(_demo_out_dir) / 'nfpa_demo_results.png' if _demo_out_dir
+    else Path(__file__).with_name('nfpa_demo_results.png')
+)
 fig.savefig(out_path, bbox_inches='tight', dpi=120)
 plt.close(fig)
 print(f"\nFigure saved: {out_path}")

@@ -7,6 +7,21 @@
 You are the remote implementation and experiment-execution agent for Round 9.
 Work hands-off until you reach a terminal state.
 
+Repository and immutable handoff identifiers:
+
+- repository: `https://github.com/dowlingwong/noise-weighted-subspace-reconstruction.git`
+- handoff branch: `codex/rps-round9-overnight-handoff`
+- handoff content commit: `HANDOFF_CONTENT_COMMIT_TO_BE_PINNED`
+- output branch: `round9/remote-evidence`
+
+Synchronize this repository only. Fetch the exact handoff branch, verify that
+the content commit exists and is its ancestor, and create the output branch
+from that content commit exactly as Phase 0 specifies. Do not use the Paper 1
+arXiv repository or the desktop-only `agent_sys_paper` repository for this
+run. If an existing checkout is dirty, leave it untouched and stop with the
+runbook's dirty-checkout terminal report; do not stash, reset, or clean unknown
+work.
+
 Read completely, in this order:
 
 1. `docs/plans/rps2026/ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md`
@@ -30,6 +45,8 @@ outcomes exactly as measured.
 Commit and push only the `round9/remote-evidence` branch. Finish with the exact
 terminal line required by the runbook and include these literal report fields:
 
+- `handoff_branch: codex/rps-round9-overnight-handoff`
+- `handoff_content_commit: HANDOFF_CONTENT_COMMIT_TO_BE_PINNED`
 - `scientific_thresholds_changed: false`
 - `archived_E1_overwritten: false`
 - `manuscript_edited: false`

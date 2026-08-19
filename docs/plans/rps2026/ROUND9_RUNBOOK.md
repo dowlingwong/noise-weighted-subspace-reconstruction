@@ -5,7 +5,8 @@
 > sequence: E8 needs method-specific semantic handling, E9 needs an output-safe
 > runner, and E10 needs a frozen estimator. Execute
 > `ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` instead. That playbook preserves the
-> priorities and claim boundaries below while supplying the missing gates.
+> priorities and claim boundaries below while supplying implementation,
+> provenance, and failure-isolation gates.
 
 **Date:** 2026-08-19. **Deadline:** 29 Aug AoE. **Standing rules:**
 `AGENT_PROMPT_REMOTE_EXPERIMENTS.md` applies in full.
@@ -30,12 +31,15 @@ export RPS_RESULTS=$CODE_ROOT/results/rps2026
 All E8–E10 are CPU-only; use `OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 nice -n 10`
 with an explicit `timeout` on each command.
 
-## E8 — the predeclared H3 semantic evaluation (~30 min)
+## E8 — planted-subspace and semantic evaluation (~80–120 min)
 
 **Why:** the confirmatory protocol predeclared H3 (planted channel/temporal
-subspace recovery) and a truth-referenced amplitude decoding; the executed
-runner never invoked `semantic.py`, and the paper's appendix now says so
-plainly. This run closes that gap with the code that already exists.
+subspace recovery for separable signals), while an earlier, subsequently
+dropped Block H proposed truth-referenced parameter decoding. The executed
+runner invoked neither. Keep the estimands and their evidential status
+separate: the `alpha=0` projector analysis is a delayed execution of H3;
+parameter decoding at the archived `alpha=0.1` condition is a post-hoc
+scientific-utility analysis, not a confirmatory resurrection of Block H.
 
 Write and run a small driver (commit it as
 `experiments/synthetic/nfpa_confirmatory/run_semantics.py`):
@@ -43,8 +47,8 @@ Write and run a small driver (commit it as
 - for each archived seed 0–9, regenerate the colored dataset
   (`make_dataset(seed, "colored", PRIMARY)` — deterministic), fit the same
   methods via `FIT_FACTORY` (NFPA, Iso-MPCA, CW-PCA, PCA),
-- compute `evaluate_semantics(fit, ds)` — planted-projector errors
-  (channel, temporal) and held-out amplitude/parameter decoding metrics,
+- compute method-appropriate planted-projector errors and held-out
+  amplitude/parameter decoding metrics using one frozen affine decoder rule,
 - **gate:** each seed's refit must reproduce the archived
   `test_normalized_chi2` for that seed/method to ≤1e-9 relative
   (from `E1_nfpa_blockA/block_A_colored_raw.csv`) — proves the refit is the
@@ -53,11 +57,12 @@ Write and run a small driver (commit it as
   summary with per-method means and seed-level 95% bootstrap intervals
   (10,000 resamples, seed 20260819).
 
-**Predicted signature (declared now):** NFPA's planted-projector errors are
-small and its amplitude decoding is at least as good as Iso-MPCA's. If NFPA's
-planted-subspace errors are NOT small, H3 fails — report it exactly as
-measured; the paper's §4 would then state that the metric helps reconstruction
-without recovering the planted factors, which is a finding.
+**Predicted signatures (declared now):** in the separable condition NFPA's
+planted-projector errors should be lower than Iso-MPCA's; at the archived
+colored condition its amplitude and at least one pulse-shape error should be
+no worse. The original protocol supplied no numerical recovery threshold, so
+Round 9 reports continuous errors and paired confidence intervals and does not
+manufacture a binary H3 verdict after observing them.
 
 ## E9 — frozen 20-seed replication extension (~1–2 h)
 
@@ -94,7 +99,7 @@ price of estimation.
 
 ```
 E6_whitening_range.json (if still missing)
-E8_semantics_colored.csv + E8_summary.json
+E8_semantics/ (seed shards, raw tables, summaries, manifest, reproduction audit)
 E9_blockA_replication_seeds10_29.csv + E9_summary.json
 E10_blockA_estimated_cov.csv + E10_summary.json
 run_semantics.py and any driver committed
@@ -109,8 +114,10 @@ manuscript — the desk does the writing.**
 
 | Result | Paper action |
 |---|---|
-| E8 recovery good | H3 moves from "not executed" to a one-line §4 result + appendix table; a recovery panel can replace Figure 1B |
-| E8 recovery poor | Reported as measured: metric helps reconstruction without factor recovery |
+| E8 separable recovery favors NFPA | H3 moves from "not executed" to a continuous delayed-execution result; do not add a binary confirmation claim |
+| E8 separable recovery does not favor NFPA | Report exactly: the reconstruction advantage does not imply planted-factor recovery |
+| E8 archived-condition decoding favors NFPA | Add only as a labeled post-hoc scientific-utility result with seed-level uncertainty |
+| E8 archived-condition decoding does not favor NFPA | Report the null/adverse semantic result; do not select a favorable parameter |
 | E9 signs agree | "ten seeds" → "thirty seeds (ten frozen + twenty replication)" |
 | E9 signs disagree | Report both; the frozen result stands alone with the replication as a caveat |
 | E10 reversal survives | One §4 sentence: the reversal survives estimated whitening (margin quoted) |

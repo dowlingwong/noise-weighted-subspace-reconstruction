@@ -1,0 +1,99 @@
+Round 9 overnight remote run - Phase 0 preflight
+recorded_utc: 2026-08-18T19:16:50+00:00
+recorded_local: 2026-08-18T21:16:50+02:00
+
+== handoff identifiers ==
+handoff_branch: codex/rps-round9-overnight-handoff
+handoff_content_commit: ff50d7184a2ab66275f01d076e9750ae8c367107
+content_commit_present: commit
+content_commit_is_ancestor_of_handoff_branch: yes
+work_branch: round9/remote-evidence
+work_branch_head_at_preflight: ff50d7184a2ab66275f01d076e9750ae8c367107
+
+== GATE DEVIATION: network ==
+git fetch origin codex/rps-round9-overnight-handoff  -> FAILED (exit 128)
+  fatal: could not read Username for 'https://github.com': No such device or address
+  No credential helper, no usable token in this non-interactive session.
+  Runbook Phase 0 emits ROUND9_HANDOFF_FETCH_FAILED here.
+  Recorded as an infrastructure gate failure. Identity and ancestry were both
+  verified against the local object store instead: the pinned content commit is
+  present by exact SHA and is an ancestor of the fetched remote-tracking ref.
+  Consequence: 'git push -u origin round9/remote-evidence' is also impossible.
+
+== clean tree check ==
+git status --porcelain at branch creation: (empty)
+
+== machine ==
+deepthought
+Linux deepthought 4.18.0-553.120.1.el8_10.x86_64 #1 SMP Wed Apr 8 22:26:17 EDT 2026 x86_64 x86_64 x86_64 GNU/Linux
+40
+ 21:16:50 up 110 days,  8:54,  0 users,  load average: 5.79, 6.24, 5.08
+              total        used        free      shared  buff/cache   available
+Mem:            503          51         353           3          98         444
+Swap:             3           3           0
+--- df ---
+Filesystem                                                          Size  Used Avail Use% Mounted on
+[2a00:1398:5:fe01:3eec:efff:fe38:7926],[129.13.101.127]:/ceph_data  1.3P  984T  318T  76% /ceph
+[2a00:1398:5:fe01:3eec:efff:fe38:7926],[129.13.101.127]:/ceph_data  1.3P  984T  318T  76% /ceph
+--- who ---
+(no interactive users)
+--- screen -ls ---
+No Sockets found in /run/screen/S-dwong.
+
+
+== GPUs at preflight ==
+Tue Aug 18 21:16:50 2026       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 525.147.05   Driver Version: 525.147.05   CUDA Version: 12.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  Off  | 00000000:02:00.0 Off |                  N/A |
+| 96%   91C    P2   216W / 250W |   8184MiB / 12288MiB |     98%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
+| 48%   84C    P2   227W / 250W |   8184MiB / 12288MiB |     99%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  NVIDIA GeForce ...  Off  | 00000000:81:00.0 Off |                  N/A |
+| 38%   81C    P2   261W / 250W |   8184MiB / 12288MiB |     98%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  NVIDIA GeForce ...  Off  | 00000000:82:00.0 Off |                  N/A |
+| 43%   83C    P2   257W / 250W |   8184MiB / 12288MiB |     97%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A   2165627      C   ...pp/build/bin/llama-server     7516MiB |
+|    0   N/A  N/A   2165628      C   ...pp/build/bin/llama-server      220MiB |
+NOTE: all four GPUs carry llama-server processes owned by dwong (this account).
+      GPUs 1-3 at 98% utilisation; GPU 0 idle but holding 7066 MiB.
+
+== python environment ==
+lrwxrwxrwx 1 dwong cms 33 Jun 19 23:37 .venv/bin/python -> /home/dwong/anaconda3/bin/python3
+Python 3.12.2 | packaged by conda-forge | (main, Feb 16 2024, 20:50:58) [GCC 12.3.0]
+numpy 2.4.6
+scipy 1.17.1
+NOTE: .venv/bin/python is a symlink to /home/dwong/anaconda3/bin/python3.
+      It is the repository's declared interpreter path and satisfies every import
+      the CPU experiments need; it was not substituted after a missing-venv fallback.
+
+== frozen config ==
+PRIMARY_HASH 98001a62855cb9a5
+alpha 0.1 n_seeds 10 N_cal 2048
+
+== archived E1 baseline digest ==
+e9778eb2d66366501e7016d0e3bfa3626aad6b0575322d94da995f583e6dbd7e  results/rps2026/E1_nfpa_blockA/block_A_colored_raw.csv
+
+== preflight NFPA correctness suite ==
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+18 passed, 1 warning in 781.84s (0:13:01)

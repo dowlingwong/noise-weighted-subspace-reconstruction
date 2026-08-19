@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 import numpy as np
 
 from src.noise_geometry.gwosc.diagnostics import (
@@ -79,6 +81,14 @@ def test_public_text_waveform_is_resampled_and_documented(tmp_path):
 
 
 def test_shared_fir_statistic_is_identical_across_paths():
+    # gwpy lives in the optional [gwosc] extra and is imported lazily by
+    # diagnostics.design_shared_fir (diagnostics.py). Without the extra this
+    # test used to fail hard with ModuleNotFoundError instead of skipping,
+    # which turned a missing optional dependency into a suite failure and
+    # blocked the Round 10 complete-suite gate on 2026-08-19. Its siblings
+    # that do not touch the FIR path were unaffected; this matches the
+    # pytest.importorskip pattern already used for torch in src/tidmad/tests.
+    pytest.importorskip("gwpy")
     sample_rate = 256.0
     length = 1024
     template, _ = build_waveform(
@@ -190,6 +200,14 @@ def test_local_psd_records_template_and_narrow_band_diagnostics():
 
 
 def test_diagnostic_experiment_entry_points_use_cached_real_windows(tmp_path):
+    # gwpy lives in the optional [gwosc] extra and is imported lazily by
+    # diagnostics.design_shared_fir (diagnostics.py). Without the extra this
+    # test used to fail hard with ModuleNotFoundError instead of skipping,
+    # which turned a missing optional dependency into a suite failure and
+    # blocked the Round 10 complete-suite gate on 2026-08-19. Its siblings
+    # that do not touch the FIR path were unaffected; this matches the
+    # pytest.importorskip pattern already used for torch in src/tidmad/tests.
+    pytest.importorskip("gwpy")
     _write_cached_fixture(tmp_path)
     common = {
         "event": "GWTEST",

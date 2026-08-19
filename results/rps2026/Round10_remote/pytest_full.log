@@ -1,0 +1,29 @@
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+.......s................................................................ [ 67%]
+...............................s.sssssss................................ [ 84%]
+..................................................................       [100%]
+=============================== warnings summary ===============================
+experiments/synthetic/nfpa_confirmatory/tests/test_correctness.py::test_archived_degenerate_case_reproduced
+  /ceph/dwong/noise-weighted-subspace-reconstruction/src/NFPA/nfpa_demo.py:65: RuntimeWarning: divide by zero encountered in divide
+    _cf_raw  = np.where(white_f > 1e-10, 1.0/white_f, 0.0)
+
+noise_module/noise_module/tests/test_noise_generator.py::test_noise_generator_build_psd_and_metadata_are_consistent
+  /ceph/dwong/noise-weighted-subspace-reconstruction/noise_module/noise_module/tests/test_noise_generator.py:31: DeprecationWarning: build_psd() is deprecated because it returns rFFT-bin power, not a PSD density; use build_psd_density() or build_rfft_power().
+    freqs, psd, psd_meta = generator.build_psd(2048, return_metadata=True)
+
+noise_module/noise_module/tests/test_qp_simulator.py::test_build_psd_alias_returns_rfft_power_not_density
+  /ceph/dwong/noise-weighted-subspace-reconstruction/noise_module/noise_module/tests/test_qp_simulator.py:127: DeprecationWarning: build_psd() is deprecated because it returns rFFT-bin power, not a PSD density; use build_psd_density() or build_rfft_power().
+    freqs_power, rfft_power = generator.build_psd(128)
+
+src/tidmad/tests/test_train_loop.py::test_checkpoint_round_trips_exactly
+  /ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/tests/test_train_loop.py:63: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    s.step()
+
+tests/test_cresst_validation.py::test_amplitude_error_summary_bias_and_rmse
+  /ceph/dwong/noise-weighted-subspace-reconstruction/.venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py:3023: RuntimeWarning: invalid value encountered in divide
+    c /= stddev[:, None]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+417 passed, 9 skipped, 5 warnings in 1155.04s (0:19:15)

@@ -1,144 +1,222 @@
-# Round 10 remote rerun runbook — E10b and E11 only
+# Round 10 remote rerun runbook — E10b and E11 only (hardened)
 
-_Server execution of the two frozen corrected runners · 2026-08-19_
+_Server execution of the two frozen corrected runners._
 _Standing rules: `AGENT_PROMPT_REMOTE_EXPERIMENTS.md` and the shared-server
 patterns of `ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` apply in full._
 
 ## Scope — absolute
 
 Run **E10b** (`run_calibrated_estimated_covariance`) and **E11**
-(`run_corrected_angles`). Nothing else. **E6–E9 and the legacy E10 must not be
-rerun**; their outputs are archived evidence and are read-only inputs to the
-E10b/E11 gates. No manuscript, figure, table, bibliography, threshold, or
-archived-evidence edit of any kind.
+(`run_corrected_angles`). Nothing else. **E6–E9 and the legacy E10 are archived
+evidence**: read-only inputs to the gates, never rerun or modified. No
+manuscript, figure, table, bibliography, threshold, seed-set, covariance-setting
+or hypothesis edit of any kind.
 
-## Identifiers
+## Identifiers — supplied by the dispatch prompt, not by this file
 
-| Field | Value |
+A commit cannot contain its own SHA, so this runbook does not hard-code one.
+Take these from the dispatch prompt (`ROUND10_REMOTE_RERUN_AGENT_PROMPT.md`,
+whose metadata-only pin commit carries the values) or from the environment:
+
+| Variable | Meaning |
 |---|---|
-| repository | `https://github.com/dowlingwong/noise-weighted-subspace-reconstruction.git` |
-| server handoff branch | `codex/rps-round10-desk-integration` |
-| `ROUND10_CONTENT_COMMIT` | `43bd243545beba925fefb7cc9e496bcb146228af` |
-| output branch (create) | `round10/remote-corrections` |
-| evidence base (ancestor) | `c9686a0179bae0435d35bce1bbdaafb11839ef86` |
-| implementation freeze commit (ancestor) | `24287844cb85477392f8f45e8ee2064b98e26ff9` |
+| `HANDOFF_BRANCH` | `codex/rps-round10-handoff-hardening` |
+| `CONTENT_COMMIT` | exact commit to execute (`NEW_ROUND10_CONTENT_COMMIT`) |
+| `FREEZE_COMMIT` | `NEW_ROUND10_IMPLEMENTATION_FREEZE`, passed to both runners |
+| `EVIDENCE_BASE` | `c9686a0179bae0435d35bce1bbdaafb11839ef86` |
+| `OUTPUT_BRANCH` | `round10/remote-corrections` |
 
-## Phase 0 — provenance and machine preflight
+```bash
+export HANDOFF_BRANCH=codex/rps-round10-handoff-hardening
+export CONTENT_COMMIT=<from dispatch prompt>
+export FREEZE_COMMIT=<from dispatch prompt>
+export EVIDENCE_BASE=c9686a0179bae0435d35bce1bbdaafb11839ef86
+export OUTPUT_BRANCH=round10/remote-corrections
+```
+
+## Step 1 — fetch and verify the exact handoff
 
 ```bash
 cd ~/noise-weighted-subspace-reconstruction
-git fetch --all --prune || echo "ROUND10_HANDOFF_FETCH_FAILED"   # record, do not hide
-test -z "$(git status --porcelain)"                # dirty tree => STOP, report paths
-git switch codex/rps-round10-desk-integration || git switch -c codex/rps-round10-desk-integration --track origin/codex/rps-round10-desk-integration
-git cat-file -e 43bd243545beba925fefb7cc9e496bcb146228af^{commit}
-git merge-base --is-ancestor c9686a0179bae0435d35bce1bbdaafb11839ef86 43bd243545beba925fefb7cc9e496bcb146228af
-git switch --detach 43bd243545beba925fefb7cc9e496bcb146228af
-git switch -c round10/remote-corrections
+git fetch --all --prune || echo "ROUND10_HANDOFF_FETCH_FAILED"   # record, never hide
+git cat-file -e "$CONTENT_COMMIT^{commit}"
+git cat-file -e "$FREEZE_COMMIT^{commit}"
 ```
 
-If fetch fails for credentials, verify the pinned SHA against the local object
-store exactly as Round 9 did, record `ROUND10_HANDOFF_FETCH_FAILED`, and
-continue only if the SHA and ancestry checks pass locally.
+## Step 2 — verify ancestry
 
-Machine preflight (record all): host, kernel, CPU load (proceed only if the
-1-minute load average leaves ≥8 free cores), free RAM ≥ 32 GB, free disk on the
-repo filesystem ≥ 10 GB, no other user's processes touched, interpreter
-`.venv/bin/python` with Python/NumPy/SciPy versions.
-
-**Before/after digests.** Record SHA-256 of these files now and again at the
-end; any change is a global stop:
-
-```
-results/rps2026/E1_nfpa_blockA/block_A_colored_raw.csv
-results/rps2026/E8_semantics/archived_fit_reproduction.csv
-results/rps2026/E9_blockA_replication/replication_raw.csv
-results/rps2026/E9_blockA_replication/replication_summary.json
-results/rps2026/E10_estimated_covariance/raw.csv
-results/rps2026/E10_estimated_covariance/summary.json
+```bash
+git merge-base --is-ancestor "$EVIDENCE_BASE"  "$CONTENT_COMMIT"
+git merge-base --is-ancestor "$FREEZE_COMMIT"  "$CONTENT_COMMIT"
 ```
 
-## Phase 1 — tests, then smoke
+Both must succeed. A failure is a global stop.
+
+## Step 3 — verify a clean worktree
+
+```bash
+test -z "$(git status --porcelain)"   # dirty => STOP, report the paths, do not stash
+```
+
+The runners enforce this again themselves for non-smoke runs.
+
+## Step 4 — create or safely resume the output branch
+
+```bash
+if git show-ref --verify --quiet "refs/heads/$OUTPUT_BRANCH"; then
+  # Interrupted earlier run: verify, never overwrite.
+  git switch "$OUTPUT_BRANCH"
+  git merge-base --is-ancestor "$CONTENT_COMMIT" HEAD   # must descend from the pin
+  git status --short                                     # record what already exists
+  # Record which experiment directories exist and their manifest "status" fields.
+else
+  git switch --detach "$CONTENT_COMMIT"
+  git switch -c "$OUTPUT_BRANCH"
+fi
+```
+
+**Never** `git branch -f`, `reset --hard`, `checkout -B`, or delete this branch.
+If it exists but does not descend from `$CONTENT_COMMIT`, stop and report.
+
+## Step 5 — record all 15 archive digests (before)
 
 ```bash
 export PYTHONPATH=src:experiments/synthetic
-export OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
-PY=.venv/bin/python
-
-# Full focused suites INCLUDING the full-config control test (no FAST gate).
-nice -n 10 timeout 60m $PY -m pytest \
-  experiments/synthetic/nfpa_confirmatory/tests/test_round10.py \
-  experiments/synthetic/nfpa_confirmatory/tests/test_round9.py -q
+.venv/bin/python - <<'PY'
+import json
+from experiments.synthetic.nfpa_confirmatory import r10_validation as rv
+audit = rv.audit_authoritative_archive()
+print(json.dumps(audit, indent=2, sort_keys=True))
+assert audit["passed"], "ARCHIVE CHANGED BEFORE EXECUTION — GLOBAL STOP"
+PY
 ```
 
-Any test failure is a **global stop** (shared configuration/provenance
-failure), not an experiment-specific one.
+Save the output as `results/rps2026/Round10_remote/archive_audit_before.json`.
 
-Smoke both runners (reserved seeds 910000/910001, reduced config, minutes):
+## Step 6 — the complete repository test suite
+
+This is the real gate. Run the **whole suite**, from the repository root,
+without `NFPA_CONFIRMATORY_FAST`, so the full-config Round 10 control and the
+TIDMAD tests actually execute:
 
 ```bash
-nice -n 10 timeout 30m $PY -m nfpa_confirmatory.run_corrected_angles \
+export OPENBLAS_NUM_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4
+nice -n 10 timeout 90m .venv/bin/python -m pytest -q 2>&1 | tee results/rps2026/Round10_remote/pytest_full.log
+```
+
+Record the **collected test count** and the final line. Any failure is a global
+stop. (A short focused run beforehand is fine, but it is not the suite and must
+not be described as one.)
+
+## Step 7 — server smoke on reserved seeds
+
+```bash
+nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_corrected_angles \
   --smoke --out results/rps2026/Round10_smoke/E11_server
-nice -n 10 timeout 30m $PY -m nfpa_confirmatory.run_calibrated_estimated_covariance \
+nice -n 10 timeout 30m .venv/bin/python -m nfpa_confirmatory.run_calibrated_estimated_covariance \
   --smoke --out results/rps2026/Round10_smoke/E10b_server
 ```
 
-## Phase 2 — E10b (cap 3 h)
+Smoke manifests carry `evidence_class = implementation_check_not_scientific_evidence`.
+They are never cited as evidence.
+
+## Step 8 — E10b, then E11, sequentially, with the explicit freeze SHA
 
 ```bash
-nice -n 10 timeout 3h $PY -m nfpa_confirmatory.run_calibrated_estimated_covariance \
+nice -n 10 timeout 3h .venv/bin/python -m nfpa_confirmatory.run_calibrated_estimated_covariance \
+  --implementation-freeze-commit "$FREEZE_COMMIT" \
   --out results/rps2026/E10b_calibrated_estimated_covariance
-```
 
-Sequential; do not parallelize seeds. If the cap kills it, resume with
-`--resume` after re-verifying no config drift; the runner validates every
-existing shard before reuse. The cap may be **raised only before launch**,
-justified from measured smoke or archived per-seed timing, and never reduced
-after an outcome.
-
-Gates the runner enforces (a failure here stops E10b and is reported, but E11
-still runs): Iso-MPCA archived reproduction ≤ 1e-9; seed set exactly 0–9;
-manifest/schema/config-hash validation on resume.
-
-## Phase 3 — E11 (cap 4 h)
-
-```bash
-nice -n 10 timeout 4h $PY -m nfpa_confirmatory.run_corrected_angles \
+nice -n 10 timeout 4h .venv/bin/python -m nfpa_confirmatory.run_corrected_angles \
+  --implementation-freeze-commit "$FREEZE_COMMIT" \
   --out results/rps2026/E11_corrected_angles
 ```
 
-Same sequencing and resume rules. Gates (failure stops E11, is reported, and
-does not invalidate a completed E10b): archived reproduction ≤ 1e-9 for
-CW-PCA, NFPA and Iso-MPCA against E1 (seeds 0–9) and E9 (seeds 10–29); seed
-set exactly 0–29.
+Do not parallelize seeds. Caps may be **raised only before launch**, justified
+from measured smoke or archived per-seed timing, and never reduced after an
+outcome. The runners refuse to start without the freeze SHA, refuse a dirty
+tree, and record `implementation_freeze_commit` and `execution_content_commit`
+separately.
 
-**Continuation rule:** an experiment-specific *scientific* outcome — however
-unfavorable — is never a reason to stop, rerun, or adjust anything. A shared
+## Step 9 — resume only through the strengthened validation
+
+If a cap or interruption stops a run, resume with the same command plus
+`--resume`. Every gate is re-derived from the **final** rows — fresh and reused
+alike — so a stale or altered shard cannot inherit a passing verdict. An
+interrupted run leaves `status = in_progress`; only a fully validated run
+writes `status = complete`. **Never cite an `in_progress` directory as a
+result.**
+
+**Continuation rule:** an experiment-specific *scientific* outcome, however
+unfavorable, is never a reason to stop, rerun, or adjust anything. A shared
 configuration, test, provenance, or archive-integrity failure stops everything.
 
-## Phase 4 — close out
+## Step 10 — regenerate summaries and audits from the raw archived outputs
 
-1. Re-record the Phase 0 digests; compare; any difference is a global stop
-   reported loudly.
-2. `git status` — only new files under
-   `results/rps2026/{E10b_calibrated_estimated_covariance,E11_corrected_angles,Round10_smoke}/`
-   may exist. `git diff --check` on the new changes.
-3. Commit everything to `round10/remote-corrections` with a report commit
-   message; `git push -u origin round10/remote-corrections`. If push fails for
-   credentials, commit locally, report the exact SHA, and mark the push
-   failure — never claim a synchronization that did not occur.
-4. Write `docs/plans/rps2026/ROUND10_REMOTE_REPORT.md`: identifiers, machine
-   state before/after, test results, smoke paths, per-experiment wall times,
-   gates passed/failed, digests before/after, and the exact commands run.
+Both runners already perform the deterministic summary-regeneration audit and
+write `summary_digest`. Confirm in each manifest:
 
-## Required literal terminal fields (end of the report)
+```bash
+.venv/bin/python - <<'PY'
+import json, pathlib
+for name in ("E10b_calibrated_estimated_covariance", "E11_corrected_angles"):
+    m = json.loads(pathlib.Path("results/rps2026", name, "manifest.json").read_text())
+    print(name, m["status"], m["summary_regeneration_audit"], m.get("summary_digest"))
+    assert m["status"] == "complete"
+    assert m["summary_regeneration_audit"]["passed"] is True
+PY
+```
+
+## Step 11 — recheck all 15 archive digests (after)
+
+Repeat Step 5, saving `archive_audit_after.json`. Any difference from
+`archive_audit_before.json` is a global stop, reported loudly.
+
+## Step 12 — write the report BEFORE committing
+
+Write `docs/plans/rps2026/ROUND10_REMOTE_REPORT.md` now, while the evidence is
+in front of you: identifiers actually used; machine state before/after; the
+complete-suite collected count and result; smoke paths; per-experiment wall
+times; every gate passed or failed; digests before/after; the exact commands
+run; and the push outcome (filled in after Step 15, or marked as failed).
+
+The previous revision of this runbook committed before writing the report,
+which invited a report reconstructed from memory. The report is part of the
+evidence, not a summary of it.
+
+## Steps 13–14 — check, then commit results and report together
+
+```bash
+git status --short          # only new files under results/rps2026/{E10b_*,E11_*,Round10_smoke,Round10_remote}
+git diff --check
+git add -A && git commit -m "round10 remote: E10b and E11 corrected results with report"
+```
+
+## Steps 15–17 — push and verify
+
+```bash
+git push -u origin "$OUTPUT_BRANCH"
+git fetch origin "$OUTPUT_BRANCH"
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/$OUTPUT_BRANCH)"
+```
+
+If credentials prevent the push: commit locally, report the exact local SHA and
+the exact failure text, and mark synchronization as NOT achieved. Never claim a
+push that did not happen.
+
+## Required literal terminal fields
 
 ```text
 scientific_thresholds_changed: false
-archived_E1_to_E10_overwritten: false
+authoritative_archives_overwritten: false
 manuscript_edited: false
 angle_v2_used_for_new_outputs: true
 e10b_scale_correction_frozen_before_full_results: true
+resume_gates_revalidated_from_final_rows: true
+summary_regeneration_audit_passed: true
+complete_repository_test_suite_passed: true
 ```
 
-Any field that would be untrue must be reported as its true value with an
-explanation — never asserted falsely.
+Report the true value of every field. If any is false, explain it and end with
+`ROUND10_REMOTE_CORRECTIONS_PARTIAL_WITH_RECORDED_FAILURES`. Print
+`ROUND10_REMOTE_CORRECTIONS_READY` only when every field above is true.

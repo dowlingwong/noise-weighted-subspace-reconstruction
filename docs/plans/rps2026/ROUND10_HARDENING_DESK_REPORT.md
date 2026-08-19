@@ -3,11 +3,14 @@
 **Date:** 2026-08-19 · **Branch:** `codex/rps-round10-handoff-hardening`
 **Started from:** `873ad272721968c1634ac502decc29ed2262c86d`
 
-## Status: complete locally, BLOCKED at publication
+## Status (rev 2): implementation complete and merged locally; PUSH still blocked
 
-Phases 0–6 are complete and verified. **Phase 7 (push) failed for missing Git
-credentials, which by the runbook's own rule is a stop for Phase 8: unpublished
-handoff instructions must not be merged into `main`.** No merge was attempted.
+Phases 0–6 are complete and verified for rev 2. **Every push from this
+environment fails: the remote is HTTPS, there is no credential helper and no
+SSH key.** The corrective branch has since been merged into local `main` with
+`--no-ff`, preserving the pinned SHAs; **neither `main` nor the branch is
+pushed**, so the server still cannot fetch the handoff. The two pushes are the
+only remaining step and are the user's to run (below).
 
 | Item | Value |
 |---|---|
@@ -114,13 +117,14 @@ dirtying the tree and blocking the runners. `nfpa_demo.py` honours
 1. **`git fetch` and `git push` unavailable** (no credentials in this
    environment) — the same condition Round 9 hit. Verification used the local
    object store; the push and merge are the user's to perform.
-2. **Pre-existing test hygiene issue (not fixed, out of scope):**
-   `experiments/synthetic/nfpa_confirmatory/tests/test_correctness.py` executes
-   `src/NFPA/nfpa_demo.py`, which rewrites the tracked binary
-   `src/NFPA/nfpa_demo_results.png` as a side effect. It was restored, not
-   committed. Worth fixing separately (have the demo write to a temp path under
-   test), since it makes any full-suite run dirty the worktree — which now
-   matters, because the runners refuse to start on a dirty tree.
+2. **Test hygiene issue — found in rev 1, FIXED in rev 2.**
+   `tests/test_correctness.py` executes `src/NFPA/nfpa_demo.py`, which rewrote
+   the tracked binary `src/NFPA/nfpa_demo_results.png` as a side effect, so any
+   full-suite run dirtied the worktree and would have blocked the runners.
+   `nfpa_demo.py` now honours `NFPA_DEMO_OUT_DIR` and the test redirects the
+   figure to a tmp path; default behaviour is unchanged. (Rev 1 deferred this
+   as out of scope; rev 2 fixed it because the clean-tree gate made it
+   blocking.)
 3. The earlier dirty, pre-freeze smoke output was **deleted** rather than
    presented as frozen evidence; clean smoke was regenerated at the new freeze
    with the freeze SHA supplied.

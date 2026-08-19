@@ -16,7 +16,7 @@ to record, never problems to fix.
 
 - repository: `https://github.com/dowlingwong/noise-weighted-subspace-reconstruction.git`
 - server handoff branch: `codex/rps-round10-desk-integration`
-- content commit (execute exactly this): `ROUND10_CONTENT_COMMIT_PLACEHOLDER`
+- content commit (execute exactly this): `43bd243545beba925fefb7cc9e496bcb146228af`
 - required ancestors: `c9686a0179bae0435d35bce1bbdaafb11839ef86` (Round 9
   evidence base), `24287844cb85477392f8f45e8ee2064b98e26ff9` (implementation
   freeze)

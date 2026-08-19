@@ -18,7 +18,7 @@ archived-evidence edit of any kind.
 |---|---|
 | repository | `https://github.com/dowlingwong/noise-weighted-subspace-reconstruction.git` |
 | server handoff branch | `codex/rps-round10-desk-integration` |
-| `ROUND10_CONTENT_COMMIT` | `ROUND10_CONTENT_COMMIT_PLACEHOLDER` |
+| `ROUND10_CONTENT_COMMIT` | `43bd243545beba925fefb7cc9e496bcb146228af` |
 | output branch (create) | `round10/remote-corrections` |
 | evidence base (ancestor) | `c9686a0179bae0435d35bce1bbdaafb11839ef86` |
 | implementation freeze commit (ancestor) | `24287844cb85477392f8f45e8ee2064b98e26ff9` |
@@ -30,9 +30,9 @@ cd ~/noise-weighted-subspace-reconstruction
 git fetch --all --prune || echo "ROUND10_HANDOFF_FETCH_FAILED"   # record, do not hide
 test -z "$(git status --porcelain)"                # dirty tree => STOP, report paths
 git switch codex/rps-round10-desk-integration || git switch -c codex/rps-round10-desk-integration --track origin/codex/rps-round10-desk-integration
-git cat-file -e ROUND10_CONTENT_COMMIT_PLACEHOLDER^{commit}
-git merge-base --is-ancestor c9686a0179bae0435d35bce1bbdaafb11839ef86 ROUND10_CONTENT_COMMIT_PLACEHOLDER
-git switch --detach ROUND10_CONTENT_COMMIT_PLACEHOLDER
+git cat-file -e 43bd243545beba925fefb7cc9e496bcb146228af^{commit}
+git merge-base --is-ancestor c9686a0179bae0435d35bce1bbdaafb11839ef86 43bd243545beba925fefb7cc9e496bcb146228af
+git switch --detach 43bd243545beba925fefb7cc9e496bcb146228af
 git switch -c round10/remote-corrections
 ```
 

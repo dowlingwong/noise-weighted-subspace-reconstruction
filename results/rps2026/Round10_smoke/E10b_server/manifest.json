@@ -1,0 +1,133 @@
+{
+  "analysis_label": "single_condition_covariance_estimation_sensitivity",
+  "archive_audit_after": null,
+  "archive_audit_before": null,
+  "calibration": {
+    "n_calibration_events": 64,
+    "regularization": "unchanged from E10 (shrinkage=0.0, floor=None)",
+    "rng": "unchanged from E10 (same SeedSequence stream)",
+    "scale_correction": "v_hat = sqrt(v_c*v_t); factors / sqrt(v_hat); frozen before any full rerun"
+  },
+  "columns": [
+    "config_hash",
+    "seed",
+    "regime",
+    "method",
+    "analysis_label",
+    "whitening",
+    "n_calibration_events",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "archived_oracle_test_raw_mse",
+    "archived_oracle_test_normalized_chi2",
+    "delta_raw_mse_estimated_minus_oracle",
+    "delta_normalized_chi2_estimated_minus_oracle",
+    "control_reproduction_rel_error_raw_mse",
+    "control_reproduction_rel_error_normalized_chi2",
+    "v_c",
+    "v_t",
+    "v_hat",
+    "product_scale_ratio_vs_oracle",
+    "channel_shape_error",
+    "temporal_shape_error",
+    "kronecker_relative_frobenius_error",
+    "oracle_whitening_residual",
+    "channel_min_eigenvalue",
+    "channel_condition_number",
+    "temporal_min_eigenvalue",
+    "temporal_condition_number",
+    "runtime_seconds"
+  ],
+  "config_hash": "381a5cbc7972e147",
+  "control_gate_passed": false,
+  "experiment": "E10b_calibrated_estimated_covariance",
+  "gate_record": {
+    "validated": false
+  },
+  "methods": [
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "provenance": {
+    "command": [
+      "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+      "-m",
+      "nfpa_confirmatory.run_calibrated_estimated_covariance",
+      "--smoke",
+      "--out",
+      "/home/dwong/round10_runtime_20260819_180515/Round10_smoke/E10b_server"
+    ],
+    "completed_at_utc": "2026-08-19T20:59:05Z",
+    "config": {
+      "C": 6,
+      "N_calibration": 64,
+      "N_test": 80,
+      "N_train": 60,
+      "N_validation": 30,
+      "T": 32,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 200,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 8,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "381a5cbc7972e147",
+    "dirty_state_note": "source_tree_dirty_at_start is the gate. Result files written by this run are expected output, listed above, and are not source dirtiness.",
+    "evidence_class": "implementation_check_not_scientific_evidence",
+    "execution_content_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "expected_output_changes_at_completion": [
+      "/home/dwong/round10_runtime_20260819_180515/Round10_smoke/E10b_server"
+    ],
+    "freeze_is_ancestor_of_execution": null,
+    "hostname": "bms2",
+    "implementation_freeze_commit": null,
+    "numpy_version": "2.4.6",
+    "platform": "Linux-5.14.0-611.35.1.el9_7.x86_64-x86_64-with-glibc2.34",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+    "python_version": "3.12.2",
+    "scipy_version": "1.17.1",
+    "source_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "source_tree_dirty_at_start": false,
+    "started_at_utc": "2026-08-19T20:59:04Z",
+    "thread_limits": {
+      "MKL_NUM_THREADS": "4",
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": "4",
+      "OPENBLAS_NUM_THREADS": "4"
+    }
+  },
+  "raw_digest": "07faa72fa486bfbb835ef277bd953d0b3aaedd6eebf7ec704b0aeb4f2fbd9642",
+  "regime": "colored",
+  "run_identity": {
+    "config_hash": "381a5cbc7972e147",
+    "execution_content_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "implementation_freeze_commit": null
+  },
+  "seeds": [
+    910000,
+    910001
+  ],
+  "shard_digests": {
+    "seed_910000.csv": "1b712ae6c467e692f0db5c72c5d0642cbda323026c444a3dfac211e16ca08bb3",
+    "seed_910001.csv": "c4f9e0cb1b07c4a42ef7923f03d0aff91aea2aa58e0b94a3ba2f883ccedf7507"
+  },
+  "shard_registry_digest": "88f8eb0a34c477b642e7d2212dbbddf75a7b98c2d23c43023e754b45b7a108fc",
+  "smoke": true,
+  "status": "complete",
+  "summary_digest": null,
+  "summary_regeneration_audit": {
+    "passed": null
+  },
+  "wall_seconds": 0.32562851905822754
+}

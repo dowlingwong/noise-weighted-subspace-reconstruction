@@ -1,0 +1,123 @@
+{
+  "analysis_label": "post_hoc_diagnostic_correction",
+  "archive_audit_after": null,
+  "archive_audit_before": null,
+  "columns": [
+    "config_hash",
+    "seed",
+    "cohort",
+    "regime",
+    "method",
+    "analysis_label",
+    "archived_source",
+    "reproduction_rel_error_raw_mse",
+    "reproduction_rel_error_normalized_chi2",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "angle_to_cw_pca_mean_deg_legacy",
+    "angle_to_cw_pca_max_deg_legacy",
+    "angle_to_cw_pca_mean_deg_v2",
+    "angle_to_cw_pca_max_deg_v2",
+    "runtime_seconds"
+  ],
+  "config_hash": "381a5cbc7972e147",
+  "experiment": "E11_corrected_angles",
+  "gate_record": {
+    "validated": false
+  },
+  "methods": [
+    "CW-PCA",
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "provenance": {
+    "command": [
+      "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+      "-m",
+      "nfpa_confirmatory.run_corrected_angles",
+      "--smoke",
+      "--out",
+      "/home/dwong/round10_runtime_20260819_180515/Round10_smoke/E11_server"
+    ],
+    "completed_at_utc": "2026-08-19T20:59:03Z",
+    "config": {
+      "C": 6,
+      "N_calibration": 64,
+      "N_test": 80,
+      "N_train": 60,
+      "N_validation": 30,
+      "T": 32,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 200,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 8,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "381a5cbc7972e147",
+    "dirty_state_note": "source_tree_dirty_at_start is the gate. Result files written by this run are expected output, listed above, and are not source dirtiness.",
+    "evidence_class": "implementation_check_not_scientific_evidence",
+    "execution_content_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "expected_output_changes_at_completion": [
+      "/home/dwong/round10_runtime_20260819_180515/Round10_smoke/E11_server"
+    ],
+    "freeze_is_ancestor_of_execution": null,
+    "hostname": "bms2",
+    "implementation_freeze_commit": null,
+    "numpy_version": "2.4.6",
+    "platform": "Linux-5.14.0-611.35.1.el9_7.x86_64-x86_64-with-glibc2.34",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+    "python_version": "3.12.2",
+    "scipy_version": "1.17.1",
+    "source_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "source_tree_dirty_at_start": false,
+    "started_at_utc": "2026-08-19T20:59:02Z",
+    "thread_limits": {
+      "MKL_NUM_THREADS": "4",
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": "4",
+      "OPENBLAS_NUM_THREADS": "4"
+    }
+  },
+  "raw_digest": "2f203b69b57b70ce03bb95a95844c60d95c22f200f9aa435f50f7fe57f84f817",
+  "regime": "colored",
+  "reproduction_gate": {
+    "enforced": false,
+    "sources": {
+      "seeds_0_9": "E1_nfpa_blockA/block_A_colored_raw.csv",
+      "seeds_10_29": "E9_blockA_replication/replication_raw.csv"
+    },
+    "tolerance_rel": 1e-09
+  },
+  "run_identity": {
+    "config_hash": "381a5cbc7972e147",
+    "execution_content_commit": "76aaff601df5f974395f85c2d5dc7a95bcab6763",
+    "implementation_freeze_commit": null
+  },
+  "seeds": [
+    910000,
+    910001
+  ],
+  "shard_digests": {
+    "seed_910000.csv": "7f359dec66b9b5931d7dd08fbb8d209ae6cf362093bd4cc48fa873cc588a5c48",
+    "seed_910001.csv": "bced0b8d8d216eae97dd9d57a15818d86c4c0c6705189241b222591b1102f306"
+  },
+  "shard_registry_digest": "fb463dc22496da13b0d8f7ebeb288e006b42c2d845b363d14af7252d86317664",
+  "smoke": true,
+  "status": "complete",
+  "summary_digest": null,
+  "summary_regeneration_audit": {
+    "passed": null
+  },
+  "wall_seconds": 0.38468432426452637
+}

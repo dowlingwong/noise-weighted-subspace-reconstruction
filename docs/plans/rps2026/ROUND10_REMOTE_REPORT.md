@@ -344,3 +344,65 @@ The `--force-with-lease` guard makes the push refuse if the remote has moved
 since this run observed it. Alternatively, publish under a fresh branch name and
 leave `round10/remote-corrections` as the halted record permanently. Either is
 the desk's call, not the remote agent's.
+
+## Re-verification addendum — 2026-08-20
+
+A later dispatch re-entered this task. The evidence was re-verified rather than
+regenerated, and the push was re-attempted. Nothing was rerun: the runners are
+deterministic and pinned to the same `CONTENT_COMMIT` and `FREEZE_COMMIT`, so a
+rerun would reproduce identical digests at a cost of several GPU-hours and would
+not affect the one outstanding item, which is synchronization.
+
+Re-verified on this branch at `2704b6c`, working tree clean:
+
+| Item | Result |
+|---|---|
+| `E10b_calibrated_estimated_covariance/manifest.json` | `status = complete`, `summary_regeneration_audit.passed = true`, freeze `048f1bd96acf`, `source_tree_dirty_at_start = false` |
+| `E11_corrected_angles/manifest.json` | `status = complete`, `summary_regeneration_audit.passed = true`, freeze `048f1bd96acf`, `source_tree_dirty_at_start = false` |
+| Complete repository suite | 417 passed, 9 skipped, collected 426, exit 0, not piped into `tee` |
+| Archive digests | 15/15, `passed = true` before and after, and byte-identical to each other |
+| Step 0 guard | `importorskip("gwpy")` present twice; the two GWOSC diagnostics skip rather than fail |
+
+### Push re-attempt, verbatim
+
+```
+ ! [rejected]        round10/remote-corrections -> round10/remote-corrections (non-fast-forward)
+error: failed to push some refs to 'github.com:dowlingwong/noise-weighted-subspace-reconstruction.git'
+```
+
+```text
+push_status: FAILED (non-fast-forward, unchanged since the first attempt)
+evidence_commit: 64df3c7
+local_tip: 2704b6c
+origin/round10/remote-corrections: 41cb5fb
+fast_forward_possible: false
+```
+
+The remote branch still carries `41cb5fb` from the halted attempt, which was
+built on the superseded content commit `3eee165`. The histories diverged, so no
+fast-forward exists and only a force-push could move the branch. The dispatch
+forbids that, so it was not attempted and synchronization is **not** claimed.
+
+### The desk action required, and why it is safe
+
+The halted record is preserved on the remote under its own name:
+
+```text
+refs/heads/round10/remote-corrections-halted-20260819 = 41cb5fb
+```
+
+That is the same commit the remote `round10/remote-corrections` points at, so
+replacing the latter destroys nothing that is not already published elsewhere:
+
+```bash
+git push --force-with-lease=round10/remote-corrections:41cb5fbe1f5f159838b23124deb352f24f7011ac \
+         origin round10/remote-corrections
+```
+
+The `--force-with-lease` expectation is stated explicitly so the push refuses if
+anyone has moved the branch since this report was written.
+
+No new remote branch was created for this evidence. Publishing it under an
+invented name was considered and rejected: the dispatch names exactly one output
+branch, and quietly introducing another would make the desk's later
+reconciliation harder rather than easier.

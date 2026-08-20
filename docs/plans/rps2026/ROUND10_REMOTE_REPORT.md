@@ -406,3 +406,38 @@ No new remote branch was created for this evidence. Publishing it under an
 invented name was considered and rejected: the dispatch names exactly one output
 branch, and quietly introducing another would make the desk's later
 reconciliation harder rather than easier.
+
+## Synchronization completed — 2026-08-20
+
+The operator authorized publication, so the force-with-lease push recommended by
+the re-verification addendum above was executed exactly as written. The two
+earlier `push_status: FAILED` records stand as the honest state at the time they
+were written; this section supersedes them, and no earlier commit was amended.
+
+```text
+$ git push --force-with-lease=round10/remote-corrections:41cb5fbe1f5f159838b23124deb352f24f7011ac \
+      -u origin round10/remote-corrections
+ + 41cb5fb...0cd8534 round10/remote-corrections -> round10/remote-corrections (forced update)
+exit 0
+```
+
+The lease was pinned to `41cb5fb` and held, confirming nobody had moved the
+branch between the re-verification and the push.
+
+```text
+push_status: verified
+evidence_commit: 64df3c7b5da61f48aaaebbf31c0e8daf963d7c67
+pushed_tip: 0cd8534a2b1af2f420da207b8e442065358662fa
+halted_record_preserved: round10/remote-corrections-halted-20260819 = 41cb5fb
+```
+
+A `git fetch` and tip comparison confirmed local and remote agree. The halted
+attempt remains published, unchanged, under its own branch name, so the forced
+update replaced a pointer whose content is still reachable; nothing was
+destroyed.
+
+One correction to the re-verification addendum, for the record: it describes a
+rerun as costing "several GPU-hours". Both experiments are CPU-only and this
+host has no GPU; the measured cost was 1.00 h for E10b and 3.32 h for E11 of CPU
+wall time. The conclusion it drew — that rerunning was unnecessary because the
+runners are deterministic and pinned to the same commits — is unaffected.

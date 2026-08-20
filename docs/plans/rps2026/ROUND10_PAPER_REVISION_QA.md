@@ -67,6 +67,29 @@ contrast moved from §4 to the appendix intact rather than being deleted, and
 duplicated phrasing between §4 and §5 was removed. Figure 1's size and content
 are unchanged.
 
+### Three defects found by our own read-through, not by the review
+
+1. **A dangling cross-reference introduced by the compression above.** §3 said
+   the rung-2/rung-3 gap is "a cost Section~4 measures", but that measurement
+   had just moved to the appendix. LaTeX cannot catch this — the reference was
+   prose, not a `\ref`. Now points at Appendix~B.2.
+2. **An ambiguous exponent.** "$-1.15$ and $-1.17\times10^{-4}$" reads as
+   though only the second value carries the exponent. Now "$-1.15$ and
+   $-1.17$, both $\times10^{-4}$".
+3. **A dangling participle** left by the §1 rewrite ("where X constructs its
+   own nuisance structure, here Y supplies..."). Split into two clauses.
+
+### Anonymity note for the author
+
+The `priorThesis` citation typesets as "[Sjostrom, 2026]" in §3 and its
+reference-list entry reads "MSci project report, Imperial College London, 2026.
+Unpublished; available on request." The cited author is not an author of this
+paper, so this is not a direct deanonymization, and the acknowledgements naming
+an author were already removed from the cited version. It does, however, place
+a named institution in the bibliography next to an unpublished source, which a
+determined reviewer could read as a weak affiliation signal. Flagged as an
+author decision, not changed.
+
 ## Acceptance gates
 
 | Gate | Result |

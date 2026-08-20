@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import subprocess
 
 import pytest
@@ -85,14 +86,35 @@ def test_invalid_freeze_shas_fail_closed(bad):
         prov.validate_freeze_commit(bad, smoke=False)
 
 
-def test_non_ancestor_freeze_sha_fails_closed():
-    """A commit that exists but is not an ancestor of HEAD is rejected."""
-    # main diverges from the Round 10 line, so its tip is not an ancestor.
-    other = _git("rev-parse", "main")
-    if other == _git("rev-parse", "HEAD"):
-        pytest.skip("HEAD is main; no divergent commit available in this checkout")
+def test_non_ancestor_freeze_sha_fails_closed(monkeypatch):
+    """A commit that exists but is not an ancestor of HEAD is rejected.
+
+    The non-ancestor is *constructed*, not found. An earlier version took
+    ``main`` on the assumption that it diverges from the Round 10 line; that
+    assumption is false on any branch cut from ``main``, where ``main`` is an
+    ancestor and the gate correctly stays silent — so the test failed for a
+    reason having nothing to do with provenance. An orphan commit over the
+    empty tree is a real commit object, is never an ancestor of anything, and
+    depends on no branch topology.
+    """
+    monkeypatch.setattr(prov, "worktree_is_dirty", lambda: False)
+
+    empty_tree = _git("hash-object", "-t", "tree", "-w", "--stdin", "--path", "/dev/null")
+    orphan = subprocess.run(
+        ["git", "commit-tree", empty_tree, "-m", "synthetic non-ancestor (test only)"],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, check=True,
+        input="", env={**os.environ,
+                       "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@invalid",
+                       "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@invalid"},
+    ).stdout.strip()
+
+    assert _git("cat-file", "-t", orphan) == "commit"
+    assert subprocess.run(
+        ["git", "merge-base", "--is-ancestor", orphan, "HEAD"], cwd=str(REPO_ROOT)
+    ).returncode != 0, "the constructed commit must not be an ancestor of HEAD"
+
     with pytest.raises(IntegrityError, match="not an ancestor"):
-        prov.validate_freeze_commit(other, smoke=False)
+        prov.validate_freeze_commit(orphan, smoke=False)
 
 
 def test_dirty_worktree_fails_closed_for_non_smoke(monkeypatch):

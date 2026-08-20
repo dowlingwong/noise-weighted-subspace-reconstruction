@@ -7,7 +7,7 @@ Let $x_i=s_i+n_i\in\R^d$ be mean-subtracted with $n_i\sim\mathcal{N}(0,\Sigma)$,
 \end{equation}
 Whitening, $\tilde{x}_i=\Sigma^{-1/2}x_i$, maps this form to $\|\tilde{x}_i-\hat{\tilde{s}}_i\|_2^2$: Euclidean projection in whitened coordinates, $\Sigma^{-1}$-orthogonal projection in measurement coordinates. We report the per-coordinate normalized residual $\bar\chi^2=(Nd)^{-1}\sum_{i=1}^{N}\chi^2(\hat{s}_i)$, or the per-trace mean where stated.
 
-Why label-free learning works: for independent zero-mean signal and noise, $\mathrm{Cov}(\Sigma^{-1/2}x)=\mathrm{Cov}(\Sigma^{-1/2}s)+I$ (Appendix~\ref{app:proofs}); adding $I$ shifts eigenvalues, not eigenvectors, so the leading whitened eigenspace of the \emph{noisy} data is the signal's own. In practice $\Sigma$ comes from calibration or noise-only records, estimated without evaluation data; a misspecified $\Sigma$ is a misspecified geometry.
+Why label-free learning works: at the population level, for independent zero-mean signal and noise, $\mathrm{Cov}(\Sigma^{-1/2}x)=\mathrm{Cov}(\Sigma^{-1/2}s)+I$ (Appendix~\ref{app:proofs}); adding $I$ shifts eigenvalues, not eigenvectors, so the leading whitened eigenspace of the \emph{noisy} data is the signal's own; at finite $N$ the sample eigenvectors are perturbed. In practice $\Sigma$ comes from calibration or noise-only records, estimated without evaluation data; a misspecified $\Sigma$ is a misspecified geometry.
 
 \begin{proposition}[Noise-weighted projection bridge]
 \label{prop:bridge}

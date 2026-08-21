@@ -67,6 +67,62 @@ contrast moved from §4 to the appendix intact rather than being deleted, and
 duplicated phrasing between §4 and §5 was removed. Figure 1's size and content
 are unchanged.
 
+### Third revision, 2026-08-21 — second external review
+
+A second audit returned **lean accept, 4.0/5**, with three positioning changes
+and one attribution decision. All are applied.
+
+**1. The rung-2 comparison returned to §4.** It had been moved to the appendix
+in the second revision purely for space, and it answers the first objection
+Proposition 2 provokes — which reviewers are not obliged to read an appendix to
+find. The wording was tightened at the reviewer's insistence and they were right
+to insist: "NFPA beats the unrestricted optimum" is scientifically wrong.
+CW-PCA's optimum concerns its *fitted* objective; what NFPA has is a lower
+*held-out* residual, which is finite-sample generalization. §4 now says exactly
+that. The line was paid for from §5's opening sentence, which restated §4.
+
+**2. Tokenization claim narrowed.** The R/PS call emphasizes discrete
+tokenization of continuous physical systems. This paper selects a *physical*
+token axis — the one in which `Σ⁻¹` is diagonal — and builds no vocabulary and
+no quantizer. §3 now says "a token-axis design principle" and states plainly
+that no learned discrete vocabulary is proposed. This lowers the claimed
+theme-fit and removes a fair line of attack.
+
+**3. Abstract closing softened**, and §1 now pre-empts the "isn't this
+tautological?" reading. A skeptic can compress the result to *a model trained
+under MSE does better under MSE*. What is not tautological is that the reversal
+appears on **held-out** data, extends to **semantic recovery**, replicates on an
+independent cohort, survives finite covariance estimation, and then **fails to
+appear** at rung 4. §1's contribution sentence now names that chain. Use the
+same chain in the author response and on the poster — not "we propose NFPA".
+
+**4. `priorThesis` resolved as a camera-ready acknowledgement.** The decisive
+input was an author clarification that could not be inferred from the
+repository: **the rung-4 architecture here is ours, and the earlier MSci report
+was an inspiration for posing the problem to an axis-factored attention model,
+not a source model.** No code, model or result of it is used.
+
+That changes the attribution analysis rather than overriding it.
+`PLAN_03_RUNG4_TIDMAD` §5 condition 2 requires citing the prior work *where the
+design is described*; the condition presupposes a borrowed design, so with the
+premise false it does not apply on its own terms. Condition 1 (do not claim the
+architecture as a contribution) still holds and §3 still says so. Condition 3
+concerns the `T-chi2+OF` arm, which is not run.
+
+Attribution is therefore an `ack` environment in `paper.tex`. `neurips_2026.sty`
+does `\let\ack\hide` in the double-blind build and typesets it only for
+camera-ready — **verified both ways**: the submission PDF contains no occurrence
+of the name and no bibliography entry for the report, and a `final`-option build
+in a scratch tree prints the acknowledgement under "Acknowledgments and
+Disclosure of Funding". The `\citep` in §3 and the forward reference to an
+unevaluated OF-injection design are both gone, which also removes an
+unverifiable "available on request" source and a named institution from the
+reviewed bibliography. The BibTeX entry is retained but uncited, with the
+reasoning recorded above it; `plainnat` does not typeset uncited entries.
+
+Space for the additions came from deleting §1's Section-4 roadmap sentence,
+which the new contribution sentence had made redundant.
+
 ### Three defects found by our own read-through, not by the review
 
 1. **A dangling cross-reference introduced by the compression above.** §3 said
@@ -79,16 +135,14 @@ are unchanged.
 3. **A dangling participle** left by the §1 rewrite ("where X constructs its
    own nuisance structure, here Y supplies..."). Split into two clauses.
 
-### Anonymity note for the author
+### Anonymity note for the author — resolved
 
-The `priorThesis` citation typesets as "[Sjostrom, 2026]" in §3 and its
-reference-list entry reads "MSci project report, Imperial College London, 2026.
-Unpublished; available on request." The cited author is not an author of this
-paper, so this is not a direct deanonymization, and the acknowledgements naming
-an author were already removed from the cited version. It does, however, place
-a named institution in the bibliography next to an unpublished source, which a
-determined reviewer could read as a weak affiliation signal. Flagged as an
-author decision, not changed.
+An earlier revision flagged that `priorThesis` typeset as "[Sjostrom, 2026]" in
+§3, with a reference-list entry naming Imperial College London beside an
+unpublished source — not a direct deanonymization, since the cited author is not
+an author here, but a weak affiliation signal in a double-blind submission.
+Resolved by the acknowledgement route above: neither the name nor the entry
+reaches the reviewed PDF.
 
 ## Acceptance gates
 
@@ -184,10 +238,8 @@ on the repository graph or writing either the worktree or Git object store.
 
 ## Open author items, unchanged by this round
 
-- `priorThesis` still needs a DOI or otherwise verifiable source. The citation
-  is now attached to the architecture description rather than to an unevaluated
-  design, which satisfies the attribution obligation, but an unpublished report
-  "available on request" is still not something a reviewer can check.
+- ~~`priorThesis` still needs a DOI or otherwise verifiable source.~~
+  **Closed 2026-08-21.** See "Third revision" below.
 - The anonymized code link remains no-go pending gates 3, 5 and 6.
 - Per the plan, this branch is **not** merged into `main` until the rebuilt PDF
   and the claim audit have been independently reviewed.

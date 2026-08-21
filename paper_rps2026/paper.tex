@@ -36,6 +36,20 @@
 \input{sections/04_experiments_discussion}
 \input{sections/05_discussion}
 
+% The neurips_2026 style hides `ack` in the double-blind submission build
+% (\let\ack\hide) and typesets it only for camera-ready, which is exactly the
+% policy this acknowledgement needs: it names a person, so it must not reach a
+% reviewer. Do not convert it into a citation. The rung-4 architecture here is
+% our own; the earlier work is an inspiration, not a source model, so a
+% citation at the design description would misdescribe the relationship.
+\begin{ack}
+The idea of posing this reconstruction problem to an axis-factored attention
+model was inspired by Sebastian Sjostrom's MSci project on light dark matter
+event reconstruction (Imperial College London). No model, code or result of
+that work is used here; the architecture, objectives and experiments in this
+paper are our own.
+\end{ack}
+
 \clearpage
 \bibliographystyle{plainnat}
 \bibliography{references}

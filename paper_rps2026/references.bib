@@ -537,16 +537,20 @@
 }
 
 % Anonymity record -- BibTeX comment, deliberately NOT a `note` field.
-% plainnat typesets `note` into the reference list, so an earlier revision
-% printed the whole double-blind discussion into the submitted PDF, announcing
-% to reviewers that this thesis thanks one of the authors. Keep procedural
-% notes here, above the entry, where they cannot reach the page.
+% RETAINED BUT UNCITED, deliberately. Author clarification 2026-08-21: the
+% rung-4 architecture in this paper is our own; this report was an inspiration
+% for posing the problem to an axis-factored attention model, not a source
+% model, and none of its code, models or results are used. Because the design
+% is not borrowed, a citation at the design description would misdescribe the
+% relationship, and PLAN_03_RUNG4_TIDMAD S5's condition 2 -- "cite where the
+% design is described" -- no longer applies on its own terms. Attribution is
+% therefore an acknowledgement in paper.tex, which the neurips_2026 style hides
+% in the double-blind build and prints only at camera-ready. That also removes
+% an unverifiable "available on request" source and a named institution from
+% the reviewed bibliography.
 %
-% Author decision, 2026-08-18: the acknowledgements naming an author of this
-% paper are removed from the cited version, so the citation carries no
-% deanonymization vector. Attribution to the report's own author, required by
-% PLAN_03_RUNG4_TIDMAD S5, is preserved unchanged. Before camera-ready,
-% confirm the version supplied on request is the one cited here.
+% plainnat only typesets cited entries, so leaving this here costs nothing and
+% keeps the record. Do not re-cite it without revisiting the above.
 @mastersthesis{priorThesis,
   author = {Sjostrom, Sebastian},
   title  = {Adapting Transformers for Light Dark Matter Event Reconstruction},

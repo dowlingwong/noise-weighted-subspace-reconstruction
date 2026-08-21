@@ -32,11 +32,11 @@ sensitivity condition, while the covariance-weighted factors recover the planted
 channel subspace almost exactly but the temporal subspace only weakly. At the
 factored-attention rung the reversal is absent across two independent seeds,
 despite non-degenerate weighting. Noise covariance therefore defines the
-scientifically relevant geometry, while instrument and representation class
-determine whether it changes what is learned.
+scientifically relevant geometry, while instrument and representation class can
+determine whether that geometry measurably changes what is learned.
 ```
 
-**Updated 2026-08-20 (Round 10 paper revision).** This is the current abstract,
+**Updated 2026-08-21 (external review response).** This is the current abstract,
 transcribed from `sections/00_abstract.tex` with LaTeX stripped and the pair
 notation spelled out. Re-verify it against the built `paper.pdf` before pasting;
 the field must match the PDF.

@@ -1,17 +1,15 @@
 \section{Experiment details and reporting limits}
 
-The controlled NFPA experiment uses $C=2$ channels, $T=256$ samples, a sampling rate of $1\,\mathrm{kHz}$, channel weights $(1.0,0.65)$, and amplitude $A\sim\mathcal{N}(1,0.3^2)$. The noise is Brownian with $S_n(f)\propto1/f^2$ and is whitened using the matched temporal frequency-domain filter. The train and test sets contain 800 and 300 events. NFPA and IsoAE use $(k_c,k_t)=(2,3)$, while CW-PCA and IsoPCA use rank six.
 
-Because $C=k_c=2$, $U_cU_c^\top=I_2$ in this experiment: the reconstruction restricts a temporal subspace shared by both channels but does not compress the channel axis. Principal angles between NFPA and CW-PCA are $0.0^\circ$, $59.3^\circ$, $64.6^\circ$, $73.8^\circ$, $84.8^\circ$, and $87.8^\circ$ (mean $61.7^\circ$). The corresponding IsoAE--CW-PCA angles are $82.1^\circ$, $83.7^\circ$, $86.0^\circ$, $86.6^\circ$, $88.2^\circ$, and $89.4^\circ$ (mean $86.0^\circ$). These are point estimates from one seed and split, produced by an earlier single-split study --- a different experiment and code path from the multi-seed cohorts, and therefore \emph{not} the quantities corrected by that diagnostic (Table~\ref{tab:round10}); the corrected values must not be read as replacements for them. The exact held-out raw-MSE values for IsoAE and IsoPCA are re-exported at full precision from the archived run ($4.58\times10^{-9}$ and $4.33\times10^{-9}$).
-
-\input{tables/results_summary}
 
 \subsection{TIDMAD rung-4 baselines}
 \label{app:rung4-baselines}
 
 \input{tables/rung4_baselines}
 
-A submission-strength empirical study should repeat this comparison across seeds and train/test splits and sweep SNR, noise color, channel count, rank pair, and controlled nonseparability. It should report confidence intervals for held-out $\bar\chi^2$, raw MSE, and subspace angles. No such uncertainty estimate is claimed here.
+The attention model is a transformer \citep{vaswani2017attention} over frame patches \citep{nie2023patchtst}, with rotary temporal embeddings \citep{su2024roformer} and learned band embeddings, trained under two objectives differing only in the metric --- \texttt{T-mse} on the unwhitened spectrogram, \texttt{T-chi2} on the $\Sigma^{-1}$-weighted residual --- at matched data, budget and evaluation grid.
+
+A full-length empirical study should extend this pilot across additional seeds, splits, noise regimes, ranks and model capacities, reporting intervals for held-out $\bar\chi^2$, raw MSE and subspace angles. No such sweep is claimed here.
 
 \subsection{Predeclared confirmatory protocol}
 \label{app:protocol}
@@ -27,6 +25,11 @@ The multi-seed confirmatory study predeclared three hypotheses. \textbf{Executed
 
 The factored representation (Section~3, generic form) has $O(k_1n_1+k_2n_2)$ basis parameters rather than $O(k_1k_2n_1n_2)$ for an unstructured basis, trading approximation flexibility for a two-axis inductive bias related to classical tensor factorizations \citep{kolda2009,lu2008mpca}. Alternating spectral updates solve each factor subproblem exactly, although the joint product-manifold objective remains nonconvex.
 
+\subsection{Transfer of the noise model}
+\label{app:transfer}
+
+On a public gravitational-wave strain release \citep{gwoscgw150914,macleod2021gwpy}, a whitened score matching its reference form to $10^{-12}$ and calibrated on synthetic stationary noise (dispersion $1.15$) is seven to nine times as dispersed on real H1 and L1 strain ($9.42$ and $8.83$; the global-PSD arm gives $1.77$ and $7.29$). The claim is about covariance adequacy on that instrument, not about NFPA and not about detector sensitivity.
+
 \subsection{Estimated covariance, and a corrected angle diagnostic}
 \label{app:round10}
 
@@ -34,7 +37,7 @@ The factored representation (Section~3, generic form) has $O(k_1n_1+k_2n_2)$ bas
 
 The estimated-covariance condition repeats the frozen $C=8>k_c=2$ configuration with one change: the separable covariance is estimated from $N_{\mathrm{cal}}=2048$ independent noise-only calibration events instead of being supplied as an oracle. Estimation proceeds by sample estimation of each factor, the regularization already used for the oracle path, and a symmetric product-scale calibration $\hat v=\sqrt{v_cv_t}$ with each factor divided by $\sqrt{\hat v}$; that correction was frozen before any full result existed. The reversal survives in all ten seeds, and the degradation relative to NFPA's own oracle held-out values is small but resolved --- consistent with the fit being invariant to a global whitening scale (the estimated product scale is within $0.1\%$ of oracle) while the covariance \emph{shape} is estimated accurately. This is a single condition: it does not bound behaviour across calibration sizes, covariance families or deliberate misspecification, and no such sweep is claimed.
 
-A separate diagnostic correction addresses a vectorization defect in the whitened-basis helper used for principal angles, which unstacked basis columns in the wrong order and so mixed channel and temporal indices. The corrected quantities carry the \texttt{\_v2} suffix. The archival implementation and the legacy columns of the earlier experiments are deliberately left unchanged, so that previously archived tables continue to mean what they meant when written; new analysis uses the corrected path only. The practical consequence of the defect is small: NFPA's mean angle is identical to the legacy value, and the isotropic baseline moves by under one degree in both cohorts, so no archived conclusion depended on it. The correction is post-hoc and contributes no confirmatory evidence; in particular it is not a second attention-class seed.
+A diagnostic correction was also applied. The helper computing principal angles unstacked a whitened basis in the wrong order, mixing channel and temporal indices; it affected only the isotropic baseline's angle diagnostic and neither primary metric. Recomputing leaves NFPA's mean angle unchanged and moves the isotropic baseline by under one degree in both cohorts, so no conclusion depended on it. The corrected values are the ones reported; the original implementation is retained unchanged so that previously published tables keep their meaning. The correction is post-hoc, contributes no confirmatory evidence, and is not a second attention-class seed.
 
 \paragraph{Rung-2 numbers carried from an earlier study.}
 In the 30-seed rank-two benchmark ($512$ traces of dimension $256$ per seed), PCA and CW-PCA had held-out
@@ -42,3 +45,24 @@ weighted residuals $48.419$ and $47.869$ (paired difference $0.550$, $[0.530,0.5
 preferred the opposite reconstruction, their whitened subspaces $86.25^\circ$ apart. The ten-seed
 white-noise control gave a maximum angle of $1.48\times10^{-6}$ degrees. On the TIDMAD file the amplitude
 RMSE fell from $0.1209$ to $0.0880$.
+
+\subsection{Sanity check: the earlier single-split study}
+\label{app:single-split}
+
+This predates the primary experiment and does \emph{not} compress the channel axis; it is retained
+as an implementation sanity check, not as evidence. It uses $C=2$ channels, $T=256$ samples,
+$1\,\mathrm{kHz}$ sampling, channel weights $(1.0,0.65)$, amplitude $A\sim\mathcal{N}(1,0.3^2)$,
+Brownian $S_n(f)\propto1/f^2$ noise, and $800/300$ train/test events; NFPA and IsoAE use
+$(k_c,k_t)=(2,3)$, CW-PCA and IsoPCA rank six.
+
+Because $C=k_c=2$, $U_cU_c^\top=I_2$ here: the reconstruction restricts a shared temporal subspace
+but does not compress channels. Principal angles between NFPA and CW-PCA are $0.0^\circ$,
+$59.3^\circ$, $64.6^\circ$, $73.8^\circ$, $84.8^\circ$ and $87.8^\circ$ (mean $61.7^\circ$) --- the
+counterexample showing that a full-rank factor does not deactivate the restriction. The IsoAE--CW-PCA
+angles are $82.1^\circ$, $83.7^\circ$, $86.0^\circ$, $86.6^\circ$, $88.2^\circ$ and $89.4^\circ$
+(mean $86.0^\circ$). These are point estimates from one seed and split, computed by a different code
+path from the multi-seed cohorts, so the corrected angles of Table~\ref{tab:round10} are not
+replacements for them. Held-out raw MSE for IsoAE and IsoPCA is $4.58\times10^{-9}$ and
+$4.33\times10^{-9}$.
+
+\input{tables/results_summary}

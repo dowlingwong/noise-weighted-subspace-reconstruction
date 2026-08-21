@@ -26,14 +26,14 @@ restriction, and factored attention. The linear classes admit an exact
 geometric characterization. At the separable class, models sharing an
 architecture but differing only in the training metric reverse their ranking
 under raw MSE and the likelihood residual, in a frozen ten-seed experiment and
-an independent twenty-seed replication, and under a covariance estimated from
-2,048 noise-only events. Each model leading under its own objective is the
-weaker claim; the substantive result is truth-referenced: the
+a disjoint twenty-seed replication cohort, and under a covariance estimated
+from 2,048 noise-only events. Each model leading under its own objective is
+the weaker claim; the substantive result is truth-referenced: the
 covariance-weighted factors recover the planted channel subspace almost
-exactly and decode held-out physical parameters better, while temporal
-recovery stays weak. A two-seed pilot at the attention class shows no reversal
-despite non-degenerate weighting; we report that as an open observation, not
-an architecture-level conclusion.
+exactly and show better exploratory recovery of planted signal parameters,
+while temporal recovery stays weak. A two-seed pilot at the attention class
+shows no reversal despite non-degenerate weighting; we report that as an open
+observation, not an architecture-level conclusion.
 ```
 
 **Updated 2026-08-21 (external review response).** This is the current abstract,
@@ -69,11 +69,12 @@ gravitational waves
 
 ## Workshop theme fit (if a field asks)
 
-Self-supervision (the measurement likelihood as the objective; no augmentation
-policy), Tokenization, partially: we give a token-AXIS design principle -- choose the
-axis in which the inverse covariance is diagonal (Section 3) -- and propose no
-learned discrete vocabulary, so the fit here is adjacent rather than central, Transfer (a covariance validated in-distribution fails
-calibration on real strain; Section 4).
+**Self-supervision** — the measurement likelihood is the objective; no
+augmentation policy. **Transfer** — a covariance validated in-distribution fails
+its calibration check on real strain (Appendix B.3). **Tokenization, partially**
+— we give a token-*axis* design principle, choose the axis in which the inverse
+covariance is diagonal (Section 3), and propose no learned discrete vocabulary,
+so the fit is adjacent rather than central. **Sampling** — not addressed.
 
 ## Confirmed against the published call (2026-08-21)
 

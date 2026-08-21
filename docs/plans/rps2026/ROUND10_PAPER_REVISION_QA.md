@@ -282,6 +282,63 @@ uncompressed shell.
 The single word `grant` appears six times: URW font-licence boilerplate inside
 embedded Type 1 programs. Not author content.
 
+### Style conformance, 2026-08-21 — template diffed, one real defect fixed
+
+The workshop template was downloaded and unpacked to `paper_rps2026/rps_2026_template/`.
+
+**`neurips_2026.sty` is byte-identical to ours** —
+`5820fe764d9a0667e2b60c97f87c9032f2ee2b0c12ee8357bc785e3b7fdc15f8` for our copy,
+the newly downloaded copy and `vendor/template/`. `diff` is empty. The open item
+from the anonymity audit is closed: we are on the official file, unmodified.
+
+The NeurIPS handbook is explicit that *"submissions that violate the NeurIPS
+style (e.g., by decreasing margins or font sizes) or page limits may be desk
+rejected"*, and the template adds *"do not change any aspects of the formatting
+parameters in the style files… do not modify the width or length of the
+rectangle the text should fit into, and do not change font sizes."*
+
+| Check | Result |
+|---|---|
+| Style file modified | no — byte-identical to the official template |
+| `geometry`, `\addtolength`, `\setlength` on text dimensions | none |
+| Body font size changed | no. `\small`/`\footnotesize` appear only inside table floats and one table note, which is ordinary table practice, not a style-parameter change |
+| `\looseness` page-squeezing | none — all removed in an earlier round |
+| Page size | US Letter, 612 × 792 pt |
+| Pages numbered | yes |
+| `final` option | not used, as required for a submission |
+| Vertical rules in tables | none; all three tabulars are booktabs-style |
+| Abstract | one paragraph |
+| Page order | content (1–4), references (5–6), appendix (7–10) |
+| File size | 0.3 MB against a 50 MB limit |
+| Paper checklist | not required by this workshop |
+
+**Fixed: Type 3 fonts from the figure.** `pdffonts` reported
+`DejaVuSans` and `DejaVuSans-Oblique` as **Type 3**, which is the standard
+NeurIPS-family formatting complaint and the usual way it happens — Matplotlib's
+PDF backend embeds text as Type 3 by default. `make_rps_figure_v2.py` now sets
+`pdf.fonttype = 42` and `ps.fonttype = 42`, and those two fonts are now
+**CID TrueType, embedded and subset**. Nothing about the drawing changed: the
+regenerated figure prints the same values (`−1.859/−1.844 %`, `+49.605/+49.577 %`,
+`0.0349/1.0207`, `0.7677/1.2796`, `0.1434/0.1984`) and renders identically.
+
+**Not a defect: the remaining `[none]` Type 3.** Two unnamed Type 3 fonts
+survive on pages 1, 4, 5 and 9. Compiling the **official, unmodified**
+`rps_2026_template/neurips_2026.tex` produces the same `[none]` Type 3 font, so
+it is inherent to the style file and present in every submission built from this
+template. Do not chase it.
+
+All fonts in the final PDF are embedded; none is missing.
+
+**A handbook rule that retroactively validates an earlier decision.** The
+template states: *"The paper must be able to stand alone without the appendix;
+for example, adding critical experiments that support the main claims to an
+appendix is inappropriate."* This is the same instinct behind restoring the
+rung-2 comparison to §4. Every main-text claim now carries its own number in the
+main text, with the appendix holding protocol and supporting detail only.
+
+Also removed: the unused `\PENDING` macro definition in `paper.tex`, dead since
+the last placeholder was resolved.
+
 ### Two residual risks the audit cannot close
 
 **1. The companion preprint is a live deanonymization channel (author-controlled).**

@@ -85,15 +85,22 @@ dual-submission policy · anonymized code/data links permitted but optional.
 Deadline **29 Aug 2026 AoE**; notification **by 29 Sep 2026 AoE**.
 Submit at `https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/RPS`.
 
-Two items to settle before uploading:
+Style conformance verified 2026-08-21: `neurips_2026.sty` is **byte-identical**
+to the workshop template's copy (`5820fe76…`), no margin or font-size changes,
+`final` option not used, US Letter, pages numbered, booktabs tables with no
+vertical rules, one-paragraph abstract. Figure Type 3 fonts fixed. Details in
+`docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
 
-1. **Diff `neurips_2026.sty` against the workshop's `rps_2026_template.zip`.**
-   Ours is the NeurIPS style with `dblblindworkshop`, which is what the call
-   describes, but the template was not unpacked and compared here.
-2. **Decide the companion-preprint timing.** The appendix's carried rung-2
-   numbers also appear in the named companion preprint; posting it during the
-   review window weakens the blind. See the anonymous-submission audit in
-   `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
+One item left to settle before uploading:
+
+- **Decide the companion-preprint timing.** The appendix's carried rung-2
+  numbers also appear in the named companion preprint; posting it during the
+  review window weakens the blind. See the anonymous-submission audit in
+  `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
+
+If the OpenReview form asks for a NeurIPS-style **contribution type**, this paper
+is *General*, not *Negative Results* — the rung-4 null is one component of a
+four-rung study, not the main contribution.
 
 ## Submission-day checklist
 

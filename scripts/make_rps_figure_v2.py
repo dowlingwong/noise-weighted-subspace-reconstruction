@@ -90,6 +90,12 @@ def main() -> int:
 
     import matplotlib
     matplotlib.use("Agg")
+    # Matplotlib's PDF backend embeds text as Type 3 by default. NeurIPS-style
+    # venues check for Type 3 fonts, and a figure is the usual way they get in.
+    # Type 42 is TrueType, which the checkers accept; nothing about the drawing
+    # changes, only how its glyphs are stored.
+    matplotlib.rcParams["pdf.fonttype"] = 42
+    matplotlib.rcParams["ps.fonttype"] = 42
     import matplotlib.pyplot as plt
 
     rep = replication_panel()

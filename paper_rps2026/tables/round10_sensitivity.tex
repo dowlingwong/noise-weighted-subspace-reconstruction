@@ -6,22 +6,23 @@
 \begin{table}[H]
   \centering
   \small
-  \caption{Round 10. \textbf{E10b} is a single frozen sensitivity condition:
+  \caption{\textbf{Estimated covariance} --- a single frozen sensitivity condition:
   the separable covariance is estimated from $2{,}048$ independent noise-only
   calibration events rather than taken as oracle, at the otherwise unchanged
   $C=8>k_c=2$ configuration. The reversal survives in all ten seeds. The
   degradation percentages are relative to NFPA's \emph{own} corresponding
   archived oracle held-out value. This is one condition, not a sweep across
   calibration sizes, covariance families or misspecification.
-  \textbf{E11} is a post-hoc diagnostic correction of the whitened-basis
-  vectorization used for principal angles; only the \texttt{\_v2} quantities
-  carry scientific meaning.}
+  \textbf{Corrected angles} --- a post-hoc diagnostic correction of the
+  whitened-basis vectorization used for principal angles; only the corrected
+  quantities carry scientific meaning. Archived as \texttt{E10b} and
+  \texttt{E11} in the run records.}
   \label{tab:round10}
   \begin{tabular}{@{}lr@{}}
     \toprule
     Quantity & Estimate \\
     \midrule
-\multicolumn{2}{l}{\emph{E10b --- estimated separable covariance, $N_{\mathrm{cal}}=2048$, 10 seeds}} \\
+\multicolumn{2}{l}{\emph{Estimated separable covariance, $N_{\mathrm{cal}}=2048$, 10 seeds}} \\
 \quad $\Delta\bar\chi^2$, NFPA $-$ isotropic & $-0.019122$ $[-0.019340,\,-0.018914]$ \\
 \quad $\Delta\mathrm{MSE}$, NFPA $-$ isotropic & $+0.0034178$ $[+0.0033963,\,+0.0034393]$ \\
 \quad NFPA $\bar\chi^2$ degradation vs.\ oracle & $7.90\times10^{-5}$ (0.0078\%) \\
@@ -30,14 +31,14 @@
 \quad Channel / temporal shape error & $0.0282$ / $0.0197$ \\
 \quad Kronecker relative Frobenius error & $0.0365$ \\
 \addlinespace
-\multicolumn{2}{l}{\emph{E11 --- corrected principal angles to CW-PCA (degrees)}} \\
+\multicolumn{2}{l}{\emph{Corrected principal angles to CW-PCA (degrees)}} \\
 \quad Frozen, $n=10$ & NFPA $62.89$, isotropic $86.71$, difference $-23.82$ \\
 \quad Replication, $n=20$ & NFPA $63.03$, isotropic $86.73$, difference $-23.71$ \\
     \bottomrule
   \end{tabular}
   \par\vspace{2pt}
   \begin{minipage}{\linewidth}\footnotesize
-  E11 note: the correction leaves NFPA unchanged and shifts the isotropic
+  Note: the correction leaves NFPA unchanged and shifts the isotropic
   baseline by $0.81^\circ$ in the frozen cohort and $0.73^\circ$ in the
   replication cohort, so no archived scientific conclusion depended on the
   defect. Displayed intervals are $95\%$ bootstrap intervals with seed as the

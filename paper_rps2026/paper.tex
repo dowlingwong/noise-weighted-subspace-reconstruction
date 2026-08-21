@@ -9,6 +9,15 @@
 \usepackage{float}
 \usepackage{microtype}
 \usepackage{xcolor}
+% pdfTeX can SEGFAULT (rc 139) on the second pass when a citation hyperlink
+% straddles a page break -- it shows up first as
+%   "pdfTeX warning: \pdfendlink ended up in different nesting level"
+% and then aborts, leaving a truncated PDF. It bit us once here, at the
+% page 2->3 break in section 3, and went away when the layout shifted.
+% breaklinks=true does NOT fix it. If it recurs and rewording is not an
+% option, build with \usepackage[draft]{hyperref}: that disables link
+% generation entirely and, since hidelinks already makes links invisible,
+% the printed page is identical -- only interactivity is lost.
 \usepackage{hyperref}
 \usepackage{url}
 \hypersetup{hidelinks}

@@ -339,6 +339,71 @@ main text, with the appendix holding protocol and supporting detail only.
 Also removed: the unused `\PENDING` macro definition in `paper.tex`, dead since
 the last placeholder was resolved.
 
+### Advisor review, 2026-08-21 — six items
+
+**1. The ladder was not monotonic, and the framing said it was.** Rung 3
+*restricts* rung 2, so "as the admissible representation class expands" was
+false, and "walk $\mathcal{F}$ up four rungs" implied a capacity ordering that
+does not exist. §3 is now titled *Four representation classes* — matching the
+paper's own title, which never claimed a ladder — and states the real order:
+rung 3 restricts rung 2, rung 1 is its degenerate fixed-template case, and rung
+4 is not comparable. §1 drops "expands" and "up", and says the first three are
+nested. "Rung" survives as a label, explicitly *not* a ranking.
+
+**2. The reversal could be read as inevitable.** A model trained under a metric
+leading under that metric is close to tautological. The paper's stronger result
+is truth-referenced and cannot be explained that way: the covariance-weighted
+factors recover the **planted** channel subspace and decode held-out physical
+parameters better. The abstract now says so — *"Each model leading under its own
+objective is the weaker claim; the substantive result is truth-referenced"* —
+and §4 makes the same distinction where the projector errors appear.
+
+**3. Rung 4 was stated too strongly for its evidence.** Two seeds, a coarse
+score that cannot separate the arms, and both arms far below published
+baselines. The abstract now calls it *"a two-seed pilot"* reported as *"an open
+observation, not an architecture-level conclusion"*, and drops the closing
+inference that architecture decides whether the geometry matters. §4's heading
+is *Rung 4 (two-seed pilot)* and its paragraph ends by naming the under-trained
+regime the score cannot resolve. §1's contribution sentence no longer asserts
+the rung-4 absence.
+
+**4. The appendix read like a research log.** `Round 10`, `E10b`, `E11`,
+`delayed-predeclared`, `amendment` and `companion work` are gone from the
+typeset paper, replaced by descriptive language ("the estimated-covariance
+condition", "a corrected angle diagnostic", "an earlier single-split study").
+**One** traceability line survives, in the table caption: *"Archived as E10b and
+E11 in the run records."* The internal codes remain in the claim audit and the
+repository, where they belong.
+
+**5. The venue footer is correct as-is — not a defect.** In submission mode
+`neurips_2026.sty` prints the generic *"Submitted to 40th Conference on Neural
+Information Processing Systems (NeurIPS 2026)"* notice and consumes
+`\workshoptitle` only under `final`. That is the template's designed behaviour,
+verified by compiling the official unmodified template. Four pages **does**
+exclude references and appendices — confirmed against the published call.
+
+**6. TIDMAD was used six times and never cited.** A real omission: the bib entry
+`fry2024tidmad` existed but no `\cite` reached it. §3 now cites it at first
+mention and says what it is — a public release of SQUID readout series from an
+axion dark-matter search in which injected signals must be recovered from
+instrument noise — and why it was chosen: `\(\Sigma^{-1}\)` is diagonal in
+frequency there **by measurement, not assumption**.
+
+### A build crash worth remembering
+
+Adding the TIDMAD citation made **pdflatex segfault** (rc 139) on the second
+pass, leaving a truncated 9 kB PDF. It announces itself as
+`pdfTeX warning: \pdfendlink ended up in different nesting level` and then
+aborts: a citation hyperlink straddling the page 2→3 break. `breaklinks=true`
+did **not** help, nor did `\mbox`-ing the new citation. It disappeared once the
+compression work shifted the layout, and the current build is clean.
+
+Because a future edit could re-trigger it, the failure mode and its fallback are
+recorded in a comment in `paper.tex`: build with `\usepackage[draft]{hyperref}`,
+which disables link generation entirely. Since `hidelinks` already makes links
+invisible, the printed page is identical and only interactivity is lost — an
+acceptable trade against a corrupt PDF on deadline day.
+
 ### Two residual risks the audit cannot close
 
 **1. The companion preprint is a live deanonymization channel (author-controlled).**

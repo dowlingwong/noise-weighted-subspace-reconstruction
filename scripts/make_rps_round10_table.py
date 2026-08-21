@@ -118,7 +118,7 @@ def e10b_block(summary: dict) -> list[str]:
                 f"$[{d['ci95_low']:+.{digits}f},\\,{d['ci95_high']:+.{digits}f}]$")
 
     lines = [
-        r"\multicolumn{2}{l}{\emph{E10b --- estimated separable covariance, "
+        r"\multicolumn{2}{l}{\emph{Estimated separable covariance, "
         r"$N_{\mathrm{cal}}=2048$, %d seeds}} \\" % summary["n_seeds"],
         r"\quad $\Delta\bar\chi^2$, NFPA $-$ isotropic & " + ci(chi2, 6) + r" \\",
         r"\quad $\Delta\mathrm{MSE}$, NFPA $-$ isotropic & " + ci(mse, 7) + r" \\",
@@ -137,8 +137,8 @@ def e10b_block(summary: dict) -> list[str]:
 
 
 def e11_block(summary: dict) -> tuple[list[str], float, float]:
-    lines = [r"\multicolumn{2}{l}{\emph{E11 --- corrected principal angles to "
-             r"CW-PCA (degrees)}} \\"]
+    lines = [r"\multicolumn{2}{l}{\emph{Corrected principal angles to CW-PCA "
+             r"(degrees)}} \\"]
     shifts = {}
     for cohort, label in (("frozen", "Frozen, $n=10$"),
                           ("replication", "Replication, $n=20$")):
@@ -174,16 +174,17 @@ def build() -> str:
 \begin{table}[H]
   \centering
   \small
-  \caption{Round 10. \textbf{E10b} is a single frozen sensitivity condition:
+  \caption{\textbf{Estimated covariance} --- a single frozen sensitivity condition:
   the separable covariance is estimated from $2{,}048$ independent noise-only
   calibration events rather than taken as oracle, at the otherwise unchanged
   $C=8>k_c=2$ configuration. The reversal survives in all ten seeds. The
   degradation percentages are relative to NFPA's \emph{own} corresponding
   archived oracle held-out value. This is one condition, not a sweep across
   calibration sizes, covariance families or misspecification.
-  \textbf{E11} is a post-hoc diagnostic correction of the whitened-basis
-  vectorization used for principal angles; only the \texttt{\_v2} quantities
-  carry scientific meaning.}
+  \textbf{Corrected angles} --- a post-hoc diagnostic correction of the
+  whitened-basis vectorization used for principal angles; only the corrected
+  quantities carry scientific meaning. Archived as \texttt{E10b} and
+  \texttt{E11} in the run records.}
   \label{tab:round10}
   \begin{tabular}{@{}lr@{}}
     \toprule
@@ -194,7 +195,7 @@ def build() -> str:
   \end{tabular}
   \par\vspace{2pt}
   \begin{minipage}{\linewidth}\footnotesize
-  E11 note: the correction leaves NFPA unchanged and shifts the isotropic
+  Note: the correction leaves NFPA unchanged and shifts the isotropic
   baseline by $%.2f^\circ$ in the frozen cohort and $%.2f^\circ$ in the
   replication cohort, so no archived scientific conclusion depended on the
   defect. Displayed intervals are $95\%%$ bootstrap intervals with seed as the

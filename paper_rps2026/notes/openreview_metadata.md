@@ -17,23 +17,23 @@ Noise Covariance as Representation Geometry: One Metric, Four Architecture Class
 Label-free scientific reconstruction learns from measured observations alone:
 each observation supplies its own reconstruction supervision, while the
 instrument-characterized noise covariance determines which residuals are
-informative. For Gaussian noise, inverse covariance is the likelihood-consistent
-metric. Rather than proposing a new estimator, we organize classical methods as
-a pair of inverse covariance and representation class, separating measurement
-geometry from admissible model capacity, and follow this metric through optimal
-filtering, unrestricted linear projection, Kronecker-separable projection, and
-factored attention. The linear classes admit an exact geometric
-characterization. At the separable-projection rung, models sharing an
+informative. For Gaussian noise, inverse covariance is the
+likelihood-consistent metric. Rather than proposing a new estimator, we
+organize classical methods as a pair that separates measurement geometry from
+admissible model capacity, and follow one metric across four classes: optimal
+filtering, unrestricted linear projection, its Kronecker-separable
+restriction, and factored attention. The linear classes admit an exact
+geometric characterization. At the separable class, models sharing an
 architecture but differing only in the training metric reverse their ranking
 under raw MSE and the likelihood residual, in a frozen ten-seed experiment and
-in an independent twenty-seed replication. The reversal persists when the
-covariance is estimated from 2,048 noise-only calibration events in one fixed
-sensitivity condition, while the covariance-weighted factors recover the planted
-channel subspace almost exactly but the temporal subspace only weakly. At the
-factored-attention rung the reversal is absent across two independent seeds,
-despite non-degenerate weighting. Noise covariance therefore defines the
-scientifically relevant geometry, while instrument and representation class can
-determine whether that geometry measurably changes what is learned.
+an independent twenty-seed replication, and under a covariance estimated from
+2,048 noise-only events. Each model leading under its own objective is the
+weaker claim; the substantive result is truth-referenced: the
+covariance-weighted factors recover the planted channel subspace almost
+exactly and decode held-out physical parameters better, while temporal
+recovery stays weak. A two-seed pilot at the attention class shows no reversal
+despite non-degenerate weighting; we report that as an open observation, not
+an architecture-level conclusion.
 ```
 
 **Updated 2026-08-21 (external review response).** This is the current abstract,
@@ -53,8 +53,8 @@ confirmatory, and does not appear in the abstract.
 
 ```
 Instrument noise covariance is the natural self-supervised metric for scientific
-reconstruction; walking one fixed metric up four architecture classes shows
-where the metric provably changes what is learned -- and measures where it stops
+reconstruction; carrying one fixed metric across four representation classes
+shows where it provably changes what is learned, and measures where it stops
 mattering.
 ```
 
@@ -70,8 +70,9 @@ gravitational waves
 ## Workshop theme fit (if a field asks)
 
 Self-supervision (the measurement likelihood as the objective; no augmentation
-policy), Tokenization (choose the token axis in which the inverse covariance is
-diagonal; Section 3), Transfer (a covariance validated in-distribution fails
+policy), Tokenization, partially: we give a token-AXIS design principle -- choose the
+axis in which the inverse covariance is diagonal (Section 3) -- and propose no
+learned discrete vocabulary, so the fit here is adjacent rather than central, Transfer (a covariance validated in-distribution fails
 calibration on real strain; Section 4).
 
 ## Confirmed against the published call (2026-08-21)

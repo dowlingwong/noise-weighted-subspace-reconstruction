@@ -7,11 +7,13 @@ differences under both metrics. The two metrics point in opposite directions
 pooled: a pooled bar would imply a thirty-seed confirmatory experiment, which
 this is not.
 
-Panel B — what is recovered. Planted-factor projector errors and held-out
-amplitude decoding at the separable condition, NFPA against the isotropically
-trained baseline. Channel recovery is nearly exact while temporal recovery is
-weak, an asymmetry a single joint number would hide, so the axes are shown
-apart.
+Panel B — what is recovered, as a ratio. Planted-factor projector errors and
+held-out amplitude decoding at the separable condition, each as NFPA's error
+divided by the isotropically trained baseline's on the same quantity. These are
+different quantities in different units, so an absolute axis would invite a
+comparison across groups that is not meaningful; the ratio is unitless and 1.0
+is parity. Channel recovery is nearly exact while temporal recovery is weak, an
+asymmetry a single joint number would hide.
 
 Every value is read from an archived summary; nothing is transcribed. Run from
 the repository root:
@@ -101,7 +103,7 @@ def main() -> int:
     rep = replication_panel()
     sem = semantic_panel()
 
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(9.6, 1.8), gridspec_kw={"width_ratios": [1.05, 1]})
+    fig, (axA, axB) = plt.subplots(1, 2, figsize=(9.6, 1.42), gridspec_kw={"width_ratios": [1.05, 1]})
 
     # ---- Panel A: cohorts side by side, both metrics.
     ypos = np.array([1.0, 0.0])          # chi2 on top, mse below
@@ -115,17 +117,18 @@ def main() -> int:
         # The two metrics differ by more than an order of magnitude, so a linear
         # axis hides the small one -- and its SIGN is the whole point. Annotate
         # both cohorts explicitly and use a symmetric log scale below.
+        # One label per metric, not one per bar: at this figure height two
+        # stacked annotations collide with the bars they describe.
         side = 1 if f > 0 else -1
-        axA.text(f + side * abs(f) * 0.25, y + height / 2, f"{f:+.2f}%",
-                 va="center", ha="left" if side > 0 else "right", fontsize=7)
-        axA.text(r + side * abs(r) * 0.25, y - height / 2, f"{r:+.2f}%",
+        anchor = max(abs(f), abs(r)) * side
+        axA.text(anchor + side * abs(anchor) * 0.22, y, f"{f:+.2f}% / {r:+.2f}%",
                  va="center", ha="left" if side > 0 else "right", fontsize=7)
     axA.axvline(0, color="0.35", lw=1.0, zorder=2)
     axA.set_yticks(ypos)
     axA.set_yticklabels(["$\\bar\\chi^2$", "raw MSE"], fontsize=8)
     axA.set_xlabel("relative paired difference (%)", fontsize=8)
     axA.set_title("A  rung 3: reversal, and its replication\n"
-                  "solid = frozen 10 seeds, hatched = independent 20",
+                  "solid = frozen 10 seeds, hatched = disjoint 20",
                   fontsize=8.5, loc="left")
     axA.tick_params(labelsize=7.5)
     axA.grid(axis="x", color="0.9", zorder=0)
@@ -139,22 +142,29 @@ def main() -> int:
     axA.set_xticklabels(["-10", "-1", "0", "1", "10", "100"])
     axA.set_xlabel("relative paired difference (%, symlog)", fontsize=8)
 
-    # ---- Panel B: what the factors recover.
+    # ---- Panel B: what the factors recover, as a RATIO.
+    # Projector error and amplitude RMSE are different quantities in different
+    # units, so plotting them on one absolute axis invites a comparison that is
+    # not meaningful. Each bar is instead NFPA's error divided by the isotropic
+    # baseline's error on the same quantity: unitless, comparable across groups,
+    # and 1.0 is parity. Absolute values are annotated so nothing is hidden.
+    ratios = [n / i for n, i in zip(sem["NFPA"], sem["Iso-MPCA"])]
     x = np.arange(len(sem["labels"]))
-    w = 0.36
-    axB.bar(x - w / 2, sem["NFPA"], width=w, color=C_NFPA, zorder=3, label="NFPA ($\\Sigma^{-1}$)")
-    axB.bar(x + w / 2, sem["Iso-MPCA"], width=w, color=C_ISO, zorder=3, label="isotropic")
+    axB.axhline(1.0, color="0.35", lw=1.0, zorder=2)
+    axB.bar(x, ratios, width=0.5, color=C_NFPA, zorder=3)
+    for xi, r in enumerate(ratios):
+        axB.text(xi, r + 0.04, f"{r:.2f}", ha="center", va="bottom", fontsize=7)
     axB.set_xticks(x)
     axB.set_xticklabels(sem["labels"], fontsize=7.5)
-    axB.set_ylabel("error (lower is better)", fontsize=8)
+    axB.set_ylabel("NFPA / isotropic", fontsize=8)
+    axB.set_ylim(0, 1.25)
     axB.set_title("B  what the factors recover (separable condition)\n"
-                  "channel nearly exact, temporal weak",
+                  "ratio to the isotropic baseline; 1.0 = parity, lower is better",
                   fontsize=8.5, loc="left")
     axB.tick_params(labelsize=7.5)
     axB.grid(axis="y", color="0.9", zorder=0)
     for s in ("top", "right"):
         axB.spines[s].set_visible(False)
-    axB.legend(fontsize=7.5, frameon=False, loc="upper right")
 
     fig.tight_layout()
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -167,7 +177,8 @@ def main() -> int:
         print(f"  A {m:5s} frozen {r['frozen']:+7.3f}%   replication {r['replication']:+7.3f}%"
               f"   sign agrees: {r['sign_agrees']}")
     for lab, a, b in zip(sem["labels"], sem["NFPA"], sem["Iso-MPCA"]):
-        print(f"  B {lab.replace(chr(10), ' '):24s} NFPA {a:.4f}   iso {b:.4f}")
+        print(f"  B {lab.replace(chr(10), ' '):24s} NFPA {a:.4f}   iso {b:.4f}"
+              f"   ratio {a / b:.4f}")
     print(f"  B analysis_status = {sem['analysis_status']}")
     return 0
 

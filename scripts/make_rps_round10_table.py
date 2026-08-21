@@ -182,9 +182,8 @@ def build() -> str:
   archived oracle held-out value. This is one condition, not a sweep across
   calibration sizes, covariance families or misspecification.
   \textbf{Corrected angles} --- a post-hoc diagnostic correction of the
-  whitened-basis vectorization used for principal angles; only the corrected
-  quantities carry scientific meaning. Archived as \texttt{E10b} and
-  \texttt{E11} in the run records.}
+  whitened-basis vectorization used for principal angles. Archived as
+  \texttt{E10b} and \texttt{E11} in the run records.}
   \label{tab:round10}
   \begin{tabular}{@{}lr@{}}
     \toprule

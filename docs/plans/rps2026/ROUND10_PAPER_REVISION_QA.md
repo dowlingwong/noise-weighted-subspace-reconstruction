@@ -42,7 +42,7 @@ several presentation items. Both P1s were reproduced before being fixed.
 | # | Finding | Reproduced | Resolution |
 |---|---|---|---|
 | P1 | The generator verified the E10b summary but parsed `raw.csv` unverified, and the printed percentages depend on it | Yes — editing one denominator cell moved the reported MSE degradation from `0.0345 %` to `0.0341 %` with both summary digests intact, and the build still succeeded | Every archived input is pinned and byte-verified before parsing; an unpinned path is refused; seven tests in `tests/test_round10_table_generator.py`, including value, whitespace-only and unpinned-path tampering |
-| P1 | `test_non_ancestor_freeze_sha_fails_closed` assumed a branch graph | Yes | The non-ancestor is now constructed, not discovered |
+| P1 | `test_non_ancestor_freeze_sha_fails_closed` assumed a branch graph | Yes | A real commit is validated while only Git's non-ancestor response is simulated; the test no longer depends on branch topology or writes Git objects |
 | P2 | "measurement noise supplies it directly" overstated the contrast with augmentation-based self-supervision | — | §1 now separates the two roles: the measurement supplies the target, an independently calibrated noise model supplies the residual weighting |
 | P2 | The covariance-eigenspace identity is exact only for the population covariance | — | §2 says "at the population level" and notes the finite-$N$ perturbation |
 | P2 | §4 conflated delayed-predeclared and post-hoc contrasts | — | Two of seven named as delayed-predeclared, five as post-hoc; "across-seed bootstrap interval"; no multiplicity correction stated |
@@ -99,7 +99,7 @@ author decision, not changed.
 | table regenerates deterministically from archived summaries | pass (byte-identical on re-run) |
 | table generator authenticates **every** archived file it reads | pass — E10b `summary.json`, E10b `raw.csv`, E11 `summary.json`; an unpinned path is refused outright |
 | table generator fails closed on tampered evidence | pass — verified against a mutated summary, a mutated `raw.csv` value, and a whitespace-only `raw.csv` edit; archive restored and re-verified each time |
-| LaTeX clean build (`latexmk -C` then `make`) | pass |
+| LaTeX clean build (`latexmk -C` then `make`) | pass; one known non-fatal `hyperref`/`lineno` engine warning at the page-2/3 boundary, with no visible or structural PDF defect |
 | four main pages, references from page 5 | pass (10 pages total) |
 | undefined references / citations | 0 |
 | overfull boxes | 0 |
@@ -143,8 +143,9 @@ at `results/rps2026/Round10_remote/`: **417 passed, 9 skipped**,
 `PYTEST_STATUS=0`, 1155 s. Nothing in this revision touches experiment code, so
 that result still applies.
 
-Focused Round 9 + Round 10 + hardening suite, plus the new generator tests, on
-this desktop: **101 passed, 0 failed** (115 s).
+Focused Round 9 + Round 10 + hardening suite, plus the new generator tests, in
+a read-only checkout: **101 passed, 0 failed** (107 s). Pytest emitted one
+non-test warning because it could not write its optional `.pytest_cache`.
 
 `test_round10_hardening.py::test_non_ancestor_freeze_sha_fails_closed` failed in
 the first revision of this branch and has since been fixed. The failure was a
@@ -154,11 +155,12 @@ from the Round 10 line"*. That held on the Round 10 branches and is false on a
 branch cut **from** `main`, where `main` is an ancestor and the gate correctly
 stays silent.
 
-The test now **constructs** its non-ancestor with `git commit-tree` over the
-empty tree: a real commit object, never an ancestor of anything, independent of
-branch topology. It asserts both that the object is a commit and that
-`merge-base --is-ancestor` rejects it before exercising the gate. The orphan
-commit is unreferenced and collectable; nothing is written to the worktree.
+An intermediate fix constructed an orphan commit with `git commit-tree`. That
+removed the branch assumption but still failed in a read-only checkout because
+it writes into `.git/objects`. The final test validates a real existing commit
+and deterministically simulates only the non-ancestor response from
+`merge-base --is-ancestor`. It exercises the fail-closed path without depending
+on the repository graph or writing either the worktree or Git object store.
 
 ## Deviations from the plan
 

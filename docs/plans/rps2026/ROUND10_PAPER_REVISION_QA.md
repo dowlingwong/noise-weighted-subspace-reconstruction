@@ -236,6 +236,96 @@ on the repository graph or writing either the worktree or Git object store.
    remote run completed; the results are now archived and synchronized. No
    experiment was executed here.
 
+## Anonymous-submission audit, 2026-08-21
+
+Audited against the R/PS 2026 call as published: Short Papers, **four pages
+excluding references and appendices**, **single PDF**, **double-blind following
+the NeurIPS main-track approach**, non-archival, no NeurIPS checklist required,
+concurrent submissions allowed, optional link to *properly anonymized* code.
+
+### Mechanics
+
+| Requirement | State |
+|---|---|
+| Four pages of main content | ✅ references begin on page 5 |
+| References excluded from the limit | ✅ pages 5–6 |
+| Appendix excluded, unlimited, after references | ✅ pages 7–10 |
+| Main paper self-contained | ✅ every main-text claim carries its own number; the appendix is supporting |
+| Single PDF, no additional files | ✅ one 10-page, 293 kB file |
+| NeurIPS-based template | ✅ `neurips_2026.sty`, `dblblindworkshop` — **verify against the workshop's own template zip**, see below |
+| Paper checklist | not required by this workshop; none present |
+| Anonymized code link | none present, consistent with the code link being no-go |
+
+### Identity leaks — none found
+
+Checked on the built PDF, including a `qpdf --qdf` decompression so that
+compressed content streams and font programs were scanned as text, not just the
+uncompressed shell.
+
+| Check | Result |
+|---|---|
+| Author name, email, affiliation in body | none |
+| `Dowling`, `Wong`, `dwong`, `wongdowling` | 0 occurrences in the decompressed PDF |
+| `Karlsruhe`, `KIT`, `Imperial`, `DELight`, `Sjostrom` | 0 (an earlier scan reported `KIT: 1`; that was the byte sequence `xkIT` inside a compressed stream, not a word) |
+| Absolute paths — `/Users`, `/home`, `/ceph` | 0. The only path-like strings that reach the page are arXiv URLs and "800/400/2000 training/validation/test events" |
+| Source file names (`.tex`, `.bib`) | 0 in the decompressed PDF |
+| Document Info dictionary | `/Author ()`, `/Title ()`, `/Subject ()`, `/Keywords ()` all empty; `/Creator (LaTeX with hyperref)`, `/Producer (pdfTeX-1.40.22)` |
+| XMP metadata stream | none |
+| Embedded files, attachments, annotations, JavaScript, forms | none |
+| Embedded figure metadata (`figures/evidence.pdf`) | Matplotlib version string only — no path, no username |
+| Every URI in the PDF | arXiv, GWOSC, MLR Press, matplotlib, font-licence sites. No repository, no personal page |
+| Reference list | no entry by an author of this paper; no "unpublished", "on request", "in preparation" or "personal communication" source |
+| Self-reference phrasing | no "our previous work"-style construction anywhere |
+| Acknowledgement | present in source, hidden by the style file in this build — 0 occurrences of the name in the PDF; verified to print under a `final`-option build |
+| `\thanks`, funding footnote | none |
+
+The single word `grant` appears six times: URW font-licence boilerplate inside
+embedded Type 1 programs. Not author content.
+
+### Two residual risks the audit cannot close
+
+**1. The companion preprint is a live deanonymization channel (author-controlled).**
+
+The appendix paragraph *"Rung-2 numbers carried from the companion work"* prints
+`48.419`, `47.869`, `0.550`, `86.25°` and `0.1209 → 0.0880`. Those exact figures
+appear in `arXiv-v1-polished-extended-preprint/07_experiments.tex:74–81, 385`,
+which renders with the author's name, department and institutional email.
+
+Nothing here breaks a rule: the call permits concurrent submissions and NeurIPS
+policy permits preprints. But the appendix hands a curious reviewer a search
+string, and it says a companion exists.
+
+Current state: that preprint is **not posted** — `ARXIV_CHECKLIST.md` still lists
+author metadata as an open author action and the S5 provenance audit as not
+started. So the channel is latent today and opens the moment it is posted. The
+R/PS review window runs 29 Aug → 29 Sep 2026.
+
+*Options, in order of cost:* hold the preprint until notification; or post it and
+accept a weakened blind; or drop the five carried numbers from the RPS appendix.
+The third is cheapest for anonymity and costs the least — those numbers are
+superseded rung-2 evidence, not load-bearing for any main-text claim — but it
+also removes an honest provenance note. **Author decision.**
+
+**2. The workshop's own template has not been diffed against ours.**
+
+The call links `assets/rps_2026_template.zip`, "based on the NeurIPS style". We
+build with `neurips_2026.sty` and `\usepackage[dblblindworkshop]`, which is
+almost certainly the same file, but the zip could not be unpacked and compared
+here. Consequence if they differ: a visible formatting deviation, not an
+anonymity failure.
+
+Worth knowing either way: in submission mode this style prints the generic
+footer *"Submitted to 40th Conference on Neural Information Processing Systems
+(NeurIPS 2026). Do not distribute."* and does **not** print the workshop name —
+`\workshoptitle` is consumed only in `final` mode. That is the style file's
+designed behaviour, not a misconfiguration.
+
+### Cosmetic, optional
+
+`CreationDate` and `ModDate` carry a `+08'00'` timezone offset. A very weak
+locality signal and nobody strips it, but `exiftool -all:all= ` or a re-build
+with `SOURCE_DATE_EPOCH` would remove it if you want the metadata sterile.
+
 ## Open author items, unchanged by this round
 
 - ~~`priorThesis` still needs a DOI or otherwise verifiable source.~~

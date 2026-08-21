@@ -74,6 +74,27 @@ policy), Tokenization (choose the token axis in which the inverse covariance is
 diagonal; Section 3), Transfer (a covariance validated in-distribution fails
 calibration on real strain; Section 4).
 
+## Confirmed against the published call (2026-08-21)
+
+Short Papers · **non-archival** · four pages of main content, **references and
+appendices excluded** · **single PDF**, no additional files · **double-blind**,
+NeurIPS main-track approach · NeurIPS paper checklist **not required** ·
+concurrent submissions allowed, author responsible for the other venue's
+dual-submission policy · anonymized code/data links permitted but optional.
+
+Deadline **29 Aug 2026 AoE**; notification **by 29 Sep 2026 AoE**.
+Submit at `https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/RPS`.
+
+Two items to settle before uploading:
+
+1. **Diff `neurips_2026.sty` against the workshop's `rps_2026_template.zip`.**
+   Ours is the NeurIPS style with `dblblindworkshop`, which is what the call
+   describes, but the template was not unpacked and compared here.
+2. **Decide the companion-preprint timing.** The appendix's carried rung-2
+   numbers also appear in the named companion preprint; posting it during the
+   review window weakens the blind. See the anonymous-submission audit in
+   `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
+
 ## Submission-day checklist
 
 1. Rebuild from clean (`make distclean && make` equivalent: `latexmk -C; make`).

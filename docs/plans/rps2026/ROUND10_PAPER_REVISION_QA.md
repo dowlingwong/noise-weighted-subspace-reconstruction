@@ -389,6 +389,31 @@ axion dark-matter search in which injected signals must be recovered from
 instrument noise — and why it was chosen: `\(\Sigma^{-1}\)` is diagonal in
 frequency there **by measurement, not assumption**.
 
+### The footer, settled with evidence — asked three times, still not a defect
+
+The workshop track name lives in `\@trackname`, and `neurips_2026.sty` uses it
+**only** inside the `\if@neuripsfinal` branch (`vendor/template/neurips_2026.sty:397`).
+The submission branch (line 401) hard-codes the generic notice. No option
+combination prints the workshop name in a double-blind submission build.
+
+Reproduce in thirty seconds — compile the workshop's own template, unmodified:
+
+```bash
+cd paper_rps2026/vendor/template && latexmk -pdf neurips_2026.tex
+pdftotext -f 1 -l 1 neurips_2026.pdf - | grep -i "Submitted to"
+```
+
+It prints the identical line our paper prints:
+
+```
+Submitted to 40th Conference on Neural Information Processing Systems (NeurIPS 2026). Do not distribute.
+```
+
+That template *is* the official R/PS one — our `neurips_2026.sty` is
+byte-identical to it (`5820fe76…`) — and it sets `\workshoptitle` exactly as we
+do. The name appears at camera-ready. Editing the style to force it earlier is
+the one thing the handbook names as a desk-reject trigger.
+
 ### A build crash worth remembering
 
 Adding the TIDMAD citation made **pdflatex segfault** (rc 139) on the second

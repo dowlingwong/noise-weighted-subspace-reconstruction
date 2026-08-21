@@ -15,7 +15,7 @@ Under the model above, OF, rank-$k$ covariance-weighted PCA (CW-PCA), and a tied
 \end{proposition}
 
 \paragraph{Proof sketch.}
-Whitening reduces the problem to ordinary rank-$k$ approximation, so every minimizer spans a leading eigenspace of the whitened sample covariance, and the tied $\Sigma^{-1}$-adjoint encoder follows from the same geometry. Projection onto a \emph{fixed} rank-one template yields the OF amplitude; rank-one CW-PCA instead \emph{learns} the leading whitened direction, and the two coincide under the separable-template and eigengap assumptions of Corollary~\ref{cor:rankone} (Appendix~\ref{app:proofs}).
+Whitening reduces the problem to ordinary rank-$k$ approximation, so every minimizer spans a leading eigenspace of the whitened sample covariance; the tied $\Sigma^{-1}$-adjoint encoder follows. Projection onto a \emph{fixed} rank-one template yields the OF amplitude; rank-one CW-PCA instead \emph{learns} the leading whitened direction, and the two coincide under the separable-template and eigengap assumptions of Corollary~\ref{cor:rankone} (Appendix~\ref{app:proofs}).
 
 \paragraph{Metric reversal.}
 Raw MSE replaces $\Sigma^{-1}$ by $I$ and is likelihood-correct only when $\Sigma=\sigma^2I$; under colored noise MSE follows raw variance while Eq.~\eqref{eq:mahalanobis} emphasizes high-information directions. Consequently, two equal-rank models can satisfy $\mathrm{MSE}(A)<\mathrm{MSE}(B)$ but $\chi^2(A)>\chi^2(B)$: each is optimal in a different geometry.

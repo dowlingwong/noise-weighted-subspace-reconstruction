@@ -64,6 +64,8 @@
 | The metric reversal is the paper's headline empirical result | **reordered** | `E8_semantics/separable_alpha_0/summary.json` | Yes (abstract, §4) | A model leading under its own objective is close to tautological. The abstract now names that as the weaker claim and leads with the **truth-referenced** result — planted channel-subspace recovery and held-out parameter decoding — which no objective-relative argument can explain. Keep that ordering |
 | TIDMAD is used without citation | **fixed 2026-08-21 — was a real omission** | `fry2024tidmad` (arXiv:2406.04378) | Yes (§3) | The dataset was named six times in the paper and never cited, though the bib entry existed. §3 now cites it at first mention with the physical task and the reason for choosing it. Verified typeset as "[Fry et al., 2024]" with a reference-list entry |
 
+| The primary reversal experiment uses exactly separable signals | **retracted — was wrong, and was ours** | `PRIMARY.nonseparability_alpha = 0.1`; `E8_semantics/separable_alpha_0` | Corrected in §4 and the figure caption | The §4 setup paragraph, added 2026-08-21, described the primary signal as "lying in a separable rank-(2,3) subspace". The primary reversal experiment (E1/E9, Figure 1A) runs at **α = 0.1**; only the truth-referenced recovery analysis (E8, Figure 1B) uses the exactly separable **α = 0**. §4 now states both conditions and says they must not be conflated; the figure caption and both panel titles carry their α. **Never describe the primary condition as separable** |
+
 ## Round 10 evidence integration (2026-08-19)
 
 | Claim | Status | Source | Main text? | Risk and control |

@@ -37,9 +37,9 @@ On a public gravitational-wave strain release \citep{gwoscgw150914,macleod2021gw
 
 The estimated-covariance condition repeats the frozen $C=8>k_c=2$ configuration with one change: the separable covariance is estimated from $N_{\mathrm{cal}}=2048$ independent noise-only calibration events instead of being supplied as an oracle. Estimation proceeds by sample estimation of each factor, the regularization already used for the oracle path, and a symmetric product-scale calibration $\hat v=\sqrt{v_cv_t}$ with each factor divided by $\sqrt{\hat v}$; that correction was frozen before any full result existed. The reversal survives in all ten seeds, and the degradation relative to NFPA's own oracle held-out values is small but resolved --- consistent with the fit being invariant to a global whitening scale (the estimated product scale is within $0.1\%$ of oracle) while the covariance \emph{shape} is estimated accurately. This is a single condition: it does not bound behaviour across calibration sizes, covariance families or deliberate misspecification, and no such sweep is claimed.
 
-A diagnostic correction was also applied. The helper computing principal angles unstacked a whitened basis in the wrong order, mixing channel and temporal indices; it affected only the isotropic baseline's angle diagnostic and neither primary metric. Recomputing leaves NFPA's mean angle unchanged and moves the isotropic baseline by under one degree in both cohorts, so no conclusion depended on it. The corrected values are the ones reported; the original implementation is retained unchanged so that previously published tables keep their meaning. The correction is post-hoc, contributes no confirmatory evidence, and is not a second attention-class seed.
+We corrected a vectorization-order error affecting only the isotropic baseline's principal-angle diagnostic. The correction shifts that angle by less than one degree, leaves NFPA's unchanged, and affects neither primary metric nor any conclusion; the corrected values are the ones reported. It is post-hoc and is not a second attention-class seed.
 
-\paragraph{Rung-2 numbers carried from an earlier study.}
+\paragraph{Separate rung-2 benchmark.}
 In the 30-seed rank-two benchmark ($512$ traces of dimension $256$ per seed), PCA and CW-PCA had held-out
 weighted residuals $48.419$ and $47.869$ (paired difference $0.550$, $[0.530,0.571]$) while raw MSE
 preferred the opposite reconstruction, their whitened subspaces $86.25^\circ$ apart. The ten-seed
@@ -64,5 +64,3 @@ angles are $82.1^\circ$, $83.7^\circ$, $86.0^\circ$, $86.6^\circ$, $88.2^\circ$ 
 path from the multi-seed cohorts, so the corrected angles of Table~\ref{tab:round10} are not
 replacements for them. Held-out raw MSE for IsoAE and IsoPCA is $4.58\times10^{-9}$ and
 $4.33\times10^{-9}$.
-
-\input{tables/results_summary}

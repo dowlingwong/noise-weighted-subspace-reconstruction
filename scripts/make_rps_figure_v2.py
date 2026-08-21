@@ -103,7 +103,7 @@ def main() -> int:
     rep = replication_panel()
     sem = semantic_panel()
 
-    fig, (axA, axB) = plt.subplots(1, 2, figsize=(9.6, 1.42), gridspec_kw={"width_ratios": [1.05, 1]})
+    fig, (axA, axB) = plt.subplots(1, 2, figsize=(9.6, 1.5), gridspec_kw={"width_ratios": [1.05, 1]})
 
     # ---- Panel A: cohorts side by side, both metrics.
     ypos = np.array([1.0, 0.0])          # chi2 on top, mse below
@@ -127,7 +127,7 @@ def main() -> int:
     axA.set_yticks(ypos)
     axA.set_yticklabels(["$\\bar\\chi^2$", "raw MSE"], fontsize=8)
     axA.set_xlabel("relative paired difference (%)", fontsize=8)
-    axA.set_title("A  rung 3: reversal, and its replication\n"
+    axA.set_title("A  rung 3 reversal, primary condition $\\alpha=0.1$\n"
                   "solid = frozen 10 seeds, hatched = disjoint 20",
                   fontsize=8.5, loc="left")
     axA.tick_params(labelsize=7.5)
@@ -158,7 +158,7 @@ def main() -> int:
     axB.set_xticklabels(sem["labels"], fontsize=7.5)
     axB.set_ylabel("NFPA / isotropic", fontsize=8)
     axB.set_ylim(0, 1.25)
-    axB.set_title("B  what the factors recover (separable condition)\n"
+    axB.set_title("B  recovery, exactly separable condition $\\alpha=0$\n"
                   "ratio to the isotropic baseline; 1.0 = parity, lower is better",
                   fontsize=8.5, loc="left")
     axB.tick_params(labelsize=7.5)

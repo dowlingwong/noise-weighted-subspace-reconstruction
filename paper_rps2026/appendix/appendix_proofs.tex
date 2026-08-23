@@ -21,6 +21,21 @@ Adding $I$ shifts every eigenvalue by one and changes no eigenvector, so the eig
 
 \subsection{Kronecker-restricted bridge}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.78\linewidth]{figures/classes}
+  \caption{What the restriction is. Both matrices are a rank-$k$ basis for the
+  same vectorised two-axis measurement, so they occupy one slot; on the right the
+  entries are not free, the basis being a block grid whose every block is a single
+  $U_1$ motif rescaled by one entry of $U_2$. That is why the admissible family is
+  the embedded product $\Gr(k_1,n_1)\times\Gr(k_2,n_2)\hookrightarrow
+  \Gr(k_1k_2,n_1n_2)$ rather than the full Grassmannian, and why it costs
+  $n_1k_1+n_2k_2$ parameters instead of $n_1n_2k$. Cell counts show axis
+  structure, not the experiment's sizes ($C=8$, $T=256$, $k_c=2$, $k_t=3$).}
+  \label{fig:classes}
+\end{figure}
+
+
 For every $Z\in\R^{C\times T}$, the vectorization identity gives
 \[
  \mathrm{vec}(U_cU_c^\top ZU_tU_t^\top)

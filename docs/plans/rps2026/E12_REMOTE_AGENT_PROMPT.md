@@ -30,20 +30,38 @@ Record it and stop; do not retune.
 ## Pinned identifiers
 
 ```text
-HANDOFF_BRANCH   = <FILL IN>
-CONTENT_COMMIT   = <FILL IN>
-FREEZE_COMMIT    = <FILL IN>
+HANDOFF_BRANCH   = main
+CONTENT_COMMIT   = 75cbc40324293b8e7dfea65c01b0414027908997
+FREEZE_COMMIT    = 0c5e3095aa3510367ad96efc4bcba60372d6e9a7
 OUTPUT_BRANCH    = round12/e12-calibration-sweep
 ```
+
+`CONTENT_COMMIT` is the tip of `main` at dispatch. `FREEZE_COMMIT` is the commit
+that froze the E12 implementation; it is an ancestor of `CONTENT_COMMIT`, which
+the runner verifies before it computes anything.
 
 Export them before starting:
 
 ```bash
-export HANDOFF_BRANCH=<FILL IN>
-export CONTENT_COMMIT=<FILL IN>
-export FREEZE_COMMIT=<FILL IN>
+export HANDOFF_BRANCH=main
+export CONTENT_COMMIT=75cbc40324293b8e7dfea65c01b0414027908997
+export FREEZE_COMMIT=0c5e3095aa3510367ad96efc4bcba60372d6e9a7
 export OUTPUT_BRANCH=round12/e12-calibration-sweep
 ```
+
+## Getting the code
+
+```bash
+cd ~/noise-weighted-subspace-reconstruction   # or clone if absent
+git fetch origin --prune
+git checkout "$CONTENT_COMMIT"                # detached; this is intended
+test "$(git rev-parse HEAD)" = "$CONTENT_COMMIT" && echo CHECKOUT_VERIFIED
+git merge-base --is-ancestor "$FREEZE_COMMIT" HEAD && echo FREEZE_IS_ANCESTOR
+git status --porcelain                        # must print nothing
+```
+
+A detached checkout is correct: the sweep must run against a fixed tree, and
+`main` may move while you work. Do **not** `git pull` after checking out.
 
 ## Before anything else: run outside the worktree
 

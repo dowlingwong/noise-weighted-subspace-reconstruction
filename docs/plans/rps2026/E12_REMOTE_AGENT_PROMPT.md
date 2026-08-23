@@ -78,8 +78,9 @@ export PYTHONPATH=src:experiments/synthetic
 
 ## Orders
 
-Follow `docs/plans/rps2026/E12_CALIBRATION_SWEEP_RUNBOOK.md` exactly, all nine
-steps, in order. It is your entire task. Also honour
+Follow `docs/plans/rps2026/E12_CALIBRATION_SWEEP_RUNBOOK.md` exactly, **all ten
+steps, Step 0 through Step 9**, in order. Step 0 sets the out-of-tree runtime
+root; skipping it deadlocks the run against the clean-tree gate. It is your entire task. Also honour
 `AGENT_PROMPT_REMOTE_EXPERIMENTS.md` (machine rules) and the shared-server
 safety patterns of the Round 9 and Round 10 runbooks — reference only, do not
 execute their experiments.

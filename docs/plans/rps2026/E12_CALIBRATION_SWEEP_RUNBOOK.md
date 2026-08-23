@@ -2,8 +2,10 @@
 
 **Experiment:** `E12_calibration_size_sweep`
 **Evidence class:** `post_hoc_exploratory_not_confirmatory`
-**Estimated cost:** ~5 wall-hours on 56 cores (5 conditions × 10 seeds × 2 methods,
-~358 s per row, ~2 CPU-hours per condition with the observed ~2× parallel speed-up)
+**Estimated cost:** ~10 CPU-hours total (5 conditions × 10 seeds × 2 methods,
+~358 s per row on the reference machine). `bms2` reports 40 cores, so expect
+roughly 5–8 wall-hours depending on contention. The estimate is a guide, not a
+gate: a slower run is not a failure.
 
 ## What this is, and what it is not
 

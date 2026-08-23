@@ -57,7 +57,7 @@ into the repository until the sweep has finished.
 
 ```bash
 set -euo pipefail
-export RUNTIME=${RUNTIME:-$HOME/e12_runtime_$(date +%Y%m%d_%H%M%S)}
+export RUNTIME=${RUNTIME:-/ceph/dwong/e12_runtime_$(date +%Y%m%d_%H%M%S)}
 mkdir -p "$RUNTIME"
 export R10_RUNTIME_ROOT="$RUNTIME"
 export PYTHONPATH=src:experiments/synthetic
@@ -66,12 +66,15 @@ export PYTHONPATH=src:experiments/synthetic
 ## Step 1 — checkout and verify
 
 ```bash
-cd ~/noise-weighted-subspace-reconstruction
+cd /ceph/dwong/noise-weighted-subspace-reconstruction
 git fetch origin
 git checkout "$CONTENT_COMMIT"
 test "$(git rev-parse HEAD)" = "$CONTENT_COMMIT" && echo CHECKOUT_VERIFIED
 git merge-base --is-ancestor "$FREEZE_COMMIT" HEAD && echo FREEZE_IS_ANCESTOR
-git status --porcelain | tee "$RUNTIME/tree_state.txt"   # must be empty
+git status --porcelain | tee "$RUNTIME/tree_state.txt"   # must be empty,
+# INCLUDING untracked files: the runner's gate is bool(git status --porcelain),
+# so a ?? line fails the non-smoke run closed. Move offenders out of the repo;
+# never `git clean` and never delete.
 ```
 
 ## Step 2 — machine preflight

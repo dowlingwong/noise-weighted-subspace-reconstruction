@@ -51,30 +51,67 @@ export OUTPUT_BRANCH=round12/e12-calibration-sweep
 
 ## Getting the code
 
+The repository is **not** under `$HOME` on this machine. Locate it rather than
+assuming; on `bms2` it is `/ceph/dwong/noise-weighted-subspace-reconstruction`.
+
 ```bash
-cd ~/noise-weighted-subspace-reconstruction   # or clone if absent
+cd /ceph/dwong/noise-weighted-subspace-reconstruction
 git fetch origin --prune
 git checkout "$CONTENT_COMMIT"                # detached; this is intended
 test "$(git rev-parse HEAD)" = "$CONTENT_COMMIT" && echo CHECKOUT_VERIFIED
+test "$(git rev-parse HEAD^{tree})" = a4e44220aeb2bdaafed361194ace3e1c11a528e6 \
+  && echo TREE_VERIFIED
 git merge-base --is-ancestor "$FREEZE_COMMIT" HEAD && echo FREEZE_IS_ANCESTOR
-git status --porcelain                        # must print nothing
 ```
 
 A detached checkout is correct: the sweep must run against a fixed tree, and
-`main` may move while you work. Do **not** `git pull` after checking out.
+`main` may move while you work. Do **not** `git pull`, at any point — this
+machine's `main` has diverged from `origin` and a merge is neither needed nor
+wanted.
+
+### The worktree must be clean *including untracked files*
+
+The runner's gate is literally `bool(git status --porcelain)`, so **an untracked
+file is dirt** and will fail the non-smoke run closed. Smoke bypasses this gate,
+so a passing smoke does not prove the real run will start.
+
+```bash
+git status --porcelain          # must print NOTHING, not even a ?? line
+```
+
+If anything is listed, do not delete it and do not `git clean`. Move it out of
+the repository and record where it went:
+
+```bash
+mkdir -p "$HOME/e12_moved_aside"
+git status --porcelain          # then, for each listed path:
+# mv -- "<path>" "$HOME/e12_moved_aside/"
+git status --porcelain          # must now print nothing
+```
+
+A known example on this machine is a stray file literally named
+`tatus --porcelain` in the repository root, debris from a mistyped command. It
+is not referenced by any code. Move it aside; report that you did.
 
 ## Before anything else: run outside the worktree
 
 The non-smoke runner requires a clean source tree, so nothing may be written
 into the repository until the sweep has finished:
 
+Put the runtime root on `/ceph`, **not** `$HOME`: home is a 50 GB NFS volume
+with about 13 GB free, while `/ceph` has hundreds of terabytes and is local
+enough for the I/O this run does.
+
 ```bash
 set -euo pipefail
-export RUNTIME=${RUNTIME:-$HOME/e12_runtime_$(date +%Y%m%d_%H%M%S)}
+export RUNTIME=${RUNTIME:-/ceph/dwong/e12_runtime_$(date +%Y%m%d_%H%M%S)}
 mkdir -p "$RUNTIME"
 export R10_RUNTIME_ROOT="$RUNTIME"
 export PYTHONPATH=src:experiments/synthetic
 ```
+
+Use the repository virtualenv, `.venv/bin/python` (Python 3.12.2, numpy 2.4.6,
+scipy 1.17.1), not the base conda interpreter.
 
 ## Orders
 

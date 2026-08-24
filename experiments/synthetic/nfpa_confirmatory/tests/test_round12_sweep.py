@@ -270,3 +270,82 @@ def test_a_non_smoke_sweep_requires_an_explicit_freeze_commit():
 
     with pytest.raises(IntegrityError, match="required for a non-smoke run"):
         runner.main(["--out", "results/rps2026/E12_calibration_size_sweep"])
+
+
+# ------------------------------------------------- end-to-end: builder into gate
+#
+# The gap that cost six hours of compute. Every test above builds rows by hand
+# and *substitutes* the sweep's label -- the exact substitution the runner did
+# not make. So the suite encoded the right contract, the pipeline violated it,
+# and nothing ran the two together. These tests drive the real row builder into
+# the real gate at smoke dimensions, which takes seconds.
+
+
+def _smoke_cfg(n_cal: int):
+    from dataclasses import replace
+
+    return replace(rc.smoke_config(), N_calibration=n_cal)
+
+
+def test_the_runner_itself_writes_rows_the_gate_accepts(tmp_path, monkeypatch):
+    """Drive the actual runner, then the actual gate, over rows it wrote.
+
+    This must NOT pass the label itself. Every earlier test did, which is the
+    flaw that let the suite stay green against a runner that could not complete:
+    the substitution under test was performed by the test. Here the runner is
+    invoked as the runbook invokes it, and only then are its rows validated.
+    """
+    from experiments.synthetic.nfpa_confirmatory import run_calibration_sweep as runner
+    from experiments.synthetic.nfpa_confirmatory.run_calibrated_estimated_covariance import (
+        COLUMNS,
+    )
+
+    n_cal = 64
+    monkeypatch.setenv("R10_RUNTIME_ROOT", str(tmp_path))
+    out = tmp_path / "Round10_smoke" / "E12"
+
+    rc_status = runner.main(["--smoke", "--sizes", str(n_cal), "--out", str(out)])
+    assert rc_status == 0
+
+    rows = list(rc.read_rows_csv(out / sw.condition_label(n_cal) / "raw.csv"))
+    assert rows, "the runner wrote no rows"
+
+    # The gate derives its expected config hash from the condition; point it at
+    # the smoke configuration the runner actually used.
+    from dataclasses import replace
+
+    smoke_cfg = replace(rc.smoke_config(), N_calibration=n_cal)
+    monkeypatch.setattr(sw, "condition_config", lambda _n: smoke_cfg)
+
+    record = sw.validate_condition_rows(
+        rows, n_cal=n_cal, columns=COLUMNS, seeds=list(rc.SMOKE_SEEDS)
+    )
+    assert record["validated"] is True
+
+
+def test_forgetting_the_label_is_caught_immediately():
+    """Reproduces the original defect: inheriting E10b's label must be rejected."""
+    from experiments.synthetic.nfpa_confirmatory.run_calibrated_estimated_covariance import (
+        ANALYSIS_LABEL as E10B_LABEL,
+        run_seed,
+    )
+
+    rows, _ = run_seed(rc.SMOKE_SEEDS[0], _smoke_cfg(64), None)  # no label passed
+    assert rows[0]["analysis_label"] == E10B_LABEL
+    assert rows[0]["analysis_label"] != sw.ANALYSIS_LABEL, (
+        "the default must remain E10b's, so that omitting the argument is a "
+        "visible mistake rather than a silent one"
+    )
+
+
+def test_the_sweep_runner_passes_its_own_label():
+    """Guards the call site itself, not just the callee's capability."""
+    import inspect
+
+    from experiments.synthetic.nfpa_confirmatory import run_calibration_sweep as runner
+
+    src = inspect.getsource(runner.run_condition)
+    assert "analysis_label=ANALYSIS_LABEL" in src, (
+        "run_condition must pass the sweep's label into run_seed; without it "
+        "every condition gate rejects rows the runner just wrote"
+    )

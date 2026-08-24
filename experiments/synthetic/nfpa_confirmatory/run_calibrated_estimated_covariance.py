@@ -93,7 +93,17 @@ def load_archived() -> dict[tuple[int, str], dict[str, float]]:
     return table
 
 
-def run_seed(seed: int, cfg, archived: dict | None) -> tuple[list[dict], bool]:
+def run_seed(
+    seed: int, cfg, archived: dict | None, *, analysis_label: str = ANALYSIS_LABEL
+) -> tuple[list[dict], bool]:
+    """Fit one seed and return its rows.
+
+    ``analysis_label`` is a parameter rather than this module's constant because
+    other experiments reuse this function and their rows must carry *their* label.
+    E12 imported it, inherited E10b's label, and every condition gate then
+    rejected rows the same runner had just written -- after six hours of compute.
+    The default preserves E10b's behaviour exactly.
+    """
     t0 = time.time()
     ds = make_dataset(seed, "colored", cfg)
     report = run_numerical_checks(cfg, ds.covariances["Sigma"])
@@ -127,7 +137,7 @@ def run_seed(seed: int, cfg, archived: dict | None) -> tuple[list[dict], bool]:
         "config_hash": cfg_hash,
         "seed": seed,
         "regime": "colored",
-        "analysis_label": ANALYSIS_LABEL,
+        "analysis_label": analysis_label,
         "n_calibration_events": cfg.N_calibration,
         "v_c": est.v_c,
         "v_t": est.v_t,

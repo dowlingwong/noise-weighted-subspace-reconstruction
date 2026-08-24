@@ -108,7 +108,7 @@ def run_condition(
         if seed in existing:
             print(f"[E12 {label}] seed {seed}: reusing validated shard", flush=True)
             continue
-        rows, control_ok = run_seed(seed, cfg, archived)
+        rows, control_ok = run_seed(seed, cfg, archived, analysis_label=ANALYSIS_LABEL)
         if not smoke and not control_ok:
             raise rc.IntegrityError(
                 f"{EXPERIMENT} {label}: Iso-MPCA control failed archived reproduction "

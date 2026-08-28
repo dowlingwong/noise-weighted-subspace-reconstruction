@@ -9,11 +9,11 @@ Fixing the signal to a known template $s_0$, the optimal filter (OF) gives the l
 Replacing the fixed template with a learned rank-$k$ subspace gives covariance-weighted PCA (CW-PCA), which is also the tied noise-aware linear autoencoder: both minimize the likelihood residual over the full Grassmannian $\Gr(k,n_1n_2)$ of a two-axis measurement (Proposition~\ref{prop:bridge}), with reconstruction $\hat s=PP^\top\Sigma^{-1}x$ for a $\Sigma^{-1}$-orthonormal basis $P$.
 
 \paragraph{Rung 3: Kronecker-separable two-axis projection (NFPA).}
-For axis-aligned noise, $\Sigma=\Sigma_2\otimes\Sigma_1$, NFPA restricts rung 2's projection to separable factors of a two-axis measurement $Z_i\in\R^{n_1\times n_2}$ --- sensor channel $\times$ time in the controlled synthetic study, frequency band $\times$ time frame on the public benchmark. On the per-axis whitened observation $\tilde Z_i=\Sigma_1^{-1/2}Z_i\Sigma_2^{-1/2}$ it learns orthonormal bases $U_1\in\R^{n_1\times k_1}$, $U_2\in\R^{n_2\times k_2}$, with code $C_i=U_1^\top\tilde Z_iU_2$ and reconstruction $\hat{\tilde Z}_i=U_1U_1^\top\tilde Z_iU_2U_2^\top$ mapped back through $\Sigma^{1/2}$. Figure~\ref{fig:classes} draws that restriction.
+For axis-aligned noise, $\Sigma=\Sigma_2\otimes\Sigma_1$, NFPA restricts rung 2's projection to separable factors of a two-axis measurement $Z_i\in\R^{n_1\times n_2}$ --- sensor channel $\times$ time in the controlled synthetic study, frequency band $\times$ time frame on the public benchmark. On the per-axis whitened observation $\tilde Z_i=\Sigma_1^{-1/2}Z_i\Sigma_2^{-1/2}$ it learns orthonormal bases $U_1\in\R^{n_1\times k_1}$, $U_2\in\R^{n_2\times k_2}$, with code $C_i=U_1^\top\tilde Z_iU_2$ and reconstruction $\hat{\tilde Z}_i=U_1U_1^\top\tilde Z_iU_2U_2^\top$ mapped back through $\Sigma^{1/2}$. Figure~\ref{fig:classes}, in the appendix, draws that restriction.
 
 \begin{proposition}[Kronecker-restricted bridge]
 \label{prop:restricted}
-NFPA minimizes the CW-PCA/tied-autoencoder objective restricted to Kronecker-separable two-axis subspaces. Its optimum equals the unrestricted CW-PCA optimum if and only if at least one rank-$k_1k_2$ CW-PCA minimizer has such a separable subspace.
+NFPA minimizes the CW-PCA/tied-autoencoder objective restricted to Kronecker-separable two-axis subspaces. Its optimum equals the unrestricted CW-PCA optimum if and only if at least one rank-$k_1k_2$ CW-PCA minimizer has such a $(k_1,k_2)$-separable subspace.
 \end{proposition}
 
 \paragraph{Proof sketch.}

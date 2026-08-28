@@ -19,8 +19,8 @@ measured observations can supply their own reconstruction supervision: the
 instrument-characterized noise covariance then determines which residuals are
 informative. For Gaussian noise, inverse covariance is the
 likelihood-consistent metric. Rather than proposing a new estimator, we
-organize classical methods as a pair that separates measurement geometry from
-admissible model capacity, and follow one metric across four classes: optimal
+organize classical methods as a pair (Σ⁻¹, F) that separates measurement
+geometry from admissible model capacity, and follow one metric across four classes: optimal
 filtering, unrestricted linear projection, its Kronecker-separable
 restriction, and factored attention. The linear classes admit an exact
 geometric characterization. At the Kronecker-separable class, models sharing
@@ -41,8 +41,9 @@ transcribed from `sections/00_abstract.tex` with LaTeX stripped and the pair
 notation spelled out. Re-verify it against the built `paper.pdf` before pasting;
 the field must match the PDF.
 
-Evidence status: all planned experiments are complete; nothing is pending from
-the server. E10b (estimated separable covariance, `N_cal = 2048`) is **one
+Evidence status: all experiments reported in the submission are complete. The
+post-hoc E12 calibration-size sweep is not part of this submission and has not
+been executed. E10b (estimated separable covariance, `N_cal = 2048`) is **one
 frozen sensitivity condition** — it earns the single abstract clause about
 estimated covariance and must never be described as a robustness sweep. E11
 (corrected principal angles) is a **post-hoc diagnostic correction** whose
@@ -93,12 +94,17 @@ to the workshop template's copy (`5820fe76…`), no margin or font-size changes,
 vertical rules, one-paragraph abstract. Figure Type 3 fonts fixed. Details in
 `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
 
-One item left to settle before uploading:
+~~One item left to settle before uploading:~~ **Settled 2026-08-26.**
 
-- **Decide the companion-preprint timing.** The appendix's carried rung-2
-  numbers also appear in the named companion preprint; posting it during the
-  review window weakens the blind. See the anonymous-submission audit in
-  `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`.
+- **Companion-preprint timing — decided (author, 2026-08-26): hold the arXiv
+  posting until after the 29 Sep notification.** Additionally, the appendix's
+  carried rung-2 numbers were removed from B.4 (the paragraph is de-numbered,
+  not deleted, so §5's non-replication limitation keeps its referent). Residual
+  overlap with the preprint's `07_experiments.tex` that remains because it is
+  load-bearing here: χ²/dof = 1.0031 (§3) and 9.42 (B.3) — so the hold, not the
+  de-numbering, is what protects the blind. See the anonymous-submission audit
+  in `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md` and the fix log in
+  `docs/plans/rps2026/REFEREE_REPORT_2026-08-26.md`.
 
 If the OpenReview form asks for a NeurIPS-style **contribution type**, this paper
 is *General*, not *Negative Results* — the rung-4 null is one component of a

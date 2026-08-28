@@ -40,11 +40,11 @@ The estimated-covariance condition repeats the frozen $C=8>k_c=2$ configuration 
 We corrected a vectorization-order error affecting only the isotropic baseline's principal-angle diagnostic. The correction shifts that angle by less than one degree, leaves NFPA's unchanged, and affects neither primary metric nor any conclusion; the corrected values are the ones reported. It is post-hoc and is not a second attention-class seed.
 
 \paragraph{Separate rung-2 benchmark.}
-In the 30-seed rank-two benchmark ($512$ traces of dimension $256$ per seed), PCA and CW-PCA had held-out
-weighted residuals $48.419$ and $47.869$ (paired difference $0.550$, $[0.530,0.571]$) while raw MSE
-preferred the opposite reconstruction, their whitened subspaces $86.25^\circ$ apart. The ten-seed
-white-noise control gave a maximum angle of $1.48\times10^{-6}$ degrees. On the TIDMAD file the amplitude
-RMSE fell from $0.1209$ to $0.0880$.
+In a separate 30-seed rank-two benchmark ($512$ traces of dimension $256$ per seed), PCA and CW-PCA
+disagreed in ranking: the paired held-out weighted-residual difference favoured CW-PCA with a 95\%
+interval excluding zero, raw MSE preferred the opposite reconstruction, and the two whitened subspaces
+were nearly orthogonal. A ten-seed white-noise control returned a numerically zero angle. On a single
+TIDMAD file the covariance-weighted reconstruction reduced the amplitude RMSE by roughly a quarter.
 
 \subsection{Sanity check: the earlier single-split study}
 \label{app:single-split}

@@ -1,0 +1,29 @@
+=== FULL ABSTRACT (paste into the OpenReview "Abstract" field) ===
+
+Under additive Gaussian noise and constrained low-rank reconstruction, measured observations can supply their own reconstruction supervision: the instrument-characterized noise covariance then determines which residuals are informative. For Gaussian noise, inverse covariance is the likelihood-consistent metric. Rather than proposing a new estimator, we organize classical methods as a pair $(\Sigma^{-1},\mathcal{F})$ that separates measurement geometry from admissible model capacity, and follow one metric across four classes: optimal filtering, unrestricted linear projection, its Kronecker-separable restriction, and factored attention. The linear classes admit an exact geometric characterization. At the Kronecker-separable class, models sharing an architecture but differing only in the training metric reverse their ranking under raw MSE and the likelihood residual, in a frozen ten-seed experiment and a disjoint twenty-seed replication cohort, and under a covariance estimated from 2,048 noise-only events. Each model leading under its own objective is the weaker claim; the substantive result is truth-referenced: the covariance-weighted factors recover the planted channel subspace almost exactly and show better exploratory recovery of planted signal parameters, while temporal recovery stays weak. At the attention class the reversal does not appear — a two-seed pilot favours the covariance-trained arm under both metrics, and the benchmark score cannot separate the arms — so this bounds the claim rather than extending it.
+
+
+=== MINIMAL EDIT (if you would rather not repaste the whole field) ===
+
+Only the final sentence changed. Delete this:
+
+  A two-seed pilot at the attention class shows no reversal despite
+  non-degenerate weighting; we report that as an open observation, not an
+  architecture-level conclusion.
+
+Replace with this:
+
+  At the attention class the reversal does not appear — a two-seed pilot
+  favours the covariance-trained arm under both metrics, and the benchmark
+  score cannot separate the arms — so this bounds the claim rather than
+  extending it.
+
+
+=== NOTES ===
+
+- The $(\Sigma^{-1},\mathcal{F})$ LaTeX is kept exactly as it already appears in
+  the submitted field; OpenReview renders it. Do not "fix" it to plain text.
+- The TLDR field does not need to change.
+- Everything else on the form (title, keywords, authors, reciprocal review) is
+  unchanged.
+- Upload paper.pdf from this folder as the PDF.

@@ -31,12 +31,13 @@ covariance estimated from 2,048 noise-only events. Each model leading under
 its own objective is the weaker claim; the substantive result is
 truth-referenced: the covariance-weighted factors recover the planted channel
 subspace almost exactly and show better exploratory recovery of planted signal
-parameters, while temporal recovery stays weak. A two-seed pilot at the
-attention class shows no reversal despite non-degenerate weighting; we report
-that as an open observation, not an architecture-level conclusion.
+parameters, while temporal recovery stays weak. At the attention class the
+reversal does not appear — a two-seed pilot favours the covariance-trained arm
+under both metrics, and the benchmark score cannot separate the arms — so this
+bounds the claim rather than extending it.
 ```
 
-**Updated 2026-08-21 (external review response).** This is the current abstract,
+**Updated 2026-08-29 (rung-4 reframing).** This is the current abstract,
 transcribed from `sections/00_abstract.tex` with LaTeX stripped and the pair
 notation spelled out. Re-verify it against the built `paper.pdf` before pasting;
 the field must match the PDF.

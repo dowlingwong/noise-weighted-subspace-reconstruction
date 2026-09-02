@@ -1,6 +1,6 @@
 # Documentation Map
 
-Last reorganized: 2026-07-26. Every current document in this directory is
+Last reorganized: 2026-07-26; stale-document sweep 2026-09-02. Every current document in this directory is
 listed below. If a document is not on this list, it is either archived or does
 not exist.
 
@@ -42,11 +42,10 @@ not exist.
 
 | File | Purpose |
 | --- | --- |
-| [`plans/REVISION_PLAN_2026-07-26.md`](plans/REVISION_PLAN_2026-07-26.md) | The evidence-constrained revision work packages (EXP-*). |
-| [`plans/CORRECTION_PLAN_EXPERIMENTS_2026-07-26.md`](plans/CORRECTION_PLAN_EXPERIMENTS_2026-07-26.md) | Corrections from the audit (WP-E1…E7), in execution order. |
-| [`plans/PAPER1_SECOND_REALDATA_ANCHOR.md`](plans/PAPER1_SECOND_REALDATA_ANCHOR.md) | Whether Paper 1 needs a second real-data anchor; candidate analysis; GWOSC decision. |
 | [`plans/TIDMAD_IMPLEMENTATION_ROADMAP.md`](plans/TIDMAD_IMPLEMENTATION_ROADMAP.md) | The TIDMAD stage: phases, gates, code layout, verification. |
-| [`plans/DOC_CONSOLIDATION_PLAN.md`](plans/DOC_CONSOLIDATION_PLAN.md) | The documentation audit this layout implements. |
+| [`plans/rps2026/`](plans/rps2026/) | R/PS 2026 round runbooks, agent prompts, reports and the run log (`EXPERIMENT_RUN_LOG.md`). Execution record for the submitted workshop paper; provenance, not guidance. |
+| [`archive/2026-07-28_executed_plans/`](archive/2026-07-28_executed_plans/) | The July revision, correction, second-anchor and doc-consolidation plans — executed 2026-07-28, archived 2026-09-02. |
+| [`archive/2026-09-02_paper2_dissolution/`](archive/2026-09-02_paper2_dissolution/) | The Paper 2 / Paper 3 outline; Paper 2 was dissolved into Papers 1 and 3 on 2026-09-02 (see the manuscript repository's `plan/THREE_PAPER_STORYLINE_2026-09-02.md`). |
 
 ## `runbooks/` — operational procedures
 

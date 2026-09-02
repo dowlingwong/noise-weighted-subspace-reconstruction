@@ -38,7 +38,7 @@ vendored under `vendor/`.
 | Path | What |
 |---|---|
 | `sections/`, `appendix/`, `tables/`, `figures/` | manuscript source |
-| `plan/ROUND8_DESK_PLAN.md`, `plan/ROUND8_DESK_REPORT.md` | current round's plan and report |
+| `plan/PLAN_00_MASTER_RESTRUCTURE_2026-08-08.md` | governing skeleton; round plans are in `plan/archive/` (submitted 2026-08-29) |
 | `plan/archive/` | superseded plans |
 | `notes/round8_contingency.md` | drop-in text for the E7 seed replication, **both outcomes pre-compiled and fitting** |
 | `notes/anonymized_code_release.md` | code-link recipe (v2) and gate status |

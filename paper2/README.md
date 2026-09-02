@@ -1,5 +1,13 @@
 # Paper 2 Reconstruction Stack
 
+> **Status (2026-09-02):** Paper 2 was dissolved. Its theory went to Paper 1
+> (separable/NFPA class) and Paper 3/ORACLE (coverage, pullback metric,
+> layerwise monitors); see the manuscript repository's
+> `plan/THREE_PAPER_STORYLINE_2026-09-02.md`. This package remains the NFPA
+> code and results used by the R/PS 2026 paper. The former
+> `PAPER2_NOISE_INTEGRATION_AND_PAPER3_OUTLINE.md` is archived under
+> `docs/archive/2026-09-02_paper2_dissolution/`.
+
 This folder defines the implementation scaffold for the nonlinear follow-up
 paper:
 

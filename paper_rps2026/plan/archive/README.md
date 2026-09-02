@@ -11,10 +11,13 @@ its current form; **none is current guidance**.
 | `MANUSCRIPT_CORRECTION_2026-08-08.md` | Items C1–C8 executed, except the page budget (C7), which carries forward to `ROUND5_REVISION_PLAN.md` §2 as a structural decision rather than further trimming. |
 | `MANUSCRIPT_IMPL_LOG.md` | Execution record for the architecture-ladder restructure. |
 | `CODE_AUDIT_2026-08-08.md` | NFPA codebase audit; superseded by the round-2 and round-3 execution logs in the code repository. |
+| `ROUND5_REVISION_PLAN.md` | Executed (rounds 5–7). |
+| `ROUND8_DESK_PLAN.md`, `ROUND8_DESK_REPORT.md` | Executed 2026-08-18; superseded by the round-9 correction and round-10 QA. |
+| `ROUND9_CORRECTION_PLAN.md` | Executed 2026-08-19–21 (see `docs/plans/rps2026/ROUND10_PAPER_REVISION_QA.md`). |
+| `cut_list.md` | Self-marked superseded on 2026-08-08. |
 
 Current documents are in the parent directory:
 
-- `ROUND5_REVISION_PLAN.md` — what remains before submission
 - `PLAN_00_MASTER_RESTRUCTURE_2026-08-08.md` — governing: paper skeleton, cut order, protected content
 - `README.md` — where the execution documents live (code repository)
 

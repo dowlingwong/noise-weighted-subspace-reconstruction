@@ -9,7 +9,7 @@ same repo alongside it. There is no longer a cross-repository split.
 | What | Path (from the repository root) |
 |---|---|
 | Manuscript sources | `paper_rps2026/` |
-| Current revision plan | `paper_rps2026/plan/ROUND5_REVISION_PLAN.md` |
+| Submission status | Submitted to R/PS 2026 on 2026-08-29; decision due 2026-09-29. No open revision plan. |
 | Governing skeleton, cut order, protected content | `paper_rps2026/plan/PLAN_00_MASTER_RESTRUCTURE_2026-08-08.md` |
 | Superseded plans, with reasons | `paper_rps2026/plan/archive/` |
 | Experiment runbooks and run log | `docs/plans/rps2026/` |
@@ -19,8 +19,6 @@ same repo alongside it. There is no longer a cross-repository split.
 
 ## Active documents here
 
-- `ROUND5_REVISION_PLAN.md` — what remains before submission: three rung-4
-  placeholders, the figure, and the final page pass.
 - `PLAN_00_MASTER_RESTRUCTURE_2026-08-08.md` — the four-rung skeleton, the cut
   order, and the list of content that must not be cut.
 

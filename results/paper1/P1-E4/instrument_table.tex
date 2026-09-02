@@ -1,0 +1,15 @@
+\begin{table}[!htbp]
+\centering
+\footnotesize
+\caption{Three public instruments, the same three questions.  Every cell traces to an archived file (see \texttt{instrument\_table\_provenance.csv}).}
+\label{tab:instruments}
+\begin{tabular}{p{0.19\linewidth}p{0.25\linewidth}p{0.27\linewidth}p{0.23\linewidth}}
+\toprule
+Instrument & Does the covariance model calibrate? & Does the weighted reconstruction win at fixed rank? & Does recorded truth agree with the weighted choice? \\
+\midrule
+TIDMAD (SQUID readout, injected truth) & yes: chi2/dof 1.003, held-out score dispersion 1.014 & yes (rank 2): weighted residual and truth favour the weighted choice, raw MSE the other & yes on the primary file: paired amplitude-error difference +0.0190, 95\% CI [0.0045, 0.0321]; same sign, interval includes zero on two secondary files (+0.0402, +0.0036) \\
+CRESST (seven public channels) & within-channel PSD estimated from noise stream; no held-out calibration test recorded & yes in 7/7 channels at rank 6: same-rank fractional reduction 1.6\% to 62.0\% (equal-channel mean 21.6\%); rank-6 EMPCA vs single-template OF pooled difference 1012.27 [927.90, 1097.61] & not testable: the release records no injected signal \\
+GWOSC (H1/L1 strain around GW150914) & no: global PSD null calibration passed in 4/20 splits; predeclared 64-s local PSD accepted in 0/6 real-data rows (synthetic stationary control passes) & not evaluated: calibration failed, so residual comparisons are diagnostic only & not testable: no recorded signal \\
+\bottomrule
+\end{tabular}
+\end{table}

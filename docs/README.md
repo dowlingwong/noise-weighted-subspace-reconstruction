@@ -27,6 +27,21 @@ not exist.
 | [`PAPER_REVISION_GUIDE.md`](PAPER_REVISION_GUIDE.md) | Manuscript-safe wording and claim boundaries. |
 | [`REMOTE_EXECUTION.md`](REMOTE_EXECUTION.md) | Remote commands, Stage 0 gate, evidence packaging. |
 
+## Papers 1 and 3 — experiment program (added 2026-09-02)
+
+| File | Purpose |
+| --- | --- |
+| [`EXPERIMENT_PLAN_PAPER1.md`](EXPERIMENT_PLAN_PAPER1.md) | What the merged Paper 1 still needs (P1-E1 … P1-E7), with acceptance rules. |
+| [`EXPERIMENT_PLAN_PAPER3.md`](EXPERIMENT_PLAN_PAPER3.md) | ORACLE-Cov Tier-1 design (subjects, families, monitors, endpoints) and the Tier-2/3 runbooks. |
+| [`IMPLEMENTATION_CHECKLIST.md`](IMPLEMENTATION_CHECKLIST.md) | Long-horizon checklist for both papers; tick in place. |
+| [`plans/oracle/PREREGISTRATION.md`](plans/oracle/PREREGISTRATION.md) | Tier-1 pre-registration draft (endpoints, thresholds, mechanism predictions); frozen on commit. |
+| [`plans/oracle/TIER2_RUNBOOK.md`](plans/oracle/TIER2_RUNBOOK.md), [`plans/oracle/TIER3_RUNBOOK.md`](plans/oracle/TIER3_RUNBOOK.md) | Cluster runbooks for ORACLE-Paired and TIDMAD. |
+| [`reviews/2026-09-02_experiments_review.md`](reviews/2026-09-02_experiments_review.md) | Author's review of the implementation: fixed defects, scientific findings, open items. |
+| [`REVIEW_PROMPT_2026-09.md`](REVIEW_PROMPT_2026-09.md) | Prompt for an independent reviewing agent (Paper 1, Paper 3, implementation). |
+
+Code: `experiments/paper1/`, `experiments/oracle/` (package `oracle_cov`); results:
+`results/paper1/<ID>/`, `results/oracle/<ID>/{dev,confirmatory}/`.
+
 ## `results/` — outcome documents
 
 | File | Purpose |

@@ -13,3 +13,14 @@ provenance; not guidance.
 Other archive locations in this repository: `docs/archive/` (dated document
 sets, executed plans), `paper_rps2026/plan/archive/` (workshop-paper plans),
 `plan/archive/`, and the older `archive/old_*` folders.
+
+## Non-markdown strays (same sweep)
+
+| File | Why |
+|---|---|
+| `root/screenlog_t_chi2.txt`, `root/screenlog_t_mse.txt` | 2026-08-15 server screen logs of the rung-4 training; the canonical copies are under `results/rps2026/E3_t_mse/` and `E4_t_chi2/` |
+| `paper_rps2026_tmp/tmp1..6.tmp` | Six empty temporary files that were committed by accident; safe to delete by hand (this session cannot delete files) |
+
+`paper_rps2026/2609.00611v1.pdf` (Panda Diplomacy) was moved to
+`paper_rps2026/sources/panda_diplomacy_2609.00611v1.pdf`, next to the other
+sources, and is untracked like the other PDFs.

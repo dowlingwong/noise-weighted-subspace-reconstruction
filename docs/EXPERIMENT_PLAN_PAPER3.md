@@ -122,6 +122,33 @@ result table carries config hash, git commit, seed list and output digests.
 Dev and confirmatory outputs are written to different directories and only
 the latter may be cited.
 
+### P3-E0b dev run (2026-09-03; 3 seeds, 3 windows per cell; dev — not citable)
+
+Read against the four pre-registered predictions in `run_e0b_probes.py`:
+
+1. **Clean organisation — passes with a caveat.** `lin_cw` code stage: rise time R² 0.85, planted
+   secondary latent 0.93, each on ~1.3 axes; amplitude 0.16 and decay 0.17 (poorly read out at
+   SNR 10 — the K_recon finding again). `mlp_ae` code: rise 0.67, secondary 0.85 on ~3 axes.
+   t0_shift (never excited) reads out at R² ≈ 0.03 / −0.005: **no axis exists for it** — passes.
+2. **Covariance-type N leaves the axes in place — passes.** N1/N2/N4 (cov slope, channel cov,
+   gain drift): rise/secondary R² unchanged (0.87/0.94), axis cosine 0.99–1.00. The physics is
+   still read through the same axes; the noise has not moved the readout. Signal-deforming N
+   (N3 jitter: rise 0.85 → 0.29; N6 channel loss: 0.85 → 0.72) *does* degrade the readout —
+   the third signature, now visible in the probes as well as in the mean shift.
+3. **S along excited coordinates — endpoint mis-specified, restated.** S1/S2 windows narrow the
+   shifted variable's range, so R² of the frozen probe is meaningless there (−11.9 for the
+   shifted variable, other variables untouched with axis cosine 0.99). The right endpoint is the
+   RMSE of the frozen probe relative to clean (`rmse_ratio`, added to the runner after this run;
+   smoke values ≈ 1.1–1.3). Prediction (3) is restated as "rmse_ratio ≈ 1 for excited variables
+   under S along other coordinates; the axis cosine stays > 0.95".
+4. **Early stages are diffuse — passes.** `mlp_ae` h1 participation 21–41 axes, h2 13–18, code ~3.
+
+Consequence for C0's acceptance rule: (a) excited-variable R² on clean ≥ 0.5 at the code stage is
+met for rise and secondary but not for amplitude/decay at SNR 10 — the rule must be per variable,
+with amplitude excluded or the SNR raised; (b) the N-vs-S signature in the probes is axis
+stability, not R²; (c) `rmse_ratio` replaces R² for S cells.
+
+
 ## 6. Tier 2 and Tier 3 (cluster; runbooks only)
 
 - **C0 on Tier 2/3:** the same probe protocol (`run_e0b_probes.Probe`, `cv_r2`, `axis_cos`,

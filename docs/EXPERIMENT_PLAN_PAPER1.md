@@ -103,6 +103,13 @@ hash, git commit, seed list and SHA-256 of every output.
 The attention ladder is demoted to optional: generality is claimed across noise regimes (P1-E10), not across architectures.  E8a/E8b (no learning) stay as the numerical content of the PE uniqueness corollary.
 
 ## 1b. Status after the 2026-09-03 container run
+### P1-E9 (seeds 0–1 so far, run in progress)
+NFPA amplitude probe R² 0.44 / 0.49, rise 0.88 / 0.87, decay 0.29 / 0.22, secondary 0.93; CW-PCA
+(unrestricted, same metric) amplitude 0.13, rise 0.82; Iso-MPCA and IsoPCA (isotropic twins)
+≈ 0 on every variable. The separable class *and* the metric both matter for organisation: the
+product prior triples the amplitude readout over the unrestricted class at the same rank, and
+the isotropic metric reads out nothing.
+
 
 P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approximation term −0.0028 → −0.0014, monotone; metric term keeps sign; NFPA channel error 0.033 → 0.173 with α); P1-E4 done; P1-E5 closed; P1-E6 partial (n = 3000); P1-E3 not run. Summaries in `results/paper1/<ID>/`.
 

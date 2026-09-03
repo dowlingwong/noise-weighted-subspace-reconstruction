@@ -12,7 +12,10 @@ Per (seed, subject, stage, family, severity, variable) the row records
                      information still there at all, on any axes?);
 * ``axis_cos``    -- cosine between the clean probe direction and the refit direction (did the
                      axis move?);
-* ``participation`` -- effective number of representation axes the variable occupies.
+* ``participation`` -- effective number of representation axes the variable occupies;
+* ``rmse_ratio``  -- RMSE of the clean-fitted probe on the window divided by its RMSE on held-out
+                     clean windows (added after the 2026-09-03 dev run: R^2 is ill-defined on S
+                     windows that narrow a variable's range, RMSE is not).
 
 Pre-registered predictions (docs/plans/oracle/PREREGISTRATION.md, C0):
   (1) clean: r2 high for excited variables at the code stage; ~0 for t0_shift;
@@ -53,7 +56,7 @@ STAGES = {"lin_cw": ["code"], "mlp_ae": ["h1", "h2", "code"]}
 FAMILIES = ["N1_cov_slope", "N2_cov_channel", "N3_jitter", "N4_gain_drift", "N6_channel_loss",
             "S1_amplitude", "S2_decay", "S3_t0", "S4_alpha"]
 COLUMNS = ["seed", "subject", "stage", "family", "contract", "severity", "window", "variable",
-           "r2_frozen", "r2_refit", "axis_cos", "participation", "n"]
+           "r2_frozen", "r2_refit", "axis_cos", "participation", "rmse_ratio", "n"]
 
 
 class Probe:
@@ -76,6 +79,9 @@ class Probe:
         if ss_tot <= 0:
             return float("nan")
         return 1.0 - float(np.sum((y - self.predict(R)) ** 2)) / ss_tot
+
+    def rmse(self, R: np.ndarray, y: np.ndarray) -> float:
+        return float(np.sqrt(np.mean((y - self.predict(R)) ** 2)))
 
     def direction(self) -> np.ndarray:
         n = np.linalg.norm(self.w)
@@ -126,6 +132,13 @@ def run(cfg: OracleCovConfig, seeds: list[int], *, base=PRIMARY, smoke: bool) ->
             for stage in STAGES[kind]:
                 R_fit = sub.represent(X_fit, stage)
                 probes = {v: Probe().fit(R_fit, lat_fit[v]) if lat_fit[v].std() > 0 else None for v in VARIABLES}
+                clean_rmse = {}
+                for v, pf in probes.items():
+                    if pf is None:
+                        continue
+                    Rh = np.concatenate([sub.represent(w.X, stage) for w in held_w])
+                    yh = np.concatenate([np.asarray(w.latents.get(v, np.zeros(len(w.X))), float) for w in held_w])
+                    clean_rmse[v] = pf.rmse(Rh, yh)
                 targets = [(F.family("clean"), i, w) for i, w in enumerate(held_w)]
                 targets += [(fam, i, F.make_window(ts, fam, cfg.window_size, seed=seed * 100000 + 500 + 97 * (zlib.crc32(fam.name.encode()) % 1000) + i))
                             for fam in fams for i in range(n_windows)]
@@ -143,7 +156,9 @@ def run(cfg: OracleCovConfig, seeds: list[int], *, base=PRIMARY, smoke: bool) ->
                             "r2_frozen": pf.r2(R, y) if pf is not None else float("nan"),
                             "r2_refit": cv_r2(R, y),
                             "axis_cos": float(abs(pf.direction() @ refit.direction())) if pf is not None else float("nan"),
-                            "participation": participation(R, y), "n": len(y),
+                            "participation": participation(R, y),
+                            "rmse_ratio": (pf.rmse(R, y) / clean_rmse[v]) if (pf is not None and clean_rmse.get(v, 0) > 0) else float("nan"),
+                            "n": len(y),
                         })
                 print(f"[{EXP_ID}] seed {seed} {kind}/{stage} done ({len(rows)} rows)", flush=True)
         rc.write_rows_csv(out / "rows.csv", rows, COLUMNS)
@@ -161,12 +176,13 @@ def summarise(out: Path) -> None:
     agg = defaultdict(list)
     for r in rows:
         agg[(r["subject"], r["stage"], r["contract"], r["variable"])].append(
-            (float(r["r2_frozen"]), float(r["r2_refit"]), float(r["axis_cos"]), float(r["participation"])))
-    lines = ["subject stage contract variable | r2_frozen r2_refit axis_cos participation (means)"]
+            (float(r["r2_frozen"]), float(r["r2_refit"]), float(r["axis_cos"]), float(r["participation"]),
+             float(r.get("rmse_ratio", "nan"))))
+    lines = ["subject stage contract variable | r2_frozen r2_refit axis_cos participation rmse_ratio (means)"]
     for k in sorted(agg):
         a = np.array(agg[k], float)
         m = np.nanmean(a, axis=0)
-        lines.append(f"{k[0]:7s} {k[1]:5s} {k[2]:5s} {k[3]:10s} | {m[0]:6.3f} {m[1]:6.3f} {m[2]:6.3f} {m[3]:5.2f}")
+        lines.append(f"{k[0]:7s} {k[1]:5s} {k[2]:5s} {k[3]:10s} | {m[0]:6.3f} {m[1]:6.3f} {m[2]:6.3f} {m[3]:5.2f} {m[4]:6.3f}")
     (out / "summary.txt").write_text("\n".join(lines) + "\n")
     print("\n".join(lines))
 

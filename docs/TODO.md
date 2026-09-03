@@ -42,9 +42,11 @@ findings and open items: `docs/reviews/2026-09-02_experiments_review.md`.
       register in the evidence map.
 - [ ] P1-E10 gain predictor: write `scripts/gain_predictor.py`; add the PSD/basis dump step to
       `docs/runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md`; run on the cluster.
-- [ ] P3-E0b: read the dev summary against predictions (1)–(4); write C0 into
-      `docs/plans/oracle/PREREGISTRATION.md` §4 with the acceptance rule; add the Tier-2/3 probe
-      step to both runbooks.
+- [x] P3-E0b dev run read against predictions (1)–(4) — see `EXPERIMENT_PLAN_PAPER3.md` §5;
+      prediction (3) restated (rmse_ratio, axis cosine); `rmse_ratio` column added to the runner
+      (rerun needed before the numbers are quoted).
+- [ ] Write C0 into `docs/plans/oracle/PREREGISTRATION.md` §4 with the per-variable acceptance
+      rule (amplitude excluded at SNR 10 or SNR raised); add the Tier-2/3 probe step to both runbooks.
 - [ ] Demote P1-E8c in `IMPLEMENTATION_CHECKLIST.md`.
 
 ## Methodology adopted from Kieseler (GravNet/GarNet 1902.07987; object condensation 2002.03605)

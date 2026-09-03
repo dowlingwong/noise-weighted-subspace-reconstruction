@@ -33,7 +33,7 @@ findings and open items: `docs/reviews/2026-09-02_experiments_review.md`.
   - [ ] Run a and b now (no learning, CPU, ~1 h); run c only after App. E.5 statement is fixed.
 
 ## Theme adjustment 2026-09-03 (Paper 3 main, Paper 1 service — `docs/THEME_ADJUSTMENT_2026-09-03.md`)
-- [x] `experiments/paper1/latent_probes.py` (P1-E9) — implemented; 4-seed run in progress.
+- [x] `experiments/paper1/latent_probes.py` (P1-E9) — implemented and run (4 seeds; table in `EXPERIMENT_PLAN_PAPER1.md` §1b).
 - [x] `experiments/oracle/run_e0b_probes.py` (P3-E0b / C0) — implemented; dev run (3 seeds) in progress.
 - [x] Reproducibility fix: `families.make_window` used Python's salted `hash()` for the window seed —
       replaced by `zlib.crc32`; all Tier-1 dev outputs before this date are therefore not

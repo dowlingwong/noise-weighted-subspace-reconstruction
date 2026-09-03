@@ -103,15 +103,22 @@ hash, git commit, seed list and SHA-256 of every output.
 The attention ladder is demoted to optional: generality is claimed across noise regimes (P1-E10), not across architectures.  E8a/E8b (no learning) stay as the numerical content of the PE uniqueness corollary.
 
 ## 1b. Status after the 2026-09-03 container run
-### P1-E9 (seeds 0–1 so far, run in progress)
-NFPA amplitude probe R² 0.44 / 0.49, rise 0.88 / 0.87, decay 0.29 / 0.22, secondary 0.93; CW-PCA
-(unrestricted, same metric) amplitude 0.13, rise 0.82; Iso-MPCA and IsoPCA (isotropic twins)
-≈ 0 on every variable. The separable class *and* the metric both matter for organisation: the
-product prior triples the amplitude readout over the unrestricted class at the same rank, and
-the isotropic metric reads out nothing.
+### P1-E9 (4 seeds, complete 2026-09-03; `results/paper1/P1-E9/summary.json`)
+Probe R² (mean ± sd over seeds; axis participation in brackets), α = 0, rank 6:
 
+| method | metric / class | amplitude | rise time | decay time | planted latent |
+|---|---|---|---|---|---|
+| NFPA | Σ⁻¹, product | 0.486 ± 0.037 (1.2) | 0.873 ± 0.003 (2.8) | 0.277 ± 0.039 (3.4) | 0.934 ± 0.000 (2.1) |
+| CW-PCA | Σ⁻¹, unrestricted | 0.130 ± 0.010 (1.8) | 0.821 ± 0.004 (1.2) | 0.151 ± 0.037 (2.3) | 0.927 ± 0.002 (1.2) |
+| Iso-MPCA | MSE, product | 0.011 ± 0.012 | −0.007 ± 0.005 | 0.001 ± 0.004 | −0.005 ± 0.005 |
+| IsoPCA | MSE, unrestricted | 0.008 ± 0.015 | −0.008 ± 0.004 | −0.002 ± 0.004 | 0.048 ± 0.070 |
 
-P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approximation term −0.0028 → −0.0014, monotone; metric term keeps sign; NFPA channel error 0.033 → 0.173 with α); P1-E4 done; P1-E5 closed; P1-E6 partial (n = 3000); P1-E3 not run. Summaries in `results/paper1/<ID>/`.
+Reading: the metric decides whether the latent space is organised by physics at all (both
+isotropic twins read out nothing, |R²| ≤ 0.05 on every variable); the class decides how well —
+the product prior reads amplitude at 0.49 on essentially one axis where the unrestricted class at
+the same rank reads 0.13. Decay time is weakly read out by every method (0.15–0.28): a boundary
+to state, not hide. Acceptance met for amplitude and rise time (intervals exclude the isotropic
+twins by > 10 sd).
 
 ## 2. Order
 

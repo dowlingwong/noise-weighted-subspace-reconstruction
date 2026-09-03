@@ -22,7 +22,7 @@ import numpy as np
 
 from noise_geometry.noise import generate_colored_noise, make_powerlaw_psd
 from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, PrimaryConfig
-from experiments.synthetic.nfpa_confirmatory.covariance import ar1_covariance, whiten_separable
+from experiments.synthetic.nfpa_confirmatory.covariance import _sqrt_inv, ar1_covariance, whiten_separable
 from experiments.synthetic.nfpa_confirmatory.generator import (
     Dataset, _asymmetric_pulse, build_coefficients, make_channel_basis, make_dataset, sample_latents,
 )
@@ -92,6 +92,10 @@ class TrainingSet:
         return self.ds.cfg
 
     def whiten(self, X: np.ndarray, Sigma_c=None, Sigma_t=None) -> np.ndarray:
+        if Sigma_c is None and Sigma_t is None:
+            if not hasattr(self, "_Wc"):
+                self._Wc, self._Wt = _sqrt_inv(self.Sigma_c), _sqrt_inv(self.Sigma_t)   # cached: identical to whiten_separable
+            return np.einsum("ab,...bd,de->...ae", self._Wc, X - self.ds.train_mean, self._Wt)
         Sc = self.Sigma_c if Sigma_c is None else Sigma_c
         St = self.Sigma_t if Sigma_t is None else Sigma_t
         return whiten_separable(X - self.ds.train_mean, Sc, St)

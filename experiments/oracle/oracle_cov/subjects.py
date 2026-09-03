@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from experiments.synthetic.nfpa_confirmatory.covariance import whiten_separable
+from experiments.synthetic.nfpa_confirmatory.covariance import _sqrt_inv, whiten_separable
 
 from .generator import TrainingSet
 
@@ -47,7 +47,9 @@ class Subject:
         raise NotImplementedError
 
     def whiten_hat(self, X: np.ndarray) -> np.ndarray:
-        return _flat(whiten_separable(X - self.ts.ds.train_mean, self.Sc_hat, self.St_hat))
+        if not hasattr(self, "_Wc_hat"):
+            self._Wc_hat, self._Wt_hat = _sqrt_inv(self.Sc_hat), _sqrt_inv(self.St_hat)   # cached; identical to whiten_separable
+        return _flat(np.einsum("ab,...bd,de->...ae", self._Wc_hat, X - self.ts.ds.train_mean, self._Wt_hat))
 
     def represent(self, X: np.ndarray, stage: str) -> np.ndarray:
         raise NotImplementedError

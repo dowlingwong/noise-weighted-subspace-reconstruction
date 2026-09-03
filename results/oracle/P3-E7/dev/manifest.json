@@ -1,0 +1,112 @@
+{
+  "citable": false,
+  "created_utc": "2026-09-03T01:12:30Z",
+  "experiment_id": "P3-E7",
+  "families": [
+    {
+      "contract": "clean",
+      "declared": true,
+      "name": "clean",
+      "severity": null
+    }
+  ],
+  "generator_config_hash": "98001a62855cb9a5",
+  "mode": "dev",
+  "oracle_cov_config": {
+    "base_alpha": 0.0,
+    "confirmatory_seeds": [
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119
+    ],
+    "dev_seeds": [
+      0,
+      1,
+      2
+    ],
+    "equivalence_margin_f1": 0.05,
+    "false_alert_rate": 0.01,
+    "kappa_m": 0.1,
+    "mlp_epochs": 60,
+    "mlp_hidden": [
+      64,
+      32
+    ],
+    "mlp_lr": 0.002,
+    "mode": "dev",
+    "n_clean_windows": 60,
+    "stage_top_k": 4,
+    "subject_rank": 6,
+    "window_size": 100
+  },
+  "oracle_cov_config_hash": "a27d9c7d3892a2e4",
+  "outputs": {
+    "summary.json": "6d55d6581d4b992da5886bdbabf3901b9c4c69578838127e0aa055bd9f00bb9e"
+  },
+  "provenance": {
+    "code_commit": "a85c2c7a08b951df675340347bb21a01317f4884",
+    "command": [
+      "/root/work/nwr/experiments/oracle/run_e7_cost.py",
+      "--seeds",
+      "0"
+    ],
+    "config": {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "98001a62855cb9a5",
+    "git_tree_dirty": true,
+    "hostname": "vm",
+    "implementation_freeze_commit": "a85c2c7a08b951df675340347bb21a01317f4884",
+    "numpy_version": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/root/work/venv/bin/python",
+    "python_version": "3.11.15",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "seeds": [
+    0
+  ]
+}

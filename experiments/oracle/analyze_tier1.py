@@ -59,6 +59,27 @@ def c1_power(rows):
     return {"|".join(k): {"power": float(np.mean(v)), "n_windows": len(v)} for k, v in out.items()}
 
 
+def c1_power_by_severity(rows):
+    out = defaultdict(list)
+    for r in rows:
+        out[(r["subject"], r["stage"], r["monitor"], r["family"], r["severity"])].append(bool(r["alarm"]))
+    res = defaultdict(dict)
+    for (sub, st, mon, fam, sev), v in out.items():
+        res[f"{sub}|{st}|{mon}|{fam}"][str(sev)] = float(np.mean(v))
+    return dict(res)
+
+
+def mean_K_by_severity(rows):
+    seen = {}
+    for r in rows:
+        key = (r["subject"], r["family"], r["severity"], int(r["seed"]), int(r["window"]))
+        seen[key] = float(r["K"])
+    res = defaultdict(lambda: defaultdict(list))
+    for (sub, fam, sev, _, _), K in seen.items():
+        res[f"{sub}|{fam}"][str(sev)].append(K)
+    return {k: {sev: float(np.mean(v)) for sev, v in d.items()} for k, d in res.items()}
+
+
 def window_features(rows):
     """One feature vector per (seed, subject, stage, family, severity, window)."""
     feats = defaultdict(dict); label = {}; meta = {}
@@ -98,13 +119,18 @@ def c2_attribution(rows):
                 p = clf.proba_S(Xte); nonconf += list(1.0 - np.maximum(p, 1 - p))
             f1 = macro_f1(np.array(yt), np.array(yp)) if yt else float("nan")
             arms[arm] = {"macro_f1": f1, "n": len(yt), "features": names}
-            if arm == "layerwise_full" and ukeys:
+            if arm == "layerwise_full" and ukeys and nonconf:
                 uk = [k for k in ukeys if k[1] == subject and k[2] == stage]
                 Xall = np.array([[feats[k].get(n, 0.0) for n in names] for k in ks]); yall = np.array([label[k] for k in ks])
                 clf = LogisticAttribution().fit(Xall, yall)
-                pu = clf.proba_S(np.array([[feats[k].get(n, 0.0) for n in names] for k in uk])); nu = 1.0 - np.maximum(pu, 1 - pu)
+                Xu = np.array([[feats[k].get(n, 0.0) for n in names] for k in uk])
+                pu = clf.proba_S(Xu); nu = 1.0 - np.maximum(pu, 1 - pu)
                 rc = risk_coverage(np.array(nonconf), np.array(yt) == np.array(yp))
                 arms[arm]["unknown_auroc"] = auroc(nu, np.array(nonconf))
+                # second nonconformity: feature-space Mahalanobis distance to the declared (N+S) feature cloud
+                mu, sd = Xall.mean(0), Xall.std(0) + 1e-9
+                d_known = np.sqrt(np.mean(((Xall - mu) / sd) ** 2, axis=1)); d_unknown = np.sqrt(np.mean(((Xu - mu) / sd) ** 2, axis=1))
+                arms[arm]["unknown_auroc_mahalanobis"] = auroc(d_unknown, d_known)
                 arms[arm]["risk_coverage_auc"] = rc["risk_coverage_auc"]; arms[arm]["risk_at_80_coverage"] = rc["risk_at_80_coverage"]
                 arms[arm]["conformal_threshold_alpha0.1"] = conformal_threshold(np.array(nonconf), 0.1)
         if "layerwise_full" in arms and "generic_only" in arms:
@@ -115,7 +141,7 @@ def c2_attribution(rows):
     return res
 
 
-def c4_consequence(rows, kappa_m=0.10):
+def c4_consequence(rows, kappa_m=0.10, K_key="K", high_key="high_consequence"):
     out = {}
     by = defaultdict(list)
     for r in rows:
@@ -127,16 +153,17 @@ def c4_consequence(rows, kappa_m=0.10):
         # within-stratum AUROC needs both classes; pool strata that have both
         aucs = []
         for st, srs in strata.items():
-            hi = [float(r["score"]) for r in srs if r["high_consequence"]]; lo = [float(r["score"]) for r in srs if not r["high_consequence"]]
+            hi = [float(r["score"]) for r in srs if r[high_key]]; lo = [float(r["score"]) for r in srs if not r[high_key]]
             if hi and lo:
                 aucs.append(auroc(np.array(hi), np.array(lo)))
-        A = np.array([float(r["score"]) for r in rs]); alarm = np.array([bool(r["alarm"]) for r in rs]); high = np.array([bool(r["high_consequence"]) for r in rs])
+        A = np.array([float(r["score"]) for r in rs]); alarm = np.array([bool(r["alarm"]) for r in rs]); high = np.array([bool(r[high_key]) for r in rs])
         out["|".join(key)] = {
             "within_stratum_auroc_mean": float(np.mean(aucs)) if aucs else None, "n_strata_with_both": len(aucs),
             "pooled_auroc_high_consequence": auroc(A[high], A[~high]) if high.any() and (~high).any() else None,
             "missed_consequence_rate": float(np.mean(~alarm[high])) if high.any() else None,
             "harmless_alarm_rate": float(np.mean(alarm[~high])) if (~high).any() else None,
-            "spearman_A_K": float(np.corrcoef(np.argsort(np.argsort(A)), np.argsort(np.argsort([float(r["K"]) for r in rs])))[0, 1]) if len(rs) > 2 else None,
+            "spearman_A_K": float(np.corrcoef(np.argsort(np.argsort(A)), np.argsort(np.argsort([float(r[K_key]) for r in rs])))[0, 1]) if len(rs) > 2 else None,
+            "fraction_high_consequence": float(np.mean(high)),
         }
     return out
 
@@ -193,7 +220,9 @@ def main(argv=None):
     summary = {"experiment": a.experiment, "mode": a.mode, "n_rows": len(rows), "seeds": sorted({int(r["seed"]) for r in rows}),
                "citable": a.mode == "confirmatory",
                "realised_clean_far": far_summary(d / "clean_far.csv"),
-               "C1_power": c1_power(rows), "C2_attribution": c2_attribution(rows), "C4_consequence": c4_consequence(rows, a.kappa_m),
+               "C1_power": c1_power(rows), "C1_power_by_severity": c1_power_by_severity(rows), "mean_K_by_severity": mean_K_by_severity(rows),
+               "C2_attribution": c2_attribution(rows), "C4_consequence": c4_consequence(rows, a.kappa_m),
+               "C4_consequence_recon": c4_consequence(rows, a.kappa_m, "K_recon", "high_consequence_recon") if "K_recon" in rows[0] else None,
                "mechanism_signature": mechanism_signature(rows), "layerwise_profile": layerwise_profile(rows)}
     (d / "summary.json").write_text(json.dumps(jsonable(summary), indent=2))
     write_md(d / "SUMMARY.md", summary)
@@ -210,11 +239,17 @@ def write_md(path: Path, s: dict):
     for k, v in s["C2_attribution"].items():
         lw, dp, ge = v.get("layerwise_full", {}), v.get("layerwise_deployable", {}), v.get("generic_only", {})
         ua = lw.get("unknown_auroc"); ua = float("nan") if ua is None else ua
-        L.append(f"| {k} | {lw.get('macro_f1', float('nan')):.3f} | {dp.get('macro_f1', float('nan')):.3f} | {ge.get('macro_f1', float('nan')):.3f} | {v.get('delta_f1_layerwise_minus_generic', float('nan')):.3f} | {v.get('delta_f1_deployable_minus_generic', float('nan')):.3f} | {ua:.3f} |")
+        um = lw.get("unknown_auroc_mahalanobis"); um = float("nan") if um is None else um
+        L.append(f"| {k} | {lw.get('macro_f1', float('nan')):.3f} | {dp.get('macro_f1', float('nan')):.3f} | {ge.get('macro_f1', float('nan')):.3f} | {v.get('delta_f1_layerwise_minus_generic', float('nan')):.3f} | {v.get('delta_f1_deployable_minus_generic', float('nan')):.3f} | {ua:.3f} (margin) / {um:.3f} (Mahalanobis) |")
     L += ["", "## C4 alarm–consequence (pooled over strata)", "", "| subject/stage/monitor | within-stratum AUROC | pooled AUROC | missed-consequence | harmless-alarm |", "|---|---|---|---|---|"]
     for k, v in s["C4_consequence"].items():
         f = lambda x: "—" if x is None else f"{x:.3f}"
         L.append(f"| {k} | {f(v['within_stratum_auroc_mean'])} | {f(v['pooled_auroc_high_consequence'])} | {f(v['missed_consequence_rate'])} | {f(v['harmless_alarm_rate'])} |")
+    if s.get("C4_consequence_recon"):
+        L += ["", "## C4 with the reconstruction consequence K_recon (whitened reconstruction error vs clean signal)", "", "| subject/stage/monitor | within-stratum AUROC | pooled AUROC | missed-consequence | harmless-alarm | frac. high |", "|---|---|---|---|---|---|"]
+        for k, v in s["C4_consequence_recon"].items():
+            f = lambda x: "—" if x is None else f"{x:.3f}"
+            L.append(f"| {k} | {f(v['within_stratum_auroc_mean'])} | {f(v['pooled_auroc_high_consequence'])} | {f(v['missed_consequence_rate'])} | {f(v['harmless_alarm_rate'])} | {f(v['fraction_high_consequence'])} |")
     L += ["", "## C1 detection power (fraction of windows above the 1 % FAR threshold)", "", "| subject/stage/monitor/family | power |", "|---|---|"]
     for k, v in sorted(s["C1_power"].items()):
         L.append(f"| {k} | {v['power']:.2f} |")

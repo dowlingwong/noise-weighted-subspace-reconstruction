@@ -52,12 +52,18 @@ never events.
   (b) the generic-only arm (input KS, MMD, C2ST, embedding moments).  ΔF1 read three ways:
   meaningful if the interval excludes 0 and the point estimate ≥ 0.10; equivalent if the
   interval lies within ±0.05; otherwise inconclusive.  Abstention: split-conformal at
-  α = 0.1 on the classifier margin; unknown-family AUROC (U vs declared) and risk–coverage
-  AUC, risk at 80 % coverage.
-- **C4 consequence.** K = relative amplitude-RMSE degradation of the frozen readout;
-  high consequence K ≥ κ_m = 0.10.  Primary: within-stratum AUROC of the alarm for high
-  consequence, averaged over strata with both classes; secondary: missed-consequence and
-  harmless-alarm rates at the C1 threshold.  Designed dissociation: predicted sign
+  α = 0.1 with a *feature-space Mahalanobis* nonconformity (classifier margin is reported
+  but is not the abstention rule: it does not detect U1/U2); unknown-family AUROC (U vs
+  declared) and risk–coverage AUC, risk at 80 % coverage.  Three arms: layerwise full,
+  layerwise deployable (no tangent statistics, no covariance monitor — the Tier-2 arm), generic.
+- **C4 consequence.** Two consequence variables: `K_recon`, the relative increase of the
+  whitened reconstruction error against the clean signal (the Tier-1 primary — the amplitude
+  readout at SNR 10 is noise-dominated and insensitive), and `K`, the relative amplitude-RMSE
+  degradation (physics-facing secondary); high consequence K ≥ κ_m = 0.10.  Primary: pooled
+  AUROC of the alarm for high consequence across all declared cells, and the designed
+  dissociation; secondary: missed-consequence and harmless-alarm rates at the C1 threshold.
+  Within-(family, severity) strata carry no consequence variation on Tier 1 and are not an
+  endpoint.  Designed dissociation: predicted sign
   `aligned ≫ null` for the pullback-whitened and Jacobian-projected monitors and
   `aligned_amp ≫ null_amp` for the pullback-output monitor; the Euclidean monitor is
   predicted unable to separate either pair.
@@ -75,6 +81,7 @@ between a window and the clean reference:
 | N signal-deformation (N3 jitter) | small | > 0 (unexcited direction, zero-mean per event) | ≈ 1 |
 | S along excited coordinates (S1, S2) | > 0 | ≈ 0 | ≈ 1 |
 | S into unexcited directions (S3, S4) | small | > 0 for S3; S4 lands outside both spans | ≈ 1 |
+| N signal removal (N6 channel loss) | > 0 (the lost channels' mean signal) | ≈ 0 | < 1 |
 
 The N-versus-S contract therefore maps onto **three** geometric signatures, not two;
 attribution must use the pair (mean-displacement location, residual-variance ratio), and

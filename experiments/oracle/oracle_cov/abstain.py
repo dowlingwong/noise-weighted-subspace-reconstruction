@@ -18,6 +18,8 @@ def risk_coverage(nonconformity: np.ndarray, correct: np.ndarray) -> dict:
     order = np.argsort(nonconformity)
     correct = np.asarray(correct, dtype=float)[order]
     n = len(correct)
+    if n == 0:
+        return {"coverage": np.zeros(0), "risk": np.zeros(0), "risk_coverage_auc": float("nan"), "risk_at_80_coverage": float("nan")}
     cov = np.arange(1, n + 1) / n
     risk = 1.0 - np.cumsum(correct) / np.arange(1, n + 1)
     auc = float(np.trapezoid(risk, cov)) if hasattr(np, "trapezoid") else float(np.trapz(risk, cov))

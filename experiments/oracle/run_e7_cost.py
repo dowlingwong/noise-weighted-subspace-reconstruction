@@ -48,18 +48,30 @@ def main(argv=None):
                     "score_all_monitors_p50_ms": 1e3 * float(np.percentile(t_score, 50)), "score_all_monitors_p95_ms": 1e3 * float(np.percentile(t_score, 95)),
                     "overhead_p95_fraction": float(np.percentile(t_hook, 95) / max(np.percentile(t_fwd, 95), 1e-12)),
                     "bytes_per_event_full": int(Z.shape[1] * 8), "bytes_per_event_sketch_moments": int((Z.shape[1] + Z.shape[1] * (Z.shape[1] + 1) // 2) * 8 / cfg.window_size)}
-            # 10 % sampling power loss on one N and one S family at one severity, 6 windows
+            # 10 % sampling power loss on one N and one S family at one severity, 6 windows.
+            # Thresholds must be recalibrated for the sampled window size: a statistic standardised
+            # on 100-event clean windows is not calibrated on 10-event ones.
+            n_sub = max(4, cfg.window_size // 10)
             for stage in P.DEFAULT_STAGES[kind]:
+                sub_th = {}
+                calib = []
+                for w in range(cfg.n_clean_windows // 3, 2 * (cfg.n_clean_windows // 3)):
+                    wdc = F.make_window(ctx.ts, F.family("clean"), cfg.window_size, seed=seed * 100000 + w)
+                    bc = P.make_batch(sub, ctx.ts, wdc, stage)
+                    idx = np.random.default_rng(w).choice(len(wdc.X), size=n_sub, replace=False)
+                    calib.append(P.RepresentationBatch(stage, bc.Z[idx], bc.outputs[idx], None, {**bc.meta, "X_whitened": bc.meta["X_whitened"][idx]}))
+                from .oracle_cov.report import far_threshold
+                for m in ctx.monitors[(kind, stage)]:
+                    sub_th[m.name] = far_threshold(np.array([m.score(b) for b in calib]), cfg.false_alert_rate)
                 for fam in (F.family("N1_cov_slope", 0.5), F.family("S3_t0", 2.0)):
                     full, sub10 = [], []
                     for w in range(6):
                         wdf = F.make_window(ctx.ts, fam, cfg.window_size, seed=seed * 100000 + 80000 + w)
                         b = P.make_batch(sub, ctx.ts, wdf, stage)
-                        idx = np.random.default_rng(w).choice(len(wdf.X), size=max(4, len(wdf.X) // 10), replace=False)
+                        idx = np.random.default_rng(w).choice(len(wdf.X), size=n_sub, replace=False)
                         bs = P.RepresentationBatch(stage, b.Z[idx], b.outputs[idx], None, {**b.meta, "X_whitened": b.meta["X_whitened"][idx]})
                         for m in ctx.monitors[(kind, stage)]:
-                            th = ctx.thresholds[(kind, stage, m.name)]
-                            full.append(m.score(b) > th); sub10.append(m.score(bs) > th)
+                            full.append(m.score(b) > ctx.thresholds[(kind, stage, m.name)]); sub10.append(m.score(bs) > sub_th[m.name])
                     res["sampling"][f"{kind}|{stage}|{fam.name}"] = {"power_full": float(np.mean(full)), "power_10pct": float(np.mean(sub10)), "power_loss_points": 100 * float(np.mean(full) - np.mean(sub10))}
     rc.write_json(out / "summary.json", jsonable(res))
     write_manifest(out, experiment_id=EXP, cfg=cfg, base=base, seeds=a.seeds, families=[F.family("clean")])

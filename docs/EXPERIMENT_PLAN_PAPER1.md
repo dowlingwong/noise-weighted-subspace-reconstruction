@@ -71,6 +71,19 @@ hash, git commit, seed list and SHA-256 of every output.
 ### P1-E7 — Rung-4 strengthening (deferred; cluster)
 - Option B (narrow the claim) was taken; the pilot stays a boundary paragraph. If reopened: ≥ 5 seeds per arm, matched compute, the E7 config, and the whitening-range check (E6) on every arm. Runbook: `docs/plans/rps2026/ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` Task B; do not run before the R/PS decision.
 
+### P1-E8 — Noise-Laplacian PE uniqueness (author decision 2026-09-03: pursue; CPU)
+- **Feeds:** new App. E.5 `app:pe-uniqueness` (corollary of Thm E.3 on the PE Gram kernel K = ΦΦ†) and one sentence after `prop:stationary-pe` in §3.4. Theory target, in the manuscript `TODO.md`: (a) token-axis symmetry T = G_noise ∩ permutations fixes the *basis* (Fourier, for stationary Σ) but leaves the spectral weights w_k free — sinusoidal and chain-Laplacian PEs are members of this family; (b) invariance under all of G_noise forces K = λΣ⁻¹, i.e. Φ = Σ^{-1/2}U — the noise-Laplacian PE, unique up to gauge; sinusoidal PE is (b) for white noise; (c) among Fourier encodings with weights J_k^{-γ} a linear readout attains the CRB iff γ = 1; (d) nonstationary Σ: the invariant encoding is Σ^{-1/2}, not a function of the index.
+- **Question removed:** "is the precision-eigenbasis PE a construction or a consequence?" — it is the *only* G_noise-invariant encoding; shift symmetry alone cannot pick the weights.
+- **Exists:** stationary PSD estimation (`src/tidmad/psd.py`), planted generator with coloured Σ (`experiments/synthetic/nfpa_confirmatory/generator.py`, `covariance.py`), whitening utilities (`r9_common`), OF/CRB reference (`src/of.py`). No attention model in the repo.
+- **Write:** `experiments/paper1/pe_uniqueness.py` with four sub-runs, `experiments/paper1/pe_models.py` (numpy/torch-CPU two-layer single-head attention encoder with pluggable PE), `scripts/make_paper1_fig_pe.py`.
+  - **E8a kernel identification (no learning).** Σ ∈ {TIDMAD file-0000 PSD (stationary, d ∈ {256, 512, 1024, 2048}), nonstationary Σ = D^{1/2} Σ_stat D^{1/2} with a slowly varying envelope D, and the planted-generator coloured Σ}. Compute (i) principal angles between the top-m eigenvectors of Σ⁻¹ and the DFT modes vs m and d (boundary term must vanish with d); (ii) invariance defect δ_G(K) = ‖Q†KQ − K‖_F/‖K‖_F averaged over 50 Haar-random Q = Σ^{1/2}UΣ^{-1/2} ∈ G_noise, for K ∈ {sinusoidal (Vaswani schedule, m = 64), chain-graph Laplacian eigenvectors (m = 64), noise-Laplacian Σ^{-1/2} truncated to m}; (iii) shift-invariance defect δ_T(K) under cyclic shifts. Prediction: δ_T ≈ 0 for all three under stationary Σ; δ_G ≈ 0 only for noise-Laplacian; under nonstationary Σ, δ_T ≠ 0 for noise-Laplacian while δ_G stays 0.
+  - **E8b weight sweep (no learning).** Fourier features weighted J_k^{-γ}, γ ∈ {0, 0.25, 0.5, 0.75, 1, 1.25, 1.5}; fixed linear readout (least squares on the encoded tokens) of the amplitude of the planted template at SNR 10; 2000 Monte-Carlo events × 5 seeds; report Var/CRB vs γ. Prediction: minimum = 1 at γ = 1 to MC precision; γ = 0 (sinusoidal) sits above by the mismatched-filter factor computable in closed form (report both). Repeat with the precision eigenbasis under nonstationary Σ: Fourier family has no γ that reaches 1; precision basis does.
+  - **E8c learning ladder.** Two-layer single-head attention encoder, ≈50k parameters *matched across arms*, linear head predicting the amplitude and the k latent coefficients. Arms: PE ∈ {none, sinusoidal, learned, chain-Laplacian, noise-Laplacian}; inputs ∈ {raw, prewhitened}; Σ ∈ {stationary coloured, nonstationary}; train at SNR 10, test at SNR ∈ {3, 10, 30} (extrapolation arms); 5 seeds; n_train = 4000, n_test = 2000; CPU budget ≤ 10 min per arm. Metric: truth-referenced amplitude error / CRB and subspace principal angle (as P1-E1). Report parameter count and CPU inference time per event per arm. Pre-registered predictions: (1) prewhitened + stationary: sinusoidal ≈ noise-Laplacian — whitening already carries the weights; report as a boundary, not a win; (2) raw + stationary: noise-Laplacian closes most of the gap to the prewhitened arms; (3) nonstationary: noise-Laplacian beats every shift-based PE with or without whitening; (4) extrapolation to SNR 3/30 degrades the learned PE most. A prediction that fails is reported as such.
+  - **E8d (optional, one seed).** E8c on TIDMAD frequency tokens (token-axis principle, file-0000 PSD), real data only as an illustration.
+- **Output:** `results/paper1/P1-E8/{kernel_defects.csv, angles_vs_d.csv, gamma_sweep.csv, ladder.csv, resources.csv, manifest.json}`, `results/paper1/P1-E8/fig_pe.pdf` (three panels: δ vs PE type; Var/CRB vs γ; ladder).
+- **Accept:** E8a δ_G(noise-Laplacian) < 1e-10 and δ_G(others) > 1e-2; E8b argmin γ = 1 with Var/CRB within 1 ± 0.03; E8c: predictions (1)–(3) each pass or are reported as failed; matched parameter counts within 2 %.
+- **Do not claim:** anything about transformers at scale; the ladder is a mechanism check on a 50k-parameter model.
+
 ## 1b. Status after the 2026-09-03 container run
 
 P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approximation term −0.0028 → −0.0014, monotone; metric term keeps sign; NFPA channel error 0.033 → 0.173 with α); P1-E4 done; P1-E5 closed; P1-E6 partial (n = 3000); P1-E3 not run. Summaries in `results/paper1/<ID>/`.
@@ -78,7 +91,9 @@ P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approxima
 ## 2. Order
 
 P1-E5 (closes a blocking issue) → P1-E1 → P1-E2 → P1-E6 → P1-E3 (longest CPU
-job; run last, in background) → P1-E4 (pure assembly).  All are CPU-only and
+job; run last, in background) → P1-E4 (pure assembly) → P1-E8 (a, b first — no
+learning, one hour; c after the theory statement is fixed, so the predictions
+are pre-registered against the written proposition).  All are CPU-only and
 run in `$HOME/venv` (numpy, scipy, pytest); none needs the cluster.
 
 ## 3. Manuscript wiring after the runs
@@ -91,3 +106,4 @@ run in `$HOME/venv` (numpy, scipy, pytest); none needs the cluster.
 | P1-E4 | new Table in §7 replacing the three instrument subsections' summary paragraphs |
 | P1-E5 | closes `OPEN_ISSUES.md` #0; updates `MANUSCRIPT_EVIDENCE_MAP.md` |
 | P1-E6 | one sentence after Corollary 6.2; appendix table |
+| P1-E8 | App. E.5 `app:pe-uniqueness` figure + one sentence after `prop:stationary-pe` |

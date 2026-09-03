@@ -1,0 +1,93 @@
+{
+  "config_hashes": [
+    "09f7dbd811814c55"
+  ],
+  "configs": [
+    {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    }
+  ],
+  "created_utc": "2026-09-03T10:23:07Z",
+  "experiment_id": "P1-E9",
+  "notes": "P1-E9 physical-variable probes at alpha=0; ridge probes fit on train, scored on test; participation = effective number of latent axes.",
+  "outputs": {
+    "corr_matrices.npz": "7dacd3ad47cf5087518d646f632ec882c671c8a5cc89e0ec4e91436bdff33931",
+    "probes.csv": "c2313d97ebdad77e2a563c392e8e9675961519112e7e73dee79a1b34044a7fec",
+    "summary.json": "3f4085fd261dae893e516b0bb631a3c51ef5e845bc7bc4cc56610854f1ca3d94"
+  },
+  "provenance": {
+    "code_commit": "a85c2c7a08b951df675340347bb21a01317f4884",
+    "command": [
+      "/root/work/nwr/experiments/paper1/latent_probes.py",
+      "--seeds",
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "config": {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "09f7dbd811814c55",
+    "git_tree_dirty": true,
+    "hostname": "vm",
+    "implementation_freeze_commit": "a85c2c7a08b951df675340347bb21a01317f4884",
+    "numpy_version": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/root/work/venv/bin/python",
+    "python_version": "3.11.15",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ]
+}

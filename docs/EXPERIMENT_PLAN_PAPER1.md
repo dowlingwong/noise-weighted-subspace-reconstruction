@@ -84,6 +84,24 @@ hash, git commit, seed list and SHA-256 of every output.
 - **Accept:** E8a δ_G(noise-Laplacian) < 1e-10 and δ_G(others) > 1e-2; E8b argmin γ = 1 with Var/CRB within 1 ± 0.03; E8c: predictions (1)–(3) each pass or are reported as failed; matched parameter counts within 2 %.
 - **Do not claim:** anything about transformers at scale; the ladder is a mechanism check on a 50k-parameter model.
 
+### P1-E9 — Physical-variable probes: does the latent space organise by physics? (CPU; implemented)
+- **Feeds:** the first paragraph of the evidence block (`07b`, "Which axes carry the physics") and panel (a) of the paper's Figure 1; the theme adjustment of 2026-09-03 (Panda-style semantic evidence as the headline, not a projector angle).
+- **Question removed:** "does the correct metric make the representation *organised by the physical variables*, or merely closer to a subspace?"
+- **Code:** `experiments/paper1/latent_probes.py`; methods CW-PCA, NFPA, Iso-MPCA, IsoPCA at α = 0; ridge probes z → {amplitude, rise_time, decay_time, secondary} fitted on train, scored on test; `max_abs_corr`, axis `participation` (effective number of latent axes per variable), full |corr| matrix per (seed, method).
+- **Output:** `results/paper1/P1-E9/{probes.csv, corr_matrices.npz, summary.json, manifest.json}`; figure via `scripts/make_paper1_fig1.py` panel (a) (to add).
+- **Accept:** NFPA and CW-PCA probe R² for amplitude and rise time exceed the isotropic twins' by an across-seed interval excluding zero; participation reported without a threshold (descriptive).
+- **Do not claim:** anything about nonlinear encoders; the probe is linear by design.
+
+### P1-E10 — Gain predictor across noise regimes (cluster runbook; CRESST raw data on `/ceph`)
+- **Feeds:** §7 instrument table reframed as "three noise regimes, one principle": the principle must *predict* when covariance weighting helps.
+- **Predictor:** per channel (and per instrument) the anisotropy of Σ inside the fitted signal subspace, e.g. `a = 1 − (tr Σ_S / k) / λ_max(Σ_S)` with Σ_S = Bᵀ Σ B for the rank-k basis B, or the ratio of the isotropic-optimal to the weighted-optimal held-out χ²; frozen before looking at the outcome.
+- **Outcome:** the observed same-rank PCA → EMPCA gain (CRESST: 14, 11, 62, 13, 25, 23, 1.6 % across the seven channels from `docs/results/CRESST_RESULT.md`; TIDMAD amplitude RMSE; GWOSC: no gain, calibration failed).
+- **Accept:** Spearman rank correlation over the seven CRESST channels reported with a permutation interval; the three-instrument ordering stated qualitatively.  A failed prediction is reported.
+- **Runbook:** `docs/runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md` (add a step: dump per-channel PSD / Σ and fitted bases; compute the predictor with a script to write, `scripts/gain_predictor.py`).
+
+### P1-E8c status change (2026-09-03)
+The attention ladder is demoted to optional: generality is claimed across noise regimes (P1-E10), not across architectures.  E8a/E8b (no learning) stay as the numerical content of the PE uniqueness corollary.
+
 ## 1b. Status after the 2026-09-03 container run
 
 P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approximation term −0.0028 → −0.0014, monotone; metric term keeps sign; NFPA channel error 0.033 → 0.173 with α); P1-E4 done; P1-E5 closed; P1-E6 partial (n = 3000); P1-E3 not run. Summaries in `results/paper1/<ID>/`.
@@ -106,4 +124,6 @@ run in `$HOME/venv` (numpy, scipy, pytest); none needs the cluster.
 | P1-E4 | new Table in §7 replacing the three instrument subsections' summary paragraphs |
 | P1-E5 | closes `OPEN_ISSUES.md` #0; updates `MANUSCRIPT_EVIDENCE_MAP.md` |
 | P1-E6 | one sentence after Corollary 6.2; appendix table |
-| P1-E8 | App. E.5 `app:pe-uniqueness` figure + one sentence after `prop:stationary-pe` |
+| P1-E8 | App. E.5 `app:pe-uniqueness` figure + one sentence after `prop:stationary-pe` (a/b only) |
+| P1-E9 | `07b` "Which axes carry the physics"; Figure 1 panel (a) |
+| P1-E10 | §7 instrument table reframed as noise regimes with a predictor column |

@@ -42,6 +42,33 @@ Kieseler-standard section), `docs/background/KIESELER_METHOD_NOTES_2026-09.md`,
 The author's question is exact: **does this update break the harmony of the papers as they
 were, and does it make each paper stronger or messier?** Answer that, not a general review.
 
+## Second change set, same day: the theme adjustment (review this too)
+
+After the Panda comparison the author decided that Paper 3 is the main paper and Paper 1 the
+leading service paper (`docs/THEME_ADJUSTMENT_2026-09-03.md`, copies in both manuscript repos).
+Additions to review with the same questions as below:
+
+Paper 1 (commit after `a9cc004`): §1 framing paragraph ("three determinants", "theory and
+controlled-evidence half of a two-part programme"); new §7.4 with Prop. 7.2 (pullback metric)
+and Prop. 7.3 (excited support), proofs in App. E.5 `app:representation-geometry`; §8 pointer;
+`07b_separable_evidence.tex` reordered so "Which axes carry the physics" (P1-E9 probes) precedes
+factor recovery.  Check in particular: (i) is Prop. 7.3 proved at the level stated — the
+population objective is flat in the orientation of the projector on T_S^⊥ at fixed rank; does
+"Hessian … vanishes" overstate it? (ii) does Prop. 7.2's representation statement
+(J_h^⊤Σ⁻¹J_h) belong in Paper 1 or is it Paper 3 content smuggled in? (iii) is the new §1
+paragraph in the paper's voice or does it read as a programme announcement?
+
+ORACLE (commit after `ed01ca6`): new title; abstract opens with the question; §1 "The question"
+paragraph with Panda as the foil; §3 attributes its first two statements to Paper 1
+Props. 7.2–7.3; new claim C0 (physical-variable probes) and E0b row; §5 "three measurement
+systems" sentence.  Check: (i) does C0 have an acceptance rule as sharp as C1–C4, or is it
+descriptive? (ii) does the new framing make the diagnostics *depend* on the determinants being
+true — and is that dependence stated as a risk anywhere? (iii) has the collaboration note lost
+its concept-note register (the Tier-2 partner must still recognise the project)?
+
+Cross-paper: both must describe the determinants identically (metric / class / support), both
+must cite the same proposition numbers, and neither may claim consequence the other measures.
+
 ## What to check, in this order
 
 1. **Read the pre-update storyline first.** `plan/THREE_PAPER_STORYLINE_2026-09-02.md` (Paper 1

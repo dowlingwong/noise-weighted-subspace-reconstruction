@@ -10,6 +10,16 @@ packages (`noise_module`, `qp_simulator`, `reconstruction_model`,
 byte-identical to ORACLE's (verified 2026-09-02).  Companion checklist:
 `docs/IMPLEMENTATION_CHECKLIST.md`._
 
+## 0a. Theme adjustment (2026-09-03)
+
+Paper 3 is now the main paper of the programme and Paper 1 its leading service paper
+(`ORACLE/docs/THEME_ADJUSTMENT_2026-09-03.md`).  The question is *what determines which
+representation a detector model learns, and what it lets a physicist reconstruct*; the
+determinants are the metric Σ⁻¹, the class F, the excited support S (Paper 1, Props. 7.1–7.3),
+and at deployment Σ̂ ≠ Σ.  The failure diagnostics below are the test of the determinants; a new
+claim **C0** (physical-variable organisation) carries the Panda-style probe into the contract on
+every tier, and consequence is reported in physical units on three measurement systems.
+
 ## 0. Scope of this plan
 
 Tier 1 (mechanism, ORACLE-Cov) is fully implementable on CPU here and is where
@@ -97,6 +107,7 @@ Fisher-rank of I(z) on the evaluated stratum.
 | ID | Name | Families | Subjects | Primary endpoint | Accept |
 |---|---|---|---|---|---|
 | P3-E0 | Positive controls & analytic unit tests | `null`, `aligned`, white regime | all | pullback = Mahalanobis of Wδ to 1e-9; Jacobian-projected of null = 0; white regime: Euclidean = pullback up to scale | tests green |
+| P3-E0b | **C0 physical-variable probes** (`experiments/oracle/run_e0b_probes.py`) | clean, N1–N4, N6, S1–S4 | lin_cw, mlp_ae (all stages) | per variable: `r2_frozen` (clean-fitted probe on the window), `r2_refit` (2-fold CV refit), `axis_cos`, `participation`; predictions (1)–(4) in the module docstring | each prediction passes or is reported failed; excited-variable R² on clean ≥ 0.5 at the code stage for lin_cw |
 | P3-E1 | κ sweep (N1, N2) | N1, N2 | lin_cw, mlp_ae | monotone alarm and K in κ; C1 power | monotone; power ≥ 0.8 at κ ≥ κ* |
 | P3-E2 | Designed dissociation (cov_B) | `null`, `aligned` | all | predicted sign for pullback and Jacobian-projected; failure of Euclidean by construction | sign holds all seeds |
 | P3-E3 | S-signature: tangent confinement | S1–S4 vs N1–N4 | lin_cw, mlp_ae | fraction of displacement energy in T_S^⊥, N vs S | separation with interval excluding zero |
@@ -113,6 +124,10 @@ the latter may be cited.
 
 ## 6. Tier 2 and Tier 3 (cluster; runbooks only)
 
+- **C0 on Tier 2/3:** the same probe protocol (`run_e0b_probes.Probe`, `cv_r2`, `axis_cos`,
+  `participation`) applied to DynEdge hooked stages with NuBench per-event labels (energy,
+  zenith, azimuth, vertex) and to the TIDMAD transformer with the injected amplitude; predicted
+  pattern as Tier 1.  Added to both runbooks.
 - **Tier 2 ORACLE-Paired:** `ORACLE/src/oracle_paired` (Prometheus injection reuse across ORCA/ARCA, NuBench response reimplementation, N1–N5/S1–S5/U1–U4 cells, content-matched clean twins). Runbook to write: `docs/plans/oracle/TIER2_RUNBOOK.md` (production, DynEdge hooks, the pre-registered prediction table from Tier 1, one confirmatory run).
 - **Tier 3 TIDMAD:** `ORACLE/src/tidmad_transformer` trained twice (MSE vs inverse-PSD); monitors from `experiments/oracle` applied to its hooks; consequence K_rel. Runbook: `docs/plans/oracle/TIER3_RUNBOOK.md`.
 

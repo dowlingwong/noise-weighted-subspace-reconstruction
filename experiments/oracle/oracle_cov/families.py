@@ -16,6 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Callable
 
+import zlib
+
 import numpy as np
 
 from experiments.synthetic.nfpa_confirmatory.covariance import ar1_covariance
@@ -177,7 +179,9 @@ def family(name: str, severity: float | None = None) -> Family:
 
 
 def make_window(ts: TrainingSet, fam: Family, n: int, seed: int) -> WindowData:
-    rng = np.random.default_rng([seed, hash(fam.name) & 0xFFFF, int(1e6 * (fam.severity or 0.0)) & 0xFFFFFF])
+    # zlib.crc32, not hash(): Python's str hash is salted per process (PYTHONHASHSEED), which
+    # made windows irreproducible across runs before 2026-09-03 (dev results only; never citable).
+    rng = np.random.default_rng([seed, zlib.crc32(fam.name.encode()) & 0xFFFF, int(1e6 * (fam.severity or 0.0)) & 0xFFFFFF])
     return GENERATORS[fam.name](ts, rng, n, fam)
 
 

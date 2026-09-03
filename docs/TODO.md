@@ -32,6 +32,21 @@ findings and open items: `docs/reviews/2026-09-02_experiments_review.md`.
   - [ ] `scripts/make_paper1_fig_pe.py`; register P1-E8 in the evidence map.
   - [ ] Run a and b now (no learning, CPU, ~1 h); run c only after App. E.5 statement is fixed.
 
+## Theme adjustment 2026-09-03 (Paper 3 main, Paper 1 service — `docs/THEME_ADJUSTMENT_2026-09-03.md`)
+- [x] `experiments/paper1/latent_probes.py` (P1-E9) — implemented; 4-seed run in progress.
+- [x] `experiments/oracle/run_e0b_probes.py` (P3-E0b / C0) — implemented; dev run (3 seeds) in progress.
+- [x] Reproducibility fix: `families.make_window` used Python's salted `hash()` for the window seed —
+      replaced by `zlib.crc32`; all Tier-1 dev outputs before this date are therefore not
+      byte-reproducible (they were never citable).
+- [ ] P1-E9: add panel (a) (latent axes × physical variables, MSE vs Σ⁻¹) to `scripts/make_paper1_fig1.py`;
+      register in the evidence map.
+- [ ] P1-E10 gain predictor: write `scripts/gain_predictor.py`; add the PSD/basis dump step to
+      `docs/runbooks/CRESST_REMOTE_AGENT_RUNBOOK.md`; run on the cluster.
+- [ ] P3-E0b: read the dev summary against predictions (1)–(4); write C0 into
+      `docs/plans/oracle/PREREGISTRATION.md` §4 with the acceptance rule; add the Tier-2/3 probe
+      step to both runbooks.
+- [ ] Demote P1-E8c in `IMPLEMENTATION_CHECKLIST.md`.
+
 ## Methodology adopted from Kieseler (GravNet/GarNet 1902.07987; object condensation 2002.03605)
 - [ ] Every learned-model comparison (P1-E8c, Tier-1 `mlp_ae`, Tier-2 DynEdge) reports a
       resource row: parameter count, training time, CPU/GPU inference time per event, memory —

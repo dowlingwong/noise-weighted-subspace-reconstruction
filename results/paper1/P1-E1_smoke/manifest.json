@@ -1,0 +1,93 @@
+{
+  "config_hashes": [
+    "0ff7cf4c39d65347"
+  ],
+  "configs": [
+    {
+      "C": 8,
+      "N_calibration": 128,
+      "N_test": 200,
+      "N_train": 120,
+      "N_validation": 40,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 40,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    }
+  ],
+  "created_utc": "2026-09-02T22:18:06Z",
+  "experiment_id": "P1-E1",
+  "max_regression_abs_diff": 0.0,
+  "methods": [
+    "NFPA",
+    "Iso-MPCA"
+  ],
+  "outputs": {
+    "decoding.csv": "b6183ca2f5edb5a4447bb6197157960220f246e3a35916a35f09cc3d42f0233f",
+    "event_example.npz": "1291083480e0e548a19bf33e56423bb485f8124cd8fb2c0b48ce60ac9a3b40b7",
+    "projectors.npz": "905e32ca12ee588c16c05aa0789c735eb48cba25945ae3a44ab47677fe002ed3"
+  },
+  "provenance": {
+    "code_commit": "b8abf3c9e58ba758ce8f306512f7bf27d9b0734d",
+    "command": [
+      "/sessions/rcw-013dtae1m1tcqfsawkxxz8ps/mnt/noise-weighted-subspace-reconstruction/experiments/paper1/fig1_factors.py",
+      "--seeds",
+      "0",
+      "--smoke"
+    ],
+    "config": {
+      "C": 8,
+      "N_calibration": 128,
+      "N_test": 200,
+      "N_train": 120,
+      "N_validation": 40,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 40,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "0ff7cf4c39d65347",
+    "git_tree_dirty": true,
+    "hostname": "claude",
+    "implementation_freeze_commit": "b8abf3c9e58ba758ce8f306512f7bf27d9b0734d",
+    "numpy_version": "2.2.6",
+    "platform": "Linux-6.8.0-136-generic-aarch64-with-glibc2.35",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/sessions/rcw-013dtae1m1tcqfsawkxxz8ps/venv/bin/python",
+    "python_version": "3.10.12",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": "4",
+      "OPENBLAS_NUM_THREADS": "4"
+    }
+  },
+  "regression_reference": "results/rps2026/E8_semantics/separable_alpha_0",
+  "seeds": [
+    0
+  ]
+}

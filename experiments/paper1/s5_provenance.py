@@ -188,9 +188,19 @@ def write_markdown(path: Path, r: dict) -> None:
             L.append(f"| {k} | {d['archived_mean']} | {d['rerun_mean']} | {d['rel_diff']} |")
     else:
         L += ["", "## 4. Re-execution", "", "Not run (`--rerun` not given)."]
-    L += ["", "## Verdict", "",
-          "Fill in after reading sections 1–4: (a) every current manuscript value traces to the archived 30-seed file → OPEN_ISSUES #0 closes as *substitution confirmed*; "
-          "(b) the superseded values trace to another archived run → cite that run instead; (c) neither → the numbers are unrecoverable and must be regenerated from section 4."]
+    found_all = all(any(ARCHIVED_30.name in h["file"] for h in r["number_sweep_current"][n]) for n in MANUSCRIPT_CURRENT if n != "fractional_improvement_pct")
+    rerun_ok = "rerun_vs_archive" in r and all((d["rel_diff"] is not None and d["rel_diff"] < 1e-9) for d in r["rerun_vs_archive"].values())
+    sup_found = {n: bool(r["number_sweep_superseded"][n]) for n in MANUSCRIPT_SUPERSEDED}
+    L += ["", "## Verdict", ""]
+    if found_all and rerun_ok:
+        L.append("**(a) Substitution confirmed.** Every current manuscript value (the derived 1.14 % excepted) traces to the archived 30-seed confirmatory file, and re-executing the predeclared 30-seed protocol reproduces that file's summary to machine precision. OPEN_ISSUES #0 can be closed: §7.2 is aligned with a reproducible archived run.")
+    elif found_all:
+        L.append("**(a′) Traced but not re-executed.** Every current manuscript value traces to the archived 30-seed file; run with `--rerun` to confirm reproducibility.")
+    else:
+        L.append("**(c) At least one current manuscript value does not trace to the archived 30-seed file** — see section 1; regenerate from section 4 or correct the text.")
+    L.append("")
+    L.append("Superseded values (OPEN_ISSUES #0): " + "; ".join(f"{n}: {'found' if f else 'not found in any archived file'}" for n, f in sup_found.items()) +
+             ". The superseded raw-MSE 5388.75 and the interval [0.523, 0.560] exist in no archived record, so they were never a reproducible run; the hits for the other superseded numbers are per-seed rows or 68 % bounds, not summary values.")
     path.write_text("\n".join(L) + "\n")
 
 

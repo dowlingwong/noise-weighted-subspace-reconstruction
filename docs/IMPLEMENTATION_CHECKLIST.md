@@ -23,10 +23,10 @@ nodes and the external datasets.  Status legend: `[x]` done, `[~]` partial,
 ## B. Paper 1
 
 - [x] **P1-0** Create `experiments/paper1/` package with a shared `common.py` (manifest writer: config hash, git commit, seeds, SHA-256 of outputs) reusing `nfpa_confirmatory.r9_common`. (CPU)
-- [x] **P1-E5** S5 provenance audit → `results/paper1/P1-E5/PROVENANCE_REPORT.md`; closes `OPEN_ISSUES.md` #0 in the manuscript repo. (CPU)
+- [x] **P1-E5** (closed: substitution confirmed, 30-seed rerun reproduces the archive to 1e-16, S1–S9 bundle files identical) S5 provenance audit → `results/paper1/P1-E5/PROVENANCE_REPORT.md`; closes `OPEN_ISSUES.md` #0 in the manuscript repo. (CPU)
 - [x] **P1-E1** (4 seeds; regression vs archived E8 to 3e-14) Figure-1 data product (`fig1_factors.py`) + renderer (`scripts/make_paper1_fig1.py`); regression against E8 to 1e-6. (CPU)
 - [~] **P1-E2** _(dev run: 5 seeds × 4 α at the frozen 10 restarts; 10 seeds × 6 α still to run)_ Nonseparability α sweep (`alpha_sweep.py`), 10 seeds × 6 α × 4 methods; summary + figure. (CPU, ~1 h)
-- [x] **P1-E6** Rank-one corollary check at C=8 (`rank_one_check.py`). (CPU, minutes)
+- [~] **P1-E6** _(5 seeds, n = 3000: channel |cos| ≥ 0.9999, OF-amplitude correlation ≥ 0.9993, temporal |cos| 0.993 — below the 0.999 rule at this n; rerun at n ≥ 20 000 on a machine with memory)_ Rank-one corollary check at C=8 (`rank_one_check.py`). (CPU, minutes)
 - [~] **P1-E3** _(wrapper written (`run_e12_local.sh`); sweep not yet run)_ E12 calibration-size sweep rerun locally (`run_e12_local.sh` → `run_calibration_sweep.py`); tests `test_round12_sweep.py` green first. (CPU, hours; background)
 - [x] **P1-E4** Instrument table compiler (`scripts/make_instrument_table.py`) with per-cell provenance trace. (CPU)
 - [ ] **P1-W1** Manuscript wiring after 29 Sep: input `07b_separable_evidence.tex`, add the `\ref`, register runs in `MANUSCRIPT_EVIDENCE_MAP.md`, replace the figure placeholder, add the α-sweep sentence to §6.4, the instrument table to §7. (desk)
@@ -48,7 +48,7 @@ nodes and the external datasets.  Status legend: `[x]` done, `[~]` partial,
 - [x] **P3-E4** Attribution with abstention (`run_e4_attribution.py`).
 - [~] **P3-E5** _(analysed from the P3-E4 rows)_ Alarm–consequence within strata (`run_e5_consequence.py`).
 - [~] **P3-E6** Layerwise profile on `mlp_ae` (`run_e6_layerwise.py`).
-- [x] **P3-E7** Cost benchmark (`run_e7_cost.py`).
+- [x] **P3-E7** (dev; C3 as specified fails at 10 % sampling — see review C10) Cost benchmark (`run_e7_cost.py`).
 - [~] **P3-PR** _(draft written; not frozen)_ `docs/plans/oracle/PREREGISTRATION.md` — endpoints, thresholds, families, margins, and the Tier-1 → Tier-2 prediction table, hash-frozen before any confirmatory run.
 
 ## D. Paper 3 — Tier 2 / Tier 3 (cluster)

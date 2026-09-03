@@ -71,6 +71,10 @@ hash, git commit, seed list and SHA-256 of every output.
 ### P1-E7 — Rung-4 strengthening (deferred; cluster)
 - Option B (narrow the claim) was taken; the pilot stays a boundary paragraph. If reopened: ≥ 5 seeds per arm, matched compute, the E7 config, and the whitening-range check (E6) on every arm. Runbook: `docs/plans/rps2026/ROUND9_OVERNIGHT_REMOTE_RUNBOOK.md` Task B; do not run before the R/PS decision.
 
+## 1b. Status after the 2026-09-03 container run
+
+P1-E1 done (4 seeds, regression 3e-14); P1-E2 done at 5 seeds × 4 α (approximation term −0.0028 → −0.0014, monotone; metric term keeps sign; NFPA channel error 0.033 → 0.173 with α); P1-E4 done; P1-E5 closed; P1-E6 partial (n = 3000); P1-E3 not run. Summaries in `results/paper1/<ID>/`.
+
 ## 2. Order
 
 P1-E5 (closes a blocking issue) → P1-E1 → P1-E2 → P1-E6 → P1-E3 (longest CPU

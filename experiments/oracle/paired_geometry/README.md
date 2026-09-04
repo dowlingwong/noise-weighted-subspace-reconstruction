@@ -1,9 +1,15 @@
 # ORACLE-Paired — same event, different geometry
 
-> **Superseded for simulation mechanics.** `src/prometheus_simulation/` is now the
-> canonical package (geometry, injection, replay, readout, physics record, agent
-> prompt, notebook). This directory keeps only the Tier-2 experiment design: the
-> pair ranking, the NuBench response gates G1-G3, and the cell definitions.
+> **The simulation code lives in ORACLE.** `ORACLE/src/prometheus_simulation/`
+> is the canonical package — geometry, injection, replay, readout,
+> reconstruction, the analysis report, the agent prompt and the notebook. It
+> sits beside `ORACLE/src/oracle_paired/`, which owns the detector response,
+> the N/S/U interventions, matching and export.
+>
+> This directory keeps only the Tier-2 experiment *design*: the pair ranking,
+> the G1-G3 calibration gates, and the confounds to declare. The runnable
+> scripts that were here have been removed rather than left to rot against a
+> package that moved.
 
 Tier 2 of the Paper 3 plan (`docs/EXPERIMENT_PLAN_PAPER3.md` §6). Produces the
 event-paired cross-geometry dataset that **NuBench does not have**, by

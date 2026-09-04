@@ -14,8 +14,9 @@ as written** — see §B._
 - Monitors and analysis: `experiments/oracle/oracle_cov/{monitors,baselines,consequence,abstain,report}.py`
   are subject-agnostic; a Tier-2 subject needs only `represent(X, stage)`, `outputs(X)`
   (angular error target) and `jac_recon`/`jac_output` via autograd on the hooked stage.
-- **New:** `experiments/oracle/paired_geometry/` — injection sharing, re-centring, medium
-  override, pair feasibility, and the pairing null. Configs carry `[nubench]`/`[ours]`/`[ASK]`
+- **New:** `ORACLE/src/prometheus_simulation/` — injection sharing, re-centring, medium
+  override, pair feasibility, the pairing null, readout, baseline reconstruction
+  and a headless analysis report (`analyze.py`). Configs carry `[nubench]`/`[ours]`/`[ASK]`
   provenance on every value.
 
 ## Steps
@@ -65,7 +66,7 @@ own models and the cost estimate rises by roughly an order of magnitude.
 # §B. Choosing the pair — and why ORCA/ARCA fails
 
 Measured from the geofiles shipped in `prometheus/resources/geofiles/`
-(`paired_geometry/geo.py`, run it to reproduce):
+(`prometheus_simulation/geometry.py`, run it to reproduce):
 
 | geo | modules | offset z (m) | r_horiz (m) | half-height (m) | header medium |
 |---|---|---|---|---|---|
@@ -90,7 +91,7 @@ detect, and the surviving sample is a heavily selected sliver, not a paired samp
 ORCA is also the only NuBench dataset capped at 10³ GeV rather than 10⁵, so at a fixed
 spectrum a Flower S comparison is already a support shift — an S-contract change — not a
 geometry change. **Use ARCA ↔ IceCube.** Full ranking in
-`paired_geometry/config/geometries.yaml:pairs`.
+`experiments/oracle/paired_geometry/config/geometries.yaml:pairs`.
 
 **P3 (Hexagon ↔ Hexagon Ice LE) is a required negative control, not an option.** NuBench ran
 all six geometries in **water** and added **one ice** dataset on the Hexagon geometry, so

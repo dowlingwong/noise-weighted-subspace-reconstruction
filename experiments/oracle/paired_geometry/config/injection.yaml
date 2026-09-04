@@ -1,0 +1,69 @@
+# LeptonInjector settings for the ORACLE paired-geometry re-simulation.
+#
+# STATUS OF EACH VALUE:
+#   [nubench]  stated in arXiv:2511.13111 (main text or Table 1)
+#   [ours]     our choice; NuBench does not constrain it
+#   [ASK]      NOT published -- must come from the GraphNeT/NuBench authors,
+#              or be chosen by us and declared as a deviation.
+#
+# Everything marked [ASK] is exactly what makes their *files* irreproducible
+# and what the email in docs/plans/oracle/TIER2_RUNBOOK.md asks for.
+
+final_state_1: MuMinus          # [nubench] nu_mu CC ...
+final_state_2: Hadrons          # [nubench] ... and NC
+interaction: [CC, NC]           # [nubench]
+
+energy_range_gev: [10, 1.0e5]   # [nubench] 10 GeV - 100 TeV (except Flower S)
+power_law: 1.0                  # [ASK] spectral index not published.
+                                #       Prometheus default is 1.0 (E^-1).
+                                #       A harder/softer choice changes the
+                                #       energy support and therefore every
+                                #       cross-geometry K comparison.
+
+min_zenith: 0.0                 # [ASK] not published; 0-180 assumed (all-sky)
+max_zenith: 180.0               # [ASK]
+min_azimuth: 0.0                # [ASK]
+max_azimuth: 360.0              # [ASK]
+
+is_ranged: false                # [ours] volume mode.  Ranged injection places
+                                #        the vertex outside the detector for
+                                #        through-going muons; volume mode
+                                #        gives contained vertices, which is
+                                #        what the vertex-prediction task and
+                                #        our K (reconstruction damage on a
+                                #        KNOWN truth) both need.
+
+# Injection cylinder.  MUST be sized for the LARGER member of the pair, then
+# held FIXED across both geometries -- that is what makes the events paired.
+# Set by make_injection.py from geometries.yaml unless overridden here.
+cylinder:
+  size_for: larger_of_pair      # [ours]
+  radius_margin_m: 200.0        # [ours] pad beyond r_horizontal_m
+  height_margin_m: 200.0        # [ours] pad beyond z_range
+  endcap_length_m: 500.0        # [ASK]/[ours] irrelevant in volume mode
+
+earth_model: null               # [ASK] NuBench does not state the Earth model.
+                                #       Prometheus builds it at depth
+                                #       -detector_offset[2].  See WARNING below.
+
+n_events_per_pair: 100000       # [ours] cf. NuBench ~129.7M total over 7 sets
+
+random_state_seed: 20260903     # [ours] ONE seed, shared by both geometries
+
+# ---------------------------------------------------------------------------
+# WARNING -- the depth/weight trap
+# ---------------------------------------------------------------------------
+# lepton_injector_utils.py builds the Earth model with the detector depth taken
+# as -detector_offset[2].  Our two geometries sit at DIFFERENT depths
+# (flower_l -3194 m, hexagon -1972 m), so if we re-centre events onto each
+# detector we are implicitly changing the overburden.  Consequences:
+#
+#   * The muon-flux weights (OneWeight) computed for detector A are NOT valid
+#     for detector B.  Any flux-weighted quantity must be recomputed per
+#     geometry, or the analysis must stay UNWEIGHTED.
+#   * ORACLE's endpoints (K = reconstruction damage at known truth, per event)
+#     are per-event and unweighted, so this is tolerable -- but it must be
+#     stated, because a reader will ask.
+#
+# Decision for Tier 2: report unweighted, per-event, truth-referenced metrics
+# only.  No flux-weighted aggregate crosses a geometry boundary.

@@ -1,0 +1,70 @@
+# Re-implementation of the NuBench detector-response emulation (§3.2 of
+# arXiv:2511.13111).  The response code itself was NEVER RELEASED; these are
+# the parameters the paper states in prose, plus the gaps.
+#
+#   [nubench] stated in the paper
+#   [ASK]     not stated -- blocks byte-level comparability with their files
+
+om:
+  shape: sphere                 # [nubench] perfect sphere, single effective PMT
+  radius_cm: 30.0               # [nubench]
+  quantum_efficiency: 0.20      # [nubench]
+  angular_acceptance:
+    water: uniform              # [nubench]
+    ice: reduced_downgoing      # [nubench] qualitative only -- no curve given
+    ice_curve: null             # [ASK] the actual acceptance function
+  charge_saturation: false      # [nubench] explicitly NOT modelled
+
+trigger:
+  window_us_min: 5.0            # [nubench] >= 5 us
+  centering: mean_photon_arrival_time   # [nubench]
+
+noise:
+  model: uniform_in_trigger_window      # [nubench] arrival times uniform
+  rate_hz_per_om: null          # [ASK] the noise RATE is not published.
+                                #       This single number sets the pulse
+                                #       multiplicity floor and therefore the
+                                #       <4-pulse cut efficiency.  Without it
+                                #       our event yields will not match theirs.
+
+merging:
+  window: tts                   # [nubench] merge photons within the TTS
+  tts_ns: null                  # [ASK] "set to the TTS per dataset" -- the
+                                #       per-dataset TTS values are not given.
+  pulse_charge: photon_count_in_window  # [nubench]
+
+smearing:
+  time_ns_sigma: 1.0            # [nubench]
+  charge_pe_sigma: 0.25         # [nubench]
+
+cuts:
+  min_pulses: 4                 # [nubench] events with < 4 pulses removed
+  max_pulses: 1000000           # [nubench] events with > 1e6 pulses removed
+
+medium_override:
+  # NuBench ran all six geometries in water and one extra dataset in ice.
+  # The shipped .geo headers say otherwise, so the header must be rewritten
+  # before Prometheus picks the photon propagator (olympus for water,
+  # PPC for ice).
+  enabled: true
+  from_field: medium_nubench    # in geometries.yaml
+
+# ---------------------------------------------------------------------------
+# Calibration gate -- run BEFORE any ORACLE claim uses this module.
+# ---------------------------------------------------------------------------
+# Our §3.2 is a re-implementation.  Any mismatch against theirs is an
+# acquisition shift indistinguishable from the N-contract violations we are
+# trying to detect.  So:
+#
+#   G1  Our simulated pulse-count distribution matches theirs (released
+#       Hexagon Ice LE) within a stated KS distance, per energy decade.
+#   G2  Our per-pulse charge and time-residual distributions match theirs.
+#   G3  The RELEASED DynEdge checkpoint, applied to OUR events, reproduces
+#       their published Table-6 metrics within a stated tolerance.
+#
+# G3 is the one that matters.  If G3 fails, the released model artifacts
+# CANNOT be reused and Tier 2 must train its own models -- which changes the
+# cost estimate by an order of magnitude.  G3 is currently BLOCKED by the
+# open V0 issue in DATASETS.md (CPU re-inference differs event by event from
+# the released predictions), so V0 must close first.
+gates: [G1, G2, G3]

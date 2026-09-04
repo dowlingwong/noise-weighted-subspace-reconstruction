@@ -1,0 +1,167 @@
+# NuBench datasets <-> Prometheus geofiles.
+#
+# Geometry extents below were MEASURED from the geofiles shipped in
+# prometheus/resources/geofiles/ (mean of module positions = the detector
+# `offset` Prometheus computes in detector/detector.py:162).  They are the
+# reason naive injection re-use does not work: the six geometries do not
+# share a coordinate frame.
+#
+# medium_nubench is what NuBench §3 actually simulated.  Note that the
+# shipped .geo headers disagree (orca/arca say "mediterranean", icecube says
+# "ice"): NuBench ran ALL six geometries in water and added ONE ice dataset
+# on the Hexagon geometry.  To reproduce their configuration the header must
+# be overridden -- see response.yaml:medium_override.
+
+datasets:
+  flower_s:
+    nubench_name: "Flower S"
+    inspired_by: ORCA
+    geofile: orca.geo
+    medium_header: mediterranean
+    medium_nubench: water
+    n_modules: 3300
+    n_strings: 150
+    offset_m: [0.0, 0.4, 95.4]
+    z_range_m: [0.0, 190.9]
+    r_horizontal_m: 100.2
+    energy_range_gev: [10, 1.0e3]      # NuBench: Flower S is the ONLY 10^3 cap
+
+  flower_l:
+    nubench_name: "Flower L"
+    inspired_by: ARCA
+    geofile: arca.geo
+    medium_header: mediterranean
+    medium_nubench: water
+    n_modules: 2070
+    n_strings: 115
+    offset_m: [1.5, -1.7, -3194.0]
+    z_range_m: [-3500.0, -2888.0]
+    r_horizontal_m: 500.9
+    energy_range_gev: [10, 1.0e5]
+
+  flower_xl:
+    nubench_name: "Flower XL"
+    inspired_by: TRIDENT
+    geofile: trident.geo
+    medium_header: water
+    medium_nubench: water
+    n_modules: 24220
+    n_strings: 1211
+    offset_m: [0.6, 0.6, -3090.0]
+    z_range_m: [-3375.0, -2805.0]
+    r_horizontal_m: 1949.6
+    energy_range_gev: [10, 1.0e5]
+
+  triangle:
+    nubench_name: "Triangle"
+    inspired_by: P-ONE
+    geofile: pone_triangle.geo
+    medium_header: water
+    medium_nubench: water
+    n_modules: 60
+    n_strings: 3
+    offset_m: [0.0, 0.0, 0.0]
+    z_range_m: [-500.0, 500.0]
+    r_horizontal_m: 57.7
+    energy_range_gev: [10, 1.0e5]
+
+  cluster:
+    nubench_name: "Cluster"
+    inspired_by: Baikal-GVD
+    geofile: gvd.geo
+    medium_header: water
+    medium_nubench: water
+    n_modules: 288
+    n_strings: 8
+    offset_m: [0.0, 0.0, -970.0]
+    z_range_m: [-1240.0, -700.0]
+    r_horizontal_m: 60.0
+    energy_range_gev: [10, 1.0e5]
+
+  hexagon:
+    nubench_name: "Hexagon"
+    inspired_by: IceCube
+    geofile: icecube.geo
+    medium_header: ice
+    medium_nubench: water          # <-- NuBench ran this geometry in WATER
+    n_modules: 5160
+    n_strings: 86
+    offset_m: [5.9, -2.5, -1972.0]
+    z_range_m: [-2460.9, -1423.5]
+    r_horizontal_m: 596.3
+    energy_range_gev: [10, 1.0e5]
+
+  hexagon_ice_le:
+    nubench_name: "Hexagon Ice LE"
+    inspired_by: IceCube
+    geofile: icecube.geo
+    medium_header: ice
+    medium_nubench: ice            # the only ice dataset
+    n_modules: 5160
+    n_strings: 86
+    offset_m: [5.9, -2.5, -1972.0]
+    z_range_m: [-2460.9, -1423.5]
+    r_horizontal_m: 596.3
+    energy_range_gev: [10, 1.0e5]
+    note: >
+      Same geometry as `hexagon`, different medium.  This is NuBench's own
+      medium-vs-geometry control and the ONE axis where their released
+      datasets are already almost paired in design (though not event-paired).
+
+# ---------------------------------------------------------------------------
+# Candidate pairs for the ORACLE-Paired cell.  Ranked by how cleanly they
+# isolate "geometry changed, physics did not".
+# ---------------------------------------------------------------------------
+pairs:
+  P1_scale_matched:
+    a: flower_l          # r=501 m, h=612 m
+    b: hexagon           # r=596 m, h=1037 m
+    medium: water
+    isolates: "string spacing + layout at ~matched instrumented scale"
+    rank: 1
+    why: >
+      Best-matched pair by instrumented volume, both water under the NuBench
+      config, and the shared injection cylinder wastes least.  ~72 m vs
+      ~125 m inter-string spacing is a real, single-axis geometry change.
+
+  P2_spacing_extreme:
+    a: flower_l
+    b: flower_xl         # r=1950 m
+    medium: water
+    isolates: "sparse-large vs dense-large"
+    rank: 2
+    why: >
+      Same family (Flower), 72 m vs 90 m spacing, but a 4x horizontal scale
+      jump.  Injection must be sized for flower_xl, so flower_l sees a mostly
+      un-contained sample: report containment fraction, do not hide it.
+
+  P3_medium_control:
+    a: hexagon
+    b: hexagon_ice_le
+    medium: "water vs ice"
+    isolates: "MEDIUM ONLY -- geometry is identical"
+    rank: 3
+    why: >
+      Not a geometry pair at all: it is the negative control that separates
+      'geometry changed' from 'medium changed'.  Needed to argue any P1/P2
+      effect is geometric.  NOTE ice/PPC is seedable only to Poisson-level
+      photon variation, and ice adds a non-uniform angular acceptance.
+
+  P4_small_scale:
+    a: flower_s          # r=100 m -- but capped at 10^3 GeV in NuBench
+    b: cluster           # r=60 m
+    medium: water
+    isolates: "small-detector layouts"
+    rank: 4
+    why: >
+      Cheap to run.  Blocked as a NuBench-comparable pair because Flower S is
+      the only dataset capped at 10^3 GeV -- comparing it to anything else at
+      fixed spectrum is already a support shift, not a geometry change.
+      Usable for OUR re-simulation (we choose one spectrum) but NOT for any
+      claim referenced to released NuBench numbers.
+
+# Do not pair across these without saying so explicitly in the paper:
+confounds_by_construction:
+  - "flower_s energy cap 10^3 GeV vs 10^5 GeV everywhere else (NuBench Table 1)"
+  - "medium water vs ice (angular acceptance + scattering length + TTS)"
+  - "horizontal scale ratio > ~2 (shared injection cylinder becomes degenerate)"

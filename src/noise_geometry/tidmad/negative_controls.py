@@ -20,6 +20,9 @@ control                       what it breaks
 ``wrong_psd``                 the noise model (white metric instead of Sigma)
 ``noise_only_train``          the training signal (fit on signal-free windows)
 ``random_weighted_basis``     the learned subspace (random basis, same rank)
+``random_weighted_basis_norm_matched``
+                              the learned subspace, with the reconstruction's
+                              whitened energy matched to the fitted basis's
 ``wrong_frequency``           the signal model (filter at an empty frequency)
 ``permuted_bins``             the time structure (per-window sample permutation)
 ============================  ============================================
@@ -58,6 +61,7 @@ CONTROL_NOMINAL: dict[str, str] = {
     "wrong_psd": "empca",
     "noise_only_train": "empca",
     "random_weighted_basis": "empca",
+    "random_weighted_basis_norm_matched": "empca",
     "wrong_frequency": "empca",
     "permuted_bins": "empca",
 }
@@ -196,6 +200,32 @@ def run_negative_controls(
         truth,
     )
 
+    # ---- 3b. norm-matched random basis (task card P1-E13, control T-c) -----
+    # The plain random-basis control saturates at zero recovery, so it shows
+    # falsifiability but carries no information about *where* the fitted basis
+    # points. Matching the reconstruction's whitened energy to the fitted
+    # basis's own mean whitened reconstruction energy on the FIT windows removes
+    # the trivial amplitude explanation: what is left is the direction.
+    fitted_fit_recon = _project(fit_features, components, mean, weights=w_real)
+    random_fit_recon = _project(fit_features, random_basis, mean, weights=w_real)
+
+    def _mean_whitened_energy(recon: np.ndarray) -> float:
+        centred = recon - mean[None, :]
+        return float(np.mean(np.sum(w_real[None, :] * centred ** 2, axis=1)))
+
+    e_fitted = _mean_whitened_energy(fitted_fit_recon)
+    e_random = _mean_whitened_energy(random_fit_recon)
+    scale = float(np.sqrt(e_fitted / e_random)) if e_random > 0 else 1.0
+    random_eval_recon = _project(eval_features, random_basis, mean, weights=w_real)
+    matched_features = mean[None, :] + scale * (random_eval_recon - mean[None, :])
+    errors["random_weighted_basis_norm_matched"] = _score(
+        "random_weighted_basis_norm_matched",
+        windows,
+        to_time(matched_features),
+        basis_f,
+        truth,
+    )
+
     # ---- 4. wrong frequency: a filter where nothing was injected -----------
     # Scored against the *true* signal, so a filter looking in an empty part of
     # the spectrum must fail. Implemented as a fixed-phase rank-1 filter at an
@@ -269,6 +299,9 @@ def run_negative_controls(
         "degraded": degraded,
         "all_controls_degraded": bool(all(degraded.values())),
         "controls_that_did_not_degrade": [name for name, ok in degraded.items() if not ok],
+        "norm_match_scale": scale,
+        "norm_match_energy_fitted": e_fitted,
+        "norm_match_energy_random": e_random,
         "wrong_frequency_hz": float(offset_frequency),
         "wrong_frequency_offset_bins": int(wrong_frequency_offset_bins),
         "note": (

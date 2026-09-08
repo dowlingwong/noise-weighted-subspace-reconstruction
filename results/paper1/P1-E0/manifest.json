@@ -1,0 +1,97 @@
+{
+  "config_hashes": [
+    "09f7dbd811814c55"
+  ],
+  "configs": [
+    {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    }
+  ],
+  "created_utc": "2026-09-06T23:37:49Z",
+  "experiment_id": "P1-E0",
+  "gate_passed": true,
+  "host": "vm",
+  "max_regression_abs_diff": 2.398081733190338e-14,
+  "methods": [
+    "NFPA",
+    "Iso-MPCA"
+  ],
+  "numpy": "2.4.6",
+  "outputs": {
+    "PREDECLARED.md": "538dc7ac8435b237af95756e652cfa37267568bbca76214c63862b499c007047",
+    "regression_check.csv": "e1f865cba18f36f419f3ea6be5dfb1b9cde088fcc39ade5bae772b5dc859060e",
+    "summary.json": "e50080dbeae3104459ceeac7cba818c57672d6351b21282fe218b6f7ce45afa1"
+  },
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+  "provenance": {
+    "code_commit": "3026d2593897c07c933386fd5d278515083c6f31",
+    "command": [
+      "/root/exp/experiments/paper1/e0_regression.py",
+      "--seeds",
+      "0"
+    ],
+    "config": {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "09f7dbd811814c55",
+    "git_tree_dirty": true,
+    "hostname": "vm",
+    "implementation_freeze_commit": "3026d2593897c07c933386fd5d278515083c6f31",
+    "numpy_version": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/root/exp/.venv/bin/python3",
+    "python_version": "3.12.3",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "regression_reference": "results/rps2026/E8_semantics/separable_alpha_0",
+  "seeds": [
+    0
+  ],
+  "walltime_s": 319.59453082084656
+}

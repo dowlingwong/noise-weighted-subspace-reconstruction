@@ -7,6 +7,13 @@ to verify the S3 EMPCA bridge by optimisation rather than by construction.
 """
 
 from .linear import tied_linear_ae_closed_form
+from .untied import (
+    SeparableMetric,
+    UntiedAEResult,
+    obliqueness,
+    sigma_orthogonal_projector,
+    train_untied_linear_ae,
+)
 from .trained import (
     TrainedAEResult,
     empca_optimal_loss,
@@ -20,6 +27,11 @@ from .trained import (
 
 __all__ = [
     "tied_linear_ae_closed_form",
+    "SeparableMetric",
+    "UntiedAEResult",
+    "obliqueness",
+    "sigma_orthogonal_projector",
+    "train_untied_linear_ae",
     "TrainedAEResult",
     "empca_optimal_loss",
     "load_trained_ae",

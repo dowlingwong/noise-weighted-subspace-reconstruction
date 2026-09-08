@@ -29,10 +29,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import platform
+import time
 from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+
+from experiments.synthetic.nfpa_confirmatory import r9_common as rc
 
 from experiments.synthetic.nfpa_confirmatory import semantic as sem
 from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, config_hash
@@ -101,6 +105,7 @@ def run(seeds: list[int], *, smoke: bool) -> Path:
     out = common.out_dir_for(EXPERIMENT_ID, smoke=smoke)
     rows: list[dict] = []
     corr_store: dict[str, np.ndarray] = {}
+    t_start = time.time()
     for seed in seeds:
         ds = make_dataset(seed, "colored", cfg)
         fits = common.fit_methods(ds, METHODS)
@@ -132,16 +137,41 @@ def run(seeds: list[int], *, smoke: bool) -> Path:
                 vals = np.array([r[key] for r in sel], float)
                 summary[name][f"{v}.{key}.mean"] = float(np.nanmean(vals))
                 summary[name][f"{v}.{key}.sd"] = float(np.nanstd(vals, ddof=1)) if len(vals) > 1 else 0.0
-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
+
+    # --- E9* pass criterion: paired, seed-level contrasts on probe R^2 ------
+    # (NFPA - Iso-MPCA) isolates the metric within the factored class;
+    # (CW-PCA - IsoPCA) does the same for the unrestricted class. The interval
+    # is the frozen seed-level percentile bootstrap of r9_common.
+    contrasts: dict[str, dict] = {}
+    for a_name, b_name in (("NFPA", "Iso-MPCA"), ("CW-PCA", "IsoPCA")):
+        for v in VARIABLES:
+            sub = [r for r in rows if r["variable"] == v]
+            contrasts[f"{a_name}-{b_name}|{v}"] = rc.paired_contrast(
+                sub, metric="probe_r2", method_a=a_name, method_b=b_name)
+    summary["contrasts"] = contrasts
+    summary["predictions"] = {
+        f"{pair}|{v}|interval_excludes_zero": {
+            "mean_difference": contrasts[f"{pair}|{v}"]["mean_difference"],
+            "ci95": [contrasts[f"{pair}|{v}"]["ci95_low"], contrasts[f"{pair}|{v}"]["ci95_high"]],
+            "ok": bool(contrasts[f"{pair}|{v}"]["excludes_zero"]),
+            "gated": v in ("amplitude", "rise_time"),
+        }
+        for pair in ("NFPA-Iso-MPCA", "CW-PCA-IsoPCA")
+        for v in VARIABLES
+    }
+
+    (out / "summary.json").write_text(json.dumps(common.as_jsonable(summary), indent=2))
     common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=[cfg], seeds=seeds,
                          extra={"notes": "P1-E9 physical-variable probes at alpha=0; ridge probes fit on train, "
-                                         "scored on test; participation = effective number of latent axes."})
+                                         "scored on test; participation = effective number of latent axes.",
+                                "walltime_s": time.time() - t_start,
+                                "host": platform.node(), "platform": platform.platform()})
     return out
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3])
+    ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
     out = run(a.seeds, smoke=a.smoke)

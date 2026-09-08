@@ -79,9 +79,17 @@ def als_fit(
     n_restarts: int = 10,
     seed: int = 0,
     tol: float = 1e-10,
+    collect_restarts: bool = False,
 ) -> dict:
-    """Alternating least squares with restarts; returns the best fit diagnostics."""
+    """Alternating least squares with restarts; returns the best fit diagnostics.
+
+    ``collect_restarts`` is purely additive: it records every restart's factors
+    and final loss under ``best["restarts"]`` so the optimisation term of the
+    error decomposition (task card E2*) can be measured. It changes neither the
+    restart sequence, nor the selection rule, nor any returned numerical value.
+    """
     best = None
+    restarts: list[dict] = []
     for restart in range(int(n_restarts)):
         rng = np.random.default_rng(seed * 1000 + restart)
         U_c = np.linalg.qr(rng.standard_normal((Z.shape[1], k_c)))[0]
@@ -92,6 +100,9 @@ def als_fit(
             U_c = als_uc(Z, U_t, k_c)
             hist.append(float(np.mean((Z - recon_kron(Z, U_c, U_t)) ** 2)))
         converged = len(hist) > 2 and abs(hist[-1] - hist[-2]) < tol
+        if collect_restarts:
+            restarts.append({"restart": restart, "U_c": U_c, "U_t": U_t,
+                             "loss": hist[-1], "converged": converged})
         if best is None or hist[-1] < best["loss"]:
             best = {
                 "U_c": U_c,
@@ -101,6 +112,8 @@ def als_fit(
                 "restart": restart,
                 "converged": converged,
             }
+    if collect_restarts:
+        best["restarts"] = restarts
     return best
 
 

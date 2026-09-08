@@ -1,6 +1,7 @@
 {
   "config_hashes": [
-    "0ff7cf4c39d65347"
+    "0ff7cf4c39d65347",
+    "da6ea84b6f967bf4"
   ],
   "configs": [
     {
@@ -25,10 +26,34 @@
       "target_snr": 10.0,
       "white_noise_angle_margin_deg": 0.01,
       "white_noise_chi2_margin": 0.005
+    },
+    {
+      "C": 8,
+      "N_calibration": 128,
+      "N_test": 200,
+      "N_train": 120,
+      "N_validation": 40,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 40,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
     }
   ],
-  "created_utc": "2026-09-02T22:19:19Z",
+  "created_utc": "2026-09-06T23:41:43Z",
   "experiment_id": "P1-E2",
+  "host": "vm",
   "methods": [
     "CW-PCA",
     "NFPA",
@@ -36,17 +61,21 @@
     "IsoPCA"
   ],
   "outputs": {
-    "alpha_sweep.csv": "256b784735b2ea3892092adfb61ffd86af3ab2db8205059c5a36ff7061de6359",
-    "summary.json": "662f931bcdefe4313b11aaeeaaaab994ef3b9b9d3cffb78c9e172e72fed91765"
+    "alpha_sweep.csv": "461893c1200e6e2376e14a77671bd7b9fd23e4a5f6aadbccdac45d60f21d21c0",
+    "rows.jsonl": "16afc854a7f55be0e83e75cd353fc270dd7f210a299b8cccf384e55666a9caaa",
+    "summary.json": "4c57db4dab11ec06524eb674f66a9f4b5f6dee3f07ef7c3ad84d9e35ed83bd19"
   },
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
   "provenance": {
-    "code_commit": "b8abf3c9e58ba758ce8f306512f7bf27d9b0734d",
+    "code_commit": "3026d2593897c07c933386fd5d278515083c6f31",
     "command": [
-      "/sessions/rcw-013dtae1m1tcqfsawkxxz8ps/mnt/noise-weighted-subspace-reconstruction/experiments/paper1/alpha_sweep.py",
+      "/root/exp/experiments/paper1/alpha_sweep.py",
       "--alphas",
       "0",
+      "0.1",
       "--seeds",
       "0",
+      "1",
       "--smoke"
     ],
     "config": {
@@ -74,21 +103,23 @@
     },
     "config_hash": "0ff7cf4c39d65347",
     "git_tree_dirty": true,
-    "hostname": "claude",
-    "implementation_freeze_commit": "b8abf3c9e58ba758ce8f306512f7bf27d9b0734d",
-    "numpy_version": "2.2.6",
-    "platform": "Linux-6.8.0-136-generic-aarch64-with-glibc2.35",
+    "hostname": "vm",
+    "implementation_freeze_commit": "3026d2593897c07c933386fd5d278515083c6f31",
+    "numpy_version": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
     "primary_config_hash": "98001a62855cb9a5",
-    "python_executable": "/sessions/rcw-013dtae1m1tcqfsawkxxz8ps/venv/bin/python",
-    "python_version": "3.10.12",
+    "python_executable": "/root/exp/.venv/bin/python3",
+    "python_version": "3.12.3",
     "thread_limits": {
       "MKL_NUM_THREADS": null,
       "NUMEXPR_NUM_THREADS": null,
-      "OMP_NUM_THREADS": "1",
-      "OPENBLAS_NUM_THREADS": "1"
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
     }
   },
   "seeds": [
-    0
-  ]
+    0,
+    1
+  ],
+  "walltime_s": 97.94838881492615
 }

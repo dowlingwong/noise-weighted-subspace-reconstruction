@@ -1,30 +1,37 @@
 {
   "alphas": [
     0.0,
+    0.05,
     0.1,
     0.2,
-    0.4
+    0.4,
+    0.8
   ],
   "per_alpha": {
     "0.0": {
       "approximation_term_chi2_nfpa_minus_cwpca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.0026880665051160378,
-        "ci95_low": -0.0028422489169853014,
+        "ci95_high": -0.0027094823298218413,
+        "ci95_low": -0.0028003153133561096,
         "contrast": "NFPA - CW-PCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.0027548023926750264,
+        "mean_difference": -0.0027514348773409413,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.00272560730583693,
           -0.002766225525032695,
           -0.0029248165226338774,
           -0.0026705694919921807,
-          -0.002686793117879449
+          -0.002686793117879449,
+          -0.0026768562521691797,
+          -0.0027063848438328986,
+          -0.002816741021305469,
+          -0.002746484617063616,
+          -0.0027938700756631185
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -32,32 +39,42 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
-      "channel_projector_error_isompca": 1.02193438924263,
-      "channel_projector_error_nfpa": 0.03325757447446842,
-      "mean_angle_isompca_to_cwpca_deg": 86.31206589925706,
-      "mean_angle_nfpa_to_cwpca_deg": 59.419102803030015,
+      "channel_projector_error_isompca": 1.0206931697385415,
+      "channel_projector_error_nfpa": 0.034891833444180356,
+      "mean_angle_isompca_to_cwpca_deg": 86.45218671380626,
+      "mean_angle_nfpa_to_cwpca_deg": 59.57507967058452,
       "metric_term_chi2_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.02743049307594698,
-        "ci95_low": -0.027959533506620237,
+        "ci95_high": -0.02746681280490117,
+        "ci95_low": -0.027949771764148243,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.02769501329128361,
+        "mean_difference": -0.027703773009885947,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.027411143947607575,
           -0.027751948114305147,
           -0.0280188258141858,
           -0.027289114685107307,
-          -0.02800403389521222
+          -0.02800403389521222,
+          -0.027841835039292717,
+          -0.02767207866150101,
+          -0.02750348833842675,
+          -0.027060737569642446,
+          -0.028484524033578484
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -65,28 +82,38 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
       "metric_term_mse_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": 0.003343574687800545,
-        "ci95_low": 0.003281023991111377,
+        "ci95_high": 0.0033309017403674837,
+        "ci95_low": 0.0032839300521590943,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 0.0,
         "identified": true,
-        "mean_difference": 0.003310651585584545,
+        "mean_difference": 0.003307326918030365,
         "metric": "test_raw_mse",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           0.0033411920324170384,
           0.0032876607642160537,
           0.003279654799728046,
           0.00327907479594237,
-          0.0033656755356192133
+          0.0033656755356192133,
+          0.003358823376859385,
+          0.003247136406204455,
+          0.0032788959676497134,
+          0.0033312704926083186,
+          0.003303885009059054
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -94,30 +121,173 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
-      }
+      },
+      "nfpa_chi2_restart_spread_max": 1.1102230246251565e-16,
+      "nfpa_chi2_restart_spread_mean": 2.2204460492503132e-17,
+      "nfpa_projector_err_c_restart_sd_mean": 1.369832037649564e-16,
+      "nfpa_projector_err_t_restart_sd_mean": 6.710307588308604e-16,
+      "restart_spread_over_abs_metric_term": 8.014959003807743e-16
+    },
+    "0.05": {
+      "approximation_term_chi2_nfpa_minus_cwpca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": -0.0026675962019239476,
+        "ci95_low": -0.0027508992642821485,
+        "contrast": "NFPA - CW-PCA",
+        "excludes_zero": true,
+        "fraction_negative": 1.0,
+        "identified": true,
+        "mean_difference": -0.002707613101828277,
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          -0.002687789972561694,
+          -0.0027450401315163298,
+          -0.002850772214169295,
+          -0.002594305773027994,
+          -0.0026614567837994763,
+          -0.0026599984202906324,
+          -0.002686130630561445,
+          -0.0027840898422588634,
+          -0.002694168925491791,
+          -0.002712378324605247
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
+      },
+      "channel_projector_error_isompca": 1.0208920594438327,
+      "channel_projector_error_nfpa": 0.03700298140721491,
+      "mean_angle_isompca_to_cwpca_deg": 86.54136376364464,
+      "mean_angle_nfpa_to_cwpca_deg": 60.59362184041305,
+      "metric_term_chi2_nfpa_minus_isompca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": -0.02469927781199672,
+        "ci95_low": -0.02516296287223721,
+        "contrast": "NFPA - Iso-MPCA",
+        "excludes_zero": true,
+        "fraction_negative": 1.0,
+        "identified": true,
+        "mean_difference": -0.024926384679640166,
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          -0.02467279120678567,
+          -0.02494913354842554,
+          -0.025203493479001304,
+          -0.02452362291579635,
+          -0.025205934855872192,
+          -0.025086070616825662,
+          -0.024922359535534344,
+          -0.02470740289698381,
+          -0.0243109988779302,
+          -0.025682038863246603
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
+      },
+      "metric_term_mse_nfpa_minus_isompca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": 0.0033657016946433502,
+        "ci95_low": 0.003321710978455704,
+        "contrast": "NFPA - Iso-MPCA",
+        "excludes_zero": true,
+        "fraction_negative": 0.0,
+        "identified": true,
+        "mean_difference": 0.0033436587506958356,
+        "metric": "test_raw_mse",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          0.0033801071429291098,
+          0.003320852700522384,
+          0.0033163872366482683,
+          0.0033214334812244166,
+          0.0033940680298722038,
+          0.00339191659345652,
+          0.003289227035019703,
+          0.003314044167512041,
+          0.003369891607206403,
+          0.0033386595125673027
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
+      },
+      "nfpa_chi2_restart_spread_max": 0.0,
+      "nfpa_chi2_restart_spread_mean": 0.0,
+      "nfpa_projector_err_c_restart_sd_mean": 2.0418414885559378e-16,
+      "nfpa_projector_err_t_restart_sd_mean": 8.811431264462786e-16,
+      "restart_spread_over_abs_metric_term": 0.0
     },
     "0.1": {
       "approximation_term_chi2_nfpa_minus_cwpca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.0024905960437870077,
-        "ci95_low": -0.0026054287939014653,
+        "ci95_high": -0.0025205379418888557,
+        "ci95_low": -0.0025916646740987326,
         "contrast": "NFPA - CW-PCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.0025535279334447216,
+        "mean_difference": -0.0025575935547360817,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.0025560980436256653,
           -0.002600072869229919,
           -0.0026354500937109115,
           -0.0024384443445240045,
-          -0.0025375743161331066
+          -0.0025375743161331066,
+          -0.002541365260476214,
+          -0.0025926656721499963,
+          -0.002637267389110187,
+          -0.0025062607681860527,
+          -0.0025307367902147604
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -125,32 +295,42 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
-      "channel_projector_error_isompca": 1.0225062021550306,
-      "channel_projector_error_nfpa": 0.042488634219425316,
-      "mean_angle_isompca_to_cwpca_deg": 86.69288011540758,
-      "mean_angle_nfpa_to_cwpca_deg": 62.722992128311375,
+      "channel_projector_error_isompca": 1.021255563757935,
+      "channel_projector_error_nfpa": 0.0431495396926485,
+      "mean_angle_isompca_to_cwpca_deg": 86.705410735893,
+      "mean_angle_nfpa_to_cwpca_deg": 62.889786101246024,
       "metric_term_chi2_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.018984379886820512,
-        "ci95_low": -0.019356808455687168,
+        "ci95_high": -0.01900254761949764,
+        "ci95_low": -0.019411294612454316,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.01917059417125384,
+        "mean_difference": -0.019201141537042644,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.019010760912926195,
           -0.01919012305638823,
           -0.019387682181855936,
           -0.018855127275930972,
-          -0.01940927742916787
+          -0.01940927742916787,
+          -0.019359038750758284,
+          -0.0192965118183257,
+          -0.018966096933853205,
+          -0.018651287192909427,
+          -0.01988550981831061
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -158,28 +338,38 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
       "metric_term_mse_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": 0.0034420961564200782,
-        "ci95_low": 0.003389780377461707,
+        "ci95_high": 0.003434231229375808,
+        "ci95_low": 0.0033941206577722772,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 0.0,
         "identified": true,
-        "mean_difference": 0.0034156444608770147,
+        "mean_difference": 0.003414263371397623,
         "metric": "test_raw_mse",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           0.0034525128645993743,
           0.003388516067894756,
           0.0033908712233263957,
           0.003390499264096314,
-          0.0034558228844682338
+          0.0034558228844682338,
+          0.0034568863395462394,
+          0.0033702618136469548,
+          0.003383370642986415,
+          0.0034442075634084036,
+          0.0034096850500031396
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -187,30 +377,45 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
-      }
+      },
+      "nfpa_chi2_restart_spread_max": 2.220446049250313e-16,
+      "nfpa_chi2_restart_spread_mean": 8.881784197001253e-17,
+      "nfpa_projector_err_c_restart_sd_mean": 3.3431709534572767e-16,
+      "nfpa_projector_err_t_restart_sd_mean": 6.165261376344249e-16,
+      "restart_spread_over_abs_metric_term": 4.625654250746814e-15
     },
     "0.2": {
       "approximation_term_chi2_nfpa_minus_cwpca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.0020539852839067674,
-        "ci95_low": -0.0021474901877608587,
+        "ci95_high": -0.0020738440972564403,
+        "ci95_low": -0.0021511399186459365,
         "contrast": "NFPA - CW-PCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.002103873698821568,
+        "mean_difference": -0.0021138739512606584,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.002118399352279088,
           -0.0021762784308514416,
           -0.002103301873072727,
           -0.0020160750647273407,
-          -0.002105313773177242
+          -0.002105313773177242,
+          -0.002164132987693801,
+          -0.00214254386891799,
+          -0.002214975214907655,
+          -0.0020038818175409645,
+          -0.0020938371294383362
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -218,32 +423,42 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
-      "channel_projector_error_isompca": 1.0230304960023013,
-      "channel_projector_error_nfpa": 0.06765224065388635,
-      "mean_angle_isompca_to_cwpca_deg": 86.93484210262987,
-      "mean_angle_nfpa_to_cwpca_deg": 66.71275656606485,
+      "channel_projector_error_isompca": 1.0217664620683076,
+      "channel_projector_error_nfpa": 0.0679071697255548,
+      "mean_angle_isompca_to_cwpca_deg": 86.90542663701811,
+      "mean_angle_nfpa_to_cwpca_deg": 66.70247005343604,
       "metric_term_chi2_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.009947952289530316,
-        "ci95_low": -0.010149458703517623,
+        "ci95_high": -0.009966921769074566,
+        "ci95_low": -0.010237568787343849,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.010054335290299265,
+        "mean_difference": -0.010095452003276306,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.009980380235493636,
           -0.01010089190950425,
           -0.010157770704788405,
           -0.009867203502456512,
-          -0.010165430099253525
+          -0.010165430099253525,
+          -0.010222647807767382,
+          -0.010181383025575474,
+          -0.009970075060721895,
+          -0.009734974859444856,
+          -0.010573762827757127
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -251,28 +466,38 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
       "metric_term_mse_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": 0.0035446967375918625,
-        "ci95_low": 0.0034940428265023845,
+        "ci95_high": 0.003537585251847354,
+        "ci95_low": 0.003496820368742985,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 0.0,
         "identified": true,
-        "mean_difference": 0.003519369782047123,
+        "mean_difference": 0.0035173739150189008,
         "metric": "test_raw_mse",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           0.00355642319235274,
           0.0034955096402800347,
           0.0035025149673137707,
           0.0034883399423190405,
-          0.003554061167970031
+          0.003554061167970031,
+          0.0035608284675149697,
+          0.003467337326308679,
+          0.003487983165301996,
+          0.0035506393731184246,
+          0.003510101907709319
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -280,30 +505,45 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
-      }
+      },
+      "nfpa_chi2_restart_spread_max": 2.220446049250313e-16,
+      "nfpa_chi2_restart_spread_mean": 2.2204460492503132e-17,
+      "nfpa_projector_err_c_restart_sd_mean": 5.532918885183008e-16,
+      "nfpa_projector_err_t_restart_sd_mean": 3.7125915811427464e-16,
+      "restart_spread_over_abs_metric_term": 2.1994518408187228e-15
     },
     "0.4": {
       "approximation_term_chi2_nfpa_minus_cwpca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.0012834340629047868,
-        "ci95_low": -0.0014194814235886978,
+        "ci95_high": -0.0013298584053319433,
+        "ci95_low": -0.0014396781839173102,
         "contrast": "NFPA - CW-PCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.0013514577432467423,
+        "mean_difference": -0.0013859045494589051,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.0014166409628630916,
           -0.001439656374701892,
           -0.0012565507330111192,
           -0.0012596282028440875,
-          -0.0013848124428135211
+          -0.0013848124428135211,
+          -0.0014330504658466303,
+          -0.0014329728892814586,
+          -0.001539262960248866,
+          -0.0012773180909519954,
+          -0.0014191523720263888
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -311,32 +551,42 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
-      "channel_projector_error_isompca": 1.0233437909482153,
-      "channel_projector_error_nfpa": 0.17338705777194754,
-      "mean_angle_isompca_to_cwpca_deg": 86.86434640941513,
-      "mean_angle_nfpa_to_cwpca_deg": 75.03215710257646,
+      "channel_projector_error_isompca": 1.0220591984155947,
+      "channel_projector_error_nfpa": 0.1844424276081045,
+      "mean_angle_isompca_to_cwpca_deg": 86.87300013931208,
+      "mean_angle_nfpa_to_cwpca_deg": 74.78186564712954,
       "metric_term_chi2_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": -0.0034332088756531044,
-        "ci95_low": -0.0035507899578850477,
+        "ci95_high": -0.0034812624146221094,
+        "ci95_low": -0.003614118773141353,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 1.0,
         "identified": true,
-        "mean_difference": -0.0034959837078679446,
+        "mean_difference": -0.0035447214325082356,
         "metric": "test_normalized_chi2",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           -0.003391332426784688,
           -0.003549929115550743,
           -0.003538986470963401,
           -0.003442117982360715,
-          -0.003557552543680176
+          -0.003557552543680176,
+          -0.0036037129057240325,
+          -0.003582380084222514,
+          -0.0035894216960787872,
+          -0.0034134783268142677,
+          -0.0037783027729030305
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -344,28 +594,38 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
       },
       "metric_term_mse_nfpa_minus_isompca": {
         "bootstrap_resamples": 10000,
         "bootstrap_seed": 20260819,
-        "ci95_high": 0.0036155681005656027,
-        "ci95_low": 0.003568873950648746,
+        "ci95_high": 0.0036120604814021563,
+        "ci95_low": 0.0035717219257839403,
         "contrast": "NFPA - Iso-MPCA",
         "excludes_zero": true,
         "fraction_negative": 0.0,
         "identified": true,
-        "mean_difference": 0.0035922210256071744,
+        "mean_difference": 0.003592049574567026,
         "metric": "test_raw_mse",
-        "n_seeds": 5,
+        "n_seeds": 10,
         "per_seed_differences": [
           0.003624255197084583,
           0.003566289373276522,
           0.0035817498775127235,
           0.003565020564588981,
-          0.0036237901155730633
+          0.0036237901155730633,
+          0.0036424838623489476,
+          0.0035412042247700923,
+          0.003565947968893559,
+          0.003625919231278675,
+          0.003583835330343116
         ],
         "resampling_unit": "seed",
         "seeds": [
@@ -373,9 +633,251 @@
           1,
           2,
           3,
-          4
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
         ],
         "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
+      },
+      "nfpa_chi2_restart_spread_max": 0.000697224009832409,
+      "nfpa_chi2_restart_spread_mean": 0.00013890796371671677,
+      "nfpa_projector_err_c_restart_sd_mean": 0.04930845755063647,
+      "nfpa_projector_err_t_restart_sd_mean": 0.010125808029703056,
+      "restart_spread_over_abs_metric_term": 0.039187272219139056
+    },
+    "0.8": {
+      "approximation_term_chi2_nfpa_minus_cwpca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": -0.0002427034990100069,
+        "ci95_low": -0.0003805094703779405,
+        "contrast": "NFPA - CW-PCA",
+        "excludes_zero": true,
+        "fraction_negative": 1.0,
+        "identified": true,
+        "mean_difference": -0.00030959061471558247,
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          -0.00035414521680832145,
+          -0.00022866575610569484,
+          -0.00024125148069531477,
+          -0.0003493728971251109,
+          -0.0002009670566587296,
+          -0.00047731074676948815,
+          -0.00040029011010300763,
+          -0.00015241857472569897,
+          -0.00021374766999771033,
+          -0.00047773663816674805
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
+      },
+      "channel_projector_error_isompca": 1.022130610879639,
+      "channel_projector_error_nfpa": 1.002096061972956,
+      "mean_angle_isompca_to_cwpca_deg": 86.7972411818497,
+      "mean_angle_nfpa_to_cwpca_deg": 82.38837516505876,
+      "metric_term_chi2_nfpa_minus_isompca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": -0.0009527793824149083,
+        "ci95_low": -0.0010780703563128891,
+        "contrast": "NFPA - Iso-MPCA",
+        "excludes_zero": true,
+        "fraction_negative": 1.0,
+        "identified": true,
+        "mean_difference": -0.0010132815654061655,
+        "metric": "test_normalized_chi2",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          -0.0009688470337587685,
+          -0.000959903929200312,
+          -0.0010225506704415466,
+          -0.0010517837834771449,
+          -0.0009331687208706807,
+          -0.0010899602067466763,
+          -0.0011167993794467534,
+          -0.0008642597842314359,
+          -0.0009152127003595467,
+          -0.0012103294455287905
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_normalized_chi2 is better)"
+      },
+      "metric_term_mse_nfpa_minus_isompca": {
+        "bootstrap_resamples": 10000,
+        "bootstrap_seed": 20260819,
+        "ci95_high": 0.0036696349127852863,
+        "ci95_low": 0.003624268798052197,
+        "contrast": "NFPA - Iso-MPCA",
+        "excludes_zero": true,
+        "fraction_negative": 0.0,
+        "identified": true,
+        "mean_difference": 0.0036467165128210763,
+        "metric": "test_raw_mse",
+        "n_seeds": 10,
+        "per_seed_differences": [
+          0.0036826788236113154,
+          0.003623960327066137,
+          0.0036339172545371843,
+          0.003613532489134423,
+          0.003709032710718002,
+          0.0036907337270764,
+          0.003594031974197588,
+          0.0036132533948126846,
+          0.0036693424188769244,
+          0.0036366820081801064
+        ],
+        "resampling_unit": "seed",
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "sign_convention": "negative favours NFPA (lower test_raw_mse is better)"
+      },
+      "nfpa_chi2_restart_spread_max": 0.0005414160939734014,
+      "nfpa_chi2_restart_spread_mean": 0.0003600792235853856,
+      "nfpa_projector_err_c_restart_sd_mean": 0.10842664019594202,
+      "nfpa_projector_err_t_restart_sd_mean": 0.03831586729296861,
+      "restart_spread_over_abs_metric_term": 0.3553594932333056
+    }
+  },
+  "predictions": {
+    "a_alpha0_gap_interval_includes_le_zero": true,
+    "b_approximation_term_non_decreasing_overlapping": [
+      {
+        "from": "0.0",
+        "mean_from": -0.0027514348773409413,
+        "mean_to": -0.002707613101828277,
+        "ok": true,
+        "to": "0.05"
+      },
+      {
+        "from": "0.05",
+        "mean_from": -0.002707613101828277,
+        "mean_to": -0.0025575935547360817,
+        "ok": true,
+        "to": "0.1"
+      },
+      {
+        "from": "0.1",
+        "mean_from": -0.0025575935547360817,
+        "mean_to": -0.0021138739512606584,
+        "ok": true,
+        "to": "0.2"
+      },
+      {
+        "from": "0.2",
+        "mean_from": -0.0021138739512606584,
+        "mean_to": -0.0013859045494589051,
+        "ok": true,
+        "to": "0.4"
+      },
+      {
+        "from": "0.4",
+        "mean_from": -0.0013859045494589051,
+        "mean_to": -0.00030959061471558247,
+        "ok": true,
+        "to": "0.8"
+      }
+    ],
+    "c_metric_term_negative_excludes_zero": {
+      "0.0": {
+        "ci95_high": -0.02746681280490117,
+        "ci95_low": -0.027949771764148243,
+        "mean": -0.027703773009885947,
+        "ok": true
+      },
+      "0.05": {
+        "ci95_high": -0.02469927781199672,
+        "ci95_low": -0.02516296287223721,
+        "mean": -0.024926384679640166,
+        "ok": true
+      },
+      "0.1": {
+        "ci95_high": -0.01900254761949764,
+        "ci95_low": -0.019411294612454316,
+        "mean": -0.019201141537042644,
+        "ok": true
+      },
+      "0.2": {
+        "ci95_high": -0.009966921769074566,
+        "ci95_low": -0.010237568787343849,
+        "mean": -0.010095452003276306,
+        "ok": true
+      },
+      "0.4": {
+        "ci95_high": -0.0034812624146221094,
+        "ci95_low": -0.003614118773141353,
+        "mean": -0.0035447214325082356,
+        "ok": true
+      },
+      "0.8": {
+        "ci95_high": -0.0009527793824149083,
+        "ci95_low": -0.0010780703563128891,
+        "mean": -0.0010132815654061655,
+        "ok": true
+      }
+    },
+    "d_restart_spread_le_10pct_of_metric_term": {
+      "0.0": {
+        "ok": true,
+        "ratio": 8.014959003807743e-16
+      },
+      "0.05": {
+        "ok": true,
+        "ratio": 0.0
+      },
+      "0.1": {
+        "ok": true,
+        "ratio": 4.625654250746814e-15
+      },
+      "0.2": {
+        "ok": true,
+        "ratio": 2.1994518408187228e-15
+      },
+      "0.4": {
+        "ok": true,
+        "ratio": 0.039187272219139056
+      },
+      "0.8": {
+        "ok": false,
+        "ratio": 0.3553594932333056
       }
     }
   },
@@ -384,6 +886,11 @@
     1,
     2,
     3,
-    4
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
   ]
 }

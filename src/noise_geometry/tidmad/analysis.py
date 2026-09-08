@@ -360,6 +360,38 @@ def run_metric_reversal(
         ),
     }
 
+    # ---- zero predictor: the SNR floor the two arms must clear -------------
+    # An estimator that reports amplitude 0 for every window has |error| =
+    # |truth|. Review Major 2: the headline compares two estimators that are
+    # both *below* this floor on file 0000, so the floor has to be reported
+    # next to them, not left implicit.
+    zero_error = np.abs(truth)
+    zero_contrasts = {
+        "zero_predictor_paired_difference_zero_minus_empca": _paired(
+            zero_error, absolute_error["empca"], reps=bootstrap_reps, seed=seed + 6
+        ),
+        "zero_predictor_paired_difference_zero_minus_pca": _paired(
+            zero_error, absolute_error["pca"], reps=bootstrap_reps, seed=seed + 7
+        ),
+    }
+    zero_predictor = {
+        "zero_predictor_amplitude_rmse": float(np.sqrt(np.mean(zero_error ** 2))),
+        "pca_amplitude_rmse": float(np.sqrt(np.mean(absolute_error["pca"] ** 2))),
+        "empca_amplitude_rmse": float(np.sqrt(np.mean(absolute_error["empca"] ** 2))),
+        "empca_beats_zero_predictor": bool(
+            np.sqrt(np.mean(absolute_error["empca"] ** 2)) < np.sqrt(np.mean(zero_error ** 2))
+        ),
+        "pca_beats_zero_predictor": bool(
+            np.sqrt(np.mean(absolute_error["pca"] ** 2)) < np.sqrt(np.mean(zero_error ** 2))
+        ),
+        "paired_contrasts": zero_contrasts,
+        "note": (
+            "A positive zero-minus-EMPCA difference whose interval excludes zero "
+            "means EMPCA is above the noise floor; a negative one means the "
+            "comparison between PCA and EMPCA happens below it."
+        ),
+    }
+
     reversal = {
         "raw_mse_favours_pca": bool(
             contrasts["raw_mse_pca_minus_empca"]["mean_difference"] < 0.0
@@ -384,6 +416,7 @@ def run_metric_reversal(
         "paired_contrasts_window_level": contrasts,
         "paired_contrasts_block_level": block_contrasts,
         "direction_check": reversal,
+        "zero_predictor": zero_predictor,
         "leakage_audit": windows.audit,
     }
 

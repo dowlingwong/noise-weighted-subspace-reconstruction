@@ -1,0 +1,157 @@
+{
+  "config_hashes": [
+    "09f7dbd811814c55",
+    "f53d406418371ae0"
+  ],
+  "configs": [
+    {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 3200,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    }
+  ],
+  "created_utc": "2026-09-07T14:16:28Z",
+  "experiment_id": "P1-E11",
+  "held_at_mean": {
+    "decay_time": 0.0,
+    "secondary": 0.0
+  },
+  "host": "vm",
+  "outputs": {
+    "PREDECLARED.md": "bf27b7ed39f770ea137bc2d63bb08243cd5ca2ef994046f8fb19414b262d70af",
+    "cells.jsonl": "5d5f56984fb021cec2c21c1c98303638f4e97b3e5d563eb169475957cd35d024",
+    "complement_spread.csv": "e71b45c941abe993e8a85460e6e6ee9f3b1b7890abf5baba75aa235ed2506012",
+    "excited_support.csv": "a379ae38ae22cd9e977483d2ece834e9dc97f902c6fde14c41baa4cec102a85d",
+    "fig_excited_support.pdf": "b07d9b2e82cc07bee03e0dcce5e74d1fe427845ffbc777147ae8bbffd9edd1e5",
+    "fig_excited_support.png": "9994923498e0db43a38c9c192336b57078f95618198fbbcf39398e30216070e8",
+    "summary.json": "a6f6ec98da23092bb9b031a2febe5b360bb92dc614e85bf0a92dbf698d4c6535"
+  },
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+  "provenance": {
+    "code_commit": "3026d2593897c07c933386fd5d278515083c6f31",
+    "command": [
+      "/root/exp/experiments/paper1/excited_support.py",
+      "--seeds",
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "--restarts",
+      "8",
+      "--restarts-4x",
+      "4"
+    ],
+    "config": {
+      "C": 8,
+      "N_calibration": 2048,
+      "N_test": 2000,
+      "N_train": 800,
+      "N_validation": 400,
+      "T": 256,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 150,
+      "n_restarts": 10,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.0,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "09f7dbd811814c55",
+    "git_tree_dirty": true,
+    "hostname": "vm",
+    "implementation_freeze_commit": "3026d2593897c07c933386fd5d278515083c6f31",
+    "numpy_version": "2.4.6",
+    "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/root/exp/.venv/bin/python",
+    "python_version": "3.12.3",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": "2",
+      "OPENBLAS_NUM_THREADS": "2"
+    }
+  },
+  "restarts": 8,
+  "restarts_4x": 4,
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "supports": {
+    "S_full": [
+      "amplitude",
+      "rise_time",
+      "decay_time",
+      "secondary"
+    ],
+    "S_restricted": [
+      "amplitude",
+      "rise_time"
+    ]
+  },
+  "walltime_s": 0.03363966941833496
+}

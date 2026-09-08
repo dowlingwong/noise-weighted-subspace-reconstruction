@@ -1,0 +1,781 @@
+diff --git a/experiments/paper1/alpha_sweep.py b/experiments/paper1/alpha_sweep.py
+index a89c924..68dc62e 100644
+--- a/experiments/paper1/alpha_sweep.py
++++ b/experiments/paper1/alpha_sweep.py
+@@ -6,6 +6,17 @@ the NFPA <-> CW-PCA mean principal angle and the planted projector errors.
+ The approximation term is the held-out chi^2 gap NFPA - CW-PCA; the metric
+ term is NFPA - Iso-MPCA and must keep its sign at every alpha.
+ 
++Task card E2* additionally requires the *optimisation* term: for every
++(alpha, seed) the NFPA fit reports, over its ``n_restarts`` ALS restarts, the
++minimum and maximum held-out normalized chi^2 and the across-restart standard
++deviation of the planted channel/temporal projector errors. Those restarts are
++the ones ``als_fit`` already runs internally (``collect_restarts=True`` only
++records them), so no extra optimisation is performed and the selected NFPA fit
++is identical to ``methods.fit_nfpa``.
++
++The run is resumable: rows are keyed by (alpha, seed) in ``rows.jsonl`` and a
++cell already present is never recomputed.
++
+ Usage::
+ 
+     python -m experiments.paper1.alpha_sweep --alphas 0 0.05 0.1 0.2 0.4 0.8 --seeds 0 1 ... [--smoke]
+@@ -14,6 +25,9 @@ Usage::
+ from __future__ import annotations
+ 
+ import argparse
++import json
++import platform
++import time
+ from dataclasses import replace
+ from pathlib import Path
+ 
+@@ -25,61 +39,238 @@ from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, config_hash
+ from experiments.synthetic.nfpa_confirmatory.generator import make_dataset
+ from experiments.synthetic.nfpa_confirmatory.metrics import normalized_chi2, raw_mse
+ from noise_geometry.subspace.angles import principal_angles
+-from experiments.synthetic.nfpa_confirmatory.methods import reconstruct
++from experiments.synthetic.nfpa_confirmatory.methods import (
++    MethodFit, _whiten_batch, als_fit, recon_kron, reconstruct,
++)
+ 
+ from . import common
+ 
+ EXPERIMENT_ID = "P1-E2"
+ METHODS = ("CW-PCA", "NFPA", "Iso-MPCA", "IsoPCA")
+-COLUMNS = ["config_hash", "alpha", "seed", "method", "test_normalized_chi2", "test_raw_mse",
+-           "mean_angle_to_cw_pca_deg", "channel_projector_error", "temporal_projector_error",
+-           "joint_projector_error_whitened", "runtime_seconds"]
++
++#: Legacy columns keep their names (ground rule 4: add columns, never rename);
++#: the task-card names are added alongside them.
++COLUMNS = [
++    "config_hash", "alpha", "seed", "method", "test_normalized_chi2", "test_raw_mse",
++    "mean_angle_to_cw_pca_deg", "channel_projector_error", "temporal_projector_error",
++    "joint_projector_error_whitened", "runtime_seconds",
++    "raw_mse", "angle_to_cwpca_deg", "projector_err_c", "projector_err_t",
++    "chi2_restart_min", "chi2_restart_max",
++    "projector_err_c_restart_sd", "projector_err_t_restart_sd",
++    "n_restarts_recorded", "selected_restart",
++]
++
++
++def _nfpa_with_restarts(ds):
++    """``methods.fit_nfpa`` with every ALS restart kept for diagnostics.
++
++    Reproduces ``fit_nfpa`` exactly (same whitening, same seed, same restart
++    sequence, same selection rule); the only difference is that the discarded
++    restarts are returned as well.
++    """
++    from experiments.synthetic.nfpa_confirmatory.methods import _whiten_batch
++
++    t0 = time.time()
++    Z = _whiten_batch(ds, ds.X_train)
++    out = als_fit(Z, ds.cfg.k_c, ds.cfg.k_t, n_iter=ds.cfg.n_als_iter,
++                  n_restarts=ds.cfg.n_restarts, seed=ds.seed,
++                  tol=ds.cfg.als_convergence_tol, collect_restarts=True)
++
++    def _mk(U_c, U_t, diag):
++        return MethodFit(name="NFPA", metric="Sigma^{-1}", rep_class="factored",
++                         coord="whitened", U_c=U_c, U_t=U_t, diag=diag)
++
++    best = _mk(out["U_c"], out["U_t"], {
++        "train_loss": out["loss"], "selected_restart": out["restart"],
++        "converged": out["converged"], "loss_history": out["loss_history"],
++        "runtime_seconds": time.time() - t0,
++    })
++    restarts = [_mk(r["U_c"], r["U_t"], {"train_loss": r["loss"], "restart": r["restart"],
++                                         "converged": r["converged"]})
++                for r in out["restarts"]]
++    return best, restarts
++
++
++def _restart_spread(ds, restarts, Z_test) -> dict:
++    """chi^2 min/max and projector-error SD across all ALS restarts.
++
++    The restart chi^2 is evaluated directly in whitened coordinates:
++    ``mean((Z - recon_kron(Z, U_c, U_t))**2)`` with ``Z`` the whitened,
++    train-mean-centred test set. For a ``coord="whitened"`` method this is
++    exactly ``normalized_chi2(ds, X_test, reconstruct(fit, ds, X_test))`` --
++    ``reconstruct`` unwhitens and ``normalized_chi2`` whitens again, an exact
++    round trip up to float64 rounding (~1e-15 relative) -- but it whitens the
++    test set once per cell instead of four times per restart, which is what
++    makes the 10-restart diagnostic affordable at the frozen protocol.
++    """
++    chi2, err_c, err_t = [], [], []
++    for fit in restarts:
++        chi2.append(float(np.mean((Z_test - recon_kron(Z_test, fit.U_c, fit.U_t)) ** 2)))
++        errs = sem.planted_errors(fit, ds)
++        if errs["channel_projector_error"] is not None:
++            err_c.append(errs["channel_projector_error"])
++        if errs["temporal_projector_error"] is not None:
++            err_t.append(errs["temporal_projector_error"])
++    return {
++        "chi2_restart_min": float(np.min(chi2)) if chi2 else None,
++        "chi2_restart_max": float(np.max(chi2)) if chi2 else None,
++        "projector_err_c_restart_sd": float(np.std(err_c, ddof=0)) if err_c else None,
++        "projector_err_t_restart_sd": float(np.std(err_t, ddof=0)) if err_t else None,
++        "n_restarts_recorded": len(restarts),
++    }
+ 
+ 
+-def run(alphas: list[float], seeds: list[int], *, smoke: bool) -> Path:
++def _cell_rows(alpha: float, seed: int, cfg) -> list[dict]:
++    ds = make_dataset(seed, "colored", cfg)
++    nfpa, restarts = _nfpa_with_restarts(ds)
++    spread = _restart_spread(ds, restarts, _whiten_batch(ds, ds.X_test))
++    fits = common.fit_methods(ds, [m for m in METHODS if m != "NFPA"])
++    fits["NFPA"] = nfpa
++    cw = fits["CW-PCA"]
++    B_cw = sem.fitted_basis_whitened(cw, ds)  # corrected unstacking (E11), not methods.basis_whitened
++    rows = []
++    for name in METHODS:
++        fit = fits[name]
++        Xhat = reconstruct(fit, ds, ds.X_test)
++        errs = sem.planted_errors(fit, ds)
++        angles = (np.asarray(principal_angles(sem.fitted_basis_whitened(fit, ds).T, B_cw.T, degrees=True))
++                  if name != "CW-PCA" else np.zeros(1))
++        chi2 = normalized_chi2(ds, ds.X_test, Xhat)
++        mse_raw = raw_mse(ds.X_test, Xhat)
++        ang = float(np.mean(angles))
++        row = {
++            "config_hash": config_hash(cfg), "alpha": float(alpha), "seed": int(seed), "method": name,
++            "test_normalized_chi2": chi2,
++            "test_raw_mse": mse_raw,
++            "mean_angle_to_cw_pca_deg": ang,
++            "channel_projector_error": errs.get("channel_projector_error"),
++            "temporal_projector_error": errs.get("temporal_projector_error"),
++            "joint_projector_error_whitened": errs.get("joint_projector_error_whitened"),
++            "runtime_seconds": fit.diag.get("runtime_seconds"),
++            "raw_mse": mse_raw,
++            "angle_to_cwpca_deg": ang,
++            "projector_err_c": errs.get("channel_projector_error"),
++            "projector_err_t": errs.get("temporal_projector_error"),
++            "chi2_restart_min": None, "chi2_restart_max": None,
++            "projector_err_c_restart_sd": None, "projector_err_t_restart_sd": None,
++            "n_restarts_recorded": None,
++            "selected_restart": fit.diag.get("selected_restart"),
++        }
++        if name == "NFPA":
++            row.update(spread)
++        rows.append(row)
++    return rows
++
++
++def _load_done(out: Path) -> dict:
++    """Union of every shard file ``rows*.jsonl`` in the output directory."""
++    done: dict = {}
++    for path in sorted(out.glob("rows*.jsonl")):
++        for line in path.read_text().splitlines():
++            if not line.strip():
++                continue
++            rec = json.loads(line)
++            done[(float(rec["alpha"]), int(rec["seed"]))] = rec["rows"]
++    return done
++
++
++def run(alphas: list[float], seeds: list[int], *, smoke: bool, budget_s: float | None = None,
++        shard: str = "", aggregate: bool = True) -> Path:
++    """Run the (alpha, seed) grid.
++
++    ``shard`` names this worker's append-only row file so several workers can
++    cover disjoint seed sets concurrently; ``aggregate`` writes the CSV/summary
++    /manifest only when every cell of the *full* grid is present.
++    """
+     base = common.smoke_config() if smoke else PRIMARY
+     out = common.out_dir_for(EXPERIMENT_ID, smoke=smoke)
+-    cfgs = []
+-    rows: list[dict] = []
+-    for alpha in alphas:
+-        cfg = replace(base, nonseparability_alpha=float(alpha))
+-        cfgs.append(cfg)
++    jsonl = out / (f"rows.{shard}.jsonl" if shard else "rows.jsonl")
++    done = _load_done(out)
++    cfgs = [replace(base, nonseparability_alpha=float(a)) for a in alphas]
++    total = len(alphas) * len(seeds)
++    t_start = time.time()
++    for alpha, cfg in zip(alphas, cfgs):
+         for seed in seeds:
+-            ds = make_dataset(seed, "colored", cfg)
+-            fits = common.fit_methods(ds, METHODS)
+-            cw = fits["CW-PCA"]
+-            B_cw = sem.fitted_basis_whitened(cw, ds)  # corrected unstacking (E11), not methods.basis_whitened
+-            for name, fit in fits.items():
+-                Xhat = reconstruct(fit, ds, ds.X_test)
+-                errs = sem.planted_errors(fit, ds)
+-                angles = (np.asarray(principal_angles(sem.fitted_basis_whitened(fit, ds).T, B_cw.T, degrees=True))
+-                          if name != "CW-PCA" else np.zeros(1))
+-                rows.append({
+-                    "config_hash": config_hash(cfg), "alpha": float(alpha), "seed": seed, "method": name,
+-                    "test_normalized_chi2": normalized_chi2(ds, ds.X_test, Xhat),
+-                    "test_raw_mse": raw_mse(ds.X_test, Xhat),
+-                    "mean_angle_to_cw_pca_deg": float(np.mean(angles)),
+-                    "channel_projector_error": errs.get("channel_projector_error"),
+-                    "temporal_projector_error": errs.get("temporal_projector_error"),
+-                    "joint_projector_error_whitened": errs.get("joint_projector_error_whitened"),
+-                    "runtime_seconds": fit.diag.get("runtime_seconds"),
+-                })
+-            print(f"[P1-E2] alpha={alpha} seed={seed} done", flush=True)
+-        rc.write_rows_csv(out / "alpha_sweep.csv", rows, COLUMNS)  # checkpoint after each alpha
++            key = (float(alpha), int(seed))
++            if key in done:
++                continue
++            if budget_s is not None and time.time() - t_start > budget_s:
++                print(f"[P1-E2] budget reached; {len(done)}/{total} cells done", flush=True)
++                return out
++            t0 = time.time()
++            rows = _cell_rows(alpha, seed, cfg)
++            done[key] = rows
++            with jsonl.open("a") as fh:
++                fh.write(json.dumps(common.as_jsonable(
++                    {"alpha": float(alpha), "seed": int(seed), "rows": rows})) + "\n")
++            print(f"[P1-E2] alpha={alpha} seed={seed} done in {time.time() - t0:.1f}s "
++                  f"({len(done)}/{total})", flush=True)
++
++    done = _load_done(out)  # pick up rows written by concurrent shards
++    missing = [(a, s) for a in alphas for s in seeds if (float(a), int(s)) not in done]
++    if missing or not aggregate:
++        print(f"[P1-E2] incomplete: {len(missing)} cells missing; not aggregating", flush=True)
++        return out
++
++    all_rows = [r for a in alphas for s in seeds for r in done[(float(a), int(s))]]
++    rc.write_rows_csv(out / "alpha_sweep.csv", all_rows, COLUMNS)
++
+     summary = {"alphas": alphas, "seeds": seeds, "per_alpha": {}}
+     for alpha in alphas:
+-        sub = [r for r in rows if r["alpha"] == float(alpha)]
++        sub = [r for r in all_rows if r["alpha"] == float(alpha)]
++        nf = [r for r in sub if r["method"] == "NFPA"]
++        metric_term = rc.paired_contrast(sub, metric="test_normalized_chi2",
++                                         method_a="NFPA", method_b="Iso-MPCA")
++        spread = [r["chi2_restart_max"] - r["chi2_restart_min"] for r in nf
++                  if r["chi2_restart_min"] is not None]
+         summary["per_alpha"][str(alpha)] = {
+-            "approximation_term_chi2_nfpa_minus_cwpca": rc.paired_contrast(sub, metric="test_normalized_chi2", method_a="NFPA", method_b="CW-PCA"),
+-            "metric_term_chi2_nfpa_minus_isompca": rc.paired_contrast(sub, metric="test_normalized_chi2", method_a="NFPA", method_b="Iso-MPCA"),
+-            "metric_term_mse_nfpa_minus_isompca": rc.paired_contrast(sub, metric="test_raw_mse", method_a="NFPA", method_b="Iso-MPCA"),
++            "approximation_term_chi2_nfpa_minus_cwpca": rc.paired_contrast(
++                sub, metric="test_normalized_chi2", method_a="NFPA", method_b="CW-PCA"),
++            "metric_term_chi2_nfpa_minus_isompca": metric_term,
++            "metric_term_mse_nfpa_minus_isompca": rc.paired_contrast(
++                sub, metric="test_raw_mse", method_a="NFPA", method_b="Iso-MPCA"),
+             "mean_angle_nfpa_to_cwpca_deg": float(np.mean([r["mean_angle_to_cw_pca_deg"] for r in sub if r["method"] == "NFPA"])),
+             "mean_angle_isompca_to_cwpca_deg": float(np.mean([r["mean_angle_to_cw_pca_deg"] for r in sub if r["method"] == "Iso-MPCA"])),
+             "channel_projector_error_nfpa": float(np.mean([r["channel_projector_error"] for r in sub if r["method"] == "NFPA"])),
+             "channel_projector_error_isompca": float(np.mean([r["channel_projector_error"] for r in sub if r["method"] == "Iso-MPCA"])),
++            "nfpa_chi2_restart_spread_mean": float(np.mean(spread)) if spread else None,
++            "nfpa_chi2_restart_spread_max": float(np.max(spread)) if spread else None,
++            "nfpa_projector_err_c_restart_sd_mean": float(np.mean([r["projector_err_c_restart_sd"] for r in nf])) if nf else None,
++            "nfpa_projector_err_t_restart_sd_mean": float(np.mean([r["projector_err_t_restart_sd"] for r in nf])) if nf else None,
++            "restart_spread_over_abs_metric_term": (
++                float(np.mean(spread) / abs(metric_term["mean_difference"]))
++                if spread and metric_term.get("identified") and metric_term["mean_difference"] != 0.0 else None),
+         }
++
++    per = summary["per_alpha"]
++    order = [str(a) for a in alphas]
++    approx = [per[a]["approximation_term_chi2_nfpa_minus_cwpca"] for a in order]
++    summary["predictions"] = {
++        "a_alpha0_gap_interval_includes_le_zero": bool(approx[0]["ci95_low"] <= 0.0),
++        "b_approximation_term_non_decreasing_overlapping": [
++            {"from": order[i], "to": order[i + 1],
++             "mean_from": approx[i]["mean_difference"], "mean_to": approx[i + 1]["mean_difference"],
++             "ok": bool(approx[i + 1]["mean_difference"] >= approx[i]["mean_difference"]
++                        or approx[i + 1]["ci95_high"] >= approx[i]["ci95_low"])}
++            for i in range(len(order) - 1)],
++        "c_metric_term_negative_excludes_zero": {
++            a: {"mean": per[a]["metric_term_chi2_nfpa_minus_isompca"]["mean_difference"],
++                "ci95_low": per[a]["metric_term_chi2_nfpa_minus_isompca"]["ci95_low"],
++                "ci95_high": per[a]["metric_term_chi2_nfpa_minus_isompca"]["ci95_high"],
++                "ok": bool(per[a]["metric_term_chi2_nfpa_minus_isompca"]["ci95_high"] < 0.0)}
++            for a in order},
++        "d_restart_spread_le_10pct_of_metric_term": {
++            a: {"ratio": per[a]["restart_spread_over_abs_metric_term"],
++                "ok": bool(per[a]["restart_spread_over_abs_metric_term"] is not None
++                           and per[a]["restart_spread_over_abs_metric_term"] <= 0.10)}
++            for a in order},
++    }
+     rc.write_json(out / "summary.json", common.as_jsonable(summary))
+-    common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=cfgs, seeds=seeds, extra={"methods": list(METHODS)})
++    common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=cfgs, seeds=seeds,
++                          extra={"methods": list(METHODS),
++                                 "walltime_s": time.time() - t_start,
++                                 "host": platform.node(),
++                                 "platform": platform.platform()})
+     return out
+ 
+ 
+@@ -88,8 +279,14 @@ def main(argv=None):
+     ap.add_argument("--alphas", type=float, nargs="+", default=[0.0, 0.05, 0.1, 0.2, 0.4, 0.8])
+     ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
+     ap.add_argument("--smoke", action="store_true")
++    ap.add_argument("--budget-s", type=float, default=None,
++                    help="stop after this many seconds of new cells (the run is resumable)")
++    ap.add_argument("--shard", type=str, default="",
++                    help="name of this worker's append-only row file (rows.<shard>.jsonl)")
++    ap.add_argument("--no-aggregate", action="store_true",
++                    help="compute cells only; leave the CSV/summary to the aggregating pass")
+     a = ap.parse_args(argv)
+-    print(f"wrote {run(a.alphas, a.seeds, smoke=a.smoke)}")
++    print(f"wrote {run(a.alphas, a.seeds, smoke=a.smoke, budget_s=a.budget_s, shard=a.shard, aggregate=not a.no_aggregate)}")
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/experiments/paper1/latent_probes.py b/experiments/paper1/latent_probes.py
+index e2add96..69eb4d4 100644
+--- a/experiments/paper1/latent_probes.py
++++ b/experiments/paper1/latent_probes.py
+@@ -29,11 +29,15 @@ from __future__ import annotations
+ import argparse
+ import csv
+ import json
++import platform
++import time
+ from dataclasses import replace
+ from pathlib import Path
+ 
+ import numpy as np
+ 
++from experiments.synthetic.nfpa_confirmatory import r9_common as rc
++
+ from experiments.synthetic.nfpa_confirmatory import semantic as sem
+ from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, config_hash
+ from experiments.synthetic.nfpa_confirmatory.covariance import whiten_separable
+@@ -101,6 +105,7 @@ def run(seeds: list[int], *, smoke: bool) -> Path:
+     out = common.out_dir_for(EXPERIMENT_ID, smoke=smoke)
+     rows: list[dict] = []
+     corr_store: dict[str, np.ndarray] = {}
++    t_start = time.time()
+     for seed in seeds:
+         ds = make_dataset(seed, "colored", cfg)
+         fits = common.fit_methods(ds, METHODS)
+@@ -132,16 +137,41 @@ def run(seeds: list[int], *, smoke: bool) -> Path:
+                 vals = np.array([r[key] for r in sel], float)
+                 summary[name][f"{v}.{key}.mean"] = float(np.nanmean(vals))
+                 summary[name][f"{v}.{key}.sd"] = float(np.nanstd(vals, ddof=1)) if len(vals) > 1 else 0.0
+-    (out / "summary.json").write_text(json.dumps(summary, indent=2))
++
++    # --- E9* pass criterion: paired, seed-level contrasts on probe R^2 ------
++    # (NFPA - Iso-MPCA) isolates the metric within the factored class;
++    # (CW-PCA - IsoPCA) does the same for the unrestricted class. The interval
++    # is the frozen seed-level percentile bootstrap of r9_common.
++    contrasts: dict[str, dict] = {}
++    for a_name, b_name in (("NFPA", "Iso-MPCA"), ("CW-PCA", "IsoPCA")):
++        for v in VARIABLES:
++            sub = [r for r in rows if r["variable"] == v]
++            contrasts[f"{a_name}-{b_name}|{v}"] = rc.paired_contrast(
++                sub, metric="probe_r2", method_a=a_name, method_b=b_name)
++    summary["contrasts"] = contrasts
++    summary["predictions"] = {
++        f"{pair}|{v}|interval_excludes_zero": {
++            "mean_difference": contrasts[f"{pair}|{v}"]["mean_difference"],
++            "ci95": [contrasts[f"{pair}|{v}"]["ci95_low"], contrasts[f"{pair}|{v}"]["ci95_high"]],
++            "ok": bool(contrasts[f"{pair}|{v}"]["excludes_zero"]),
++            "gated": v in ("amplitude", "rise_time"),
++        }
++        for pair in ("NFPA-Iso-MPCA", "CW-PCA-IsoPCA")
++        for v in VARIABLES
++    }
++
++    (out / "summary.json").write_text(json.dumps(common.as_jsonable(summary), indent=2))
+     common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=[cfg], seeds=seeds,
+                          extra={"notes": "P1-E9 physical-variable probes at alpha=0; ridge probes fit on train, "
+-                                         "scored on test; participation = effective number of latent axes."})
++                                         "scored on test; participation = effective number of latent axes.",
++                                "walltime_s": time.time() - t_start,
++                                "host": platform.node(), "platform": platform.platform()})
+     return out
+ 
+ 
+ def main() -> None:
+     ap = argparse.ArgumentParser()
+-    ap.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2, 3])
++    ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
+     ap.add_argument("--smoke", action="store_true")
+     a = ap.parse_args()
+     out = run(a.seeds, smoke=a.smoke)
+diff --git a/experiments/paper1/rank_one_check.py b/experiments/paper1/rank_one_check.py
+index 552ec9a..0a5efe9 100644
+--- a/experiments/paper1/rank_one_check.py
++++ b/experiments/paper1/rank_one_check.py
+@@ -4,26 +4,52 @@ Separable whitened template s = v t^T, isotropic whitened noise, k_c = k_t = 1.
+ Population NFPA must learn v/|v| and t/|t| up to sign and its scalar code must
+ be proportional to the joint-channel optimal-filter amplitude.
+ 
+-Usage::  python -m experiments.paper1.rank_one_check --seeds 0 1 2 3 4 5 6 7 8 9 [--n 20000]
++Task card E6* runs the population point (n = 20 000) at seeds 0-9 and, in
++addition, an n-curve at n in {1000, 3000, 10000, 20000} on three seeds, so the
++finite-n approach of |cos theta_t| to 1 is a curve rather than a single point.
++If the temporal cosine plateaus below 0.999 the exponent beta of
++``1 - |cos theta_t| ~ n^{-beta}`` is fitted and reported: that, not the raw
++threshold, is the finite-sample statement Cor. 6.3 needs.
++
++The run is resumable: one JSON line per (seed, n).
++
++Usage::
++
++    python -m experiments.paper1.rank_one_check --seeds 0 1 2 3 4 5 6 7 8 9 --n 20000
+ """
+ 
+ from __future__ import annotations
+ 
+ import argparse
++import json
++import platform
++import time
+ from pathlib import Path
+ 
+ import numpy as np
+ 
+ from experiments.synthetic.nfpa_confirmatory import r9_common as rc
+-from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, config_hash
++from experiments.synthetic.nfpa_confirmatory.config import PRIMARY
+ from experiments.synthetic.nfpa_confirmatory.methods import als_fit
+ 
+ from . import common
+ 
+ EXPERIMENT_ID = "P1-E6"
+ 
++COLUMNS = [
++    "seed", "n", "C", "T", "snr",
++    "abs_cos_channel", "abs_cos_temporal",
++    # task-card names
++    "amp_corr_code_vs_of", "amp_corr_code_vs_truth",
++    # pre-existing names kept (ground rule 4: add columns, never rename)
++    "amplitude_correlation_code_vs_of", "amplitude_correlation_code_vs_truth",
++    "converged", "arm", "walltime_s",
++]
+ 
+-def one_seed(seed: int, n: int, C: int, T: int, snr: float) -> dict:
++
++def one_seed(seed: int, n: int, C: int, T: int, snr: float, *, chunk: int = 5000) -> dict:
++    """One (seed, n) point. The code/OF projections are chunked over events."""
++    t0 = time.time()
+     rng = np.random.default_rng(seed)
+     v = rng.standard_normal(C); v /= np.linalg.norm(v)
+     t = np.exp(-np.arange(T) / (0.1 * T)) * (1 - np.exp(-np.arange(T) / (0.02 * T))); t /= np.linalg.norm(t)
+@@ -32,33 +58,121 @@ def one_seed(seed: int, n: int, C: int, T: int, snr: float) -> dict:
+     Z -= Z.mean(axis=0)
+     out = als_fit(Z, 1, 1, n_iter=100, n_restarts=5, seed=seed)
+     u_c, u_t = out["U_c"][:, 0], out["U_t"][:, 0]
+-    code = np.einsum("nct,c,t->n", Z, u_c, u_t)
+-    of = np.einsum("nct,c,t->n", Z, v, t)  # whitened matched filter (OF amplitude up to scale)
++    code = np.empty(n); of = np.empty(n)
++    for i in range(0, n, chunk):
++        block = Z[i:i + chunk]
++        code[i:i + chunk] = np.einsum("nct,c,t->n", block, u_c, u_t)
++        of[i:i + chunk] = np.einsum("nct,c,t->n", block, v, t)
++    r_of = float(abs(np.corrcoef(code, of)[0, 1]))
++    r_truth = float(abs(np.corrcoef(code, A - A.mean())[0, 1]))
+     return {
+-        "seed": seed, "n": n, "C": C, "T": T,
++        "seed": int(seed), "n": int(n), "C": int(C), "T": int(T), "snr": float(snr),
+         "abs_cos_channel": float(abs(u_c @ v)), "abs_cos_temporal": float(abs(u_t @ t)),
+-        "amplitude_correlation_code_vs_of": float(abs(np.corrcoef(code, of)[0, 1])),
+-        "amplitude_correlation_code_vs_truth": float(abs(np.corrcoef(code, A - A.mean())[0, 1])),
++        "amp_corr_code_vs_of": r_of, "amp_corr_code_vs_truth": r_truth,
++        "amplitude_correlation_code_vs_of": r_of,
++        "amplitude_correlation_code_vs_truth": r_truth,
+         "converged": bool(out["converged"]),
++        "walltime_s": time.time() - t0,
++    }
++
++
++def _fit_beta(ns: np.ndarray, gaps: np.ndarray) -> dict:
++    """Least-squares fit of ``log(1 - |cos|) = a - beta log n``."""
++    ok = np.isfinite(gaps) & (gaps > 0)
++    if int(ok.sum()) < 2:
++        return {"beta": None, "intercept": None, "n_points": int(ok.sum()),
++                "note": "not enough positive gaps to fit an exponent"}
++    A = np.column_stack([np.ones(int(ok.sum())), np.log(ns[ok])])
++    coef, *_ = np.linalg.lstsq(A, np.log(gaps[ok]), rcond=None)
++    return {"beta": float(-coef[1]), "intercept": float(coef[0]), "n_points": int(ok.sum())}
++
++
++def _load_done(out: Path) -> dict:
++    done: dict = {}
++    for path in sorted(out.glob("points*.jsonl")):
++        for line in path.read_text().splitlines():
++            if line.strip():
++                rec = json.loads(line)
++                done[(int(rec["seed"]), int(rec["n"]))] = rec
++    return done
++
++
++def run(seeds: list[int], n: int, snr: float, curve_ns: list[int], curve_seeds: list[int]) -> Path:
++    out = common.out_dir_for(EXPERIMENT_ID)
++    jsonl = out / "points.jsonl"
++    done = _load_done(out)
++    t_start = time.time()
++
++    plan = [(s, n, "population") for s in seeds]
++    plan += [(s, m, "n_curve") for m in curve_ns for s in curve_seeds]
++
++    for seed, n_i, arm in plan:
++        if (seed, n_i) in done:
++            done[(seed, n_i)].setdefault("arm", arm)
++            continue
++        row = one_seed(seed, n_i, PRIMARY.C, PRIMARY.T, snr)
++        row["arm"] = arm
++        done[(seed, n_i)] = row
++        with jsonl.open("a") as fh:
++            fh.write(json.dumps(common.as_jsonable(row)) + "\n")
++        print(f"[{EXPERIMENT_ID}] seed={seed} n={n_i} ({arm}) "
++              f"cos_t={row['abs_cos_temporal']:.6f} in {row['walltime_s']:.1f}s", flush=True)
++
++    rows = [done[k] for k in sorted(done)]
++    rc.write_rows_csv(out / "rank_one_check.csv", rows, COLUMNS)
++
++    pop = [r for r in rows if r["n"] == n and r["seed"] in seeds]
++    summary: dict = {
++        "n_population": n, "seeds": seeds, "snr": snr,
++        "curve_ns": curve_ns, "curve_seeds": curve_seeds,
++    }
++    for key in ("abs_cos_channel", "abs_cos_temporal",
++                "amp_corr_code_vs_of", "amp_corr_code_vs_truth"):
++        vals = [r[key] for r in pop]
++        summary[key] = {"min": float(np.min(vals)), "mean": float(np.mean(vals)),
++                        "max": float(np.max(vals))}
++    summary["accept"] = bool(summary["abs_cos_channel"]["min"] >= 0.999
++                             and summary["abs_cos_temporal"]["min"] >= 0.999
++                             and summary["amp_corr_code_vs_of"]["min"] >= 0.999)
++    summary["predictions"] = {
++        "abs_cos_channel_min_ge_0.999": {"value": summary["abs_cos_channel"]["min"],
++                                         "ok": bool(summary["abs_cos_channel"]["min"] >= 0.999)},
++        "abs_cos_temporal_min_ge_0.999": {"value": summary["abs_cos_temporal"]["min"],
++                                          "ok": bool(summary["abs_cos_temporal"]["min"] >= 0.999)},
++        "amp_corr_code_vs_of_min_ge_0.999": {"value": summary["amp_corr_code_vs_of"]["min"],
++                                             "ok": bool(summary["amp_corr_code_vs_of"]["min"] >= 0.999)},
+     }
+ 
++    curve = {}
++    ns = np.array(sorted({r["n"] for r in rows if r["seed"] in curve_seeds}), dtype=float)
++    for key in ("abs_cos_temporal", "abs_cos_channel"):
++        means = np.array([np.mean([r[key] for r in rows
++                                   if r["n"] == int(m) and r["seed"] in curve_seeds]) for m in ns])
++        curve[key] = {"n": ns.tolist(), "mean": means.tolist(),
++                      "gap_mean": (1.0 - means).tolist(),
++                      "power_law_fit": _fit_beta(ns, 1.0 - means)}
++    summary["finite_n_curve"] = curve
++    summary["temporal_plateau_below_0.999"] = bool(summary["abs_cos_temporal"]["min"] < 0.999)
++
++    rc.write_json(out / "summary.json", common.as_jsonable(summary))
++    common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=[PRIMARY], seeds=seeds,
++                          extra={"n_events": n, "snr": snr, "curve_ns": curve_ns,
++                                 "curve_seeds": curve_seeds,
++                                 "walltime_s": time.time() - t_start,
++                                 "host": platform.node(), "platform": platform.platform()})
++    print(json.dumps(common.as_jsonable(summary["predictions"]), indent=1))
++    return out
++
+ 
+ def main(argv=None):
+     ap = argparse.ArgumentParser()
+     ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
+     ap.add_argument("--n", type=int, default=20000)
+     ap.add_argument("--snr", type=float, default=10.0)
++    ap.add_argument("--curve-ns", type=int, nargs="+", default=[1000, 3000, 10000, 20000])
++    ap.add_argument("--curve-seeds", type=int, nargs="+", default=[0, 1, 2])
+     a = ap.parse_args(argv)
+-    out = common.out_dir_for(EXPERIMENT_ID)
+-    rows = [one_seed(s, a.n, PRIMARY.C, PRIMARY.T, a.snr) for s in a.seeds]
+-    rc.write_rows_csv(out / "rank_one_check.csv", rows, list(rows[0].keys()))
+-    summary = {k: {"min": float(min(r[k] for r in rows)), "mean": float(np.mean([r[k] for r in rows]))}
+-               for k in ("abs_cos_channel", "abs_cos_temporal", "amplitude_correlation_code_vs_of", "amplitude_correlation_code_vs_truth")}
+-    summary["accept"] = bool(summary["abs_cos_channel"]["min"] >= 0.999 and summary["abs_cos_temporal"]["min"] >= 0.999
+-                             and summary["amplitude_correlation_code_vs_of"]["min"] >= 0.999)
+-    rc.write_json(out / "summary.json", summary)
+-    common.write_manifest(out, experiment_id=EXPERIMENT_ID, cfgs=[PRIMARY], seeds=a.seeds, extra={"n_events": a.n, "snr": a.snr})
+-    print(summary)
++    print(f"wrote {run(a.seeds, a.n, a.snr, a.curve_ns, a.curve_seeds)}")
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/experiments/synthetic/nfpa_confirmatory/methods.py b/experiments/synthetic/nfpa_confirmatory/methods.py
+index 3d4f2e3..b22ee92 100644
+--- a/experiments/synthetic/nfpa_confirmatory/methods.py
++++ b/experiments/synthetic/nfpa_confirmatory/methods.py
+@@ -79,9 +79,17 @@ def als_fit(
+     n_restarts: int = 10,
+     seed: int = 0,
+     tol: float = 1e-10,
++    collect_restarts: bool = False,
+ ) -> dict:
+-    """Alternating least squares with restarts; returns the best fit diagnostics."""
++    """Alternating least squares with restarts; returns the best fit diagnostics.
++
++    ``collect_restarts`` is purely additive: it records every restart's factors
++    and final loss under ``best["restarts"]`` so the optimisation term of the
++    error decomposition (task card E2*) can be measured. It changes neither the
++    restart sequence, nor the selection rule, nor any returned numerical value.
++    """
+     best = None
++    restarts: list[dict] = []
+     for restart in range(int(n_restarts)):
+         rng = np.random.default_rng(seed * 1000 + restart)
+         U_c = np.linalg.qr(rng.standard_normal((Z.shape[1], k_c)))[0]
+@@ -92,6 +100,9 @@ def als_fit(
+             U_c = als_uc(Z, U_t, k_c)
+             hist.append(float(np.mean((Z - recon_kron(Z, U_c, U_t)) ** 2)))
+         converged = len(hist) > 2 and abs(hist[-1] - hist[-2]) < tol
++        if collect_restarts:
++            restarts.append({"restart": restart, "U_c": U_c, "U_t": U_t,
++                             "loss": hist[-1], "converged": converged})
+         if best is None or hist[-1] < best["loss"]:
+             best = {
+                 "U_c": U_c,
+@@ -101,6 +112,8 @@ def als_fit(
+                 "restart": restart,
+                 "converged": converged,
+             }
++    if collect_restarts:
++        best["restarts"] = restarts
+     return best
+ 
+ 
+diff --git a/src/noise_geometry/autoencoders/__init__.py b/src/noise_geometry/autoencoders/__init__.py
+index e7c66f4..0ecc611 100644
+--- a/src/noise_geometry/autoencoders/__init__.py
++++ b/src/noise_geometry/autoencoders/__init__.py
+@@ -7,6 +7,13 @@ to verify the S3 EMPCA bridge by optimisation rather than by construction.
+ """
+ 
+ from .linear import tied_linear_ae_closed_form
++from .untied import (
++    SeparableMetric,
++    UntiedAEResult,
++    obliqueness,
++    sigma_orthogonal_projector,
++    train_untied_linear_ae,
++)
+ from .trained import (
+     TrainedAEResult,
+     empca_optimal_loss,
+@@ -20,6 +27,11 @@ from .trained import (
+ 
+ __all__ = [
+     "tied_linear_ae_closed_form",
++    "SeparableMetric",
++    "UntiedAEResult",
++    "obliqueness",
++    "sigma_orthogonal_projector",
++    "train_untied_linear_ae",
+     "TrainedAEResult",
+     "empca_optimal_loss",
+     "load_trained_ae",
+diff --git a/src/noise_geometry/tidmad/analysis.py b/src/noise_geometry/tidmad/analysis.py
+index 9bb1458..9027243 100644
+--- a/src/noise_geometry/tidmad/analysis.py
++++ b/src/noise_geometry/tidmad/analysis.py
+@@ -360,6 +360,38 @@ def run_metric_reversal(
+         ),
+     }
+ 
++    # ---- zero predictor: the SNR floor the two arms must clear -------------
++    # An estimator that reports amplitude 0 for every window has |error| =
++    # |truth|. Review Major 2: the headline compares two estimators that are
++    # both *below* this floor on file 0000, so the floor has to be reported
++    # next to them, not left implicit.
++    zero_error = np.abs(truth)
++    zero_contrasts = {
++        "zero_predictor_paired_difference_zero_minus_empca": _paired(
++            zero_error, absolute_error["empca"], reps=bootstrap_reps, seed=seed + 6
++        ),
++        "zero_predictor_paired_difference_zero_minus_pca": _paired(
++            zero_error, absolute_error["pca"], reps=bootstrap_reps, seed=seed + 7
++        ),
++    }
++    zero_predictor = {
++        "zero_predictor_amplitude_rmse": float(np.sqrt(np.mean(zero_error ** 2))),
++        "pca_amplitude_rmse": float(np.sqrt(np.mean(absolute_error["pca"] ** 2))),
++        "empca_amplitude_rmse": float(np.sqrt(np.mean(absolute_error["empca"] ** 2))),
++        "empca_beats_zero_predictor": bool(
++            np.sqrt(np.mean(absolute_error["empca"] ** 2)) < np.sqrt(np.mean(zero_error ** 2))
++        ),
++        "pca_beats_zero_predictor": bool(
++            np.sqrt(np.mean(absolute_error["pca"] ** 2)) < np.sqrt(np.mean(zero_error ** 2))
++        ),
++        "paired_contrasts": zero_contrasts,
++        "note": (
++            "A positive zero-minus-EMPCA difference whose interval excludes zero "
++            "means EMPCA is above the noise floor; a negative one means the "
++            "comparison between PCA and EMPCA happens below it."
++        ),
++    }
++
+     reversal = {
+         "raw_mse_favours_pca": bool(
+             contrasts["raw_mse_pca_minus_empca"]["mean_difference"] < 0.0
+@@ -384,6 +416,7 @@ def run_metric_reversal(
+         "paired_contrasts_window_level": contrasts,
+         "paired_contrasts_block_level": block_contrasts,
+         "direction_check": reversal,
++        "zero_predictor": zero_predictor,
+         "leakage_audit": windows.audit,
+     }
+ 
+diff --git a/src/noise_geometry/tidmad/negative_controls.py b/src/noise_geometry/tidmad/negative_controls.py
+index 8d3be04..856ba37 100644
+--- a/src/noise_geometry/tidmad/negative_controls.py
++++ b/src/noise_geometry/tidmad/negative_controls.py
+@@ -20,6 +20,9 @@ control                       what it breaks
+ ``wrong_psd``                 the noise model (white metric instead of Sigma)
+ ``noise_only_train``          the training signal (fit on signal-free windows)
+ ``random_weighted_basis``     the learned subspace (random basis, same rank)
++``random_weighted_basis_norm_matched``
++                              the learned subspace, with the reconstruction's
++                              whitened energy matched to the fitted basis's
+ ``wrong_frequency``           the signal model (filter at an empty frequency)
+ ``permuted_bins``             the time structure (per-window sample permutation)
+ ============================  ============================================
+@@ -58,6 +61,7 @@ CONTROL_NOMINAL: dict[str, str] = {
+     "wrong_psd": "empca",
+     "noise_only_train": "empca",
+     "random_weighted_basis": "empca",
++    "random_weighted_basis_norm_matched": "empca",
+     "wrong_frequency": "empca",
+     "permuted_bins": "empca",
+ }
+@@ -196,6 +200,32 @@ def run_negative_controls(
+         truth,
+     )
+ 
++    # ---- 3b. norm-matched random basis (task card P1-E13, control T-c) -----
++    # The plain random-basis control saturates at zero recovery, so it shows
++    # falsifiability but carries no information about *where* the fitted basis
++    # points. Matching the reconstruction's whitened energy to the fitted
++    # basis's own mean whitened reconstruction energy on the FIT windows removes
++    # the trivial amplitude explanation: what is left is the direction.
++    fitted_fit_recon = _project(fit_features, components, mean, weights=w_real)
++    random_fit_recon = _project(fit_features, random_basis, mean, weights=w_real)
++
++    def _mean_whitened_energy(recon: np.ndarray) -> float:
++        centred = recon - mean[None, :]
++        return float(np.mean(np.sum(w_real[None, :] * centred ** 2, axis=1)))
++
++    e_fitted = _mean_whitened_energy(fitted_fit_recon)
++    e_random = _mean_whitened_energy(random_fit_recon)
++    scale = float(np.sqrt(e_fitted / e_random)) if e_random > 0 else 1.0
++    random_eval_recon = _project(eval_features, random_basis, mean, weights=w_real)
++    matched_features = mean[None, :] + scale * (random_eval_recon - mean[None, :])
++    errors["random_weighted_basis_norm_matched"] = _score(
++        "random_weighted_basis_norm_matched",
++        windows,
++        to_time(matched_features),
++        basis_f,
++        truth,
++    )
++
+     # ---- 4. wrong frequency: a filter where nothing was injected -----------
+     # Scored against the *true* signal, so a filter looking in an empty part of
+     # the spectrum must fail. Implemented as a fixed-phase rank-1 filter at an
+@@ -269,6 +299,9 @@ def run_negative_controls(
+         "degraded": degraded,
+         "all_controls_degraded": bool(all(degraded.values())),
+         "controls_that_did_not_degrade": [name for name, ok in degraded.items() if not ok],
++        "norm_match_scale": scale,
++        "norm_match_energy_fitted": e_fitted,
++        "norm_match_energy_random": e_random,
+         "wrong_frequency_hz": float(offset_frequency),
+         "wrong_frequency_offset_bins": int(wrong_frequency_offset_bins),
+         "note": (

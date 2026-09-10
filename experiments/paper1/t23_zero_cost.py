@@ -35,11 +35,17 @@ import numpy as np
 
 from experiments.synthetic.nfpa_confirmatory import generator as gen
 from experiments.synthetic.nfpa_confirmatory.config import PRIMARY, config_hash
-from experiments.synthetic.nfpa_confirmatory.covariance import full_covariance, whiten_separable
+from experiments.synthetic.nfpa_confirmatory.covariance import _sqrt_inv, full_covariance, whiten_separable
 from experiments.synthetic.nfpa_confirmatory.covariance_estimation_v2 import estimate_calibrated_axis_covariances
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_DIR = REPO_ROOT / "results" / "mlst_2026-09-11" / "t23"
+
+def fast_whiten(X: np.ndarray, Sigma_c: np.ndarray, Sigma_t: np.ndarray) -> np.ndarray:
+    """BLAS form of ``whiten_separable`` (same symmetric roots); pinned to agree with it."""
+    Wc = _sqrt_inv(Sigma_c); Wt = _sqrt_inv(Sigma_t)
+    return np.matmul(np.matmul(Wc, X), Wt)
+
 N_CLEAN = 20000
 N_CAL = 2048
 CAL_SEEDS = list(range(10))
@@ -58,7 +64,7 @@ def whitened_clean_sample(alpha: float, seed: int = 20260911, n: int = N_CLEAN):
     cov = full_covariance(cfg, "colored")
     clean, _ = gen.generate_clean_events(rng, n, cfg, V, Tb)
     clean, snr = gen.snr_normalize(clean, cov, cfg)
-    Z = whiten_separable(clean, cov["Sigma_c"], cov["Sigma_t"])          # (n, C, T)
+    Z = fast_whiten(clean, cov["Sigma_c"], cov["Sigma_t"])          # (n, C, T)
     Z = Z - Z.mean(axis=0, keepdims=True)
     return cfg, cov, Z, snr
 
@@ -81,7 +87,10 @@ def per_axis_gaps(Z: np.ndarray, cfg) -> dict:
         "temporal": {"eigenvalues_top": [float(x) for x in et[: kt + 2]], "gap": float(et[kt - 1] - et[kt]),
                      "lambda1_over_gap": float(et[0] / (et[kt - 1] - et[kt]))},
         "full": {"eigenvalues_top": [float(x) for x in ef[: k + 2]], "gap": float(ef[k - 1] - ef[k]),
-                 "lambda1_over_gap": float(ef[0] / (ef[k - 1] - ef[k]))},
+                 "lambda1_over_gap": float(ef[0] / (ef[k - 1] - ef[k])) if ef[k - 1] - ef[k] > 1e-9 else None,
+                 "effective_signal_rank": int(np.sum(ef[: k + 2] > 1.05)),
+                 "gap_at_effective_rank": float(ef[int(np.sum(ef[: k + 2] > 1.05)) - 1] - ef[int(np.sum(ef[: k + 2] > 1.05))]),
+                 "note": "the coefficient map ties z[1,1]=0.25 z[0,1] and z[1,2]=0.25 z[0,2], so the planted rank-6 product family has four excited directions at alpha=0"},
         "gap_ratio_channel_over_temporal": float((ec[kc - 1] - ec[kc]) / (et[kt - 1] - et[kt])),
     }
 
@@ -95,7 +104,7 @@ def rem52_at_ncal(cov: dict, lam1: float, gap: float) -> list[dict]:
         rng = np.random.default_rng(700_000 + seed)
         noise = gen.generate_noise(rng, N_CAL, cfg, cov)
         est = estimate_calibrated_axis_covariances(noise)
-        Sigma_hat = np.kron(est.Sigma_t, est.Sigma_c)
+        Sigma_hat = np.kron(est.Sigma_t_hat, est.Sigma_c_hat)
         E = Wi @ (Sigma_hat - Sigma) @ Wi
         eps = float(np.linalg.norm(E, 2))
         rows.append({"cal_seed": seed, "N_cal": N_CAL, "eps_op": eps, "eps_fro": float(np.linalg.norm(E, "fro")),
@@ -117,12 +126,14 @@ def main() -> int:
     # Rem. 5.2 at the frozen alpha = 0.1 configuration (the R/PS estimated-covariance point)
     cfg, cov, Z, _ = whitened_clean_sample(PRIMARY.nonseparability_alpha)
     full = out["per_axis"][f"alpha={PRIMARY.nonseparability_alpha}"]["full"]
-    rows = rem52_at_ncal(cov, full["eigenvalues_top"][0], full["gap"])
+    gap_used = full["gap"] if full["gap"] > 1e-9 else full["gap_at_effective_rank"]
+    rows = rem52_at_ncal(cov, full["eigenvalues_top"][0], gap_used)
     eps = [r["eps_op"] for r in rows]
     out["rem52"] = {"rows": rows, "eps_op_median": float(np.median(eps)), "eps_op_max": float(max(eps)),
                     "bound_median": float(np.median([r["bound_6eps_lam1_over_gap"] for r in rows])),
                     "in_domain_all": all(r["in_domain_eps_le_half"] for r in rows),
-                    "lambda1": full["eigenvalues_top"][0], "delta_lambda_rank6": full["gap"]}
+                    "lambda1": full["eigenvalues_top"][0], "delta_lambda_rank6": full["gap"], "gap_used": gap_used,
+                    "gap_used_is_effective_rank": bool(full["gap"] <= 1e-9)}
     out["registered_prediction_channel_gap_gg_temporal_gap"] = {
         a: bool(v["gap_ratio_channel_over_temporal"] > 3.0) for a, v in out["per_axis"].items()}
 

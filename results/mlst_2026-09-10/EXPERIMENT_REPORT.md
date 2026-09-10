@@ -9,6 +9,34 @@ Nothing was pushed, published or submitted. `\gatedevidencefalse` unchanged.
 No historical output path was overwritten: every artefact is in the new
 versioned tree `results/mlst_2026-09-10/`.
 
+
+## 0. Summary of outcomes
+
+| Task | Status | Headline outcome |
+|---|---|---|
+| **T13-a** CRESST channel robustness | **run** | θ = **21.5689 %**, hierarchical 95 % CI **[10.31, 38.83] %**; all 7 channel effects positive and individually excluding zero; temporal dependence negligible. Labelled a *sensitivity*, not a replication |
+| **T10–T12** TIDMAD quadrature endpoint | **run** (frozen, executed once) | Combined EMPCA-vs-zero **+1.6e−05 [−8.9e−05, +1.2e−04]** and vs calibration-mean **+4.6e−04 [−3.8e−05, +9.6e−04]** — both include zero. The no-denoising bin read beats EMPCA (**−1.19e−02 [−1.31e−02, −1.08e−02]**). No "useful" verdict issued |
+| **T15** covariance-error regime | **run** (80 fits) | Bound holds **80/80** but is **never informative** (≥ 4.27 > 1) for any non-oracle arm; ε alone does not predict task outcome |
+| **T14** structural-prior tradeoff | **run** (1000 fits) | **Null crossover** — none anywhere in the declared grid at either SNR. Confirmation stage correctly not triggered; its seeds never spent. Claim stays conditional |
+| **T16** AE optimisation diagnosis | **not run, by design** | Not needed to retain the empirical optimizer/tying claim (§9) |
+| **T13-b / T13-c** | **not run** | Outside the authorised stage list — but both recorded *data* blockers are resolved (§10) |
+
+**Three results the manuscript does not yet reflect:**
+
+1. **TIDMAD gives no recovery result at this operating point.** Rank-2
+   whole-window PCA/EMPCA is indistinguishable from predicting zero (mean RMSE
+   0.655 and 0.661 vs 0.654) and ~2.7× worse than reading the injection bin
+   (0.246). The mechanism is measured, not conjectured: `p/n = 187` puts the
+   Marchenko–Pastur eigenvalue inflation at ≈216× the noise level against a
+   tone at 25×.
+2. **A stated protocol expectation is refuted.** High-frequency TIDMAD files
+   were expected to be the uncoupled failure regime; they are the
+   best-coupled ones (0018 at 1.80 MHz and 0019 at 3.40 MHz, readout line SNR
+   ≈ 30). The low-frequency files fail instead.
+3. **The covariance-error bound is valid but vacuous** in the regime the
+   theory section addresses, and structured misspecification at ε = 0.557 is
+   harmless where unstructured sampling error at ε = 0.575 is catastrophic.
+
 ---
 
 ## 1. Source state
@@ -330,8 +358,22 @@ data the precision weighting should not be read as a summary of performance.
    eligible stretches** (max relative difference 2.6e−13), confirming the
    diagonal-Fourier-weighting identity on real data.
 5. **No "useful" verdict is issued anywhere**, because the frozen dependence
-   assessment was inconclusive and the declared rule withholds it. This is a
-   protocol-level withholding, independent of the point estimates.
+   assessment was inconclusive and the declared rule withholds it. **That
+   withholding is not the only thing standing in the way**, and the report
+   should not be read as "it would have passed but for a technicality":
+
+   * On the **combined** final test the criterion fails on its own terms —
+     both Δ(zero, EMPCA) and Δ(cal-mean, EMPCA) have 95 % intervals that
+     include zero, so the verdict would be *ordering* at best even with a
+     stabilised dependence assessment.
+   * **Per file**, the picture is genuinely heterogeneous rather than a
+     uniform null: had the dependence verdict stabilised, 3 of the 8 eligible
+     final-test files (`0015`, `0016`, `0018`) and 2 of the 3 validation files
+     (`0009`, `0011`) would each have met the criterion individually, while
+     `0013` and `0014` go the other way (`0014` significantly negative).
+   * Even on the files that would qualify, EMPCA remains far worse than the
+     no-denoising bin read, so "useful against zero and the calibration mean"
+     would still not mean "useful as a denoiser" at this operating point.
 6. Design D (fixed duration 2 097 152 samples) would give 512 / 128 / 32 total
    windows at w = 4096 / 16384 / 65536 against Design F's 564 at every w — a
    16-fold loss of evaluation power across the grid and a ≈4× wider interval at
@@ -426,6 +468,190 @@ rate to within 30 % across a 16× range in N.
 
 ---
 
+## 6. Stage 3b — T14, structural-prior tradeoff
+
+Frozen at `f9714e9`; runner source SHA-256
+`feb8b2f79b5d4c8a922cb96a9bc213a119dd20656df4a31610194421d0bfc106`.
+
+### 6.1 Budget derived, not assumed
+
+The protocol JSON carries `fits_per_cell: 40`. That number was **not** trusted:
+the runner derives it from the seeds, methods and restarts it will actually
+execute, and refuses to start if the total exceeds the cap.
+
+| Quantity | Value |
+|---|---|
+| Repository `PRIMARY.n_restarts` | **10** |
+| Protocol `nfpa_restarts` | **3** |
+| Derived fits per cell | 10 seeds × (3 NFPA restarts + 1 CW-PCA) = **40** |
+| Stage 1 | 15 cells → **600** fits |
+| Stage 2 | 10 cells → **400** fits |
+| Stage 3 (confirmation, max) | 6 cells → 240 fits |
+| **Total planned** | **1240** ≤ 1240 planned cap < 1500 hard cap |
+
+The config's 40 is reproduced **only because** the protocol's 3 restarts
+override the repository's 10; at the repository value a cell would be 110 fits
+and the full plan 3410, over the hard cap. Both numbers are recorded in the
+output. The runner connects to the common configuration through
+`dataclasses.replace(PRIMARY, …)`, so `C`, `T`, `k_c`, `k_t`, `N_test`,
+`n_als_iter` and the convergence tolerance all come from the frozen config.
+
+Comparator: `methods.fit_cw_pca`, the **thin-SVD** unrestricted fit at matched
+rank `k_c·k_t = 6`.
+
+### 6.2 Benchmark before scaling (required)
+
+One small and one large representative cell, single BLAS thread:
+
+| Cell | s / seed | projected s / cell |
+|---|---|---|
+| `N=200, α=0.4, SNR 10, oracle` | 26.0 | 260 |
+| `N=3200, α=0.4, SNR 10, oracle` | 203.2 | 2032 |
+
+Projected ≈6 h serial for stages 1–2; run at 16 worker processes (of 40
+threads) with one BLAS thread each. Stage 1 took **1128 s** for 600 fits.
+
+### 6.3 Stage 1 — exploration, SNR 10, oracle covariance (600 fits)
+
+`d = χ²_test(NFPA) − χ²_test(CW-PCA)`, paired per seed; `d < 0` means the
+structural prior helps. `*` marks a paired 95 % interval excluding zero.
+
+| N | α = 0.0 | α = 0.4 | α = 0.8 |
+|---|---|---|---|
+| 200 | −0.006929 * | −0.001272 * | −0.000035 |
+| 400 | −0.004488 * | −0.001485 * | −0.000077 * |
+| 800 | −0.002751 * | −0.001387 * | −0.000290 * |
+| 1600 | −0.001630 * | −0.000988 * | −0.000312 * |
+| 3200 | −0.001041 * | −0.000693 * | −0.000345 * |
+
+**Every cell is negative.** NFPA beats CW-PCA at every `N` and every `α`
+tested at SNR 10. Resolved crossings in the predicted direction: **0**.
+Ambiguous crossings: 0. Reverse crossings: 0.
+
+### 6.4 Why there is no crossover
+
+The crossover requires the unrestricted class's variance excess to fall below
+the restricted class's approximation cost. On this configuration it cannot,
+within the declared grid:
+
+| Class | Free parameters |
+|---|---|
+| NFPA (separable, `k_c×k_t = 2×3`) | (8−2)·2 + (256−3)·3 = **771** |
+| CW-PCA (unrestricted rank 6 in `CT = 2048`) | 6·(2048−6) = **12 252** |
+
+CW-PCA carries **15.9×** more free parameters, and at the grid maximum
+`N = 3200` it is still heavily over-parameterised (`N/p = 0.26`). Fitting
+`d(N) = A − B/N`, with `A` the constant approximation cost and `B/N` the
+variance excess, gives `A ≤ 0` on all three lines — i.e. **no crossover at any
+N** under that model, not merely one beyond the grid:
+
+| line | A | B | verdict |
+|---|---|---|---|
+| α = 0.0, SNR 10 | −9.65e−04 | +1.24e+00 | A ≤ 0 → no crossover |
+| α = 0.4, SNR 10 | −9.85e−04 | +9.31e−02 | A ≤ 0 → no crossover |
+| α = 0.8, SNR 10 | −3.48e−04 | −7.01e−02 | A ≤ 0, and B < 0 (model misfit) |
+
+At α = 0 this is exactly right and needs no explanation: the truth *is*
+separable, so the approximation cost is identically zero and `d → 0⁻` without
+ever crossing. At α = 0.4 and 0.8 an approximation cost does exist, but it is
+smaller than the variance the unrestricted class pays even at `N = 3200`.
+
+### 6.5 Optimisation diagnostics
+
+The protocol asks for the restart spread and the excess objective over the
+best observed restart. The latter is **identically zero by construction** —
+`als_fit` selects the minimum-training-loss restart, so its excess over the
+best training loss is 0 in all 250 seed-runs. That is a tautology, not a
+finding, so the informative version is reported instead: the **held-out**
+excess of that selection.
+
+| Diagnostic | Value |
+|---|---|
+| Held-out excess χ² of the selected restart | mean 1.65e−05, median 0, max 2.11e−04 |
+| Seeds where training-loss selection did **not** pick the held-out-best restart | **34.7 %** |
+| ALS runs converged within 150 iterations at tol 1e−10 | **89.3 %** |
+| Selected-restart distribution (restarts 0/1/2) | 104 / 25 / 21 |
+
+Restart spread against the effect being measured:
+
+| α | restart held-out χ² sd (mean) | mean \|d\| | sd / \|d\| |
+|---|---|---|---|
+| 0.0 | 4.1e−17 | 3.37e−03 | 0.00 |
+| 0.4 | 6.1e−05 | 1.17e−03 | 0.05 |
+| 0.8 | 7.7e−05 | 2.23e−04 | **0.35** |
+
+At α = 0 the ALS problem is effectively unimodal — all restarts reach the same
+solution to 1e−17. At α = 0.8 the restart-to-restart spread is **35 % of the
+effect size**, so the α = 0.8 line is optimisation-limited and its small
+negative values should not be over-read.
+
+### 6.6 Stage 2 — exploration, SNR 3, oracle covariance (400 fits, 797 s)
+
+| N | α = 0.0 | α = 0.8 |
+|---|---|---|
+| 200 | −0.000825 * | +0.000016 |
+| 400 | −0.001001 * | +0.000000 |
+| 800 | −0.001006 * | +0.000025 |
+| 1600 | −0.000851 * | +0.000003 |
+| 3200 | −0.000618 * | +0.000000 |
+
+At α = 0 the structural prior still wins at every `N`. At α = 0.8 the two
+methods are **statistically indistinguishable**: all five point estimates are
+within 2.5e−05 of zero and no interval excludes zero. Lowering the SNR from 10
+to 3 does not produce a crossover either.
+
+### 6.7 Stage 3 — confirmation correctly **not** run
+
+Applying the declared rule to the merged 25 exploration cells:
+
+| | count |
+|---|---|
+| Resolved crossings in the predicted direction | **0** |
+| Ambiguous crossings (sign change, endpoint unresolved) | 0 |
+| Reverse crossings (positive → negative) | 0 |
+| Triggers confirmation | **False** |
+
+Across all 25 cells, 20 have `d < 0` and 5 have `d > 0` (all five are the
+α = 0.8, SNR 3 line, none resolved); **every cell with an interval excluding
+zero is negative**. The declared no-crossing rule therefore applies: stage 3
+does not run, the confirmation seeds 10–19 are never spent, and the claim
+stays conditional.
+
+| Budget | fits |
+|---|---|
+| Stage 1 | 600 |
+| Stage 2 | 400 |
+| Stage 3 | **0** (not triggered) |
+| **Total used** | **1000** ≤ 1240 planned ≤ 1500 hard cap |
+
+### 6.8 Findings
+
+1. **Null crossover, reported as such.** No crossover between the
+   finite-sample class contrast and the population approximation cost exists
+   anywhere in the declared grid, at either SNR. The manuscript's
+   structural-prior tradeoff claim therefore **stays conditional**, exactly as
+   the protocol requires when no crossover is found.
+2. The null is **explained, not merely observed**: the unrestricted class
+   carries 15.9× more free parameters and is still over-parameterised at the
+   largest `N` on the grid (`N/p = 0.26`), so its variance excess never falls
+   below the restricted class's approximation cost. The fitted `A ≤ 0` on
+   every line says this is not a crossover just beyond the grid.
+3. At α = 0 no crossover should exist at any `N` — the truth is separable, the
+   approximation cost is identically zero, and `d → 0⁻`. That the run
+   reproduces this is a correctness check on the whole pipeline.
+4. **Where the effect is smallest, the optimiser is the limiting factor**:
+   at α = 0.8 the ALS restart spread is 35 % of |d|, and training-loss restart
+   selection misses the held-out-best restart in 34.7 % of seeds. Any future
+   attempt to resolve the α = 0.8 line needs more restarts or a better
+   selection rule before more seeds.
+5. Reaching a crossover would need `N` well beyond 3200 *and* a configuration
+   where the unrestricted class is not over-parameterised — e.g. a smaller
+   `C·T` or a larger rank gap. That is a design change, not more compute, and
+   it was **not** attempted here: the grid, caps and stage structure were
+   declared in advance and were not widened after seeing the null.
+
+---
+
 ## 7. Protocol changes made *before* evaluation
 
 Every item below was decided and frozen before the data it affects were
@@ -501,7 +727,7 @@ implemented and not run**, and it stays a design outline.
 
 No T16 numbers are reported, and none should be inferred from this programme.
 
-## 10. T13-b and T13-c — unchanged, still blocked
+## 10. T13-b and T13-c — not run, but their recorded data blockers are resolved
 
 Neither was run — both are outside the stage list this instruction authorises
 (Stage 1 = T13-a, Stage 2 = TIDMAD, Stage 3 = T15/T14, T16 conditional).
@@ -551,3 +777,36 @@ The remaining T13-c dependency is therefore **not data** but the refit itself:
 rank {4,6,8} × shrinkage {0.05,0.1,0.2} at `9c9f696…` or a frozen successor,
 with selection on calibration data and a single evaluation. That is a new
 implementation outside the authorised stages and was not attempted.
+
+---
+
+## 11. Claim-to-evidence mapping
+
+How each result bears on the manuscript's existing claim rows
+(`MS:CLAIM_EVIDENCE_TABLE.md`). **Supports** = the row's stated limitation is
+narrowed; **qualifies** = a new limitation must be recorded; **neutral** = no
+bearing.
+
+| Claim row | Result | Effect | What must change in the table |
+|---|---|---|---|
+| 8 — CRESST same-rank contrast, equal-channel mean 21.6 % | T13-a | **supports** | The row's limitation "**no interval for the fractional estimand itself** (T13-a)" is now satisfied: hierarchical 95 % CI **[10.31, 38.83] %**, channel-fixed [17.42, 27.13] %, ratio-of-means sensitivity [12.14, 39.83] %. "7 clusters from 2 runs" and "one operating point" stand unchanged, and the interval must be labelled a sensitivity, not a replication |
+| 13 — TIDMAD metric reversal on file 0000 | T10/T11 | **qualifies** | The archived row is a MAE contrast on one burnt file. The new protocol's estimand, run once on 14 held-out files, gives a combined EMPCA-vs-zero contrast whose interval **includes zero**, and shows EMPCA is decisively worse than a no-denoising bin read. The "ordering only" wording stays and must be strengthened: on the new endpoint there is no recovery result at this operating point |
+| 13b — archived clean-waveform contrast | T10/T11 | **qualifies** | The row already notes the absence of zero/mean baselines and a transfer model. Both now exist, and with them the contrast does not survive: the row should point at the new evidence rather than stand alone |
+| 14 — zero-predictor level 0.0747 | T10/T11 | **supports** | The new run reproduces the phenomenon at a different operating point and generalises it: across 11 eligible stretches mean RMSE is 0.654 for zero against 0.655 for EMPCA |
+| 15 — two secondary TIDMAD files, intervals include zero | T10/T11 | **supports** | Extends from 2 files to 14 evaluated once each, with every outcome class reported |
+| 17 — rank-2 prediction not confirmed on real TIDMAD data | T10/T11 | **supports** | The mechanism is now quantified: p/n = 187 gives Marchenko–Pastur top-eigenvalue inflation ≈216× the noise level against a tone at 25×, so a rank-2 whole-window subspace cannot isolate the tone. This converts a "diagnoses are hypotheses" note into a measured statement |
+| 20 — relative covariance-error bound sinΘ ≤ 6ελ₁/Δλ | T15 | **supports + qualifies** | The row's "no data experiment yet (T15)" is discharged: the bound **holds on all 80 fits**. But a new limitation is required — on this generator the bound is **never informative** (≥ 4.27, i.e. above 1) for any non-oracle arm, and ε alone does not predict task outcome (structured misspecification at ε = 0.557 is harmless; sampling error at ε = 0.575 is catastrophic) |
+| T14 target — structural-prior tradeoff (NFPA vs unrestricted) | T14 | **qualifies** | **Null crossover.** No crossover exists anywhere in the declared grid at either SNR; 20 of 25 cells favour the restricted class and every resolved interval is negative. Any claim of a finite-sample/approximation crossover must stay **conditional**, and the reason is structural: the unrestricted class carries 15.9x more parameters and is over-parameterised at the largest N tested |
+| 2, 3 — tied-AE claims | — | **neutral** | T16 not run; nothing here bears on them (§9) |
+| 1, 4–7, 9–12, 16, 18, 19 | — | **neutral** | Not addressed by this programme |
+
+### Claims this programme does **not** support
+
+* No "useful recovery" claim on TIDMAD. The declared usefulness verdict is
+  withheld everywhere, and the combined intervals include zero regardless (§4.7).
+* No independent-replication claim from T13-a. It is a sensitivity analysis of
+  one archive.
+* No claim that the covariance-perturbation bound is practically tight. It is
+  valid and vacuous in the regime tested.
+* No crossover claim for the structural-prior tradeoff. The confirmation stage
+  was not triggered and its seeds were never spent.

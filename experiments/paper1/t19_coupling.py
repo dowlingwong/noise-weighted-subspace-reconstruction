@@ -264,8 +264,19 @@ def fit_subspace(X: np.ndarray, Sigma_hat: np.ndarray, *, floor: bool) -> tuple[
     Z = Xc @ Si                                   # whitened rows
     _, _, vh = np.linalg.svd(Z, full_matrices=False)
     W = vh[:K].T                                  # (d, K) in Sigma_hat-whitened coords
-    P = np.linalg.inv(Si) @ W if not diag["floor_applied"] else G.sym_sqrt(Sigma_hat) @ W
-    return P, Si, diag
+    # v2 (after the 11 Sep audit): the decoder is the exact inverse of the encoder that was
+    # used, floored or not.  v1 used sqrt(Sigma_hat) of the UNFLOORED covariance when the floor
+    # was active, i.e. an encoder/decoder pair from two different covariances; that suppressed
+    # the floored directions and changed both the subspace and the probe coordinates.
+    P = np.linalg.solve(Si, W)
+    if diag["floor_applied"]:
+        # the covariance the fit actually used (eigenvalues floored), for effective diagnostics
+        Sigma_eff = np.linalg.inv(Si @ Si)
+        diag["sigma_eff_trace_over_d"] = float(np.trace(Sigma_eff) / G.D)
+        diag["decoder"] = "solve(Si, W) [v2, consistent]"
+        return P, Si, diag, Sigma_eff
+    diag["decoder"] = "solve(Si, W) [v2, consistent]"
+    return P, Si, diag, None
 
 
 def probe_scores(P: np.ndarray, Si: np.ndarray, X_tr: np.ndarray, a_tr: np.ndarray,
@@ -304,7 +315,7 @@ def run_seed(g: G.G1, seed: int, arms: list[dict]) -> list[dict]:
     planted = g.planted_whitened
 
     # oracle fit on the fixed training draw; sample operator and its eigenbasis
-    P_or, Si_or, _ = fit_subspace(X_tr, g.Sigma, floor=False)
+    P_or, Si_or, _, _ = fit_subspace(X_tr, g.Sigma, floor=False)
     V_or = orth(g.Sigma_isqrt @ P_or)
     Xc = X_tr - X_tr.mean(axis=0, keepdims=True)
     A_hat = g.Sigma_isqrt @ (Xc.T @ Xc / G.N_TRAIN) @ g.Sigma_isqrt
@@ -350,8 +361,15 @@ def run_seed(g: G.G1, seed: int, arms: list[dict]) -> list[dict]:
         else:
             X_use, a_use = X_tr, a_tr
 
-        P, Si, wdiag = fit_subspace(X_use, Sigma_hat, floor=floor)
+        P, Si, wdiag, Sigma_eff = fit_subspace(X_use, Sigma_hat, floor=floor)
         V = orth(g.Sigma_isqrt @ P)
+        if Sigma_eff is not None:
+            # effective (floored) covariance actually used by the fit: E_eff and its spectrum
+            E_eff = E_from_sigma_hat(g, Sigma_eff)
+            extra = dict(extra or {})
+            extra["effective"] = {"eps_op": float(np.linalg.norm(E_eff, 2)), "eps_fro": float(np.linalg.norm(E_eff, "fro")),
+                                  "spectrum": perturbed_spectrum(A_hat, Q_hat, E_eff),
+                                  "E_blocks_hat": blocks(Q_hat.T @ E_eff @ Q_hat)}
         Eq_pop = Q.T @ E @ Q
         Eq_hat = Q_hat.T @ E @ Q_hat
         row_pred: dict = {}
@@ -430,9 +448,13 @@ def summarise(rows: list[dict]) -> dict:
             "in_domain_all": all(r["in_theorem_domain"] for r in ra),
         }
     # PRIMARY endpoint: sample-basis designed families C, F plus M, S, Sstat, K at eps_op <= 0.2
+    # v2: boundary tolerance 1e-9 (nominal eps = 0.2 rows computed as 0.2000000000000001 were
+    # dropped by the v1 filter); designed (C, F) and estimator (M, S, Sstat, K) families reported separately
     prim = [r for r in rows if r["family"] in ("C", "F", "M", "S", "Sstat", "K") and r.get("basis") != "population"
-            and r["eps_op"] <= 0.2 and r.get("ratio_cov_hat") is not None]
+            and r["eps_op"] <= 0.2 + 1e-9 and r.get("ratio_cov_hat") is not None]
     frac = float(np.mean([0.5 <= r["ratio_cov_hat"] <= 2.0 for r in prim])) if prim else None
+    prim_designed = [r for r in prim if r["family"] in ("C", "F")]
+    prim_estim = [r for r in prim if r["family"] not in ("C", "F")]
     slopes = {}
     for fam in ("C", "F"):
         xs, ys = [], []
@@ -446,6 +468,10 @@ def summarise(rows: list[dict]) -> dict:
     R_rows = [r for r in rows if r["family"] == "R"]
     out["primary"] = {
         "ratio_cov_hat_in_band_fraction_eps_le_0.2": frac, "n_primary_fits": len(prim),
+        "designed_CF": {"n": len(prim_designed), "in_band_fraction": float(np.mean([0.5 <= r["ratio_cov_hat"] <= 2.0 for r in prim_designed])) if prim_designed else None},
+        "estimator_families": {"n": len(prim_estim), "arms": sorted({r["arm"] for r in prim_estim}),
+                               "in_band_fraction": float(np.mean([0.5 <= r["ratio_cov_hat"] <= 2.0 for r in prim_estim])) if prim_estim else None},
+        "eps_filter": "eps_op <= 0.2 + 1e-9 (v2; v1 used <= 0.2 and dropped 10 nominal-0.2 C/F rows at 0.2000000000000001)",
         "in_band_by_arm": {arm: float(np.mean([0.5 <= r["ratio_cov_hat"] <= 2.0 for r in prim if r["arm"] == arm])) for arm in sorted({r["arm"] for r in prim})},
         "residual_loglog_slope_sample_basis": slopes,
         "P_sample_max_sin_theta_to_oracle": float(max(r["sin_theta_to_oracle"] for r in P_rows)) if P_rows else None,
@@ -453,6 +479,13 @@ def summarise(rows: list[dict]) -> dict:
                            "retained_set_preserved_frac": float(np.mean([bool(r["spectrum"]["retained_set_preserved"]) for r in R_rows if r["arm"] == arm]))}
                      for arm in sorted({r["arm"] for r in R_rows})},
         "S_minus_lambda_min_lt_0.05_frac": float(np.mean([r["spectrum"]["lambda_min_IplusE"] < 0.05 for r in rows if r["family"] == "S-"])) if any(r["family"] == "S-" for r in rows) else None,
+        "S_minus_effective": {arm: {"n_floored": int(sum(1 for r in rows if r["arm"] == arm and r["whitening"]["floor_applied"])),
+                                    "eps_op_raw_median": med([r for r in rows if r["arm"] == arm], "eps_op"),
+                                    "eps_op_effective_median": float(np.median([r["extra"]["effective"]["eps_op"] for r in rows if r["arm"] == arm and r.get("extra", {}).get("effective")])) if any(r.get("extra", {}).get("effective") for r in rows if r["arm"] == arm) else None,
+                                    "lambda_min_effective_median": float(np.median([r["extra"]["effective"]["spectrum"]["lambda_min_IplusE"] for r in rows if r["arm"] == arm and r.get("extra", {}).get("effective")])) if any(r.get("extra", {}).get("effective") for r in rows if r["arm"] == arm) else None,
+                                    "sin_theta_to_oracle_median": med([r for r in rows if r["arm"] == arm], "sin_theta_to_oracle"),
+                                    "probe_r2_median": med([r for r in rows if r["arm"] == arm], "probe_r2")}
+                              for arm in sorted({r["arm"] for r in rows if r["family"] == "S-"})},
         "K_lambda_min_median": {arm: float(np.median([r["spectrum"]["lambda_min_IplusE"] for r in rows if r["arm"] == arm])) for arm in sorted({r["arm"] for r in rows if r["family"] == "K"})},
     }
     return out
@@ -481,9 +514,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--seeds", type=int, nargs="+", default=list(range(10)))
     ap.add_argument("--out", type=Path, default=OUT_DIR)
     ap.add_argument("--cap", type=int, default=FIT_CAP)
+    ap.add_argument("--arms", nargs="+", default=None,
+                    help="restrict to these arm ids (v2 re-computation of the floored S- rows; results go to --out)")
     args = ap.parse_args(argv)
     arms = arm_list()
     assert len(arms) == ARMS_EXPECTED, f"{len(arms)} arms != {ARMS_EXPECTED} declared in the protocol JSON"
+    if args.arms:
+        arms = [a for a in arms if a["id"] in set(args.arms)]
+        assert len(arms) == len(set(args.arms)), f"unknown arm id in {args.arms}"
+        if args.out == OUT_DIR:
+            print("refusing: --arms requires an explicit --out (never overwrite the frozen archive)", file=sys.stderr)
+            return 4
     n_fits = len(arms) * len(args.seeds)
     if n_fits > args.cap:
         print(f"refusing: {n_fits} fits exceed cap {args.cap}", file=sys.stderr)
@@ -514,6 +555,7 @@ def main(argv: list[str] | None = None) -> int:
     prov["wall_seconds"] = time.time() - t0
     prov["n_fits_done"] = len(rows)
     outputs = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in args.out.iterdir() if p.name != "manifest.json"}
+    prov["runner_version"] = "v2 (11 Sep audit): consistent floored decoder, effective-covariance diagnostics, tolerant eps filter"
     (args.out / "manifest.json").write_text(json.dumps({"task": "T19", "provenance": prov, "arms": [a["id"] for a in arms],
                                                           "seeds": args.seeds, "outputs": outputs}, indent=1))
     print(json.dumps(summ["primary"], indent=1))

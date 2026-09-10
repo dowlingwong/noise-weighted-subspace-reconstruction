@@ -1,0 +1,65 @@
+{
+ "task": "T19",
+ "provenance": {
+  "code_commit": "8b26cdc03751768b635cbbd3849e96cdc701d830",
+  "branch": "mlst/exp-phase-20260911",
+  "tree_dirty": true,
+  "runner_sha256": "45e12a0045b9f63d15b698a1b794a2fba27f64f24e26c150ec18194c5cf9f53e",
+  "g1_sha256": "f84335c0a2731ac0cc4de5de4c5de2a05eda48805d1e44e09fb07273fecc7a43",
+  "g1_note": "local re-implementation of the 10 Sep G1 (a7125ea not available locally); equivalence checked against recorded cond/lambda_1/Delta_lambda",
+  "python": "3.10.12",
+  "numpy": "2.2.6",
+  "platform": "Linux-6.8.0-136-generic-aarch64-with-glibc2.35",
+  "hostname": "claude",
+  "thread_limits": {
+   "OPENBLAS_NUM_THREADS": "4",
+   "OMP_NUM_THREADS": "4",
+   "MKL_NUM_THREADS": null
+  },
+  "command": [
+   "experiments/paper1/t19_coupling.py",
+   "--arms",
+   "S--m128",
+   "S--m256",
+   "--out",
+   "results/mlst_2026-09-11/t19_sminus_v2"
+  ],
+  "started_utc": "2026-09-10T21:14:40Z",
+  "g1_check": {
+   "cond": 32.015621187164236,
+   "lambda_1": 19.43789347590186,
+   "lambda_2": 6.2007834507591415,
+   "lambda_3": 1.000000000000004,
+   "delta_lambda": 5.200783450759138,
+   "lambda1_over_gap": 3.737493333444711,
+   "trace_over_d": 0.9999999999999999,
+   "matches_recorded": true
+  },
+  "family_R_reversal_threshold_eps": 0.7222524446573718,
+  "n_fits_planned": 20,
+  "finished_utc": "2026-09-10T21:14:43Z",
+  "wall_seconds": 3.2934412956237793,
+  "n_fits_done": 20,
+  "runner_version": "v2 (11 Sep audit): consistent floored decoder, effective-covariance diagnostics, tolerant eps filter"
+ },
+ "arms": [
+  "S--m128",
+  "S--m256"
+ ],
+ "seeds": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9
+ ],
+ "outputs": {
+  "summary.json": "359f48055080f0d9e5fa66ccc625651198757bef6c9c6e28127a22d0ff330baf",
+  "rows.jsonl": "52d3c8a06667fb265b7a8ef2788d0e8cc792c194d11258eb9c37c63030baf41b"
+ }
+}

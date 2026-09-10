@@ -152,7 +152,11 @@ def stage_A() -> dict:
             "gap_rank6": float(w[5] - w[6]), "R_U_star": R_U, "R_F_star": R_F, "a": a,
             "a_halves": a_half, "resolution_floor": floor,
             "population_als": {kk: v for kk, v in pop.items() if kk != "best"},
-            "certified": bool(certified), "hosvd_vs_best_gap": hosvd_gap,
+            # v2 (11 Sep audit): this is restart AGREEMENT (HOSVD init reaches the best of 51 starts), not a
+            # global-optimality certificate -- two feasible points give upper bounds only. A lower bound on
+            # the minimum restriction cost is computed by --stage bounds (stage_A_bounds.json).
+            "restart_agreement_hosvd_eq_best": bool(certified), "certified": None, "hosvd_vs_best_gap": hosvd_gap,
+            "a_is": "cost of the best-found population ALS solution (upper bound on the minimum restriction cost)",
             "realized_snr": {"half1": snr1, "half2": snr2},
             "U_c_star": pop["best"]["U_c"].tolist(), "U_t_star": pop["best"]["U_t"].tolist(),
             "B_U_star": B_U.tolist(), "seconds": time.time() - t0,
@@ -265,12 +269,68 @@ def provenance(argv):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--stage", choices=["A", "B", "C"], required=True)
+    ap.add_argument("--stage", choices=["A", "B", "C", "bounds", "C-summary-v2"], required=True)
     ap.add_argument("--out", type=Path, default=OUT_DIR)
     args = ap.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     prov = provenance(sys.argv)
     t0 = time.time()
+    if args.stage == "bounds":
+        # v2: lower bound on the minimum restriction cost from the archived covariance proxy K (no fits).
+        # For P_U = top-k projector of K with rank-k gap Delta, and any product projector P_F = P_c (x) P_t:
+        #   R_K(P_F) - R_K(P_U) >= Delta * (k - tr(P_F P_U)),
+        #   tr(P_F P_U) <= min{k, sum_{i<=k_c} lambda_i(M_c), sum_{i<=k_t} lambda_i(M_t)},
+        # with M_c, M_t the partial traces of P_U (P_F <= P_c (x) I and P_F <= I (x) P_t).
+        popA = json.loads((args.out / "stage_A.json").read_text())
+        C, T, k_c, k_t = PRIMARY.C, 32, PRIMARY.k_c, PRIMARY.k_t
+        k = k_c * k_t
+        out = {"stage": "bounds", "note": "lower bounds on the minimum restriction cost for the archived K; "
+               "a (stage A) is the cost of the best-found ALS solution, i.e. an upper bound; neither certifies the optimum. "
+               "Floating-point precision only; the bound does not transfer automatically to the generator covariance.",
+               "alphas": {}}
+        for alpha, d in popA["alphas"].items():
+            K = np.array(d["Cpop"]); w = np.sort(np.linalg.eigvalsh(0.5 * (K + K.T)))[::-1]
+            Delta = float(w[k - 1] - w[k])
+            B_U = np.array(d["B_U_star"]); P_U = B_U @ B_U.T
+            P4 = P_U.reshape(C, T, C, T, order="F")           # index c + C t (Fortran vec)
+            M_c = np.einsum("ctdt->cd", P4); M_t = np.einsum("ctcs->ts", P4)
+            ec = np.sort(np.linalg.eigvalsh(0.5 * (M_c + M_c.T)))[::-1]; et = np.sort(np.linalg.eigvalsh(0.5 * (M_t + M_t.T)))[::-1]
+            cap = min(float(k), float(ec[:k_c].sum()), float(et[:k_t].sum()))
+            lower = Delta * (k - cap)
+            B_F = kron_basis(np.array(d["U_c_star"]), np.array(d["U_t_star"]))
+            achieved = risk(K, B_F) - risk(K, B_U)
+            out["alphas"][alpha] = {"rank_k_gap_Delta": Delta, "partial_trace_caps": {"k": k, "sum_top_kc_M_c": float(ec[:k_c].sum()), "sum_top_kt_M_t": float(et[:k_t].sum())},
+                                    "tr_PF_PU_cap": cap, "lower_bound_min_restriction_cost": float(lower),
+                                    "achieved_best_found_a": float(achieved), "a_stage_A": d["a"],
+                                    "gap_numerically_zero": bool(Delta <= 1e-9),
+                                    "note": ("at alpha=0 the rank-6 gap is numerically zero (four excited directions); the bound is vacuous "
+                                             "and a=0 follows from the algebraic support argument instead") if Delta <= 1e-9 else None}
+            print(f"alpha={alpha}: Delta={Delta:.4g} cap={cap:.4f} lower={lower:.5f} achieved={achieved:.5f}", flush=True)
+        out["provenance"] = prov
+        (args.out / "stage_A_bounds.json").write_text(json.dumps(out, indent=1))
+        return 0
+    if args.stage == "C-summary-v2":
+        # v2: confirmation re-scored on the two N-neighbours of the observed sign change (800 vs 1600), not on the
+        # extreme cells (400 vs 1600) that the v1 code compared. No fits; reads stage_C_rows.jsonl.
+        rows = [json.loads(l) for l in (args.out / "stage_C_rows.jsonl").read_text().splitlines() if l.strip()]
+        conf = {}
+        for alpha in sorted({r["alpha"] for r in rows}):
+            rr = [r for r in rows if r["alpha"] == alpha]; Ns = sorted({r["N"] for r in rr}); rng = np.random.default_rng(1)
+            ci = {}
+            for N in Ns:
+                ds = np.array([r["d"] for r in rr if r["N"] == N])
+                ci[str(N)] = [float(x) for x in np.percentile([np.mean(rng.choice(ds, len(ds), True)) for _ in range(2000)], [2.5, 97.5])]
+            # adjacent pairs whose intervals exclude zero with opposite signs
+            brackets = [(Ns[i], Ns[i + 1]) for i in range(len(Ns) - 1)
+                        if (ci[str(Ns[i])][1] < 0 and ci[str(Ns[i + 1])][0] > 0) or (ci[str(Ns[i])][0] > 0 and ci[str(Ns[i + 1])][1] < 0)]
+            conf[str(alpha)] = {"d_ci_by_N": ci, "sign_change_brackets_adjacent": brackets, "confirmed_bracket": bool(brackets),
+                                "v1_check_was": f"{Ns[0]} vs {Ns[-1]} (extreme cells)"}
+        out = {"stage": "C-summary-v2", "n_comparisons": len(rows), "n_individual_fits": int(sum(len(r["restart_risks"]) + 1 for r in rows)),
+               "confirmation": conf, "note": "a bracket between adjacent N cells on fresh seeds; N* itself was not fitted -- the 960 figure is a log-linear interpolation of stage-B means",
+               "provenance": prov}
+        (args.out / "stage_C_summary_v2.json").write_text(json.dumps(out, indent=1))
+        print(json.dumps(conf, indent=1))
+        return 0
     if args.stage == "A":
         res = stage_A()
         # store the population covariances for stage B

@@ -232,5 +232,78 @@
    "decay_time": 0.9999999999999978,
    "secondary": 0.9999999999999978
   }
+ },
+ "spiked_model_diagnostic": {
+  "note": "post-hoc audit diagnostic (11 Sep review): isolated-spike asymptotic overlap c^2(theta,gamma)=(1-gamma/theta^2)/(1+gamma/theta) for theta>sqrt(gamma), else 0 (Donoho-Gavish-Johnstone eq. 1.6), combined with the population loadings of each planted direction on the top-4 population eigenvectors of the all-1 cell; theta = excess population eigenvalue, gamma = d/N. Not a frozen prediction; non-Gaussian generator; to be tested independently before use.",
+  "cells": {
+   "all-1": {
+    "N": 800,
+    "gamma": 2.56,
+    "spike_excess": [
+     39.600145761282384,
+     15.060754982728714,
+     2.107923427823158,
+     0.5436161258388157
+    ],
+    "c2": [
+     0.9377457980919898,
+     0.8450703048095898,
+     0.19140375251298444,
+     0.0
+    ],
+    "predicted_recovery": {
+     "amplitude": 0.29572314244188946,
+     "rise_time": 0.846367171407447,
+     "decay_time": 0.4989289618802981,
+     "secondary": 0.9362579102377128
+    },
+    "observed_recovery_mean": {
+     "amplitude": 0.3065410692970557,
+     "rise_time": 0.8517335877518759,
+     "decay_time": 0.500214701841603,
+     "secondary": 0.9364055593028203
+    },
+    "sum_loadings_top3": {
+     "amplitude": 0.8531696583121106,
+     "rise_time": 0.9997536587189995,
+     "decay_time": 0.8731690369616343,
+     "secondary": 0.9999546920327456
+    }
+   },
+   "all-1-N3200": {
+    "N": 3200,
+    "gamma": 0.64,
+    "spike_excess": [
+     39.600145761282384,
+     15.060754982728714,
+     2.107923427823158,
+     0.5436161258388157
+    ],
+    "c2": [
+     0.9836938573591142,
+     0.9565310999136328,
+     0.6566074832110061,
+     0.0
+    ],
+    "predicted_recovery": {
+     "amplitude": 0.62085601214121,
+     "rise_time": 0.9556333981283431,
+     "decay_time": 0.7231765431918348,
+     "secondary": 0.9832219027215242
+    },
+    "observed_recovery_mean": {
+     "amplitude": 0.6304879496982456,
+     "rise_time": 0.9548405766948969,
+     "decay_time": 0.7252406722363554,
+     "secondary": 0.9832701343638991
+    },
+    "sum_loadings_top3": {
+     "amplitude": 0.8531696583121106,
+     "rise_time": 0.9997536587189995,
+     "decay_time": 0.8731690369616343,
+     "secondary": 0.9999546920327456
+    }
+   }
+  }
  }
 }

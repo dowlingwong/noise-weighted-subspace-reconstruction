@@ -1,0 +1,66 @@
+{
+ "stage": "bounds",
+ "note": "lower bounds on the minimum restriction cost for the archived K; a (stage A) is the cost of the best-found ALS solution, i.e. an upper bound; neither certifies the optimum. Floating-point precision only; the bound does not transfer automatically to the generator covariance.",
+ "alphas": {
+  "0.0": {
+   "rank_k_gap_Delta": 1.6933497287003941e-15,
+   "partial_trace_caps": {
+    "k": 6,
+    "sum_top_kc_M_c": 4.481102315478321,
+    "sum_top_kt_M_t": 4.4183502667472485
+   },
+   "tr_PF_PU_cap": 4.4183502667472485,
+   "lower_bound_min_restriction_cost": 2.6782861467025976e-15,
+   "achieved_best_found_a": -4.973799150320701e-14,
+   "a_stage_A": -7.105427357601002e-15,
+   "gap_numerically_zero": true,
+   "note": "at alpha=0 the rank-6 gap is numerically zero (four excited directions); the bound is vacuous and a=0 follows from the algebraic support argument instead"
+  },
+  "0.4": {
+   "rank_k_gap_Delta": 0.03818921247422846,
+   "partial_trace_caps": {
+    "k": 6,
+    "sum_top_kc_M_c": 3.4168728498699195,
+    "sum_top_kt_M_t": 5.875151285903835
+   },
+   "tr_PF_PU_cap": 3.4168728498699195,
+   "lower_bound_min_restriction_cost": 0.09864759158426589,
+   "achieved_best_found_a": 2.7093560022647267,
+   "a_stage_A": 2.709356002264741,
+   "gap_numerically_zero": false,
+   "note": null
+  },
+  "0.8": {
+   "rank_k_gap_Delta": 0.17921447589456863,
+   "partial_trace_caps": {
+    "k": 6,
+    "sum_top_kc_M_c": 2.932304522934559,
+    "sum_top_kt_M_t": 5.968729691853516
+   },
+   "tr_PF_PU_cap": 2.932304522934559,
+   "lower_bound_min_restriction_cost": 0.5497754371264216,
+   "achieved_best_found_a": 2.820058435822858,
+   "a_stage_A": 2.820058435822858,
+   "gap_numerically_zero": false,
+   "note": null
+  }
+ },
+ "provenance": {
+  "code_commit": "unavailable",
+  "branch": "unavailable",
+  "tree_dirty": true,
+  "runner_sha256": "848bfc58201d9bc15be8f875408ce8979aaa4c85cf24da736af5e0ae9a224b9b",
+  "primary_config_hash": "98001a62855cb9a5",
+  "cell_config_hash_example": "f772496745833c5a",
+  "python": "3.11.15",
+  "numpy": "2.4.4",
+  "platform": "Linux-6.18.44-fc-v24-x86_64-with-glibc2.39",
+  "hostname": "vm",
+  "command": [
+   "/home/claude/expc/experiments/paper1/t20_population_accounting.py",
+   "--stage",
+   "bounds"
+  ],
+  "started_utc": "2026-09-10T21:13:42Z"
+ }
+}

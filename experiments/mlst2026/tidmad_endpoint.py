@@ -488,11 +488,19 @@ def select_block_length(curve: dict, candidates) -> dict:
                     "endpoint_ratios": [r_mid, r_top],
                     "plateau_candidates": plateau_candidates, "ratios": ratios}
     endpoint_ratio = float(V[bmax] / V[cands[-2]])
+    chain = [float(V[cands[i + 1]] / V[cands[i]]) for i in range(len(cands) - 1)]
+    monotone = all(r >= 1.0 for r in chain)
+    shape = ("variance still rising at the largest usable block" if monotone
+             else "variance curve is non-monotone across the block grid, so the "
+                  "large-block variance estimates are themselves unstable")
     return {"block_length": bmax, "verdict": "inconclusive",
-            "reason": (f"variance still rising at the largest usable block "
-                       f"(V({bmax})/V({cands[-2]}) = {endpoint_ratio:.3f}); "
-                       f"interval flagged and 'useful' verdict withheld"),
+            "reason": (f"{shape}; adjacent ratios "
+                       f"{[round(r, 3) for r in chain]} over b={cands}; "
+                       f"V({bmax})/V({cands[-2]}) = {endpoint_ratio:.3f}. "
+                       f"Interval flagged and 'useful' verdict withheld."),
             "endpoint_ratio": endpoint_ratio,
+            "adjacent_ratio_chain": chain,
+            "monotone": bool(monotone),
             "plateau_candidates": plateau_candidates, "ratios": ratios}
 
 
@@ -521,7 +529,20 @@ def aggregate_block_curves(curves: list[dict], candidates) -> dict:
         vals = [c[int(b)] for c in norm if np.isfinite(c.get(int(b), np.nan))]
         agg[int(b)] = {"variance": float(max(vals)) if vals else float("nan"),
                        "usable": bool(vals), "n_curves": len(vals)}
+    # Per-curve selections are reported as a diagnostic. The declared decision
+    # is the one taken on the aggregated (maximum) curve; because the maximum is
+    # taken independently at each block length, the aggregate can be
+    # non-monotone even when no individual curve is, and that is visible here.
+    per_curve = []
+    for c in norm:
+        cc = {int(b): {"variance": c[int(b)], "usable": bool(np.isfinite(c[int(b)]))}
+              for b in candidates}
+        per_curve.append(select_block_length(cc, candidates))
     return {"curve": agg, "n_input_curves": len(norm),
+            "per_curve_selections": per_curve,
+            "per_curve_verdict_counts": {
+                v: sum(1 for s_ in per_curve if s_["verdict"] == v)
+                for v in sorted({s_["verdict"] for s_ in per_curve})},
             "selection": select_block_length(agg, candidates)}
 
 

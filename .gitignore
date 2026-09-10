@@ -36,6 +36,7 @@ results/metrics/*
 
 # MLST revision programme (2026-09-10): versioned evidence directories.
 # JSON/CSV/log evidence and small bootstrap-draw archives only; no raw data.
+# The last two lines are the exception to the repo-wide *.npz/*.log rules
 !results/mlst_2026-09-10/
 !results/mlst_2026-09-10/**
 !results/figures/.gitkeep
@@ -57,6 +58,11 @@ paper2/results/_suite_runs/
 # exception to the repo-wide *.npz/*.log rules above.
 !transfer_paper/data/cresst/sensitivity/**/*.npz
 !transfer_paper/data/cresst/sensitivity/**/*.log
+
+# MLST revision programme: same narrow exception, and it must sit *after* the
+# repo-wide *.npz/*.log rules above or those would win.
+!results/mlst_2026-09-10/**/*.npz
+!results/mlst_2026-09-10/*.log
 artifacts/
 training_data/
 export/

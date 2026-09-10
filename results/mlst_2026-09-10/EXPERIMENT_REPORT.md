@@ -270,8 +270,26 @@ reported; only eligible-coupled files enter the combined estimate.
 
 θ_IV is a **weighted** estimand, not equal-file physical performance; the
 unweighted mean and every per-file value are given beside it. Heterogeneity is
-extreme (I² ≈ 0.98), so the two differ by two orders of magnitude and the
-weighted number is dominated by the two lowest-variance, near-null files.
+extreme (I² ≈ 0.98), so the two differ by more than two orders of magnitude.
+
+**The weighted estimand is one file.** Recomputing the inverse-variance weights
+independently from the per-file rows (which reproduces θ_IV and Q exactly):
+
+| file | Δ(zero, EMPCA) | bootstrap sd | weight share |
+|---|---|---|---|
+| **0019** (3.40 MHz) | +2.91e−05 | 5.4e−05 | **98.65 %** |
+| 0014 | −8.81e−03 | 7.2e−04 | 0.56 % |
+| 0017 | +1.35e−03 | 7.2e−04 | 0.56 % |
+| 0018 | +1.30e−02 | 1.5e−03 | 0.13 % |
+| 0012, 0016, 0015, 0013 | — | 2.5e−03 … 7.0e−03 | 0.10 % combined |
+
+File 0019 carries **98.65 %** of the precision weight because its injected
+amplitudes are the smallest in the set, so its bootstrap sd is the smallest —
+not because it is the most informative about the physics. θ_IV is therefore
+essentially file 0019's value, which is ≈ 0. This is precisely the failure
+mode the protocol anticipated when it required θ_IV to be named a weighted
+estimand and shown with the unweighted mean and every per-file value; on this
+data the precision weighting should not be read as a summary of performance.
 
 ### 4.6 RMSE by method (readout physical amplitude units, 11 eligible stretches)
 
@@ -285,13 +303,29 @@ weighted number is dominated by the two lowest-variance, near-null files.
    at this operating point (mean RMSE 0.655 and 0.661 vs 0.654 for zero), and
    is ~2.7× worse than the trivial no-denoising bin read (0.246). The combined
    contrasts against both usefulness references include zero.
-2. The mechanism is the high-dimension/low-sample regime: `p = 32769` spectral
-   coordinates against `n = 350` fit windows, so the leading sample
-   eigenvalues are noise-fitting artefacts and the rank-2 subspace cannot
-   isolate a single-bin tone whose bin power is ~25× the noise floor.
+2. **The mechanism is the high-dimension/low-sample regime, and it is
+   quantitative.** At `w = 65536` the real-view dimension is `p = 65536`
+   against `n = 350` fit windows, so `p/n = 187` and the Marchenko–Pastur
+   top-eigenvalue inflation is `(1 + √(p/n))² ≈ 216×` the noise level. The
+   injected tone's bin power is only **25×** the noise floor (readout line
+   SNR 25.1). The leading sample eigendirections are therefore noise-fitting
+   artefacts roughly 8.6× stronger than the tone, and a rank-2 subspace
+   cannot be the tone direction. Measured on the evaluation windows of file
+   0010: the injection bin carries 1.65e−3 of the observed window energy
+   (54× the uniform per-bin share of 3.05e−5, so the tone is plainly present
+   in the spectrum), yet PCA's rank-2 reconstruction places only 2.13e−4 of
+   its energy there — under-representing the tone bin by ~8×. This is a
+   property of the operating point, not an implementation defect: the fits
+   behave exactly as a rank-2 projection should (PCA captures 6.44 % of the
+   centred evaluation variance; EMPCA, whose subspace is chosen in the
+   whitened metric, captures 0.14 % of *raw* variance by construction).
 3. EMPCA does beat PCA consistently (0.6550 vs 0.6614) — the predicted
    direction of the metric effect — but the margin is small next to the gap
-   to the trivial baseline.
+   to the trivial baseline. The same diagnostic shows why the direction is
+   right: EMPCA places 2.78e−3 of its reconstruction energy at the injection
+   bin against PCA's 2.13e−4, i.e. the noise-weighted metric does concentrate
+   an order of magnitude more on the tone bin. It simply does not concentrate
+   enough to compete with reading the bin directly.
 4. **`quadrature-OF` reproduces `raw-bin` to machine precision on all 11
    eligible stretches** (max relative difference 2.6e−13), confirming the
    diagonal-Fourier-weighting identity on real data.
@@ -389,3 +423,131 @@ rate to within 30 % across a 16× range in N.
    `misspecified-corrlength` (0.557 vs 0.307) — so reporting the theorem's
    operator-norm quantity rather than the old normalised Frobenius error
    changes the numbers, as the audit required.
+
+---
+
+## 7. Protocol changes made *before* evaluation
+
+Every item below was decided and frozen before the data it affects were
+scored. None was made in response to a validation or final-test outcome.
+
+| # | Where | Change | Why |
+|---|---|---|---|
+| 1 | T10 endpoint | Endpoint expressed in physical amplitude `a = 2q/√w` | Raw unitary-DFT coefficients scale as √w, so squared improvements are not comparable across window lengths |
+| 2 | T10 dependence | Plateau rule with ≥2 larger candidates required; largest candidate never accepted vacuously; endpoint case flagged; otherwise inconclusive | The declared single adjacent variance-ratio rule left the grid endpoint undefined and could certify a plateau on one noisy ratio |
+| 3 | T10 dependence | The `stabilised-at-endpoint` branch as first written was **unreachable** (if `V(16)/V(8) ≤ 1.15` then `b = 8` already qualifies). Rewritten so all three verdicts are reachable | Found by a unit test; a dead branch would have silently become "inconclusive" in a case the protocol meant to treat separately |
+| 4 | T10 characterisation | Multi-tone neighbourhood made well-defined at coarse `w` (guard 1 bin, band `max(guard+1, ⌊500/Δf⌋)`), with `multi_tone_band_resolvable_at_declared_500hz` recorded | At `w = 4096` one bin spans 2441 Hz, so the declared ±500 Hz band contained **no** testable bin and the rule silently returned "no second line" |
+| 5 | T10 characterisation | Sub-bin beat diagnostics (line-power CV, sub-bin peak scatter) added as **reported, non-gating** | The known ≈120 Hz two-tone case in file 0000 is sub-bin at every `w` used, so the declared ±500 Hz rule cannot see it; the gate is unchanged |
+| 6 | T10 characterisation | `reference_line_snr_wide_guard` reported beside the gate value | A strong tone's rectangular-window leakage inflates the off-line floor, biasing line SNR **down**; conservative for the gate, but its size should be visible |
+| 7 | T10 freeze | Inconclusive-branch message corrected (it described a non-monotone curve as "still rising") and per-curve selections added | Message-only + diagnostic; **no decision changed**. Done before validation ran |
+| 8 | T10 seeds | `zlib.crc32` replaces the builtin `hash()` for per-stretch seed offsets | `hash()` on `str` is salted per process, so seeds would not reproduce across runs |
+| 9 | T15 generator | One new frozen generator **G1** replacing the non-existent "S5/S7 generator" | S5 is exponent −2 + sinusoids, S7 is AR(1) + one pulse; neither is the named combined exponent −1 rank-2 model |
+| 10 | T15 metric | Bound compared against the distance to the **paired oracle fit**, not to the planted subspace | The theorem bounds the shift due to covariance perturbation; the planted-subspace distance also contains training-sample error present at ε = 0 |
+| 11 | T15 numerics | `SIN_THETA_TOL = 1e-6` on the bound comparison | `sinΘ = √(1−σ²)` has ≈√ε ≈ 1.5e−8 resolution near zero, so an exact zero reads as ~2e−8 |
+| 12 | T14 budget | Fit counts **derived** from seeds × (restarts + comparator), not read from `fits_per_cell` | The config's 40 holds only because the protocol's `nfpa_restarts = 3` overrides the repository's `PRIMARY.n_restarts = 10`, which would give 110 |
+| 13 | T14 evaluation | χ² computed directly in whitened coordinates; local BLAS whitener replacing a 3-operand `np.einsum` | `covariance.whiten_separable` has no `optimize=`, giving the naive O(n·C²·T²) path (~24 s per batch, 4 calls per evaluation). The archival function is **left untouched**; a test pins the two to agree to 5e−15. Evaluating in whitened coordinates also avoids the archival round trip's spurious `W·μ` term |
+
+## 8. Resources and artefacts
+
+| Stage | Wall time | Peak RSS | Threads |
+|---|---|---|---|
+| T13-a | 52 s | 131 MiB | BLAS default |
+| TIDMAD characterise (20 files × 3 w) | 39 s | ~1 GB | BLAS default |
+| TIDMAD development (9 stretches) | 2 m 28 s | ~2 GB | BLAS default |
+| TIDMAD validation (3 files) | 1 m 40 s | ~2 GB | BLAS default |
+| TIDMAD final test (14 files) | 6 m 47 s | ~2 GB | BLAS default |
+| T15 (80 fits) | 19 s | ~0.5 GB | BLAS default |
+| T14 benchmark | 3 m 51 s | ~0.5 GB | 1 per process |
+| T14 stages 1–2 | see §6 | ~0.5 GB/worker | 16 workers × 1 thread |
+
+Never exclusive: at most 16 of 40 hardware threads, peak load average ≈17.
+No GPU used. Disk: 294 TB free on `/ceph`; total new output **≈2 MB**.
+
+All outputs live under `results/mlst_2026-09-10/`, one versioned directory per
+stage, each with `RESULTS_SHA256` and a `provenance` block recording the EXP
+commit, tree-dirty flag, interpreter and library versions, input paths with
+SHA-256 digests, seeds, argv, and wall/CPU/RSS. No raw data, caches,
+credentials or large arrays were committed; the only binary artefact is a
+99 KB bootstrap-draw archive.
+
+**Provenance caveat, stated plainly.** The T13-a, TIDMAD and T15 runs executed
+from a clean tree at the commit named in their own provenance block. The T14
+exploration was launched from a working tree that was committed immediately
+afterwards as `f9714e9`; its provenance block therefore records
+`tree_dirty: true`, and the runner source is pinned instead by its SHA-256
+(`feb8b2f79b5d4c8a922cb96a9bc213a119dd20656df4a31610194421d0bfc106`), recorded
+in the same block.
+
+---
+
+## 9. T16 — left explicitly pending (not run)
+
+The instruction makes T16 conditional: implement and run it only if retaining
+the empirical optimizer/tying claim requires it. It does not, so T16 was **not
+implemented and not run**, and it stays a design outline.
+
+* The empirical optimizer claim in the manuscript is claim-table **row 2**
+  ("independently trained tied linear AE reaches the EMPCA optimum", mean
+  relative objective gap 1.95×10⁻¹⁶ on S3, 10 seeds). That claim already rests
+  on an existing independently-trained-AE gate; nothing in this programme
+  weakens it, and no result produced here bears on it.
+* Claim-table **row 3** (CRESST tied-AE/EMPCA principal angle 1.91×10⁻⁶°) is
+  already labelled in the table as a **closed-form parameterization consistency
+  check**, not an optimizer result, so it does not need T16 either.
+* T16's own blocker is unchanged: the two new untied arms
+  (untied-in-whitened-coordinates, scale-balanced untied) and the diagnostic
+  recording are runner changes that do not exist, and the tied runner's
+  hard-coded `ok=True` has not been removed.
+
+No T16 numbers are reported, and none should be inferred from this programme.
+
+## 10. T13-b and T13-c — unchanged, still blocked
+
+Neither was run — both are outside the stage list this instruction authorises
+(Stage 1 = T13-a, Stage 2 = TIDMAD, Stage 3 = T15/T14, T16 conditional).
+Neither was reconstructed from summaries, and no substitute analysis is
+labelled as either of them. But the **data inventory changes both dependency
+statements**, and that is reported here because the programme records them as
+blocked on data that is in fact present.
+
+### T13-b — the recorded blocker is resolved
+
+The programme states: "the archive carries pulse `chronological_time` but no
+noise-stream timestamps. Dependency: the release's noise-trace timestamps, or
+the leakage-audit listing of the 6 + 3 affected pulses."
+
+The mounted release **does** carry them. `features_test.csv` /
+`features_train.csv` have an `hours` column and a boolean `noise` column
+(5 205 noise rows in the test file alone), so the last calibration-noise
+timestamp per channel — the exact missing input — is derivable:
+
+| channel | n noise | first noise (h) | **last noise (h)** | n pulse | last pulse (h) |
+|---|---|---|---|---|---|
+| 33_36.0 | 767 | 0.0129 | **51.8619** | 19 304 | 51.9106 |
+| 33_37.0 | 767 | 0.0129 | **51.8619** | 19 304 | 51.9106 |
+| 35_26.0 | 739 | 0.0337 | **43.4223** | 5 599 | 43.4182 |
+| 35_27.0 | 739 | 0.0337 | **43.4223** | 5 599 | 43.4182 |
+| 35_56.0 | 731 | 0.0338 | **43.4224** | 7 691 | 43.4154 |
+| 35_57.0 | 731 | 0.0338 | **43.4224** | 7 691 | 43.4154 |
+| 35_58.0 | 731 | 0.0338 | **43.4224** | 7 691 | 43.4154 |
+
+In every run-35 channel the last noise trace comes *after* the last pulse, so a
+common time cut removes nothing there; in run 33 it precedes the last pulse by
+0.049 h, which is consistent with the programme's "6 + 3 affected pulses".
+**T13-b is unblocked and ready to run**; it was not run because it is not in
+this instruction's stage list.
+
+### T13-c — waveforms are present; the blocker is the refit pipeline
+
+The programme records T13-c as needing "the released traces". They are mounted:
+`paper1_dataset/cresst/raw/X_train.npy` (979 446 × 512 float32) and
+`X_test.npy` (78 084 × 512), with `y_train`/`y_test` labels. The `.npy`
+extension is misleading — the manifest declares `"format": "raw_headerless"`,
+so these are raw float32 buffers and `np.load` fails on them with an
+unrelated pickle error; they read correctly with `np.memmap` at the declared
+shape and dtype, and all file sizes match the manifest.
+
+The remaining T13-c dependency is therefore **not data** but the refit itself:
+rank {4,6,8} × shrinkage {0.05,0.1,0.2} at `9c9f696…` or a frozen successor,
+with selection on calibration data and a single evaluation. That is a new
+implementation outside the authorised stages and was not attempted.

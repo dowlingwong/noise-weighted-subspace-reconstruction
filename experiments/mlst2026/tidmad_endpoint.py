@@ -571,13 +571,21 @@ def _subbin_peak(power: np.ndarray, k: int) -> float:
 
 def characterise(C_cal_ref: np.ndarray, C_cal_read: np.ndarray, w: int,
                  N_read_bins: np.ndarray, stretch_samples: int,
-                 n_eval_available: int, *, search_lo_hz: float = 1000.0) -> dict:
+                 n_eval_available: int, *, search_lo_hz: float = 1000.0,
+                 n_eval_required: int = N_EVAL_REQUIRED) -> dict:
     """Decide the stretch outcome from the transfer-calibration windows only.
 
     Uses *both* channels, because coupling is a statement about the readout.
     Every threshold is the declared one; every outcome is recorded, including
     the ones that exclude a stretch from selection and from the combined
     estimate.
+
+    ``n_eval_required`` is the evaluation-window count the *calling* protocol
+    declares.  The default is the T10-T12 allocation (150), so those runners are
+    unchanged; a protocol with a longer evaluation block (T22 declares 300) must
+    pass its own number, or a stretch with between 150 and that many available
+    windows would escape ``underpowered`` and be scored on a truncated block.
+    The value used is recorded beside the available count.
     """
     m = C_cal_ref.shape[1]
     df = FS_HZ / w
@@ -641,8 +649,9 @@ def characterise(C_cal_ref: np.ndarray, C_cal_read: np.ndarray, w: int,
     readout_snr = float(readout_line_power / N_read_bins[k_inj]) if N_read_bins[k_inj] > 0 else 0.0
 
     reasons = []
-    if n_eval_available < N_EVAL_REQUIRED:
-        outcome = "underpowered"; reasons.append(f"{n_eval_available} < {N_EVAL_REQUIRED} evaluation windows")
+    n_eval_required = int(n_eval_required)
+    if n_eval_available < n_eval_required:
+        outcome = "underpowered"; reasons.append(f"{n_eval_available} < {n_eval_required} evaluation windows")
     elif prominence < PROMINENCE_MIN:
         outcome = "uncoupled"; reasons.append(f"reference line prominence {prominence:.3g} < {PROMINENCE_MIN}")
     elif second_frac >= MULTI_TONE_POWER_FRACTION:
@@ -676,6 +685,7 @@ def characterise(C_cal_ref: np.ndarray, C_cal_read: np.ndarray, w: int,
         "drift_bins_per_window": slope_bins_per_window,
         "drift_bins_over_stretch": float(drift_bins_over_stretch),
         "n_evaluation_windows_available": int(n_eval_available),
+        "n_evaluation_windows_required": n_eval_required,
         "readout_unit_target_supported": bool(ref_snr >= REFERENCE_SNR_MIN),
         "errors_in_variables": errors_in_variables_note(ref_snr),
         "transfer_calibration": cal.as_dict(),

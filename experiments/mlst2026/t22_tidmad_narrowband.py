@@ -20,15 +20,72 @@ Stages
 ``validation``    The first three eligible-coupled hold-out files in index
                   order, at the frozen band, once.
 ``final-test``    Every remaining hold-out file, at the frozen band, once.
+``recombine``     Deterministic post-processing of an archived hold-out stage
+                  output and its bootstrap draws: the combined block is
+                  recomputed.  No data file is opened and nothing is fitted.
+``audit-budget``  Reconstructs ``FIT_LEDGER.json`` for an existing run tree from
+                  its ``T22_*/t22_*.json`` outputs, each verified against its
+                  directory's ``RESULTS_SHA256``.  Writes nothing else and never
+                  overwrites a ledger.
 
-``validation`` and ``final-test`` refuse to start without ``--freeze-file``, so
-no hold-out method outcome can be seen while the band is still being chosen.
+Binding to the freeze
+---------------------
+``validation``, ``final-test`` and ``recombine`` refuse to start without
+``--freeze-file`` and are bound to it (``bind_to_freeze``) before any instrument
+data is read, so no hold-out outcome can be computed under a configuration
+other than the frozen one.  The supplied ``--protocol`` must BE the frozen
+protocol -- its canonical JSON equal to the freeze's embedded
+``stage0_protocol`` and its file digest equal to the freeze's ``protocol:``
+input hash -- and the frozen seeds, replicate counts, hold-out start, rank,
+window, methods and contrasts must be what it would use.  ``--characterisation``
+must be the very file the freeze was built from (digest), and the
+eligible-coupled hold-out set and the validation / final-test roles it implies
+must be the frozen ones.  ``recombine`` additionally verifies ``--stage-output``
+and ``--draws`` against their own ``RESULTS_SHA256`` and that the stage output
+was produced under the supplied freeze.  The binding record, with every digest
+compared, is written into the stage output.
+
+Amendments
+----------
+A protocol difference is never admitted by switching a check off.  It is
+admitted only for ``recombine`` (post-processing: no data read, no fit) and only
+through a registered record passed with ``--amendment`` (schema
+``mlst-t22-amendment/1``) that names the frozen and the amended protocol
+digests, lists ``recombine`` among the stages it applies to, and lists changed
+paths that cover every differing leaf.  Nothing under ``allocation``,
+``data_roles``, ``unchanged_from_t10_t12``, ``representation``,
+``band_selection``, ``dependence``, ``budget`` or ``contrasts`` can be amended,
+and no amendment moves a frozen seed, replicate count or file role.
+``validation`` and ``final-test`` accept no amendment at all.
+
+Fit budget and ledger
+---------------------
+The hard cap is cumulative over the run tree, not per stage.
+``FIT_LEDGER.json`` (default: beside the output directory, i.e. in the parent of
+``--out``; ``--ledger`` overrides) records every stage output with its digest
+and the fits it executed.  Before ``development``, ``validation`` or
+``final-test`` opens a data file, the stage's fits are enumerated from the
+protocol, characterisation and freeze alone and added to the cumulative executed
+count -- the LARGER of the ledger's sum and a scan of the ``T22_*`` stage
+outputs beside the ledger and beside the output directory, so a missing, stale
+or relocated ledger cannot lower it -- and the stage refuses if the total would
+exceed the cap.  Any stage refuses to start where stage outputs exist but no
+ledger does (run ``audit-budget`` first).  Smoke runs are appended but counted
+separately, as the protocol's ``budget.smoke_runs`` declares.
+
+Every loaded stretch must carry exactly the declared calibration, fit and
+evaluation windows.  Characterisation classifies a stretch against T22's own
+evaluation-window count, and one classified ``underpowered`` is excluded without
+being loaded; a short block reaching the scorer anyway is an integrity error.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import sys
+import time
 import zlib
 from pathlib import Path
 
@@ -39,7 +96,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from experiments.mlst2026 import tidmad_band as tb  # noqa: E402
 from experiments.mlst2026 import tidmad_endpoint as te  # noqa: E402
-from experiments.mlst2026.provenance import RunRecorder, write_json  # noqa: E402
+from experiments.mlst2026.provenance import (  # noqa: E402
+    RunRecorder, git_provenance, sha256_file, write_json)
 
 SQUID = "timeseries/channel0001/timeseries"
 REFERENCE = "timeseries/channel0002/timeseries"
@@ -135,6 +193,13 @@ def _read(h, dataset, start, length):
 
 
 def _windows(x: np.ndarray, offset: int, n: int, w: int) -> np.ndarray:
+    """Up to ``n`` whole windows from ``offset``.
+
+    A short read is truncated to the whole windows it contains rather than
+    failing: characterisation needs exactly that (it reports how many windows a
+    stretch can supply).  Scoring must not accept it, so every scored stretch
+    passes ``require_complete_stretch`` first.
+    """
     seg = x[offset:offset + n * w]
     if seg.size < n * w:
         seg = seg[: (seg.size // w) * w]
@@ -167,6 +232,33 @@ def load_stretch(path: Path, start: int, P: Protocol, *, roles=("cal", "fit", "e
             out[f"{role}_ref"] = te.unitary_rfft(_windows(r, off, n, P.w))
         out[f"n_{role}"] = int(wx.shape[0])
     return out
+
+
+def require_complete_stretch(st: dict, P: Protocol, name: str,
+                             roles=("cal", "fit", "eval")) -> None:
+    """Refuse a loaded stretch that does not carry exactly the declared windows.
+
+    ``load_stretch`` inherits ``_windows``' truncation, so a file that ends early
+    (on either channel) would otherwise be scored on fewer windows than the
+    protocol declares, silently changing the estimand and every interval.
+    Characterisation classifies such a stretch ``underpowered`` against T22's own
+    evaluation-window count and the stages skip it without loading it, so a
+    short block arriving here is an integrity error, not an outcome.  Array
+    shapes are checked directly (not the ``n_<role>`` counters, which describe
+    the readout channel only).
+    """
+    want = {"cal": P.n_cal, "fit": P.n_fit, "eval": P.n_eval}
+    bad = []
+    for role in roles:
+        for key in [f"{role}_read"] + ([f"{role}_ref"] if role in ("cal", "eval") else []):
+            arr = st.get(key)
+            got = None if arr is None else int(np.shape(arr)[0])
+            if got != want[role]:
+                bad.append(f"{key} has {got} windows, the protocol declares {want[role]}")
+    if bad:
+        raise SystemExit(f"integrity error in stretch {name}: " + "; ".join(bad)
+                         + ". Characterisation should already have excluded it; "
+                           "refusing to score a truncated stretch")
 
 
 def _science_paths(data_root: Path):
@@ -553,15 +645,21 @@ def stage_characterize(args, P: Protocol, rec: RunRecorder) -> dict:
         import h5py
         with h5py.File(path, "r") as h:
             n_total = int(h[SQUID].shape[0])
+            n_total_ref = int(h[REFERENCE].shape[0])
             x = _read(h, SQUID, start, P.n_cal * P.w)
             r = _read(h, REFERENCE, start, P.n_cal * P.w)
         Cx = te.unitary_rfft(_windows(x, 0, P.n_cal, P.w))
         Cr = te.unitary_rfft(_windows(r, 0, P.n_cal, P.w))
-        avail = min(P.n_eval, max(0, (n_total - start - P.eval_offset) // P.w))
-        ch = te.characterise(Cr, Cx, P.w, N, P.stretch, int(avail))
+        # Availability is set by the SHORTER channel (a reference that ends early
+        # would otherwise pass here and only be caught at scoring), and the
+        # outcome is decided against T22's declared evaluation-window count, not
+        # the T10-T12 default of 150 that te.characterise applies otherwise.
+        avail = min(P.n_eval, max(0, (min(n_total, n_total_ref) - start - P.eval_offset) // P.w))
+        ch = te.characterise(Cr, Cx, P.w, N, P.stretch, int(avail), n_eval_required=P.n_eval)
         ch.update({"file": name, "role": role, "start_sample": int(start),
                    "end_sample_exclusive": int(start + P.stretch),
                    "n_total_samples": n_total,
+                   "n_total_samples_reference": n_total_ref,
                    "n_evaluation_windows_required": P.n_eval})
         ch["file_sha256"] = next((r["sha256"] for r in reversed(rec.inputs)
                                   if r["path"] == str(path)), None)
@@ -574,22 +672,37 @@ def stage_characterize(args, P: Protocol, rec: RunRecorder) -> dict:
     return {"characterisation": out}
 
 
+def plan_development(P: Protocol, chars: dict) -> dict:
+    """The development fit enumeration, from characterisation outcomes alone.
+
+    It needs no instrument data, so the cumulative budget can be checked before
+    the first file is opened: the full band grid on the first
+    ``dev_full_grid_max`` eligible-coupled stretches in declared priority order,
+    the B = 1 identity control on every other stretch, every declared estimator
+    per cell.  Stretches that end up skipped still count, so this is an upper
+    bound on what the stage executes, never an underestimate.
+    """
+    eligible_order = [f for f, _ in P.dev
+                      if (chars.get(f) or {}).get("outcome") == "eligible-coupled"]
+    full_grid = eligible_order[:P.dev_full_grid_max]
+    planned = sum(len(P.bands) if f in full_grid else 1 for f, _ in P.dev) * len(P.methods)
+    return {"eligible_order": eligible_order, "full_grid": full_grid, "planned": int(planned)}
+
+
 def stage_development(args, P: Protocol, rec: RunRecorder, chars: dict) -> dict:
     data_root = Path(args.data_root)
     seed0 = P.smoke_seed_base if args.smoke else P.boot_seed
     reps = 200 if args.smoke else P.boot_replicates
     curve_reps = 100 if args.smoke else 400
-    N = noise_bin_power(_science_paths(data_root), P)
 
-    eligible_order = [f for f, _ in P.dev
-                      if chars.get(f, {}).get("outcome") == "eligible-coupled"]
-    full_grid = set(eligible_order[:P.dev_full_grid_max])
-    planned = sum(len(P.bands) if f in full_grid else 1 for f, _ in P.dev) * len(P.methods)
+    plan = plan_development(P, chars)
+    full_grid, planned = set(plan["full_grid"]), plan["planned"]
     print(f"  [budget] development plans {planned} fits "
           f"({len(full_grid)} stretch(es) on the full band grid, "
           f"{len(P.dev) - len(full_grid)} on the identity control only)")
     if planned > P.cap:
         raise SystemExit(f"planned {planned} fits exceeds the hard cap {P.cap}")
+    N = noise_bin_power(_science_paths(data_root), P)
 
     dev, admiss, stretches, cell_est, fits = {}, {}, {}, {}, 0
     for name, start in P.dev:
@@ -597,7 +710,16 @@ def stage_development(args, P: Protocol, rec: RunRecorder, chars: dict) -> dict:
         if "k_inj" not in ch:
             dev[name] = {"skipped": True, "reason": ch.get("error", "not characterised")}
             continue
+        if ch.get("outcome") == "underpowered":
+            # Declared outcome, not an error: the stretch cannot supply the
+            # declared windows, so it is recorded and never loaded or scored.
+            dev[name] = {"file": name, "skipped": True,
+                         "characterisation_outcome": "underpowered",
+                         "reason": "characterised underpowered ("
+                                   + "; ".join(ch.get("reasons", [])) + "); not loaded"}
+            continue
         st = load_stretch(_raw(data_root, name), start, P)
+        require_complete_stretch(st, P, name)
         stretches[name] = st
         bands = P.bands if name in full_grid else (P.identity_band,)
         cells, adm, ests = {}, {}, {}
@@ -679,7 +801,19 @@ def stage_evaluate(args, P: Protocol, rec: RunRecorder, frozen: dict, files, lab
                          "reason": ch.get("error", "not characterised"),
                          "in_combined_estimate": False}
             continue
+        if ch.get("outcome") == "underpowered":
+            # The declared failed-characterisation rule, applied without loading:
+            # the stretch cannot supply the declared evaluation windows.
+            per[name] = {"file": name, "skipped": True, "stage": label,
+                         "characterisation": ch, "in_combined_estimate": False,
+                         "reason": "characterised underpowered ("
+                                   + "; ".join(ch.get("reasons", [])) + "); not loaded",
+                         "file_verdict": {"verdict": "excluded-underpowered",
+                                          "reason": "declared in advance: only eligible-coupled "
+                                                    "stretches enter the combined estimate"}}
+            continue
         st = load_stretch(_raw(data_root, name), P.holdout_start, P)
+        require_complete_stretch(st, P, name)
         res = score_cell(st, ch, B, N, P, seed=P.boot_seed + stable_offset(f"{name}|B={B}"),
                          replicates=P.boot_replicates, b_eval=b_eval, b_cal=b_cal,
                          keep_draws=True)
@@ -717,30 +851,782 @@ def stage_evaluate(args, P: Protocol, rec: RunRecorder, frozen: dict, files, lab
                     **summary}}, draws
 
 
+# --- freeze binding and registered amendments ---------------------------------
+#: Top-level protocol sections that define what was frozen: the data and its
+#: allocation, the estimators and representation, the selection and dependence
+#: rules, the budget and the contrast set.  No amendment reaches below them.
+NEVER_AMENDABLE = ("allocation", "data_roles", "unchanged_from_t10_t12", "representation",
+                   "band_selection", "dependence", "budget", "contrasts")
+AMENDMENT_SCHEMA = "mlst-t22-amendment/1"
+#: Only post-processing may run under an amendment: it reads no instrument data
+#: and fits nothing, so an amendment can never buy a second look at the hold-out.
+AMENDABLE_STAGES = ("recombine",)
+HOLDOUT_STAGES = ("validation", "final-test")
+FROZEN_FILE_KEY = {"validation": "validation_files", "final-test": "final_test_files"}
+
+
+def _utc_now() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def canonical_json(obj) -> str:
+    """The comparison form: key order and whitespace are not scientific content,
+    every value is (so ``1``, ``1.0`` and ``true`` all differ)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"))
+
+
+def _read_json_with_digest(path, what: str):
+    """Read a JSON file once and return ``(object, sha256)`` of those same bytes,
+    so the digest that is compared is the digest of exactly what is used."""
+    p = Path(path)
+    if not p.is_file():
+        raise SystemExit(f"{what} {p} does not exist")
+    data = p.read_bytes()
+    try:
+        obj = json.loads(data)
+    except ValueError as exc:
+        raise SystemExit(f"{what} {p} is not valid JSON: {exc}")
+    return obj, hashlib.sha256(data).hexdigest()
+
+
+def _pointer(prefix: str, key) -> str:
+    seg = str(key).replace("~", "~0").replace("/", "~1")
+    return f"{prefix}/{seg}" if prefix else seg
+
+
+def json_leaf_differences(a, b, prefix: str = "") -> list:
+    """Every ``a/b/c`` path at which two JSON values differ.
+
+    Objects are compared key by key (a key on one side only differs at that
+    key), arrays index by index (surplus indices differ), anything else by its
+    canonical text.  The list is empty exactly when the canonical forms agree,
+    and it is what an amendment's ``changed_paths`` must cover.
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        out = []
+        for k in sorted(set(a) | set(b), key=str):
+            if k not in a or k not in b:
+                out.append(_pointer(prefix, k))
+            else:
+                out.extend(json_leaf_differences(a[k], b[k], _pointer(prefix, k)))
+        return out
+    if isinstance(a, list) and isinstance(b, list):
+        out = []
+        for i in range(max(len(a), len(b))):
+            if i >= len(a) or i >= len(b):
+                out.append(_pointer(prefix, i))
+            else:
+                out.extend(json_leaf_differences(a[i], b[i], _pointer(prefix, i)))
+        return out
+    return [] if canonical_json(a) == canonical_json(b) else [prefix]
+
+
+def _under(path: str, prefix: str) -> bool:
+    return path == prefix or path.startswith(prefix + "/")
+
+
+def _clip(items, n: int = 12) -> str:
+    items = [str(i) for i in items]
+    return ", ".join(items[:n]) + (f" (+{len(items) - n} more)" if len(items) > n else "")
+
+
+def _manifest(directory) -> dict:
+    """``RESULTS_SHA256`` in ``directory`` as ``{file name: recorded sha256}``."""
+    manifest = Path(directory) / "RESULTS_SHA256"
+    if not manifest.is_file():
+        raise SystemExit(f"{directory}: no RESULTS_SHA256, so its outputs cannot be verified")
+    out = {}
+    for line in manifest.read_text().splitlines():
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) != 2:
+            raise SystemExit(f"{manifest}: malformed line {line!r}")
+        out[parts[1].lstrip("*")] = parts[0]
+    return out
+
+
+def results_manifest_digest(path) -> str:
+    """The digest the ``RESULTS_SHA256`` beside ``path`` records for it."""
+    p = Path(path)
+    recorded = _manifest(p.parent).get(p.name)
+    if recorded is None:
+        raise SystemExit(f"{p.parent / 'RESULTS_SHA256'} records no digest for {p.name}")
+    return recorded
+
+
+def verify_results_manifest(directory) -> dict:
+    """Check every file a ``RESULTS_SHA256`` lists; return the verified digests."""
+    out = {}
+    for name, recorded in _manifest(directory).items():
+        f = Path(directory) / name
+        if not f.is_file():
+            raise SystemExit(f"{Path(directory) / 'RESULTS_SHA256'} lists {name}, which does "
+                             "not exist")
+        got = sha256_file(f)
+        if got != recorded:
+            raise SystemExit(f"{f}: sha256 {got} != RESULTS_SHA256 {recorded}")
+        out[name] = got
+    return out
+
+
+def _frozen_input_hash(frozen: dict, role: str, freeze_path) -> str:
+    """The digest the freeze recorded for its ``role:<file name>`` input."""
+    hits = [v for k, v in (frozen.get("input_hashes") or {}).items()
+            if k.split(":", 1)[0] == role]
+    if len(hits) != 1:
+        raise SystemExit(f"freeze {freeze_path}: expected exactly one '{role}:' entry in "
+                         f"input_hashes, found {len(hits)}; the freeze cannot be bound")
+    return hits[0]
+
+
+def load_amendments(paths, stage: str, frozen_sha: str, current_sha: str) -> list:
+    """Validate registered amendment records; refuse anything malformed.
+
+    An amendment is written before the amended stage runs.  It names the exact
+    protocol it amends and the one it produces (by digest), the stages it applies
+    to and the protocol paths it changes.  It is the only way a protocol
+    difference from the freeze is admitted, it applies only to post-processing,
+    and it can never reach below a ``NEVER_AMENDABLE`` section.
+    """
+    out, seen = [], set()
+    for path in paths or ():
+        am, digest = _read_json_with_digest(path, "amendment")
+        where = f"amendment {path}"
+        if not isinstance(am, dict) or am.get("schema") != AMENDMENT_SCHEMA:
+            raise SystemExit(f"{where}: schema must be {AMENDMENT_SCHEMA!r}")
+        for key in ("id", "reason", "recorded_utc"):
+            if not isinstance(am.get(key), str) or not am[key].strip():
+                raise SystemExit(f"{where}: '{key}' must be a non-empty string")
+        if am["id"] in seen:
+            raise SystemExit(f"{where}: amendment id {am['id']!r} supplied twice")
+        seen.add(am["id"])
+        stages = am.get("applies_to_stages")
+        if not isinstance(stages, list) or not stages:
+            raise SystemExit(f"{where}: 'applies_to_stages' must be a non-empty list")
+        outside = [s for s in stages if s not in AMENDABLE_STAGES]
+        if outside:
+            raise SystemExit(f"{where}: stages {outside} cannot be amended; only "
+                             f"{list(AMENDABLE_STAGES)} (no data read, no fit) accept amendments")
+        if stage not in stages:
+            raise SystemExit(f"{where}: does not apply to stage {stage!r} (applies to {stages})")
+        if am.get("frozen_protocol_sha256") != frozen_sha:
+            raise SystemExit(f"{where}: frozen_protocol_sha256 {am.get('frozen_protocol_sha256')} "
+                             f"is not the freeze's protocol digest {frozen_sha}")
+        if am.get("amended_protocol_sha256") != current_sha:
+            raise SystemExit(f"{where}: amended_protocol_sha256 "
+                             f"{am.get('amended_protocol_sha256')} is not the supplied "
+                             f"protocol's digest {current_sha}")
+        cps = am.get("changed_paths")
+        if (not isinstance(cps, list) or not cps
+                or not all(isinstance(c, str) and c.strip("/") for c in cps)):
+            raise SystemExit(f"{where}: 'changed_paths' must be a non-empty list of 'a/b/c' paths")
+        cps = [c.strip("/") for c in cps]
+        forbidden = sorted({c for c in cps for p in NEVER_AMENDABLE if _under(c, p)})
+        if forbidden:
+            raise SystemExit(f"{where}: changed_paths {forbidden} lie under a never-amendable "
+                             f"section ({', '.join(NEVER_AMENDABLE)})")
+        out.append({"id": am["id"], "file": str(path), "sha256": digest,
+                    "reason": am["reason"], "recorded_utc": am["recorded_utc"],
+                    "changed_paths": cps})
+    return out
+
+
+def bind_to_freeze(P: Protocol, freeze_path, characterisation_path, stage: str,
+                   amendments=(), *, stage_output=None, draws=None):
+    """Bind a hold-out or post-processing stage to its freeze, before any data is read.
+
+    A hold-out stage takes its allocation, seeds, replicate counts, contrasts and
+    file roles from ``--protocol`` and its outcomes from ``--characterisation``,
+    so both must be exactly what was frozen, or a changed seed or allocation
+    would silently produce a different hold-out evaluation under the frozen
+    band's name.  The checks:
+
+    * protocol: canonical JSON equal to ``frozen["stage0_protocol"]`` and file
+      sha256 equal to the freeze's ``protocol:`` input hash -- unless registered
+      amendments (``recombine`` only, both digests matching) cover every
+      differing leaf and none lies under a ``NEVER_AMENDABLE`` section;
+    * the frozen seeds, replicate counts, hold-out start, rank, window, methods
+      and contrasts equal what the protocol gives (never amendable);
+    * characterisation sha256 equal to the freeze's ``characterisation:`` hash
+      (the file is required for validation / final-test) and the
+      eligible-coupled hold-out set it implies equal to the frozen one;
+    * the frozen validation / final-test lists are the declared assignment of
+      the frozen eligible set, and the development fit count lies within the
+      enumeration;
+    * recombine: ``--stage-output`` and ``--draws`` match their own
+      ``RESULTS_SHA256``, the stage output's provenance ``freeze`` input is the
+      supplied freeze (its ``characterisation`` input, if recorded, the frozen
+      one; its ``draws`` input, if recorded, the supplied draws), and the files
+      it evaluated are the frozen ones for its label.
+
+    Every failing check is collected and reported in one refusal.  Returns
+    ``(record, loaded)``: ``record`` is JSON-ready and goes into the stage
+    output; ``loaded`` holds the freeze, characterisation and stage output
+    parsed from exactly the bytes whose digests were compared.
+    """
+    if stage not in HOLDOUT_STAGES + AMENDABLE_STAGES:
+        raise SystemExit(f"stage {stage!r} is not bound to a freeze")
+    amendments = list(amendments or ())
+    if amendments and stage not in AMENDABLE_STAGES:
+        raise SystemExit(f"{stage} accepts no amendments: it computes hold-out outcomes and "
+                         "runs under the frozen protocol byte for byte")
+    if not freeze_path:
+        raise SystemExit(f"{stage} requires --freeze-file; the band must be frozen before any "
+                         "hold-out method outcome is computed")
+    if stage in HOLDOUT_STAGES and not characterisation_path:
+        raise SystemExit(f"{stage} requires --characterisation: the file the freeze was built "
+                         "from, verified by digest")
+    fz, freeze_sha = _read_json_with_digest(freeze_path, "freeze file")
+    frozen = fz.get("frozen") if isinstance(fz, dict) else None
+    if not isinstance(frozen, dict) or not isinstance(frozen.get("stage0_protocol"), dict):
+        raise SystemExit(f"freeze file {freeze_path} has no frozen block embedding a "
+                         "stage0_protocol; there is nothing to bind to")
+    problems: list = []
+
+    # 1. The protocol itself.
+    frozen_proto = frozen["stage0_protocol"]
+    frozen_sha = _frozen_input_hash(frozen, "protocol", freeze_path)
+    current_sha = P.sha256()
+    identical = canonical_json(frozen_proto) == canonical_json(P.raw)
+    diffs = json_leaf_differences(frozen_proto, P.raw)
+    applied: list = []
+    if identical and current_sha == frozen_sha:
+        if amendments:
+            problems.append("amendments were supplied but the protocol is identical to the "
+                            "frozen one; there is nothing to amend")
+    elif not amendments:
+        if not identical:
+            problems.append(f"protocol differs from the frozen stage0_protocol at {len(diffs)} "
+                            f"path(s): {_clip(diffs)}")
+        if current_sha != frozen_sha:
+            problems.append(f"protocol sha256 {current_sha} != the freeze's protocol input "
+                            f"hash {frozen_sha}")
+    else:
+        applied = load_amendments(amendments, stage, frozen_sha, current_sha)
+        blocked = [d for d in diffs if any(_under(d, p) for p in NEVER_AMENDABLE)]
+        covered = [c for a in applied for c in a["changed_paths"]]
+        uncovered = [d for d in diffs
+                     if d not in blocked and not any(_under(d, c) for c in covered)]
+        if blocked:
+            problems.append(f"protocol differs under never-amendable sections, which no "
+                            f"amendment can admit: {_clip(blocked)}")
+        if uncovered:
+            problems.append(f"protocol differences not covered by any registered amendment: "
+                            f"{_clip(uncovered)}")
+
+    # 2. What the stage takes from the protocol must be what was frozen.  Compared
+    #    even under an amendment: no amendment moves a seed, a count or a contrast.
+    expected = {"bootstrap_seed": P.boot_seed, "bootstrap_replicates": P.boot_replicates,
+                "file_level_seed": P.file_seed, "file_level_replicates": P.file_replicates,
+                "holdout_start_sample": P.holdout_start, "rank": P.rank,
+                "window_samples": P.w, "methods": list(P.methods),
+                "contrasts": [list(c) for c in P.contrasts]}
+    for key, want in expected.items():
+        if key not in frozen:
+            problems.append(f"the freeze records no {key}")
+        elif canonical_json(frozen[key]) != canonical_json(want):
+            problems.append(f"{key}: frozen {canonical_json(frozen[key])}, protocol gives "
+                            f"{canonical_json(want)}")
+
+    # 3. The characterisation the stage reads outcomes from.
+    frozen_ch_sha = _frozen_input_hash(frozen, "characterisation", freeze_path)
+    chars, ch_record = None, None
+    if characterisation_path:
+        chj, ch_sha = _read_json_with_digest(characterisation_path, "characterisation")
+        if ch_sha != frozen_ch_sha:
+            problems.append(f"characterisation sha256 {ch_sha} != the freeze's "
+                            f"characterisation input hash {frozen_ch_sha}")
+        chars = chj.get("characterisation") if isinstance(chj, dict) else None
+        if not isinstance(chars, dict):
+            problems.append(f"characterisation {characterisation_path} has no "
+                            "characterisation block")
+            chars = None
+        ch_record = {"file": str(characterisation_path), "sha256": ch_sha,
+                     "frozen_sha256": frozen_ch_sha}
+
+    # 4. File roles: the declared assignment of the frozen eligible set, and that
+    #    set re-derived from the characterisation.
+    fe, fv, ft = (frozen.get(k) for k in ("eligible_holdout_files", "validation_files",
+                                          "final_test_files"))
+    if not all(isinstance(x, list) for x in (fe, fv, ft)):
+        problems.append("the freeze lacks eligible_holdout_files / validation_files / "
+                        "final_test_files lists")
+    else:
+        if [f for f in P.holdout_files if f in set(fe)] != fe:
+            problems.append(f"eligible_holdout_files {fe} is not an in-order subset of the "
+                            "protocol's hold-out files")
+        if fv != fe[:3]:
+            problems.append(f"validation_files {fv} are not the first three eligible hold-out "
+                            f"files {fe[:3]}")
+        want_ft = [f for f in P.holdout_files if f not in set(fv)]
+        if ft != want_ft:
+            problems.append(f"final_test_files {ft} are not the hold-out files outside "
+                            f"validation {want_ft}")
+        if frozen.get("n_eligible_coupled_holdout_files") != len(fe):
+            problems.append(f"n_eligible_coupled_holdout_files "
+                            f"{frozen.get('n_eligible_coupled_holdout_files')!r} != the "
+                            f"{len(fe)} files listed")
+        if chars is not None:
+            eligible = [f for f in P.holdout_files
+                        if (chars.get(f) or {}).get("outcome") == "eligible-coupled"]
+            if eligible != fe:
+                problems.append(
+                    f"eligible-coupled hold-out files in the characterisation {eligible} differ "
+                    f"from the frozen {fe} (only in the characterisation: "
+                    f"{sorted(set(eligible) - set(fe))}; only in the freeze: "
+                    f"{sorted(set(fe) - set(eligible))})")
+    dfc = frozen.get("development_fit_count")
+    dev_plan = plan_development(P, chars)["planned"] if chars is not None else None
+    if isinstance(dfc, bool) or not isinstance(dfc, int) or dfc < 0:
+        problems.append(f"development_fit_count {dfc!r} is not a non-negative integer")
+    elif dev_plan is not None and dfc > dev_plan:
+        problems.append(f"development_fit_count {dfc} exceeds the development enumeration "
+                        f"{dev_plan} that this protocol and characterisation give")
+
+    record = {
+        "stage": stage, "verdict": "bound", "checked_utc": _utc_now(),
+        "freeze": {"file": str(freeze_path), "sha256": freeze_sha},
+        "protocol": {"file": str(P.path), "sha256": current_sha,
+                     "frozen_input_sha256": frozen_sha,
+                     "canonical_sha256": hashlib.sha256(canonical_json(P.raw).encode()).hexdigest(),
+                     "frozen_canonical_sha256":
+                         hashlib.sha256(canonical_json(frozen_proto).encode()).hexdigest(),
+                     "canonical_identical": identical, "differing_paths": diffs},
+        "frozen_fields_compared": {k: frozen.get(k) for k in expected},
+        "characterisation": ch_record,
+        "file_roles": {"eligible_holdout_files": fe, "validation_files": fv,
+                       "final_test_files": ft, "development_fit_count": dfc,
+                       "development_enumeration": dev_plan},
+        "amendments_applied": applied,
+    }
+
+    # 5. recombine: the archived output, its draws, and the freeze it was made under.
+    src = None
+    if stage == "recombine":
+        if not stage_output or not draws:
+            raise SystemExit("recombine requires --stage-output and --draws")
+        src, src_sha = _read_json_with_digest(stage_output, "stage output")
+        want = results_manifest_digest(stage_output)
+        if src_sha != want:
+            problems.append(f"stage output sha256 {src_sha} != RESULTS_SHA256 {want}")
+        if not Path(draws).is_file():
+            raise SystemExit(f"draws {draws} does not exist")
+        draws_sha, want_d = sha256_file(draws), results_manifest_digest(draws)
+        if draws_sha != want_d:
+            problems.append(f"draws sha256 {draws_sha} != RESULTS_SHA256 {want_d}")
+        src = src if isinstance(src, dict) else {}
+        by_role: dict = {}
+        for r in (src.get("provenance") or {}).get("inputs") or []:
+            by_role.setdefault(r.get("role"), []).append(r.get("sha256"))
+        if not by_role.get("freeze"):
+            problems.append("the stage output records no provenance input with role 'freeze'")
+        elif set(by_role["freeze"]) != {freeze_sha}:
+            problems.append(f"the stage output was produced under freeze sha256 "
+                            f"{sorted(set(by_role['freeze']), key=str)}, not the supplied "
+                            f"{freeze_sha}")
+        if by_role.get("characterisation") and set(by_role["characterisation"]) != {frozen_ch_sha}:
+            problems.append(f"the stage output read characterisation sha256 "
+                            f"{sorted(set(by_role['characterisation']), key=str)}, not the "
+                            f"frozen {frozen_ch_sha}")
+        if by_role.get("draws"):
+            if set(by_role["draws"]) != {draws_sha}:
+                problems.append(f"the stage output records draws sha256 "
+                                f"{sorted(set(by_role['draws']), key=str)}, not the supplied "
+                                f"{draws_sha}")
+        elif Path(draws).resolve().parent != Path(stage_output).resolve().parent:
+            problems.append("the draws are not beside the stage output and the stage output "
+                            "records no draws input, so their pairing cannot be verified")
+        label = src.get("stage")
+        if label not in HOLDOUT_STAGES or not isinstance(src.get(label), dict):
+            problems.append(f"the stage output is labelled {label!r}; only validation / "
+                            "final-test outputs can be recombined")
+        elif src[label].get("files_evaluated") != frozen.get(FROZEN_FILE_KEY[label]):
+            problems.append(f"the stage output evaluated {src[label].get('files_evaluated')}, "
+                            f"not the frozen {FROZEN_FILE_KEY[label]} "
+                            f"{frozen.get(FROZEN_FILE_KEY[label])}")
+        record["stage_output"] = {"file": str(stage_output), "sha256": src_sha,
+                                  "results_sha256": want, "label": label}
+        record["draws"] = {"file": str(draws), "sha256": draws_sha, "results_sha256": want_d}
+    else:
+        record["files"] = frozen.get(FROZEN_FILE_KEY[stage])
+
+    if problems:
+        raise SystemExit(f"refusing to bind stage {stage} to freeze {freeze_path}:\n  - "
+                         + "\n  - ".join(problems))
+    print(f"  [bind] {stage}: freeze {freeze_sha[:12]}, protocol {current_sha[:12]}"
+          + (f" (amended: {', '.join(a['id'] for a in applied)})" if applied else "")
+          + (f", characterisation {ch_record['sha256'][:12]}" if ch_record else ""))
+    return record, {"frozen": frozen, "characterisation": chars, "stage_output": src}
+
+
+# --- cumulative fit ledger ----------------------------------------------------
+LEDGER_NAME = "FIT_LEDGER.json"
+LEDGER_SCHEMA = "mlst-t22-fit-ledger/1"
+FIT_STAGES = ("development",) + HOLDOUT_STAGES
+#: The per-cell numbers that must agree exactly for a development output to be a
+#: deterministic re-score of an earlier one rather than a new evaluation.
+RESCORE_FIELDS = ("mean_delta_squared", "ci95_lo", "ci95_hi", "bootstrap_sd")
+
+
+def fits_in_output(js: dict) -> int:
+    """Estimator fits a stage output records as executed.
+
+    ``fits_performed`` wins over ``fit_count`` where both exist: a recombine
+    output repeats the original stage's ``fit_count`` for reference but performs
+    none.  characterize and freeze outputs fit nothing.
+    """
+    label = js.get("stage")
+    if label == "development":
+        block = js
+    elif label in HOLDOUT_STAGES and isinstance(js.get(label), dict):
+        block = js[label]
+    else:
+        return 0
+    return int(block.get("fits_performed", block.get("fit_count")) or 0)
+
+
+def stage_outputs_under(dirs, stages=None) -> list:
+    """Archived ``T22_*/t22_<stage>.json`` outputs under each directory, de-duplicated."""
+    seen, out = set(), []
+    for d in dirs:
+        for sub in sorted(Path(d).glob("T22_*")):
+            if not sub.is_dir():
+                continue
+            for p in sorted(sub.glob("t22_*.json")):
+                if stages is not None and p.stem[len("t22_"):] not in stages:
+                    continue
+                if p.resolve() not in seen:
+                    seen.add(p.resolve())
+                    out.append(p)
+    return out
+
+
+def scan_executed_fits(dirs) -> dict:
+    """Fits executed according to the stage outputs on disk, independent of any ledger.
+
+    A deleted, stale, hand-edited or relocated ledger cannot lower this count.
+    Only development / validation / final-test outputs are read (a recombine
+    output is ``t22_recombine.json`` and fits nothing); smoke outputs are
+    totalled separately.
+    """
+    total, smoke, rows = 0, 0, []
+    for p in stage_outputs_under(dirs, FIT_STAGES):
+        try:
+            js = json.loads(p.read_text())
+        except ValueError as exc:
+            raise SystemExit(f"{p}: unreadable stage output ({exc}); the cumulative fit count "
+                             "cannot be established")
+        if not isinstance(js, dict):
+            raise SystemExit(f"{p}: not a stage output; the cumulative fit count cannot be "
+                             "established")
+        n = fits_in_output(js)
+        if js.get("smoke"):
+            smoke += n
+        else:
+            total += n
+        rows.append({"output": str(p), "fits": n, "smoke": bool(js.get("smoke"))})
+    return {"executed_total": total, "smoke_total": smoke, "outputs": rows}
+
+
+def _ledger_totals(ledger: dict) -> dict:
+    """Recompute the totals from the entries: the entries are the record."""
+    real = [e for e in ledger["entries"] if not e.get("smoke")]
+    ledger["executed_total"] = int(sum(e["fits_executed"] for e in real))
+    ledger["unique_scientific_total"] = int(sum(e["fits_executed"] for e in real
+                                                if not e.get("deterministic_rescore_of")))
+    ledger["smoke_executed_total"] = int(sum(e["fits_executed"] for e in ledger["entries"]
+                                             if e.get("smoke")))
+    ledger["executed_total_exceeds_cap"] = bool(ledger["executed_total"] > ledger["hard_cap"])
+    return ledger
+
+
+def load_ledger(path, P: Protocol):
+    """The ledger at ``path`` (None if absent); refuse one that cannot be trusted."""
+    path = Path(path)
+    if not path.exists():
+        return None
+    ledger, _ = _read_json_with_digest(path, "fit ledger")
+    if not isinstance(ledger, dict) or ledger.get("schema") != LEDGER_SCHEMA:
+        raise SystemExit(f"fit ledger {path}: schema must be {LEDGER_SCHEMA!r}")
+    if ledger.get("hard_cap") != P.cap:
+        raise SystemExit(f"fit ledger {path} records hard cap {ledger.get('hard_cap')}, the "
+                         f"protocol declares {P.cap}")
+    entries = ledger.get("entries")
+    if not isinstance(entries, list) or not all(
+            isinstance(e, dict) and isinstance(e.get("fits_executed"), int)
+            and not isinstance(e["fits_executed"], bool) and e["fits_executed"] >= 0
+            for e in entries):
+        raise SystemExit(f"fit ledger {path}: every entry needs a non-negative integer "
+                         "fits_executed")
+    stored = {k: ledger.get(k) for k in ("executed_total", "unique_scientific_total")}
+    _ledger_totals(ledger)
+    if any(stored[k] != ledger[k] for k in stored):
+        raise SystemExit(f"fit ledger {path}: stored totals {stored} disagree with its entries "
+                         f"(executed {ledger['executed_total']}, unique "
+                         f"{ledger['unique_scientific_total']}); refusing to trust it")
+    return ledger
+
+
+def _write_ledger(path, ledger: dict, *, exclusive: bool = False) -> None:
+    path = Path(path)
+    data = json.dumps(ledger, indent=2, sort_keys=True) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if exclusive:
+        with open(path, "x") as fh:          # never overwrite, not even under a race
+            fh.write(data)
+        return
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(data)
+    os.replace(tmp, path)
+
+
+def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, *,
+                            scan_dirs) -> dict:
+    """Refuse a stage whose planned fits would take the cumulative total past the cap.
+
+    Cumulative executed fits are the larger of the ledger's non-smoke sum and the
+    ledger-independent scan of stage outputs, so neither a missing ledger nor an
+    output that never reached it can make room under the cap.
+    """
+    ledger = load_ledger(ledger_path, P)
+    ledger_total = ledger["executed_total"] if ledger is not None else None
+    scan = scan_executed_fits(scan_dirs)
+    spent = max(ledger_total or 0, scan["executed_total"])
+    shown = "absent" if ledger_total is None else ledger_total
+    print(f"  [budget] {stage} plans {planned} fits; cumulative executed {spent} "
+          f"(ledger {shown}, archive scan {scan['executed_total']}); cap {P.cap}")
+    if spent + planned > P.cap:
+        raise SystemExit(
+            f"{stage} refused: cumulative executed fits {spent} + planned {planned} = "
+            f"{spent + planned} would exceed the hard cap {P.cap} (ledger {ledger_path}: "
+            f"{shown}; archive scan of {_clip(scan_dirs)}: {scan['executed_total']})")
+    return {"planned": int(planned), "cumulative_executed_before": int(spent),
+            "hard_cap": P.cap, "ledger": str(ledger_path), "ledger_executed_total": ledger_total,
+            "archive_scan_executed_total": scan["executed_total"],
+            "archive_scan_outputs": scan["outputs"]}
+
+
+def require_ledger_beside_outputs(ledger_path, scan_dirs, stage: str) -> None:
+    """Refuse to start a ledger from nothing where expenditure already exists.
+
+    A ledger created now would open with this stage and omit everything before
+    it; ``audit-budget`` reconstructs that history from the verified outputs.
+    """
+    if Path(ledger_path).exists():
+        return
+    existing = stage_outputs_under(scan_dirs)
+    if existing:
+        raise SystemExit(
+            f"{stage} refused: fit ledger {ledger_path} does not exist although "
+            f"{len(existing)} T22 stage output(s) do ({_clip(existing, 4)}). Reconstruct it "
+            "first with --stage audit-budget --results-root DIR, so that no earlier "
+            "expenditure goes unrecorded")
+
+
+def _relative_to(path, base) -> str:
+    try:
+        return str(Path(path).resolve().relative_to(Path(base).resolve()))
+    except ValueError:
+        return str(Path(path).resolve())
+
+
+def ledger_entry(stage: str, out_dir, output_file: str, output_sha256: str, js: dict,
+                 ledger_dir, *, recorded_utc=None) -> dict:
+    prov = js.get("provenance") or {}
+    git = prov.get("git") or {}
+    entry = {"stage": stage, "output_dir": _relative_to(out_dir, ledger_dir),
+             "output_file": output_file, "output_sha256": output_sha256,
+             "fits_executed": 0 if stage == "recombine" else fits_in_output(js),
+             "smoke": bool(js.get("smoke")), "git_commit": git.get("commit"),
+             "git_tree_dirty": git.get("tree_dirty"),
+             "output_finished_utc": prov.get("finished_utc"),
+             "recorded_utc": recorded_utc or _utc_now()}
+    if stage == "recombine":
+        entry["recombined_stage"] = js.get("stage")
+    return entry
+
+
+def record_in_ledger(ledger_path, P: Protocol, entry: dict) -> dict:
+    """Append one stage's entry and rewrite the totals (atomic replace)."""
+    ledger = load_ledger(ledger_path, P)
+    if ledger is None:
+        ledger = {"schema": LEDGER_SCHEMA, "hard_cap": P.cap,
+                  "counting_convention": P.raw["budget"]["fit_definition"], "entries": []}
+    ledger["entries"].append(entry)
+    _write_ledger(ledger_path, _ledger_totals(ledger))
+    return ledger
+
+
+def development_contrast_signature(js: dict) -> dict:
+    """Every per-cell contrast number a development output reports, keyed by
+    (stretch, band, contrast, field); an unscored cell is keyed with None."""
+    sig = {}
+    for fname, entry in (js.get("development") or {}).items():
+        for B, cell in ((entry or {}).get("cells") or {}).items():
+            contrasts = (cell or {}).get("contrasts")
+            if not isinstance(contrasts, dict):
+                sig[f"{fname}|B={B}"] = None
+                continue
+            for key, c in contrasts.items():
+                for fld in RESCORE_FIELDS:
+                    sig[f"{fname}|B={B}|{key}|{fld}"] = (c or {}).get(fld)
+    return sig
+
+
+def audit_budget(args, P: Protocol) -> int:
+    """Reconstruct ``FIT_LEDGER.json`` for an existing run tree; nothing is re-run.
+
+    Every ``T22_*/t22_*.json`` under ``--results-root`` is verified against its
+    directory's ``RESULTS_SHA256`` (every file that manifest lists is checked)
+    and entered, in the order the outputs finished, with the fits it records.
+    A development output whose every per-cell contrast number
+    (``RESCORE_FIELDS``) equals an earlier development output's is marked
+    ``deterministic_rescore_of`` it: its fits were executed and count in
+    ``executed_total``, but it is no new scientific evaluation and is left out
+    of ``unique_scientific_total``.  An existing ledger is never overwritten.
+    """
+    if not args.results_root:
+        raise SystemExit("audit-budget requires --results-root")
+    if args.out:
+        raise SystemExit("audit-budget writes only the ledger; --out is not used")
+    root = Path(args.results_root)
+    if not root.is_dir():
+        raise SystemExit(f"--results-root {root} is not a directory")
+    ledger_path = Path(args.ledger) if args.ledger else root / LEDGER_NAME
+    if ledger_path.exists():
+        raise SystemExit(f"refusing to overwrite existing fit ledger {ledger_path}")
+    outputs = stage_outputs_under([root])
+    if not outputs:
+        raise SystemExit(f"no T22_*/t22_*.json stage outputs under {root}")
+
+    now, verified, rows = _utc_now(), {}, []
+    for p in outputs:
+        if p.parent not in verified:
+            verified[p.parent] = verify_results_manifest(p.parent)
+        js, digest = _read_json_with_digest(p, "stage output")
+        recorded = verified[p.parent].get(p.name)
+        if recorded is None:
+            raise SystemExit(f"{p.parent / 'RESULTS_SHA256'} records no digest for {p.name}")
+        if digest != recorded:
+            raise SystemExit(f"{p}: sha256 {digest} != RESULTS_SHA256 {recorded}")
+        stage = p.stem[len("t22_"):]
+        label = js.get("stage") if isinstance(js, dict) else None
+        bad_label = (label not in HOLDOUT_STAGES) if stage == "recombine" else (label != stage)
+        if bad_label:
+            raise SystemExit(f"{p}: the file name says stage {stage!r} but the output is "
+                             f"labelled {label!r}")
+        entry = ledger_entry(stage, p.parent, p.name, digest, js, ledger_path.parent,
+                             recorded_utc=now)
+        entry["results_sha256_verified"] = True
+        rows.append((entry["output_finished_utc"] or "", p.parent.name, entry, js))
+    rows.sort(key=lambda r: (r[0], r[1]))
+
+    checks, originals = [], []
+    for _, _, entry, js in rows:
+        if entry["stage"] != "development" or entry["smoke"]:
+            continue
+        sig = development_contrast_signature(js)
+        n_values = sum(v is not None for v in sig.values())
+        ref = f"{entry['output_dir']}/{entry['output_file']}"
+        for earlier_ref, earlier_sig in originals:
+            same = n_values > 0 and canonical_json(sig) == canonical_json(earlier_sig)
+            checks.append({"earlier": earlier_ref, "later": ref,
+                           "values_compared": n_values, "identical": same})
+            if same:
+                entry["deterministic_rescore_of"] = earlier_ref
+                entry["rescore_comparison"] = {"values_compared": n_values,
+                                               "fields": list(RESCORE_FIELDS),
+                                               "identical": True}
+                break
+        else:
+            originals.append((ref, sig))
+
+    git = git_provenance()
+    ledger = {"schema": LEDGER_SCHEMA, "hard_cap": P.cap,
+              "counting_convention": P.raw["budget"]["fit_definition"],
+              "entries": [r[2] for r in rows],
+              "audit": {"built_by": "t22_tidmad_narrowband --stage audit-budget",
+                        "results_root": str(root), "recorded_utc": now,
+                        "protocol_file": str(P.path), "protocol_sha256": P.sha256(),
+                        "runner_git_commit": git.get("commit"),
+                        "runner_git_tree_dirty": git.get("tree_dirty"),
+                        "outputs_verified_against_results_sha256": len(rows),
+                        "development_rescore_checks": checks,
+                        "note": "reconstructed after the fact from the archived stage outputs; "
+                                "nothing was re-run. executed_total counts every fit executed, "
+                                "deterministic re-scores included; unique_scientific_total "
+                                "leaves them out."}}
+    _ledger_totals(ledger)
+    _write_ledger(ledger_path, ledger, exclusive=True)
+    for e in ledger["entries"]:
+        print(f"  [audit] {e['output_dir']}/{e['output_file']:<24s} {e['stage']:<12s} "
+              f"fits={e['fits_executed']:>4d}"
+              + (f"  deterministic re-score of {e['deterministic_rescore_of']}"
+                 if e.get("deterministic_rescore_of") else ""))
+    print(f"[T22/audit-budget] wrote {ledger_path}: executed {ledger['executed_total']}, "
+          f"unique scientific {ledger['unique_scientific_total']}, hard cap {P.cap}, "
+          f"exceeds cap: {ledger['executed_total_exceeds_cap']}")
+    return 0
+
+
 # --- main ---------------------------------------------------------------------
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", required=True,
                     choices=["characterize", "development", "freeze", "validation",
-                             "final-test", "recombine"])
+                             "final-test", "recombine", "audit-budget"])
     ap.add_argument("--stage-output", help="recombine: the stage JSON to re-summarise")
     ap.add_argument("--draws", help="recombine: the matching *_draws.npz")
-    ap.add_argument("--protocol", required=True, help="stage-0 protocol JSON")
+    ap.add_argument("--protocol", required=True,
+                    help="stage-0 protocol JSON (every stage; audit-budget takes the hard cap "
+                         "and the fit-counting convention from it)")
     ap.add_argument("--data-root", default="/ceph/dwong/paper1_dataset")
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out", help="output directory (required for every stage except "
+                                  "audit-budget)")
     ap.add_argument("--characterisation", help="JSON from the characterize stage")
     ap.add_argument("--development", help="JSON from the development stage")
     ap.add_argument("--freeze-file", help="frozen configuration JSON")
+    ap.add_argument("--amendment", action="append", default=[], metavar="PATH",
+                    help=f"recombine only, repeatable: a registered {AMENDMENT_SCHEMA} record "
+                         "admitting a protocol difference from the freeze")
+    ap.add_argument("--ledger", metavar="PATH",
+                    help=f"cumulative fit ledger (default: {LEDGER_NAME} in the parent of "
+                         "--out; for audit-budget, in --results-root)")
+    ap.add_argument("--results-root", metavar="DIR",
+                    help="audit-budget only: the run tree whose T22_*/t22_*.json outputs are "
+                         "verified and entered in a new ledger")
     ap.add_argument("--smoke", action="store_true",
                     help="implementation check: few replicates, smoke seeds, output "
                          "marked non-scientific")
     args = ap.parse_args(argv)
 
     P = Protocol(Path(args.protocol))
+    if args.stage == "audit-budget":
+        return audit_budget(args, P)
+    if not args.out:
+        raise SystemExit(f"--out is required for stage {args.stage}")
+    if args.results_root:
+        raise SystemExit("--results-root is used only by --stage audit-budget")
+    if args.amendment and args.stage not in AMENDABLE_STAGES:
+        raise SystemExit(f"--amendment is accepted only for {', '.join(AMENDABLE_STAGES)}; "
+                         f"{args.stage} accepts no amendments")
+    if args.smoke and args.stage in HOLDOUT_STAGES:
+        # A smoke run is exempt from the cap, but stage_evaluate would still score
+        # the frozen hold-out stretches with the frozen seeds and replicate counts:
+        # hold-out exposure outside the budget.  Hold-out code paths are exercised
+        # on synthetic fixtures instead.
+        raise SystemExit(f"{args.stage} refuses --smoke: a smoke run would score the hold-out "
+                         "stretches and expose their outcomes outside the fit ledger; test "
+                         "the hold-out path on synthetic fixtures")
     out_dir = Path(args.out)
     if out_dir.exists() and any(out_dir.iterdir()):
         raise SystemExit(f"refusing to overwrite non-empty output directory {out_dir}")
+    ledger_path = Path(args.ledger) if args.ledger else out_dir.parent / LEDGER_NAME
+    # The expenditure scan covers the ledger's directory AND the output's parent,
+    # so pointing --ledger somewhere empty cannot hide the outputs beside --out.
+    scan_dirs = list(dict.fromkeys([ledger_path.parent.resolve(), out_dir.parent.resolve()]))
 
     rec = RunRecorder(run_id=f"T22_tidmad_narrowband_{args.stage}",
                       protocol_refs={"stage0": "plan/mlst_protocol_2026-09-11-t22-stage0.json",
@@ -754,9 +1640,6 @@ def main(argv=None) -> int:
     rec.add_seed("band_selection_seed", P.smoke_seed_base if args.smoke else P.sel_seed)
     rec.add_seed("file_level_seed", P.file_seed)
     rec.add_seed("smoke", bool(args.smoke))
-    data_root = Path(args.data_root)
-    for p in _science_paths(data_root)[:2]:
-        rec.add_input("science_noise", p)
 
     payload: dict = {"stage": args.stage, "smoke": bool(args.smoke),
                      "protocol_sha256": P.sha256(),
@@ -764,13 +1647,43 @@ def main(argv=None) -> int:
                      "band_candidates": list(P.bands)}
     draws: dict = {}
 
+    # --- pre-flight: no instrument data (not even a science-file digest) is read
+    # until the freeze binding and the cumulative budget have both passed.
+    loaded: dict = {}
+    if args.stage in HOLDOUT_STAGES + AMENDABLE_STAGES:
+        payload["freeze_binding"], loaded = bind_to_freeze(
+            P, args.freeze_file, args.characterisation, args.stage, args.amendment,
+            stage_output=args.stage_output, draws=args.draws)
+    chars, files, planned = None, None, None
+    if args.stage == "development":
+        if not args.characterisation:
+            raise SystemExit("development requires --characterisation")
+        chars = _read_json_with_digest(args.characterisation, "characterisation")[0]["characterisation"]
+        planned = plan_development(P, chars)["planned"]
+    elif args.stage in HOLDOUT_STAGES:
+        fz = loaded["frozen"]
+        if fz.get("selected_band") is None:
+            raise SystemExit(f"no band was frozen ({fz.get('disposition')}); stage cannot run")
+        files = fz[FROZEN_FILE_KEY[args.stage]]
+        planned = len(files) * len(P.methods)
+    if planned is not None and not args.smoke:
+        payload["budget_preflight"] = check_cumulative_budget(
+            P, ledger_path, planned, args.stage, scan_dirs=scan_dirs)
+    elif planned is not None:
+        print(f"  [budget] smoke run: its {planned} planned fits are recorded separately and "
+              "not counted against the cap")
+    require_ledger_beside_outputs(ledger_path, scan_dirs, args.stage)
+
+    data_root = Path(args.data_root)
+    for p in _science_paths(data_root)[:2]:
+        rec.add_input("science_noise", p)
+
     if args.stage == "characterize":
         payload.update(stage_characterize(args, P, rec))
 
     elif args.stage == "development":
-        chj = json.loads(Path(args.characterisation).read_text())
         rec.add_input("characterisation", Path(args.characterisation))
-        payload.update(stage_development(args, P, rec, chj["characterisation"]))
+        payload.update(stage_development(args, P, rec, chars))
 
     elif args.stage == "freeze":
         devj = json.loads(Path(args.development).read_text())
@@ -817,11 +1730,17 @@ def main(argv=None) -> int:
         # combined block is recomputed.  No data file is opened and no estimator
         # is fitted, so this is not a second evaluation of the hold-out; the
         # original stage output is left untouched and both versions are kept.
-        src = json.loads(Path(args.stage_output).read_text())
+        # Everything read here was bound above: the stage output and draws match
+        # their RESULTS_SHA256, the output was produced under this freeze, and the
+        # protocol is the frozen one or differs only by registered amendments.
+        src, fz = loaded["stage_output"], loaded["frozen"]
         rec.add_input("stage_output", Path(args.stage_output))
         rec.add_input("draws", Path(args.draws))
-        fz = json.loads(Path(args.freeze_file).read_text())["frozen"]
         rec.add_input("freeze", Path(args.freeze_file))
+        if args.characterisation:
+            rec.add_input("characterisation", Path(args.characterisation))
+        for a in payload["freeze_binding"]["amendments_applied"]:
+            rec.add_input("amendment", Path(a["file"]))
         label = src["stage"]
         arrays = np.load(args.draws)
         per = src[label]["per_file"]
@@ -838,29 +1757,17 @@ def main(argv=None) -> int:
                           "fits_performed": 0, **summary}
         payload["stage"] = label
 
-    elif args.stage in ("validation", "final-test"):
-        if not args.freeze_file or not Path(args.freeze_file).exists():
-            raise SystemExit("validation/final-test require --freeze-file; the band must be "
-                             "frozen before any hold-out method outcome is computed")
-        fz = json.loads(Path(args.freeze_file).read_text())["frozen"]
+    elif args.stage in HOLDOUT_STAGES:
+        # Bound in the pre-flight: the protocol, the freeze and the characterisation
+        # are the frozen ones, and the cumulative budget has room for ``files``.
+        fz, chars = loaded["frozen"], loaded["characterisation"]
         rec.add_input("freeze", Path(args.freeze_file))
-        chj = json.loads(Path(args.characterisation).read_text())
         rec.add_input("characterisation", Path(args.characterisation))
-        if fz.get("selected_band") is None:
-            raise SystemExit(f"no band was frozen ({fz.get('disposition')}); stage cannot run")
-        files = fz["validation_files"] if args.stage == "validation" else fz["final_test_files"]
-        planned = len(files) * len(P.methods)
-        spent = int(fz.get("development_fit_count") or 0)
-        print(f"  [budget] {args.stage} plans {planned} fits; development spent {spent}; "
-              f"cap {P.cap}")
-        if spent + planned > P.cap:
-            raise SystemExit(f"{spent} + {planned} fits would exceed the hard cap {P.cap}")
         if not files:
             payload[args.stage] = {"per_file": {}, "files_evaluated": [], "fit_count": 0,
                                    "note": "empty file list; " + fz.get("validation_status", "")}
         else:
-            stage_payload, draws = stage_evaluate(args, P, rec, fz, files, args.stage,
-                                                  chj["characterisation"])
+            stage_payload, draws = stage_evaluate(args, P, rec, fz, files, args.stage, chars)
             payload.update(stage_payload)
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -869,13 +1776,20 @@ def main(argv=None) -> int:
     digest = write_json(out_dir / name, payload)
     lines = [f"{digest}  {name}"]
     if draws:
-        import hashlib
         npz = out_dir / f"t22_{args.stage}_draws.npz"
         np.savez_compressed(npz, **draws)
         lines.append(f"{hashlib.sha256(npz.read_bytes()).hexdigest()}  {npz.name}")
         print(f"[T22/{args.stage}] wrote {npz} ({len(draws)} arrays)")
     (out_dir / "RESULTS_SHA256").write_text("\n".join(lines) + "\n")
     print(f"[T22/{args.stage}] wrote {out_dir}/{name} sha256={digest}")
+
+    # Every stage output enters the ledger (smoke runs flagged and totalled apart),
+    # and the totals are recomputed from the entries.
+    entry = ledger_entry(args.stage, out_dir, name, digest, payload, ledger_path.parent)
+    ledger = record_in_ledger(ledger_path, P, entry)
+    print(f"[T22/{args.stage}] ledger {ledger_path}: +{entry['fits_executed']} fit(s)"
+          f"{' (smoke, counted separately)' if entry['smoke'] else ''}; executed total "
+          f"{ledger['executed_total']} against the hard cap {P.cap}")
     return 0
 
 

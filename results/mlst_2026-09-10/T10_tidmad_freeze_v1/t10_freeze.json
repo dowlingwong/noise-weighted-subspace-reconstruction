@@ -1,0 +1,898 @@
+{
+  "allocation_by_window": {
+    "16384": {
+      "cal_offset": 0,
+      "eval_offset": 6815744,
+      "fit_offset": 1064960,
+      "guard_samples": 16384,
+      "leftover_samples": 27721728,
+      "n_cal": 64,
+      "n_eval": 150,
+      "n_fit": 350,
+      "stretch_samples": 36995072,
+      "used_samples": 9273344,
+      "window_samples": 16384
+    },
+    "4096": {
+      "cal_offset": 0,
+      "eval_offset": 1728512,
+      "fit_offset": 278528,
+      "guard_samples": 16384,
+      "leftover_samples": 34652160,
+      "n_cal": 64,
+      "n_eval": 150,
+      "n_fit": 350,
+      "stretch_samples": 36995072,
+      "used_samples": 2342912,
+      "window_samples": 4096
+    },
+    "65536": {
+      "cal_offset": 0,
+      "eval_offset": 27164672,
+      "fit_offset": 4210688,
+      "guard_samples": 16384,
+      "leftover_samples": 0,
+      "n_cal": 64,
+      "n_eval": 150,
+      "n_fit": 350,
+      "stretch_samples": 36995072,
+      "used_samples": 36995072,
+      "window_samples": 65536
+    }
+  },
+  "frozen": {
+    "block_length_calibration": 2,
+    "block_length_evaluation": 16,
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": 20260910,
+    "contrasts": [
+      [
+        "zero",
+        "empca"
+      ],
+      [
+        "calibration-mean",
+        "empca"
+      ],
+      [
+        "pca",
+        "empca"
+      ],
+      [
+        "zero",
+        "pca"
+      ],
+      [
+        "calibration-mean",
+        "pca"
+      ],
+      [
+        "raw-bin",
+        "empca"
+      ],
+      [
+        "wiener",
+        "empca"
+      ],
+      [
+        "shrinkage-cal",
+        "empca"
+      ],
+      [
+        "zero",
+        "raw-bin"
+      ],
+      [
+        "zero",
+        "wiener"
+      ]
+    ],
+    "dependence_aggregate": {
+      "curve": {
+        "1": {
+          "n_curves": 10,
+          "usable": true,
+          "variance": 1.0
+        },
+        "2": {
+          "n_curves": 10,
+          "usable": true,
+          "variance": 1.7732755671037268
+        },
+        "4": {
+          "n_curves": 10,
+          "usable": true,
+          "variance": 2.430817932410807
+        },
+        "8": {
+          "n_curves": 10,
+          "usable": true,
+          "variance": 3.290402561874148
+        },
+        "16": {
+          "n_curves": 10,
+          "usable": true,
+          "variance": 1.8953076781072327
+        }
+      },
+      "n_input_curves": 10,
+      "per_curve_selections": [
+        {
+          "adjacent_ratio_chain": [
+            1.6666914879949764,
+            1.398606481790576,
+            1.3033460044299874,
+            0.599298963182211
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 0.599298963182211,
+          "monotone": false,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.6666914879949764,
+              "4": 2.3310455182549537,
+              "8": 3.038158862362023,
+              "16": 1.820765456196406
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.398606481790576,
+              "8": 1.8228681698116287,
+              "16": 1.0924430041859636
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.3033460044299874,
+              "16": 0.7810939091225687
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.599298963182211
+            }
+          },
+          "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.667, 1.399, 1.303, 0.599] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.599. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "block_length": 2,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.2721258560009956,
+              "4": 1.4415154567568447,
+              "8": 1.0854697954886894,
+              "16": 0.9910539388105335
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.1331547503391963,
+              "8": 0.8532723317965796,
+              "16": 0.7790533728525662
+            },
+            "4": {
+              "4": 1.0,
+              "8": 0.7530060051737529,
+              "16": 0.6875083677841581
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.9130184395083523
+            }
+          },
+          "reason": "every larger candidate within 1.15 of V(2)",
+          "verdict": "stabilised"
+        },
+        {
+          "block_length": 4,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.459288428512499,
+              "4": 2.1127265417107695,
+              "8": 2.1578493972958555,
+              "16": 1.4997027669590888
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.4477785888183474,
+              "8": 1.4786997245605673,
+              "16": 1.0276945514381866
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.02135764127266,
+              "16": 0.7098423470103765
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.6949988117050551
+            }
+          },
+          "reason": "every larger candidate within 1.15 of V(4)",
+          "verdict": "stabilised"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.7732755671037268,
+            1.3626349703301674,
+            1.361737113258878,
+            0.5724633086367981
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 0.5724633086367981,
+          "monotone": false,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.7732755671037268,
+              "4": 2.4163272997675977,
+              "8": 3.290402561874148,
+              "16": 1.8836347373174716
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.3626349703301674,
+              "8": 1.855550610922999,
+              "16": 1.0622346420720121
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.361737113258878,
+              "16": 0.7795445333496995
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.5724633086367981
+            }
+          },
+          "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.773, 1.363, 1.362, 0.572] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.572. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.7499841010752122,
+            1.3632333891591046,
+            1.3628120513810424,
+            0.578137463412084
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 0.578137463412084,
+          "monotone": false,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.7499841010752122,
+              "4": 2.3856367570833106,
+              "8": 3.2511745227707243,
+              "16": 1.8796257917046595
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.3632333891591046,
+              "8": 1.8578308915910504,
+              "16": 1.0740816391130603
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.3628120513810424,
+              "16": 0.7878927024928547
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.578137463412084
+            }
+          },
+          "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.75, 1.363, 1.363, 0.578] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.578. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.7480357168993448,
+            1.363004096794297,
+            1.362850032531371,
+            0.5782881258355
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 0.5782881258355,
+          "monotone": false,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.7480357168993448,
+              "4": 2.3825798434765626,
+              "8": 3.247099017190622,
+              "16": 1.877758805053459
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.363004096794297,
+              "8": 1.8575701776564995,
+              "16": 1.0742107766448938
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.362850032531371,
+              "16": 0.7881199911074168
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.5782881258355
+            }
+          },
+          "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.748, 1.363, 1.363, 0.578] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.578. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.7370318674913323,
+            1.3994089445932036,
+            1.304007050546955,
+            0.5979258793464145
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 0.5979258793464145,
+          "monotone": false,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.7370318674913323,
+              "4": 2.430817932410807,
+              "8": 3.169803722459664,
+              "16": 1.8953076781072327
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.3994089445932036,
+              "8": 1.8248391303480107,
+              "16": 1.0911185416790807
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.304007050546955,
+              "16": 0.7796995623722125
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.5979258793464145
+            }
+          },
+          "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.737, 1.399, 1.304, 0.598] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.598. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "block_length": 2,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.395983293027723,
+              "4": 1.57834799818996,
+              "8": 1.1883622625038721,
+              "16": 1.08831559041247
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.1306353063629504,
+              "8": 0.8512725535034554,
+              "16": 0.7796050252521589
+            },
+            "4": {
+              "4": 1.0,
+              "8": 0.7529152404074886,
+              "16": 0.6895282863224991
+            },
+            "8": {
+              "8": 1.0,
+              "16": 0.9158113016138661
+            }
+          },
+          "reason": "every larger candidate within 1.15 of V(2)",
+          "verdict": "stabilised"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.1980048794479676,
+            1.1902397640225224,
+            1.1580274129646406,
+            1.1167740010826301
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 1.1167740010826301,
+          "monotone": true,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.1980048794479676,
+              "4": 1.4259130450119795,
+              "8": 1.6512463946277558,
+              "16": 1.8440690429017066
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.1902397640225224,
+              "8": 1.378330274738646,
+              "16": 1.5392834157331987
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.1580274129646406,
+              "16": 1.2932549073398891
+            },
+            "8": {
+              "8": 1.0,
+              "16": 1.1167740010826301
+            }
+          },
+          "reason": "variance still rising at the largest usable block; adjacent ratios [1.198, 1.19, 1.158, 1.117] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 1.117. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        },
+        {
+          "adjacent_ratio_chain": [
+            1.168518781518611,
+            1.1970921751239785,
+            1.1810981637262843,
+            1.1210580154399237
+          ],
+          "block_length": 16,
+          "endpoint_ratio": 1.1210580154399237,
+          "monotone": true,
+          "plateau_candidates": [
+            1,
+            2,
+            4
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.168518781518611,
+              "4": 1.3988246898413352,
+              "8": 1.6521492725465903,
+              "16": 1.8521551846915942
+            },
+            "2": {
+              "2": 1.0,
+              "4": 1.1970921751239785,
+              "8": 1.4138833698500346,
+              "16": 1.5850452846675915
+            },
+            "4": {
+              "4": 1.0,
+              "8": 1.1810981637262843,
+              "16": 1.3240795634667264
+            },
+            "8": {
+              "8": 1.0,
+              "16": 1.1210580154399237
+            }
+          },
+          "reason": "variance still rising at the largest usable block; adjacent ratios [1.169, 1.197, 1.181, 1.121] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 1.121. Interval flagged and 'useful' verdict withheld.",
+          "verdict": "inconclusive"
+        }
+      ],
+      "per_curve_verdict_counts": {
+        "inconclusive": 7,
+        "stabilised": 3
+      },
+      "selection": {
+        "adjacent_ratio_chain": [
+          1.7732755671037268,
+          1.3708066459072898,
+          1.353619503131949,
+          0.5760108808776586
+        ],
+        "block_length": 16,
+        "endpoint_ratio": 0.5760108808776586,
+        "monotone": false,
+        "plateau_candidates": [
+          1,
+          2,
+          4
+        ],
+        "ratios": {
+          "1": {
+            "1": 1.0,
+            "2": 1.7732755671037268,
+            "4": 2.430817932410807,
+            "8": 3.290402561874148,
+            "16": 1.8953076781072327
+          },
+          "2": {
+            "2": 1.0,
+            "4": 1.3708066459072898,
+            "8": 1.855550610922999,
+            "16": 1.0688173419108344
+          },
+          "4": {
+            "4": 1.0,
+            "8": 1.353619503131949,
+            "16": 0.7796995623722125
+          },
+          "8": {
+            "8": 1.0,
+            "16": 0.5760108808776586
+          }
+        },
+        "reason": "variance curve is non-monotone across the block grid, so the large-block variance estimates are themselves unstable; adjacent ratios [1.773, 1.371, 1.354, 0.576] over b=[1, 2, 4, 8, 16]; V(16)/V(8) = 0.576. Interval flagged and 'useful' verdict withheld.",
+        "verdict": "inconclusive"
+      }
+    },
+    "dependence_aggregate_calibration": {
+      "curve": {
+        "1": {
+          "n_curves": 1,
+          "usable": true,
+          "variance": 1.0
+        },
+        "2": {
+          "n_curves": 1,
+          "usable": true,
+          "variance": 1.1519715370666368
+        },
+        "4": {
+          "n_curves": 1,
+          "usable": true,
+          "variance": 1.095797689225057
+        },
+        "8": {
+          "n_curves": 1,
+          "usable": true,
+          "variance": 0.8723500006810786
+        }
+      },
+      "n_input_curves": 1,
+      "per_curve_selections": [
+        {
+          "block_length": 2,
+          "plateau_candidates": [
+            1,
+            2
+          ],
+          "ratios": {
+            "1": {
+              "1": 1.0,
+              "2": 1.1519715370666368,
+              "4": 1.095797689225057,
+              "8": 0.8723500006810786
+            },
+            "2": {
+              "2": 1.0,
+              "4": 0.9512367744913037,
+              "8": 0.7572669745837798
+            },
+            "4": {
+              "4": 1.0,
+              "8": 0.7960867313910841
+            }
+          },
+          "reason": "every larger candidate within 1.15 of V(2)",
+          "verdict": "stabilised"
+        }
+      ],
+      "per_curve_verdict_counts": {
+        "stabilised": 1
+      },
+      "selection": {
+        "block_length": 2,
+        "plateau_candidates": [
+          1,
+          2
+        ],
+        "ratios": {
+          "1": {
+            "1": 1.0,
+            "2": 1.1519715370666368,
+            "4": 1.095797689225057,
+            "8": 0.8723500006810786
+          },
+          "2": {
+            "2": 1.0,
+            "4": 0.9512367744913037,
+            "8": 0.7572669745837798
+          },
+          "4": {
+            "4": 1.0,
+            "8": 0.7960867313910841
+          }
+        },
+        "reason": "every larger candidate within 1.15 of V(2)",
+        "verdict": "stabilised"
+      }
+    },
+    "dependence_verdict": "inconclusive",
+    "eligible_pool_files": [
+      "abra_validation_0008.h5",
+      "abra_validation_0009.h5",
+      "abra_validation_0011.h5",
+      "abra_validation_0012.h5",
+      "abra_validation_0013.h5",
+      "abra_validation_0014.h5",
+      "abra_validation_0015.h5",
+      "abra_validation_0016.h5",
+      "abra_validation_0017.h5",
+      "abra_validation_0018.h5",
+      "abra_validation_0019.h5"
+    ],
+    "endpoint": "mean paired squared quadrature error difference in readout physical-amplitude units a = 2q/sqrt(w)",
+    "final_test_files": [
+      "abra_validation_0001.h5",
+      "abra_validation_0002.h5",
+      "abra_validation_0003.h5",
+      "abra_validation_0004.h5",
+      "abra_validation_0006.h5",
+      "abra_validation_0007.h5",
+      "abra_validation_0012.h5",
+      "abra_validation_0013.h5",
+      "abra_validation_0014.h5",
+      "abra_validation_0015.h5",
+      "abra_validation_0016.h5",
+      "abra_validation_0017.h5",
+      "abra_validation_0018.h5",
+      "abra_validation_0019.h5"
+    ],
+    "input_hashes": {
+      "characterisation:t10_characterize.json": "554c3dd31796ec45f39d85f100100cbc95a898b09f8bc2d697a82ce4e81b1df0",
+      "development:t10_development.json": "7e1f712266d5a18d06167c96df821f914e805ca9a8f9fd501c77af3612cba6b0",
+      "endpoint_module:tidmad_endpoint.py": "7017a82fae5a8232e4798ccd93ab313064ed4c45598095cd5271ae7fc31b3f52",
+      "runner_source:t10_tidmad_runner.py": "de82e16f43ac884da26a31114fcf12407b9300990a76252ff27baa4a994bf173",
+      "science_noise:abra_science_0000.h5": "3d99e1bf984dc911d77ee0eec0a66455cfcf7058b4e211275fed1d3c41b762f5",
+      "science_noise:abra_science_0001.h5": "931227088b22fd0934301a0167536c87bbf420cf7cbf2da497cafd4b7f242c66"
+    },
+    "methods": [
+      "zero",
+      "calibration-mean",
+      "raw-bin",
+      "quadrature-OF",
+      "pca",
+      "empca",
+      "wiener",
+      "shrinkage-cal"
+    ],
+    "n_eligible_coupled_pool_files": 11,
+    "non_eligible_pool_files": [
+      "abra_validation_0001.h5",
+      "abra_validation_0002.h5",
+      "abra_validation_0003.h5",
+      "abra_validation_0004.h5",
+      "abra_validation_0006.h5",
+      "abra_validation_0007.h5"
+    ],
+    "note": "three eligible-coupled pool files found",
+    "rank": 2,
+    "selected_window": 65536,
+    "selection": {
+      "criterion": "precision-weighted mean of Delta(zero, EMPCA) over eligible development stretches; ties -> smaller window",
+      "excluded": [
+        {
+          "key": "abra_validation_0000.h5|w=4096",
+          "outcome": "uncoupled"
+        },
+        {
+          "key": "abra_validation_0005.h5|w=4096",
+          "outcome": "uncoupled"
+        },
+        {
+          "key": "abra_validation_0000.h5|w=16384",
+          "outcome": "uncoupled"
+        },
+        {
+          "key": "abra_validation_0005.h5|w=16384",
+          "outcome": "uncoupled"
+        },
+        {
+          "key": "abra_validation_0000.h5|w=65536",
+          "outcome": "uncoupled"
+        },
+        {
+          "key": "abra_validation_0005.h5|w=65536",
+          "outcome": "chirped"
+        }
+      ],
+      "per_window": {
+        "16384": {
+          "I_squared": 0.0,
+          "Q_dof": 0,
+          "cochran_Q": 0.0,
+          "n_eligible_development_stretches": 1,
+          "n_files": 1,
+          "note": "precision-weighted estimand, not equal-file physical performance",
+          "theta_iv_ci95": [
+            -0.009030204684167318,
+            0.01765728649191914
+          ],
+          "theta_iv_precision_weighted": 0.004313540903875911,
+          "theta_iv_se": 0.006808033463287362,
+          "unweighted_mean": 0.004313540903875911,
+          "unweighted_sd": NaN
+        },
+        "4096": {
+          "I_squared": 0.0,
+          "Q_dof": 0,
+          "cochran_Q": 0.0,
+          "n_eligible_development_stretches": 1,
+          "n_files": 1,
+          "note": "precision-weighted estimand, not equal-file physical performance",
+          "theta_iv_ci95": [
+            -0.03276935380577722,
+            0.013730955658668685
+          ],
+          "theta_iv_precision_weighted": -0.009519199073554266,
+          "theta_iv_se": 0.011862323842970894,
+          "unweighted_mean": -0.009519199073554266,
+          "unweighted_sd": NaN
+        },
+        "65536": {
+          "I_squared": 1.0,
+          "Q_dof": 0,
+          "cochran_Q": 1.0876911036302322e-30,
+          "n_eligible_development_stretches": 1,
+          "n_files": 1,
+          "note": "precision-weighted estimand, not equal-file physical performance",
+          "theta_iv_ci95": [
+            0.07118982709218252,
+            0.1233517414363762
+          ],
+          "theta_iv_precision_weighted": 0.09727078426427936,
+          "theta_iv_se": 0.013306610802090224,
+          "unweighted_mean": 0.09727078426427938,
+          "unweighted_sd": NaN
+        }
+      },
+      "selected_window": 65536,
+      "verdict": "selected"
+    },
+    "useful_verdict_permitted": true,
+    "validation_files": [
+      "abra_validation_0008.h5",
+      "abra_validation_0009.h5",
+      "abra_validation_0011.h5"
+    ],
+    "validation_status": "complete",
+    "window_samples": 65536
+  },
+  "provenance": {
+    "argv": [
+      "experiments/mlst2026/t10_tidmad_runner.py",
+      "--stage",
+      "freeze",
+      "--out",
+      "results/mlst_2026-09-10/T10_tidmad_freeze_v1",
+      "--characterisation",
+      "results/mlst_2026-09-10/T10_tidmad_characterize_v1/t10_characterize.json",
+      "--development",
+      "results/mlst_2026-09-10/T10_tidmad_development_v1/t10_development.json"
+    ],
+    "environment": {
+      "executable": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst/.venv/bin/python3",
+      "modules": {
+        "h5py": "3.16.0",
+        "matplotlib": "3.11.0",
+        "numpy": "2.4.6",
+        "pandas": "3.0.3",
+        "scipy": "1.17.1",
+        "yaml": "6.0.3"
+      },
+      "platform": "Linux-4.18.0-553.156.1.el8_10.x86_64-x86_64-with-glibc2.28",
+      "processor": "x86_64",
+      "python": "3.12.2"
+    },
+    "finished_utc": "2026-09-10T09:52:40Z",
+    "git": {
+      "branch": "mlst/exp-phase-20260910",
+      "commit": "38b0a338310750f4e5f3889c23694d40c90f476e",
+      "describe": "38b0a33-dirty",
+      "dirty_paths": [
+        "M experiments/mlst2026/tidmad_endpoint.py"
+      ],
+      "repo_root": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst",
+      "tree_dirty": true
+    },
+    "inputs": [
+      {
+        "bytes": 26176,
+        "exists": true,
+        "path": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst/experiments/mlst2026/t10_tidmad_runner.py",
+        "role": "runner_source",
+        "sha256": "de82e16f43ac884da26a31114fcf12407b9300990a76252ff27baa4a994bf173"
+      },
+      {
+        "bytes": 38480,
+        "exists": true,
+        "path": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst/experiments/mlst2026/tidmad_endpoint.py",
+        "role": "endpoint_module",
+        "sha256": "7017a82fae5a8232e4798ccd93ab313064ed4c45598095cd5271ae7fc31b3f52"
+      },
+      {
+        "bytes": 2860531091,
+        "exists": true,
+        "path": "/ceph/dwong/paper1_dataset/tidmad/raw/abra_science_0000.h5",
+        "role": "science_noise",
+        "sha256": "3d99e1bf984dc911d77ee0eec0a66455cfcf7058b4e211275fed1d3c41b762f5"
+      },
+      {
+        "bytes": 2861979213,
+        "exists": true,
+        "path": "/ceph/dwong/paper1_dataset/tidmad/raw/abra_science_0001.h5",
+        "role": "science_noise",
+        "sha256": "931227088b22fd0934301a0167536c87bbf420cf7cbf2da497cafd4b7f242c66"
+      },
+      {
+        "bytes": 496907,
+        "exists": true,
+        "path": "results/mlst_2026-09-10/T10_tidmad_development_v1/t10_development.json",
+        "role": "development",
+        "sha256": "7e1f712266d5a18d06167c96df821f914e805ca9a8f9fd501c77af3612cba6b0"
+      },
+      {
+        "bytes": 152027,
+        "exists": true,
+        "path": "results/mlst_2026-09-10/T10_tidmad_characterize_v1/t10_characterize.json",
+        "role": "characterisation",
+        "sha256": "554c3dd31796ec45f39d85f100100cbc95a898b09f8bc2d697a82ce4e81b1df0"
+      }
+    ],
+    "notes": [],
+    "protocol_refs": {
+      "config": "plan/mlst_protocol_2026-09-10.json#tidmad",
+      "programme": "plan/MLST_EXPERIMENT_PROGRAMME_2026-09-10.md#T10"
+    },
+    "resources": {
+      "cpu_seconds": 16.941,
+      "max_rss_mib": 46.7,
+      "system_seconds": 1.316,
+      "user_seconds": 20.142,
+      "wall_seconds": 17.135
+    },
+    "run_id": "T10_tidmad_freeze",
+    "seeds": {
+      "bootstrap_seed": 20260910,
+      "smoke": false
+    }
+  },
+  "smoke": false,
+  "stage": "freeze"
+}

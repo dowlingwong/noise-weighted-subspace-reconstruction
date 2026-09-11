@@ -1,0 +1,446 @@
+{
+  "exp_repo": {
+    "baseline": "27220c0ed45b92cc76ab357c25f6fab590614ac9",
+    "branch": "mlst/exp-phase-20260910",
+    "commits_since_baseline": [
+      "8894aaa evidence(T14 stage 1): 600 fits, null crossover at SNR 10",
+      "da08cf0 report: experiment report through T15; manifest generator; gitignore exceptions",
+      "54bda08 evidence(T15): 80-fit covariance-error regime on frozen generator G1",
+      "f9714e9 freeze(T14): structural-prior runner with derived budget and declared crossover rules",
+      "64dfe1e freeze(T15): one explicit generator G1 replacing the S5/S7 mismatch",
+      "077e3d1 evidence(T10/T11): TIDMAD validation and final test executed once at the frozen point",
+      "559f743 evidence(MLST): T13-a results, TIDMAD characterisation/development/freeze",
+      "c8dab7a freeze(T11): TIDMAD operating point predeclared \u2014 w=65536, b_eval=16, b_cal=2",
+      "38b0a33 freeze(T10-T12): TIDMAD quadrature endpoint, stage runner and tests",
+      "a52db10 freeze(T13-a): mean-of-channel-fractions hierarchical bootstrap runner + tests"
+    ],
+    "head": "8894aaaa897d5213fe3018a4afc46298367471ab",
+    "path": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst",
+    "tree_clean": false
+  },
+  "files": [
+    {
+      "bytes": 49627,
+      "path": "results/mlst_2026-09-10/EXPERIMENT_REPORT.md",
+      "sha256": "6ea4e99504d6e7be7efc628fbb6d1ea52b269feedefb7b5f009b369b79123916"
+    },
+    {
+      "bytes": 88,
+      "path": "results/mlst_2026-09-10/T10_tidmad_characterize_v1/RESULTS_SHA256",
+      "sha256": "1df45495ba026253f7cd7ecad88e819115ba04c2e30a132d5a6f49f6033a55e4"
+    },
+    {
+      "bytes": 152027,
+      "path": "results/mlst_2026-09-10/T10_tidmad_characterize_v1/t10_characterize.json",
+      "sha256": "554c3dd31796ec45f39d85f100100cbc95a898b09f8bc2d697a82ce4e81b1df0"
+    },
+    {
+      "bytes": 87,
+      "path": "results/mlst_2026-09-10/T10_tidmad_development_v1/RESULTS_SHA256",
+      "sha256": "2bf3866e3e102e33499ee8cc8481f6699c396819e107091407832f8e02104721"
+    },
+    {
+      "bytes": 496907,
+      "path": "results/mlst_2026-09-10/T10_tidmad_development_v1/t10_development.json",
+      "sha256": "7e1f712266d5a18d06167c96df821f914e805ca9a8f9fd501c77af3612cba6b0"
+    },
+    {
+      "bytes": 86,
+      "path": "results/mlst_2026-09-10/T10_tidmad_final_test_v1/RESULTS_SHA256",
+      "sha256": "e8c7719aee86c1178f0ddd5b4493f85b15f9825c0bd54192a66925ef34632934"
+    },
+    {
+      "bytes": 824977,
+      "path": "results/mlst_2026-09-10/T10_tidmad_final_test_v1/t10_final-test.json",
+      "sha256": "cc6fb7ac1ffb5558744b96be575acb14bfd699a36b8b33f4410df2963b65cf6f"
+    },
+    {
+      "bytes": 5159,
+      "path": "results/mlst_2026-09-10/T10_tidmad_freeze_v1/PREDECLARED_T11.md",
+      "sha256": "a23da5170849ee4c48964c00ca6a42709d2022c658740a5ff311b0452fb21fd8"
+    },
+    {
+      "bytes": 82,
+      "path": "results/mlst_2026-09-10/T10_tidmad_freeze_v1/RESULTS_SHA256",
+      "sha256": "6603dbcf30152eeaa2cac5d234b4b93829ca3670c618f0df7f8c41a32a5970cc"
+    },
+    {
+      "bytes": 26434,
+      "path": "results/mlst_2026-09-10/T10_tidmad_freeze_v1/t10_freeze.json",
+      "sha256": "8bf218ac4f827952e0d4ecd68e7bd15afe23f8b900a1ab4379cfc27e23fd030d"
+    },
+    {
+      "bytes": 86,
+      "path": "results/mlst_2026-09-10/T10_tidmad_validation_v1/RESULTS_SHA256",
+      "sha256": "788bf0d7e918b38a158d4d24ff25f68b86f1276449e59191e2806bc007d97034"
+    },
+    {
+      "bytes": 183218,
+      "path": "results/mlst_2026-09-10/T10_tidmad_validation_v1/t10_validation.json",
+      "sha256": "b32e6b5c604f38425263751a870fbc949982897df28d3c96470dc37104f6a725"
+    },
+    {
+      "bytes": 84,
+      "path": "results/mlst_2026-09-10/T13a_cresst_channel_bootstrap_v1/RESULTS_SHA256",
+      "sha256": "21c3aa9e3cf0da51457cb54033179be08cf46aabdd013ef382a7247e55f36c0d"
+    },
+    {
+      "bytes": 75385,
+      "path": "results/mlst_2026-09-10/T13a_cresst_channel_bootstrap_v1/headline_bootstrap_draws.npz",
+      "sha256": "d8b43c6103ab31e39f303eba1283a054bdbf952b137e595695ef236fd6abb15e"
+    },
+    {
+      "bytes": 25055,
+      "path": "results/mlst_2026-09-10/T13a_cresst_channel_bootstrap_v1/t13a_results.json",
+      "sha256": "2c62a033662c6d8808ae5944699a120e53da5857875c51123b090847c6615a00"
+    },
+    {
+      "bytes": 89,
+      "path": "results/mlst_2026-09-10/T14_confirm_v1/RESULTS_SHA256",
+      "sha256": "6f8c8ad944ba5cee2c43bc47645a01dce2b9fa262debfa6781ca023be6ff0afa"
+    },
+    {
+      "bytes": 4193,
+      "path": "results/mlst_2026-09-10/T14_confirm_v1/t14_stage_confirm.json",
+      "sha256": "d4117b74925fefb653b3c0588694bd56cf6230b82b55b6b7a327bbfb9a96763e"
+    },
+    {
+      "bytes": 83,
+      "path": "results/mlst_2026-09-10/T14_stage1_v1/RESULTS_SHA256",
+      "sha256": "3f28cedae1f44101a97459db6bfbc975f452c0c70798629a6633030d3051bce0"
+    },
+    {
+      "bytes": 151899,
+      "path": "results/mlst_2026-09-10/T14_stage1_v1/t14_stage_1.json",
+      "sha256": "388c39b44fbc7f6c27957a151dc38eb4e69fe7f139693745f6d4a62f6c2b4fcc"
+    },
+    {
+      "bytes": 83,
+      "path": "results/mlst_2026-09-10/T14_stage2_v1/RESULTS_SHA256",
+      "sha256": "52a3f235b9c4654dc4c9c564e17d6dd1c8b163136302222bed42d0ea91603f2c"
+    },
+    {
+      "bytes": 103023,
+      "path": "results/mlst_2026-09-10/T14_stage2_v1/t14_stage_2.json",
+      "sha256": "d9881778f48060131b3dc746a490046ec2b4e3148d4d4d7e8d10cbf202150691"
+    },
+    {
+      "bytes": 83,
+      "path": "results/mlst_2026-09-10/T15_covariance_regime_v1/RESULTS_SHA256",
+      "sha256": "47f9395cccdac8220d1aabaf6a3d88e4cbf09535bc1a6ea550eb46d3ea334415"
+    },
+    {
+      "bytes": 73005,
+      "path": "results/mlst_2026-09-10/T15_covariance_regime_v1/t15_results.json",
+      "sha256": "3d0dcc2197e641c8361c9c8d88ac01035d2eb02fc3d837683464bed8bd18b607"
+    },
+    {
+      "bytes": 8843,
+      "path": "results/mlst_2026-09-10/t10_characterize.log",
+      "sha256": "c0a7afa5dc4645e84f56faf3a14f743136a73a9cb561ec7ca8e86e0dc31e3a8d"
+    },
+    {
+      "bytes": 1282,
+      "path": "results/mlst_2026-09-10/t10_development.log",
+      "sha256": "51e06fa8c809b2c121fe9792451a1a8ddd0a5d6581c01c3a2c1d90340198652c"
+    },
+    {
+      "bytes": 2267,
+      "path": "results/mlst_2026-09-10/t10_final_test.log",
+      "sha256": "240a6edc8e49b9a1d6642ee66e6ff3d36c1bd5bd39a33c073e2e3cbb77980e53"
+    },
+    {
+      "bytes": 608,
+      "path": "results/mlst_2026-09-10/t10_validation.log",
+      "sha256": "e9aee0227ea712a643e7c2d7b08f3f9d5694cefa964ba06b62168670df943790"
+    },
+    {
+      "bytes": 276,
+      "path": "results/mlst_2026-09-10/t13a_run.log",
+      "sha256": "984618497dfa1f4ec588006af81e6dcfb2b0a3602626de8249ae690551c84d65"
+    },
+    {
+      "bytes": 237,
+      "path": "results/mlst_2026-09-10/t14_confirm.log",
+      "sha256": "d78fb5dbfc532daece570a3d4717b2dd9b59d62182fc2a3c8470ac74f518924a"
+    },
+    {
+      "bytes": 1761,
+      "path": "results/mlst_2026-09-10/t14_stage1.log",
+      "sha256": "45e2825e3f3ac2dfe470bb574c636f2df36e27f3fb2deb0222e3e2beba7f0299"
+    },
+    {
+      "bytes": 1230,
+      "path": "results/mlst_2026-09-10/t14_stage2.log",
+      "sha256": "65f4d98f9d1464fa01635bbba4cb49de7d2ef2d32bf54f26847ceab52afd96aa"
+    },
+    {
+      "bytes": 13084,
+      "path": "results/mlst_2026-09-10/t15_run.log",
+      "sha256": "0c4e762f61710b4f667c47cddfb54218628dc355063a6416a692533ceff94ccb"
+    }
+  ],
+  "ms_repo": {
+    "baseline": "1ad2ac98e366815f9b8a7f6bcf6596c22ff4732c",
+    "head": "1ad2ac98e366815f9b8a7f6bcf6596c22ff4732c",
+    "path": "/ceph/dwong/arXiv-v1-polished-extended-preprint",
+    "tree_clean": true
+  },
+  "n_files": 32,
+  "programme": "MLST revision experiment phase, 2026-09-10",
+  "runs": {
+    "results/mlst_2026-09-10/T10_tidmad_characterize_v1/t10_characterize.json": {
+      "commit": "38b0a338310750f4e5f3889c23694d40c90f476e",
+      "max_rss_mib": 517.0,
+      "n_inputs": 4,
+      "run_id": "T10_tidmad_characterize",
+      "seeds": {
+        "bootstrap_seed": 20260910,
+        "smoke": false
+      },
+      "tree_dirty": false,
+      "wall_seconds": 39.028
+    },
+    "results/mlst_2026-09-10/T10_tidmad_development_v1/t10_development.json": {
+      "commit": "38b0a338310750f4e5f3889c23694d40c90f476e",
+      "max_rss_mib": 34560.6,
+      "n_inputs": 5,
+      "run_id": "T10_tidmad_development",
+      "seeds": {
+        "bootstrap_seed": 20260910,
+        "smoke": false
+      },
+      "tree_dirty": false,
+      "wall_seconds": 147.456
+    },
+    "results/mlst_2026-09-10/T10_tidmad_final_test_v1/t10_final-test.json": {
+      "commit": "559f74394690655dfcd83803f0df88de1bda578b",
+      "max_rss_mib": 34558.1,
+      "n_inputs": 5,
+      "run_id": "T10_tidmad_final-test",
+      "seeds": {
+        "bootstrap_seed": 20260910,
+        "smoke": false
+      },
+      "tree_dirty": true,
+      "wall_seconds": 406.629
+    },
+    "results/mlst_2026-09-10/T10_tidmad_freeze_v1/t10_freeze.json": {
+      "commit": "38b0a338310750f4e5f3889c23694d40c90f476e",
+      "max_rss_mib": 46.7,
+      "n_inputs": 6,
+      "run_id": "T10_tidmad_freeze",
+      "seeds": {
+        "bootstrap_seed": 20260910,
+        "smoke": false
+      },
+      "tree_dirty": true,
+      "wall_seconds": 17.135
+    },
+    "results/mlst_2026-09-10/T10_tidmad_validation_v1/t10_validation.json": {
+      "commit": "559f74394690655dfcd83803f0df88de1bda578b",
+      "max_rss_mib": 34556.8,
+      "n_inputs": 5,
+      "run_id": "T10_tidmad_validation",
+      "seeds": {
+        "bootstrap_seed": 20260910,
+        "smoke": false
+      },
+      "tree_dirty": false,
+      "wall_seconds": 99.621
+    },
+    "results/mlst_2026-09-10/T13a_cresst_channel_bootstrap_v1/t13a_results.json": {
+      "commit": "a52db104c5d5e56b6733a375f7828f5e58ae2a3f",
+      "max_rss_mib": 131.4,
+      "n_inputs": 5,
+      "run_id": "T13a_cresst_channel_bootstrap",
+      "seeds": {
+        "base_seed": 20260713,
+        "replicates": 10000,
+        "stream_order": [
+          "headline_hierarchical",
+          "channel_fixed",
+          "ratio_of_means_hierarchical",
+          "ratio_of_means_channel_fixed",
+          "block_hier_64",
+          "block_hier_16",
+          "block_hier_256",
+          "block_channel_fixed_64",
+          "block_channel_fixed_16",
+          "block_channel_fixed_256",
+          "per_channel_effects",
+          "leave_one_channel_out",
+          "leave_one_run_out"
+        ]
+      },
+      "tree_dirty": false,
+      "wall_seconds": 51.536
+    },
+    "results/mlst_2026-09-10/T14_confirm_v1/t14_stage_confirm.json": {
+      "commit": "8894aaaa897d5213fe3018a4afc46298367471ab",
+      "max_rss_mib": 92.9,
+      "n_inputs": 3,
+      "run_id": "T14_structural_prior_stage_confirm",
+      "seeds": {
+        "bootstrap_seed": 20260914,
+        "confirmation_seeds": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "exploration_seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "smoke_seeds": [
+          900,
+          901,
+          902,
+          903,
+          904,
+          905,
+          906,
+          907,
+          908,
+          909
+        ]
+      },
+      "tree_dirty": true,
+      "wall_seconds": 0.5
+    },
+    "results/mlst_2026-09-10/T14_stage1_v1/t14_stage_1.json": {
+      "commit": "da08cf04d85e2979ae87edd30863f28a6b4f09fc",
+      "max_rss_mib": 94.1,
+      "n_inputs": 1,
+      "run_id": "T14_structural_prior_stage_1",
+      "seeds": {
+        "bootstrap_seed": 20260914,
+        "confirmation_seeds": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "exploration_seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "smoke_seeds": [
+          900,
+          901,
+          902,
+          903,
+          904,
+          905,
+          906,
+          907,
+          908,
+          909
+        ]
+      },
+      "tree_dirty": true,
+      "wall_seconds": 1129.0
+    },
+    "results/mlst_2026-09-10/T14_stage2_v1/t14_stage_2.json": {
+      "commit": "8894aaaa897d5213fe3018a4afc46298367471ab",
+      "max_rss_mib": 93.8,
+      "n_inputs": 1,
+      "run_id": "T14_structural_prior_stage_2",
+      "seeds": {
+        "bootstrap_seed": 20260914,
+        "confirmation_seeds": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "exploration_seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "smoke_seeds": [
+          900,
+          901,
+          902,
+          903,
+          904,
+          905,
+          906,
+          907,
+          908,
+          909
+        ]
+      },
+      "tree_dirty": true,
+      "wall_seconds": 797.685
+    },
+    "results/mlst_2026-09-10/T15_covariance_regime_v1/t15_results.json": {
+      "commit": "64dfe1e840988a39d7bec93a9100c8b6c130607c",
+      "max_rss_mib": 146.4,
+      "n_inputs": 1,
+      "run_id": "T15_covariance_regime",
+      "seeds": {
+        "base_seed": 20260915,
+        "seeds": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "subspace_seed": 20260915
+      },
+      "tree_dirty": false,
+      "wall_seconds": 19.08
+    }
+  },
+  "total_bytes": 2201348
+}

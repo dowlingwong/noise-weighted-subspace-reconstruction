@@ -36,6 +36,16 @@ results/metrics/*
 # MLST Part II run outputs (T19-T23, 11 Sep 2026): small JSON/CSV records with provenance, tracked
 !results/mlst_2026-09-11/
 !results/mlst_2026-09-11/**
+
+# MLST revision programme (2026-09-10): versioned evidence directories.
+# JSON/CSV/log evidence and small bootstrap-draw archives only; no raw data.
+# The last two lines are the exception to the repo-wide *.npz/*.log rules
+!results/mlst_2026-09-10/
+!results/mlst_2026-09-10/**
+# T22 narrowband run (11 Sep 2026): stage JSONs, bootstrap draw arrays and logs
+# are the frozen record and are tracked; 5.5 MB total.
+!results/t22_2026-09-11/
+!results/t22_2026-09-11/**
 !results/figures/.gitkeep
 !results/tables/.gitkeep
 !results/logs/.gitkeep
@@ -55,6 +65,13 @@ paper2/results/_suite_runs/
 # exception to the repo-wide *.npz/*.log rules above.
 !transfer_paper/data/cresst/sensitivity/**/*.npz
 !transfer_paper/data/cresst/sensitivity/**/*.log
+
+# MLST revision programme: same narrow exception, and it must sit *after* the
+# repo-wide *.npz/*.log rules above or those would win.
+!results/mlst_2026-09-10/**/*.npz
+!results/mlst_2026-09-10/*.log
+!results/t22_2026-09-11/**/*.npz
+!results/t22_2026-09-11/*.log
 artifacts/
 training_data/
 export/

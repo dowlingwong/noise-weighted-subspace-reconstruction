@@ -1,0 +1,160 @@
+{
+  "budget": {
+    "fits_per_cell_derived": 40,
+    "fits_per_cell_in_config": 40,
+    "hard_cap": 1500,
+    "planned_cap": 1240,
+    "protocol_nfpa_restarts": 3,
+    "repository_PRIMARY_n_restarts": 10,
+    "stage1_cells": 15,
+    "stage1_fits": 600,
+    "stage2_cells": 10,
+    "stage2_fits": 400,
+    "stage3_cells_max": 6,
+    "stage3_fits_max": 240,
+    "total_planned": 1240,
+    "within_hard_cap": true,
+    "within_planned_cap": true
+  },
+  "confirmation": {
+    "ambiguous_crossings": [],
+    "fits_used": 0,
+    "reason": "no resolved crossing in the predicted direction was found in stages 1-2; the declared rule does not run the confirmation stage and the claim stays conditional",
+    "resolved_crossings": [],
+    "reverse_crossings": [],
+    "run": false
+  },
+  "exploration_crossovers": {
+    "ambiguous_crossings": [],
+    "resolved_crossings": [],
+    "reverse_crossings": [],
+    "selected": null,
+    "triggers_confirmation": false
+  },
+  "n_grid": [
+    200,
+    400,
+    800,
+    1600,
+    3200
+  ],
+  "provenance": {
+    "argv": [
+      "experiments/mlst2026/t14_structural_prior.py",
+      "--stage",
+      "confirm",
+      "--workers",
+      "16",
+      "--out",
+      "results/mlst_2026-09-10/T14_confirm_v1",
+      "--exploration",
+      "results/mlst_2026-09-10/T14_stage1_v1/t14_stage_1.json",
+      "results/mlst_2026-09-10/T14_stage2_v1/t14_stage_2.json"
+    ],
+    "environment": {
+      "executable": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst/.venv/bin/python3",
+      "modules": {
+        "h5py": "3.16.0",
+        "matplotlib": "3.11.0",
+        "numpy": "2.4.6",
+        "pandas": "3.0.3",
+        "scipy": "1.17.1",
+        "yaml": "6.0.3"
+      },
+      "platform": "Linux-4.18.0-553.156.1.el8_10.x86_64-x86_64-with-glibc2.28",
+      "processor": "x86_64",
+      "python": "3.12.2"
+    },
+    "finished_utc": "2026-09-10T11:04:03Z",
+    "git": {
+      "branch": "mlst/exp-phase-20260910",
+      "commit": "8894aaaa897d5213fe3018a4afc46298367471ab",
+      "describe": "8894aaa-dirty",
+      "dirty_paths": [
+        "M results/mlst_2026-09-10/EXPERIMENT_REPORT.md",
+        "?? results/mlst_2026-09-10/T14_stage2_v1/",
+        "?? results/mlst_2026-09-10/t14_confirm.log",
+        "?? results/mlst_2026-09-10/t14_stage2.log"
+      ],
+      "repo_root": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst",
+      "tree_dirty": true
+    },
+    "inputs": [
+      {
+        "bytes": 23337,
+        "exists": true,
+        "path": "/ceph/dwong/noise-weighted-subspace-reconstruction-mlst/experiments/mlst2026/t14_structural_prior.py",
+        "role": "runner_source",
+        "sha256": "feb8b2f79b5d4c8a922cb96a9bc213a119dd20656df4a31610194421d0bfc106"
+      },
+      {
+        "bytes": 151899,
+        "exists": true,
+        "path": "results/mlst_2026-09-10/T14_stage1_v1/t14_stage_1.json",
+        "role": "exploration",
+        "sha256": "388c39b44fbc7f6c27957a151dc38eb4e69fe7f139693745f6d4a62f6c2b4fcc"
+      },
+      {
+        "bytes": 103023,
+        "exists": true,
+        "path": "results/mlst_2026-09-10/T14_stage2_v1/t14_stage_2.json",
+        "role": "exploration",
+        "sha256": "d9881778f48060131b3dc746a490046ec2b4e3148d4d4d7e8d10cbf202150691"
+      }
+    ],
+    "notes": [],
+    "protocol_refs": {
+      "config": "plan/mlst_protocol_2026-09-10.json#t14",
+      "programme": "plan/MLST_EXPERIMENT_PROGRAMME_2026-09-10.md#T14"
+    },
+    "resources": {
+      "cpu_seconds": 0.311,
+      "max_rss_mib": 92.9,
+      "system_seconds": 0.117,
+      "user_seconds": 0.971,
+      "wall_seconds": 0.5
+    },
+    "run_id": "T14_structural_prior_stage_confirm",
+    "seeds": {
+      "bootstrap_seed": 20260914,
+      "confirmation_seeds": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "exploration_seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "smoke_seeds": [
+        900,
+        901,
+        902,
+        903,
+        904,
+        905,
+        906,
+        907,
+        908,
+        909
+      ]
+    }
+  },
+  "smoke": false,
+  "stage": "confirm"
+}

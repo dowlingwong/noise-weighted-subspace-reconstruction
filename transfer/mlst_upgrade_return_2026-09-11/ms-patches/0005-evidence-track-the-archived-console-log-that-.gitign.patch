@@ -1,0 +1,52 @@
+From ab18213d74c867af5327f805c7dbabf50baec132 Mon Sep 17 00:00:00 2001
+From: dwong <dowling.wong@kit.edu>
+Date: Fri, 11 Sep 2026 18:59:41 +0200
+Subject: [PATCH 5/7] evidence: track the archived console log that
+ .gitignore's *.log rule hid
+
+A fresh clone failed 'verify_evidence.py --require-complete' on
+evidence/data/cresst/sensitivity/20260713_channel_robustness_v1/console.log: the
+manifest hashed it from the working tree, but the repository-wide *.log rule
+meant Git never tracked it, so a clean checkout did not have it.  Negate the rule
+under evidence/ and track the file.  Found by building from a fresh clone, which
+is the only place this could surface.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01U6mbPSodUAc4RGoW72AUg7
+---
+ .gitignore                                                | 3 +++
+ .../20260713_channel_robustness_v1/console.log            | 8 ++++++++
+ 2 files changed, 11 insertions(+)
+ create mode 100644 evidence/data/cresst/sensitivity/20260713_channel_robustness_v1/console.log
+
+diff --git a/.gitignore b/.gitignore
+index 9222ead..0fae23b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -7,6 +7,9 @@ archive/_to_delete/
+ *.fdb_latexmk
+ *.fls
+ *.log
++# ...but archived evidence logs are part of the record and are listed in
++# evidence/MANIFEST.json, so a clean checkout must contain them.
++!evidence/**/*.log
+ *.out
+ *.synctex.gz
+ tmp*.tmp
+diff --git a/evidence/data/cresst/sensitivity/20260713_channel_robustness_v1/console.log b/evidence/data/cresst/sensitivity/20260713_channel_robustness_v1/console.log
+new file mode 100644
+index 0000000..6f59991
+--- /dev/null
++++ b/evidence/data/cresst/sensitivity/20260713_channel_robustness_v1/console.log
+@@ -0,0 +1,8 @@
++analysis_label=post-freeze sensitivity analysis
++frozen_source_commit=9c9f696ff6bca6e6b9729cdb90e41ee92d576787
++data_root=/ceph/dwong/paper1_dataset
++regenerating frozen metrics and event residuals through one shared numerical path
++event_table={'n_events': 19335, 'n_channels': 7, 'duplicate_event_ids': 0, 'duplicate_trace_hashes': 0, 'control_columns': ['control_mismatched_of_template_weighted_residual', 'control_noise_only_train_weighted_residual', 'control_permuted_time_bins_weighted_residual', 'control_random_weighted_basis_weighted_residual', 'control_wrong_psd_weighted_residual'], 'all_event_weights_one': True}
++frozen reproduction and leakage audits passed
++sensitivity analysis complete
++output=/ceph/dwong/noise-weighted-subspace-reconstruction/transfer_paper/data/cresst/sensitivity/20260713_channel_robustness_v1
+-- 
+2.43.7
+

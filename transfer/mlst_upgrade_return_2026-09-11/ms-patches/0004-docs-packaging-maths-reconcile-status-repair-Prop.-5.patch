@@ -1,0 +1,766 @@
+From 8cd8adc255eda8d339e4d8a93323c3fd93d72237 Mon Sep 17 00:00:00 2001
+From: dwong <dowling.wong@kit.edu>
+Date: Fri, 11 Sep 2026 18:59:04 +0200
+Subject: [PATCH 4/7] docs, packaging, maths: reconcile status, repair Prop.
+ 5.2's remainder, fix the package include list
+
+- Prop. 5.2's remainder was stated as O(eps^2 lambda_1/delta); the appendix
+  proof's own expression is O(||M||^2/delta^2) = O(eps^2 lambda_1^2/delta^2), and
+  the stated order is violated as soon as lambda_1/delta > 1.  Repaired in
+  05_linear_ae.tex, mlst/03_theory.tex and appE_symmetry_geometry.tex, with the
+  violation exhibited on a coupling-block perturbation in check_revision_claims.py.
+  Prop. 6.3 checked in full (identity, signs, Ky Fan partial-trace cap, the
+  Delta_k lower bound) and is correct; both propositions are now machine-checked.
+- Canonical plan section 8 exit tiers restated against the three rejected models,
+  with the cause of each change recorded rather than the bar silently moving:
+  c_F/c_U -> the measured x_F/x_U; N* 'located or bracketed'; the T21 handoff
+  curve is not monotone and no abstention threshold exists.  Section 11 gate boxes
+  updated.  Tier reached: strong, on the amended wording.
+- plan/README, MLST_EXPERIMENT_PROGRAMME, TODO, OPEN_ISSUES and CHANGELOG brought
+  current; superseded paragraphs marked historical; provenance gaps G1 and G2
+  recorded separately from file integrity.
+- package_arxiv.py: the five generated Part II figures were referenced by
+  07_experiments.tex but absent from the include list -- a real packaging defect,
+  now fixed (36 files, 'missing: none').  The MLST entry points and mlst/ are
+  excluded always.  Gate still HELD; no package written.
+- SUBMISSION.md documents all three builds, the deliberate layout difference, the
+  build order the supplement's xr import needs, and the exporters/recomputation.
+- mlst/gated_aliases.tex resolves the shared gated block's labels in the private
+  preview; all three gated builds now have 0 undefined references.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01U6mbPSodUAc4RGoW72AUg7
+---
+ 05_linear_ae.tex                         |  11 ++-
+ CHANGELOG.md                             |  72 ++++++++++++++++
+ OPEN_ISSUES.md                           |  41 ++++++++-
+ SUBMISSION.md                            |  46 +++++++++-
+ TODO.md                                  |  47 ++++++++++-
+ appE_symmetry_geometry.tex               |  13 ++-
+ mlst/03_theory.tex                       |   6 +-
+ mlst/05_controlled.tex                   |   1 +
+ mlst/gated_aliases.tex                   |  26 ++++++
+ plan/MLST_EXPERIMENT_PROGRAMME.md        |  29 ++++++-
+ plan/PAPER1_CANONICAL_PLAN_2026-09-10.md |  57 +++++++++++--
+ plan/README.md                           |  23 +++--
+ scripts/check_revision_claims.py         | 102 ++++++++++++++++++++++-
+ scripts/package_arxiv.py                 |  10 ++-
+ 14 files changed, 450 insertions(+), 34 deletions(-)
+ create mode 100644 mlst/gated_aliases.tex
+
+diff --git a/05_linear_ae.tex b/05_linear_ae.tex
+index 061d898..af05000 100644
+--- a/05_linear_ae.tex
++++ b/05_linear_ae.tex
+@@ -336,8 +336,15 @@ and every other entry of $\delta P$ zero.  Consequently:
+       Section~\ref{subsec:cov-anatomy} checks.
+ \end{enumerate}
+ The expansion requires $I+E\succ0$, and its remainder is of order
+-$\varepsilon^{2}\lambda_1(A)/\delta$ with
+-$\delta=\min_{i\in\mathcal R,\,j\notin\mathcal R}|\lambda_i-\lambda_j|$.
++$\varepsilon^{2}\lambda_1(A)^{2}/\delta^{2}$ with
++$\delta=\min_{i\in\mathcal R,\,j\notin\mathcal R}|\lambda_i-\lambda_j|$: the
++second-order term of the invariant-subspace expansion is
++$O(\|M\|^{2}/\delta^{2})$ with $\|M\|\le\varepsilon\lambda_1(A)$, and since
++$\delta\le\lambda_k\le\lambda_1$ that term dominates the $O(\varepsilon^{2})$
++truncation of $(I+E)^{-1}$, which contributes only
++$\varepsilon^{2}\lambda_1/\delta$.  The first-order statement is therefore
++informative in the regime $\varepsilon\lambda_1/\delta\ll1$, not merely
++$\varepsilon\ll1$.
+ A near-singular $\hat\Sigma$, $\lambda_{\min}(I+E)\to0$, is outside it:
+ nothing here, and nothing in the global bound
+ \eqref{eq:davis-kahan-bound}, describes that regime, which
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index fef0462..0ae5a2c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,77 @@
+ # Change Log — arXiv v1 restructure
+ 
++## 2026-09-11 (evening) — server upgrade round: evidence migration, T22, MLST split
++
++**Evidence.** `evidence/` is the canonical manuscript evidence root, replacing the
++`transfer_paper/` bundle removed in `bf7d5f6`. 259 files with a complete SHA-256
++manifest; recovered from MS `c826ef6` and checked against the recorded
++`BUNDLE_MANIFEST.json` (327/327 listed entries match). New tooling:
++`scripts/evidence_root.py` (one resolution rule: `--evidence-root`,
++`$PAPER1_EVIDENCE_ROOT`, else `<repo>/evidence`), `scripts/materialize_evidence.py`
++(rebuild or `--check` from `<EXP>/transfer_paper` or from git history),
++`scripts/verify_evidence.py` (the migrated `verify_bundle.py`, same checks).
++Every excluded path (`data/gwosc/runs/`, 66 files) is hashed into the manifest, so
++an omission is a checkable decision. `.gitattributes` keeps `evidence/` byte-exact.
++Historical bundle documents preserved under `archive/transfer_paper_docs/`.
++Claim validation went from 49 errors to 0 over 75 path references.
++
++**Fig. 10 transcription replaced.** The T10–T12 archive was located on the
++execution host at `results/mlst_2026-09-10/` and verifies against its
++`RESULTS_SHA256`. `scripts/export_tidmad_heldout.py` now writes the three CSVs at
++full double precision with the archived per-file bootstrap standard deviations.
++The recomputed post-hoc sensitivity reproduces the archived θ_IV (+1.5845e−05) and
++Q (328.33) exactly, where the transcription route had given +2.406e−06 and 359.4;
++the manuscript's DerSimonian–Laird interval moves [+2.0e−03, +1.1e−02] →
++[+1.9e−03, +1.1e−02]. No verdict, no primary estimand and no equal-file mean
++changes.
++
++**T22 executed once.** Stage-0 protocol `plan/T22_STAGE0_PROTOCOL_2026-09-11.md`
++and `plan/mlst_protocol_2026-09-11-t22-stage0.json` (the single configuration the
++runner reads) written before any T22 code; selected-band freeze
++`reviews/2026-09-11-PREDECLARED_T22.md` (B = 9) written before any hold-out
++outcome was scored. Runner `experiments/mlst2026/t22_tidmad_narrowband.py` and
++`tidmad_band.py` in EXP, 32 implementation tests. 240 fits of a 250 cap.
++Result: the learned rank-2 reconstruction moves from the trivial-predictor level
++(RMSE 0.655 vs zero 0.654, bin read 0.246) to below the bin read (0.249 vs 0.261)
++— the dimensional diagnosis confirmed in direction. **All three verdicts
++inconclusive**: the frozen dependence assessment did not stabilise and the rule
++declared before development withholds every benefit verdict. The metric
++contribution is absent (−3.8e−05 [−2.3e−04, +1.3e−04], p = 0.70) because inside a
++nine-bin band the noise PSD is nearly flat. Four amendments A1–A4 recorded with
++their causes; A4 was made on development material before any hold-out outcome was
++read, and development was re-scored once with identical contrasts.
++`scripts/recompute_t22.py` re-derives every interval, p-value and verdict from the
++archived draw arrays and reproduces them exactly.
++
++**Manuscript.** Three deliverables: the extended arXiv preprint (`main.tex`, 116
++pp, unchanged in role), the MLST main paper (`main_mlst.tex`, 23 pp of narrative,
++9.6k words) and the MLST technical supplement (`supplement_mlst.tex`, 50 pp). The
++supplement imports the main paper's labels via `xr` plus a 45-entry alias table,
++so shared appendix sources cross-reference real numbers (0 unresolved references).
++T22 integrated into both versions, both abstracts, the contributions, the
++discussion, the three-instrument table and claim rows 25/26.
++
++**Mathematics.** Prop. 5.2's remainder was stated as O(ε²λ₁/δ); the proof's own
++expression is O(‖M‖²/δ²) = O(ε²λ₁²/δ²), and the stated order is violated as soon
++as λ₁/δ > 1. Repaired in `05_linear_ae.tex`, `mlst/03_theory.tex` and
++`appE_symmetry_geometry.tex`, with the violation exhibited numerically in
++`scripts/check_revision_claims.py`. Prop. 6.3 was checked in full — identity,
++signs, Ky Fan partial-trace cap and the Δ_k lower bound — and is correct; both are
++now machine-checked.
++
++**Status reconciliation.** Canonical plan §8 exit tiers restated against the
++rejected models (c_F/c_U → the measured x_F/x_U; N* "located or bracketed"; the
++T21 handoff curve is not monotone and no abstention threshold exists), with the
++cause of each change recorded; §11 gate boxes updated; `plan/README.md`,
++`plan/MLST_EXPERIMENT_PROGRAMME.md`, `TODO.md` and `OPEN_ISSUES.md` brought
++current, with superseded paragraphs marked historical and two provenance gaps
++(G1, G2) recorded separately from file integrity.
++
++**Gate unchanged.** `RELEASE_GATE.json` still records `decision_received: false`;
++`\gatedevidencefalse` in all three entry points; nothing pushed, published,
++submitted or packaged.
++
++
+ ## 2026-09-11 progress-review revision — immediate items 1–7 (no new fitting)
+ 
+ Source: `reviews/2026-09-11-MLST-progress-review.md`; response
+diff --git a/OPEN_ISSUES.md b/OPEN_ISSUES.md
+index f99dc18..231564d 100644
+--- a/OPEN_ISSUES.md
++++ b/OPEN_ISSUES.md
+@@ -1,5 +1,15 @@
+ # Open Issues — require author verification before arXiv submission
+ 
++> **Historical-status note, 11 September 2026 (evening).** Paragraphs below that
++> describe `transfer_paper/` as the evidence location, or the standing
++> duplicate-bundle risk of #10, are **historical**: the migration to `evidence/`
++> completed in the server upgrade round of that date, and the manuscript-side
++> copy is now a declared export with a complete manifest and a rebuild script
++> (`evidence/PROVENANCE.md`). Paragraphs that describe Part I or Part II
++> experiments as pending are likewise historical; the programme status table in
++> `plan/MLST_EXPERIMENT_PROGRAMME.md` is current. Two recorded provenance gaps
++> remain open and are listed at the end of this file.
++
+ ## Blocking
+ 
+ *(none as of 2026-09-08; see "Release requirements not yet met" below)*
+@@ -7,7 +17,7 @@
+ ## Release requirements not yet met (not editorial blockers)
+ 
+ R1. **R/PS decision gate (29 Sep 2026).** `07b_separable_evidence.tex` and
+-    `transfer_paper/data/rps2026/` are compiled only in the private preview
++    `evidence/data/rps2026/` are compiled only in the private preview
+     build (`\gatedevidencetrue`); the default build and any public package
+     exclude them. The date passing is not the signal — the decision is.
+ R2. **Author confirmations** in `ARXIV_CHECKLIST.md` (metadata, dataset
+@@ -308,3 +318,32 @@ listed under #9.)
+   removing Study A. The build now has zero missing-figure errors.
+ - ~~Main-text length is ~31 pages, below the 35–45 target.~~ Superseded; the
+   document is now long rather than short (see item 3).
++
++
++## Recorded provenance gaps (11 September 2026)
++
++**G1 — the Part II run tree is not on the execution host.**
++`evidence/data/paper1/mlst_2026-09-11/{t19,t19_sminus_v2,t20,t21}` are copies of
++`EXP:results/mlst_2026-09-11/…` at EXP `ea076ff`, branch
++`mlst/exp-phase-20260911`. Neither that commit nor that branch exists in the
++synchronized experiment repository, whose MLST branch ends at
++`mlst/exp-phase-20260910` (through T15); those runs were executed on the local
++phase host. The copies carry the source tree's own `RESULTS_SHA256` and those
++verify, so the files are intact and self-consistent — what cannot be re-derived
++here is the run tree they came from. Claim rows 22–24 therefore cite the
++`MS:evidence/…` paths, which resolve. **To close:** copy or bundle EXP
++`mlst/exp-phase-20260911` across from the local phase host.
++
++**G2 — execution revision of the September 2026 Paper-1 runs.** Pre-existing and
++unchanged: P1-E0/E2/E4b/E6/E9/E11/E12 ran at EXP `3026d25` with a dirty tree, so
++the archived JSONs carry no `git_commit` and the first committed revision
++(`00b5aee`) is not the execution revision. Not closable retrospectively; it is
++labelled historical wherever it is cited.
++
++**Not a gap, recorded for symmetry:** the T22 runner, its band module and its
++tests were untracked new files at the moment of the selected-band freeze, so the
++run records EXP `a7125ea` with `tree_dirty: true`. They were committed
++immediately afterwards as `928715ad…` (archive) and `55175b1a…` (the zero-fit
++recombine), and the binding record is the code SHA-256 list inside
++`reviews/2026-09-11-PREDECLARED_T22.md`, which was written before any hold-out
++outcome was scored.
+diff --git a/SUBMISSION.md b/SUBMISSION.md
+index d6bafbf..9614128 100644
+--- a/SUBMISSION.md
++++ b/SUBMISSION.md
+@@ -1,11 +1,36 @@
+ # Submission notes
+ 
+-## Build
++## The three deliverables
++
++| document | entry point | what it is | size |
++|---|---|---|---|
++| extended arXiv preprint | `main.tex` | the full record: main text plus appendices A–I | 116 pp |
++| MLST main paper | `main_mlst.tex` | the journal-length version | 23 pp of narrative + 2 pp references |
++| MLST technical supplement | `supplement_mlst.tex` | derivations, proofs, implementation, grids, diagnostics | 50 pp |
++
++The configuration inventory (`supplement_configuration.tex`, 15 pp) is a fourth,
++smaller document that App.~I of the preprint points to.
++
++**Layouts differ deliberately and are not a formatting trick.**  `main.tex` uses
++a generous reading layout (12pt, 1.1in margins, `\linespread{1.15}`);
++`main_mlst.tex` uses a normal single-spaced journal layout (11pt, 1in margins,
++`\linespread{1.05}`), which is the setting its page target assumes.  No float,
++table or font is shrunk to fit.
++
++**Build order matters for the supplement.**  Build the MLST main paper first, in
++the same directory, so that `supplement_mlst.tex` can import its labels through
++`xr`; otherwise the supplement's cross-references into the main paper render as
++`??`.
+ 
+ ```
+-latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
++latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex            # extended preprint
++latexmk -pdf -interaction=nonstopmode -halt-on-error main_mlst.tex       # MLST main paper
++latexmk -pdf -interaction=nonstopmode -halt-on-error supplement_mlst.tex # MLST supplement (after main_mlst)
++latexmk -pdf -interaction=nonstopmode -halt-on-error supplement_configuration.tex
+ ```
+ 
++## Build
++
+ The default build is the arXiv v1 extended preprint: main text
+ (`00_abstract`–`08_discussion`, including `06b_related_work`) plus appendices
+ A–I via `appendix.tex` (App.~I is a pointer to the separately built
+@@ -18,6 +43,19 @@ python3 figures_src/make_paper1_evidence.py             # writes generated/
+ python3 figures_src/make_part2_figures.py               # writes generated/figures/
+ ```
+ 
++Two exporters refresh evidence from the experiment repository when it is
++available; both verify each stage output against its `RESULTS_SHA256` first and
++both accept `--check` to compare without writing:
++
++```
++python3 scripts/export_tidmad_heldout.py --results <EXP>/results/mlst_2026-09-10
++python3 scripts/export_t22.py            --results <EXP>/results/t22_2026-09-11
++```
++
++`python3 scripts/recompute_t22.py --results <EXP>/results/t22_2026-09-11`
++re-derives T22's intervals, p-values and verdicts from the archived bootstrap
++draw arrays, independently of the runner's own summary and of the report prose.
++
+ Evidence lives in `evidence/` (`scripts/evidence_root.py` resolves
+ `--evidence-root`, then `$PAPER1_EVIDENCE_ROOT`, then `<repo>/evidence`).  If
+ the directory is missing, rebuild it with
+@@ -58,8 +96,8 @@ When the gate opens: set `decision_received` (with the date) in
+ The script copies the include list to a temporary directory, compiles it in
+ isolation, compares the page count with the reviewed build, writes the
+ tarball with a SHA-256 manifest, and distributes nothing.  Always excluded:
+-`00_abstract_mlst.tex`, `supplement_configuration.tex` and the full inventory
+-table, every build byproduct, `tmp*.tmp`, `archive/`, `legacy/`, `plan/`,
++`00_abstract_mlst.tex`, `main_mlst.tex`, `supplement_mlst.tex`, `mlst/`,
++`supplement_configuration.tex` and the full inventory table, every build byproduct, `tmp*.tmp`, `archive/`, `legacy/`, `plan/`,
+ `reviews/`, `herbstschule2026/`, `Claude outputs/`, `output/`,
+ `figures_src/`, `scripts/`, and all of `evidence/` except the four
+ referenced figure PDFs.  `main.bbl` is packaged because arXiv needs it.
+diff --git a/TODO.md b/TODO.md
+index b3dacdb..f5995d4 100644
+--- a/TODO.md
++++ b/TODO.md
+@@ -1,4 +1,11 @@
+-# Paper 1 — TODO (as of 2026-09-11, after the progress-review revision)
++# Paper 1 — TODO (as of 2026-09-11 evening, after the server upgrade round)
++
++> **Round summary.** Evidence migration complete (`evidence/`, 259-file manifest,
++> all consumers repointed); T22 implemented, frozen twice and executed once (all
++> three verdicts inconclusive); MLST main paper and technical supplement created;
++> Prop. 5.2's remainder order repaired and both propositions covered by machine
++> checks. Handoff for the local review:
++> [`reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md`](reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md).
+ 
+ **2026-09-11 progress review** (`reviews/2026-09-11-MLST-progress-review.md`, response
+ `reviews/2026-09-11-MLST-progress-response.md`; immediate items done in this pass):
+@@ -10,9 +17,9 @@
+ - [x] R6 Figs. 5–7, 10 from the registered Part II archives (`figures_src/make_part2_figures.py`); TIDMAD per-file values transcribed from the report (archive not local)
+ - [x] R7 §9.2 → §9.2.1 gates / §9.2.2 covariance anatomy / §9.2.3 structural prior / §9.2.4 excitation
+ - [x] R7b TIDMAD post-hoc cross-file sensitivities (§9.5; `generated/tables/tidmad_heldout_sensitivity.md`); T22 equal-file primary estimand (programme II.T22)
+-- [ ] R8 T22 narrowband TIDMAD test (predeclaration first; equal-file estimand now in the programme)
+-- [ ] R9 independent test of the T21 spectrum-and-loadings reading (fresh seeds, second latent geometry, orthogonal control, ≥ 2 d/N) — or keep as a negative boundary (current wording)
+-- [ ] R10–R11 main text to ~20–25 pp + technical supplement (default build now 113 pp)
++- [x] R8 T22 narrowband TIDMAD test — **executed once, 11 Sep (server)**. Stage-0 protocol `plan/T22_STAGE0_PROTOCOL_2026-09-11.md`; selected-band freeze `reviews/2026-09-11-PREDECLARED_T22.md` (B = 9); report `reviews/2026-09-11-T22-report.md`; evidence `evidence/data/paper1/t22_2026-09-11/`. 240 fits of a 250 cap. **All three verdicts inconclusive** (the frozen dependence assessment did not stabilise); the equal-file estimand was used as predeclared
++- [ ] R9 **deferred by decision** (recorded 11 Sep): T21 is closed as a negative boundary plus an explicitly post-hoc explanation; no successor was preregistered or run, and no abstention threshold is claimed anywhere. Independent test of the T21 spectrum-and-loadings reading (fresh seeds, second latent geometry, orthogonal control, ≥ 2 d/N) — or keep as a negative boundary (current wording)
++- [x] R10–R11 separate MLST main paper (`main_mlst.tex`, 23 pp of narrative + 2 pp references, 9.6k words) and technical supplement (`supplement_mlst.tex`, 50 pp); the extended arXiv preprint (`main.tex`, 116 pp) is preserved as its own deliverable
+ - [ ] R12 remove the 29 Sep hold language after the decision
+ - [x] R13 decided: Prop. 6.3 is the NFPA statement; the Kronecker principal-angle bound is not pursued (§6.4)
+ - [ ] R14 nonlinear monitoring left to ORACLE (no action unless the rung-4 model can be evaluated without delay)
+@@ -204,3 +211,35 @@ Build: 67 pp, 0 errors, 0 undefined refs.
+ 
+ ## Optional / deferred
+ - [ ] Rung-4 strengthening (≥ 5 seeds/arm) only if the R/PS referees ask.
++
++
++## 2026-09-11 server upgrade round — what was done, and what it left open
++
++- [x] **Evidence migration.** `evidence/` replaces the deleted `transfer_paper/`
++      bundle: 259 files, complete manifest, `scripts/evidence_root.py` resolution,
++      `scripts/materialize_evidence.py` rebuild, `scripts/verify_evidence.py`
++      (the migrated `verify_bundle.py`). Claim validation went from 49 errors to 0.
++- [x] **Fig. 10 transcription replaced.** The T10–T12 archive was located on the
++      execution host; `scripts/export_tidmad_heldout.py` now writes the three CSVs
++      at full precision. The recomputed post-hoc sensitivity reproduces the
++      archived θ_IV and Q exactly; the DL interval moves +2.0e−03 → +1.9e−03 and no
++      verdict or primary estimand changes.
++- [x] **Prop. 5.2 remainder repaired.** The proposition stated
++      O(ε²λ₁/δ); the proof's own expression is O(‖M‖²/δ²) = O(ε²λ₁²/δ²), and the
++      stated order is violated as soon as λ₁/δ > 1. Repaired in `05_linear_ae.tex`,
++      `mlst/03_theory.tex` and `appE_symmetry_geometry.tex`, with a numerical
++      exhibit in `scripts/check_revision_claims.py`. Prop. 6.3 was checked and is
++      correct; both are now machine-checked.
++- [x] **Exit tiers reconciled** with the rejected models (canonical plan §8): the
++      *strong* row no longer names c_F/c_U or a monotone handoff curve, and the
++      change is recorded with its cause rather than silently applied.
++- [ ] **T13-b/c deferred.** The MLST version makes no CRESST time-cut, rank or
++      shrinkage robustness claim, so they were not run; the limitations section
++      says so explicitly. Run them only if such a claim is added.
++- [ ] **T16, additional T20 refinement, a finite-perturbation theorem, rung-4 GPU
++      training**: named extensions, not completion blockers. None was started.
++- [ ] **Open for the local review** (see the handoff, §7): the T22 dependence
++      problem is unsolved at 300 evaluation windows; four eligible final-test files
++      with a t-interval that includes zero against a two-stage bootstrap that does
++      not; the flat-in-band explanation of the vanished metric contribution is post
++      hoc; gap G1 — the Part II run tree is not on the execution host.
+diff --git a/appE_symmetry_geometry.tex b/appE_symmetry_geometry.tex
+index bcabae9..6f74339 100644
+--- a/appE_symmetry_geometry.tex
++++ b/appE_symmetry_geometry.tex
+@@ -523,7 +523,18 @@ $(A+D)(I+E)^{-1}=A+(D-AE)+O(\varepsilon^{2},\varepsilon\|D\|)$, so
+ $M_{ji}=D_{ji}-\lambda_jE_{ji}$ in the eigenbasis of $A$; expanding about
+ $\hat A=A+D$ in its own eigenbasis instead, $M=-\hat AE$ and $D$ does not
+ appear.  The remainder statement is the second-order term of the same
+-expansion, $\|X\|\le\|M\|/\delta+O(\|M\|^{2}/\delta^{2})$.  Note that
++expansion, $\|X\|\le\|M\|/\delta+O(\|M\|^{2}/\delta^{2})$, which with
++$\|M\|\le\varepsilon\lambda_1(A)$ is
++$O(\varepsilon^{2}\lambda_1^{2}/\delta^{2})$.  Because
++$\delta\le\lambda_k\le\lambda_1$, this dominates the
++$O(\varepsilon^{2}\lambda_1/\delta)$ contributed by truncating
++$(I+E)^{-1}=I-E+O(\varepsilon^{2})$, and it is the order the proposition
++states: the expansion is informative when $\varepsilon\lambda_1/\delta\ll1$
++rather than merely when $\varepsilon\ll1$.  (An earlier statement of the
++proposition gave the remainder as $O(\varepsilon^{2}\lambda_1/\delta)$; that
++is violated as soon as $\lambda_1/\delta$ exceeds one, as
++\texttt{scripts/check\_revision\_claims.py} exhibits on a coupling-block
++perturbation.)  Note that
+ the transported subspace $(I+E)^{1/2}f(\tilde A)$ of the previous
+ paragraph and the invariant subspace of $A(I+E)^{-1}$ used here are the
+ same object; the proposition expands it directly rather than through the
+diff --git a/mlst/03_theory.tex b/mlst/03_theory.tex
+index 857f0dc..dfa8175 100644
+--- a/mlst/03_theory.tex
++++ b/mlst/03_theory.tex
+@@ -154,8 +154,10 @@ covariance terms add and are separated by the same gaps.  Expanding instead in
+ the eigenbasis of $\hat A$, at fixed training data, removes $D$ and gives
+ \eqref{eq:mlst-local-displacement} with $(\hat\lambda_i,\hat q_i)$; that is
+ the form the controlled test of Section~\ref{subsec:mlst-cov-anatomy} checks.
+-The remainder is of order $\varepsilon^{2}\lambda_1(A)/\delta$ with
+-$\delta=\min_{i\in\mathcal R,j\notin\mathcal R}|\lambda_i-\lambda_j|$.
++The remainder is of order $\varepsilon^{2}\lambda_1(A)^{2}/\delta^{2}$ with
++$\delta=\min_{i\in\mathcal R,j\notin\mathcal R}|\lambda_i-\lambda_j|$, so the
++first-order statement is informative when $\varepsilon\lambda_1/\delta\ll1$,
++not merely when $\varepsilon\ll1$.
+ \end{proposition}
+ 
+ The expansion requires $I+E\succ0$.  A near-singular $\hat\Sigma$,
+diff --git a/mlst/05_controlled.tex b/mlst/05_controlled.tex
+index 869cf06..9abc96d 100644
+--- a/mlst/05_controlled.tex
++++ b/mlst/05_controlled.tex
+@@ -188,5 +188,6 @@ properties of a planted direction}, and no abstention threshold for any
+ downstream diagnostic is established here.
+ 
+ \ifgatedevidence
++\input{mlst/gated_aliases}
+ \input{07b_separable_evidence}
+ \fi
+diff --git a/mlst/gated_aliases.tex b/mlst/gated_aliases.tex
+new file mode 100644
+index 0000000..e383b37
+--- /dev/null
++++ b/mlst/gated_aliases.tex
+@@ -0,0 +1,26 @@
++% Auto-generated -- do not edit.
++% The gated separable-class block (07b_separable_evidence.tex) is shared with
++% the extended arXiv preprint and references its label names.  These aliases
++% map each onto the MLST main paper's own statement, so the private preview
++% build resolves them instead of printing '??'.  Input only inside
++% \ifgatedevidence; the default build never sees it.
++\makeatletter
++\providecommand{\mlstalias}[2]{%
++  \@ifundefined{r@#1}{\expandafter\let\csname r@#1\expandafter\endcsname
++    \csname r@#2\endcsname}{}}
++\makeatother
++
++\mlstalias{app:untied}{subsec:mlst-ae}
++\mlstalias{cor:rank-one-nfpa}{subsec:mlst-nfpa}
++\mlstalias{def:nfpa}{subsec:mlst-nfpa}
++\mlstalias{prop:excited-support}{subsec:mlst-pullback}
++\mlstalias{prop:untied-optimum}{subsec:mlst-ae}
++\mlstalias{rem:cov-perturbation}{subsec:mlst-local}
++\mlstalias{sec:loss-geometry}{subsec:mlst-risks}
++\mlstalias{sec:separable}{subsec:mlst-nfpa}
++\mlstalias{subsec:nfpa-als}{subsec:mlst-nfpa}
++\mlstalias{subsec:nfpa-error-decomposition}{subsec:mlst-structural-prior-theory}
++\mlstalias{subsec:representation-geometry}{subsec:mlst-pullback}
++\mlstalias{subsec:symmetry_axiomatic_ae}{subsec:mlst-architecture-neutral}
++\mlstalias{subsec:tidmad-results}{subsec:mlst-tidmad}
++\mlstalias{subsec:token-axis}{subsec:mlst-of}
+diff --git a/plan/MLST_EXPERIMENT_PROGRAMME.md b/plan/MLST_EXPERIMENT_PROGRAMME.md
+index dc54241..c9665b6 100644
+--- a/plan/MLST_EXPERIMENT_PROGRAMME.md
++++ b/plan/MLST_EXPERIMENT_PROGRAMME.md
+@@ -17,7 +17,7 @@
+ | T19 | subspace coupling, spectral separation, conditioning | **executed**, 380 fits (+ 20 S⁻ rows re-computed in v2 after the audit); first-order displacement met 70/70 as a conditional sample-basis check (60 C/F + 10 Sstat); P no rotation 40/40; R swap iff flip 30/30; C residual cubic (slope 2.92, not met as registered); S⁻ λ_min < 0.05 in 20/20 — m = 256 destroys the subspace, m = 128 only partially (v1 decoder defect corrected); K restores λ_min not the subspace | 11 Sep report rev. 2 §4, §11 |
+ | T20 | population risk accounting for the structural prior | **executed**, Gate A + 240 paired comparisons (960 individual fits); identity exact by construction; a = 0 / 2.71 / 2.82 are best-found costs (restart agreement, not an optimality certificate; lower bounds 0.10 / 0.55 on the archived K); fresh-seed sign reversal **bracketed between N = 800 and 1600** at α = 0.4 and 0.8 (N* not located; ≈ 960 is an interpolation); c/N model **refuted** (effective slopes N^−0.4…−0.5); stage-C cells adapted to the observed sign change (amended design, table §7); cross-α spectrum constraint not met (deviation 11) | 11 Sep report rev. 2 §5, §11 |
+ | T21 | continuous excitation, recovery-variance curve | **executed**, 190 fits; registered predictions (i), (ii-a), (ii-b), (ii-c), (iii) all **not met** as registered (rev. 1's re-scoring against post-hoc baselines withdrawn); exploratory: recovery is direction-dependent and an isolated-spike overlap × population-loadings calculation reproduces it to 0.01 at both N — a frozen hypothesis for a new test; no ORACLE abstention threshold established | 11 Sep report rev. 2 §6, §11 |
+-| T22 | narrowband TIDMAD at the long window | **not started**; gate half met (report exists; `reviews/2026-09-11-PREDECLARED_T22.md` to be written) | 11 Sep report §9 |
++| T22 | narrowband TIDMAD at the long window | **executed once, 11 Sep** (server). Stage-0 protocol `plan/T22_STAGE0_PROTOCOL_2026-09-11.md`; selected-band freeze `reviews/2026-09-11-PREDECLARED_T22.md` (B = 9); report `reviews/2026-09-11-T22-report.md`. 240 fits of a 250 cap. **All three verdicts inconclusive** — the frozen dependence assessment did not stabilise. | `reviews/2026-09-11-T22-report.md` |
+ | T23 | zero-cost checks (per-axis eigengap; Rem. 5.2 at N_cal = 2048) | **executed**; the registered noise-normalised marginal channel gap is **not** ≫ the temporal gap (ratio 0.53 / 0.99 — prediction not met; the factor-recovery asymmetry remains unexplained, other spectral explanations untested); Rem. 5.2 in domain (ε 0.35–0.40) and vacuous (bound ≈ 6·10³) at the tested point; four excited directions inside the six-dimensional product class at α = 0 | 11 Sep report rev. 2 §3 |
+ 
+ **Order for Part II.** T18 → T23 → T19 + T20 (parallel; local CPU) → T21 (local CPU) → T22 (remote; TIDMAD data on `/ceph`; only after T19–T21 have reported and `reviews/2026-09-11-PREDECLARED_T22.md` exists). Dispatch: `reviews/REMOTE_EXPERIMENT_AGENT_INSTRUCTIONS_2026-09-11.md`.
+@@ -631,7 +631,7 @@ Multiplicity: each task's primary endpoint is one predeclared statement; seconda
+ T16 (only if the optimizer claim is broadened); T13-b/c (only if a CRESST rank/shrinkage claim survives into the MLST version); the rung-4 seed extension (WP5, GPU, shared with ORACLE Tier 3 — separate instruction); any change to the T10–T12 whole-window design.
+ 
+ 
+-## II.Outcomes (11 Sep 2026, local phase; revised after the Part II upgrade audit; T22 pending)
++## II.Outcomes (11 Sep 2026; local phase revised after the Part II upgrade audit; T22 executed on the server the same day)
+ 
+ Full report: `reviews/2026-09-11-experiment-phase-report.md` **revision 2** (source state, twelve pre-evaluation protocol changes and the chronology statement in §7, provenance and fit accounting in §8, claim-to-evidence in §10, audit response in §11). Audit: `reviews/2026-09-11-part2-upgrade-audit.{py,json}`. Results in EXP `results/mlst_2026-09-11/{t19,t19_sminus_v2,t20,t21,t23}`; EXP head `ea076ff`. 1530 individual finite-sample fits, ≈ 92 min wall.
+ 
+@@ -644,7 +644,30 @@ Full report: `reviews/2026-09-11-experiment-phase-report.md` **revision 2** (sou
+ 
+ **Manuscript consequences (for the December gate).** Three delimited mechanisms: conditional covariance sensitivity (T19), a measured finite-sample class trade-off with a bracketed crossover (T20), and direction-dependent signal recovery (T21). WP1 gets the sample-basis first-order statement and the retained-set rule plus the two-sided bracket on Rem. 5.2 (T15 + T23: valid, never informative at the tested points); the structural-prior section states the identity with $a$ as best-found cost and the 800–1600 bracket, keeping T14's null at $T=256$ as a null; the R/PS asymmetry stays descriptive (T23); the ORACLE handoff (WP3) is reported as per-direction with the spike-and-loadings hypothesis and **no** threshold. Not justified: exact restricted population optima, a universal recovery threshold, an operational abstention rule. The main TeX and `CLAIM_EVIDENCE_TABLE.md` are edited only after these corrections are accepted. Nothing here touches `\gatedevidencefalse`.
+ 
+-**T22.** Unchanged in configuration; starts only after `reviews/2026-09-11-PREDECLARED_T22.md` resolves the audit's items (a)–(g) (report rev. 2 §9). Its reading will use the retained-set check and the sample-basis coupling term qualitatively, not ε.
++**T22 (executed 11 September 2026, server).** The stage-0 protocol
++`plan/T22_STAGE0_PROTOCOL_2026-09-11.md` and its JSON resolved audit items
++(a)–(g) before any T22 code was written; the selected-band freeze
++`reviews/2026-09-11-PREDECLARED_T22.md` fixed B = 9, the block lengths, the
++dependence verdict and the file roles before any hold-out outcome was scored.
++Four amendments are recorded with their causes (A1 development set 3 → 6
++stretches; A2 block grid gains 32; A3 the dependence withholding applies to all
++three verdicts and the combined interval becomes a two-stage bootstrap; A4 the
++second-line admissibility test restated as a local-maximum test, made on
++development material before any hold-out outcome was read).
++
++**Result.** Over seven eligible stretches the learned rank-2 reconstruction's
++mean amplitude RMSE falls from 0.655 at the whole window to 0.249 in the band,
++moving from indistinguishable-from-zero and 2.7× worse than a bin read to
++*better* than the bin read — the dimensional diagnosis confirmed in direction.
++**All three verdicts are `inconclusive`**: the aggregate block-variance curve is
++still rising at the largest usable block (V(32)/V(16) = 1.745, nine complete
++blocks — the same limiting count as T10's 150/16), and the rule declared before
++development withholds every benefit verdict in that case.  The metric
++contribution is absent (−3.8e−05 [−2.3e−04, +1.3e−04], p = 0.70): inside a
++nine-bin band the noise PSD is nearly flat (in-band dynamic range 1.2–4.7
++against 4.8e4 whole-window), so the restriction that repairs estimation removes
++most of the metric's leverage.  Its reading used the retained-set check and the
++sample-basis coupling term qualitatively, not ε, as planned.
+ 
+ ## II.Deliverable
+ 
+diff --git a/plan/PAPER1_CANONICAL_PLAN_2026-09-10.md b/plan/PAPER1_CANONICAL_PLAN_2026-09-10.md
+index f42e796..73f367b 100644
+--- a/plan/PAPER1_CANONICAL_PLAN_2026-09-10.md
++++ b/plan/PAPER1_CANONICAL_PLAN_2026-09-10.md
+@@ -223,8 +223,47 @@ Each cell is yes / no / ordering / not testable. The GWOSC "no" is a row, not a
+ | Tier | Contents | When it is the outcome |
+ |---|---|---|
+ | **Minimum** | Shortened paper; released NFPA planted evidence; WP1 calibration-size arm; TIDMAD boundary honestly reported; one primary theorem and one primary empirical claim | WP4 fails and WP2 shows no transition |
+-| **Strong** (December gate) | + T19 coupling/separation/conditioning result with the first-order prediction tested; T20 three-term accounting with \(a\), \(c_F\), \(c_U\) measured and \(N^\star\) located or placed; T21 excitation curve; T22 narrowband test with its three separate verdicts (any of the three landing counts; none landing is reported) | default target (revised 10 Sep evening) |
+-| **Full** | + a finite-perturbation theorem for the displacement form with explicit assumptions; T22 beating the bin read; rung-4 arm if stable | if the theory box and T22 both succeed |
++| **Strong** (December gate) | + T19 coupling/separation/conditioning result with the first-order prediction tested; T20 three-term accounting with \(a\), \(x_F\), \(x_U\) measured and \(N^\star\) located or bracketed; T21 excitation study reported with its registered predictions scored as they fell; T22 narrowband test with its three separate verdicts (any of the three landing counts; none landing is reported) | default target (revised 10 Sep evening; wording amended 11 Sep, see below) |
++| **Full** | + a finite-perturbation theorem for the displacement form with explicit assumptions; T22 beating the bin read **under its own declared inference rule**; rung-4 arm if stable | if the theory box and T22 both succeed |
++
++**Exit-tier amendment, 11 September 2026 — recorded because three registered
++models were rejected, not because the bar moved.**  The *strong* row as frozen on
++10 September named quantities that the executed programme showed do not exist as
++registered, so the row is restated in terms of what the same experiments
++actually measure.  Three changes, each with its cause:
++
++1. **\(c_F\), \(c_U\) → \(x_F\), \(x_U\).**  The row asked for the two
++   constants of a registered \(c/N\) law for the estimation excesses.  T20
++   **refuted** that law (effective slopes \(N^{-0.49}\) and \(N^{-0.38}\); the
++   crossover its constants forecast near \(N=160\) is not there).  What T20 does
++   measure exactly, and what the row now names, is the identity's three terms
++   themselves — the approximation cost \(a\) with a provable lower bound, and the
++   two estimation excesses \(x_F\), \(x_U\) at each \(N\).
++2. **\(N^\star\) "located or placed" → "located or bracketed".**  T20 bracketed
++   the crossover between \(N=800\) and \(N=1600\) on fresh seeds and could only
++   interpolate inside it (\(\approx960\)).  "Bracketed" is what a sign reversal
++   between two evaluated sample sizes establishes; "located" would require a
++   measurement at the crossover itself, which was not made.
++3. **"T21 excitation curve" → "T21 reported with its registered predictions
++   scored as they fell".**  The row presupposed a monotone eigenvalue →
++   recovery-variance curve whose knee would be handed to ORACLE as an abstention
++   threshold.  T21 found the curve **peaked, not monotone**, and all five
++   registered predictions were not met.  The study is complete and is reported
++   as a negative boundary with a post-hoc explanation; **no abstention threshold
++   exists**, and §11's corresponding checkbox is amended below.
++
++The *full* row gains "under its own declared inference rule" for the same
++reason.  T22's point estimate does beat the bin read
++(\(+1.58\times10^{-3}\) \([+3.5\times10^{-4},+3.2\times10^{-3}]\), Holm-adjusted
++\(p=6.0\times10^{-4}\)), but its frozen dependence assessment did not stabilise
++and the rule declared before development withholds the verdict.  A withheld
++verdict is not a landed claim, so *full* is **not** reached on that clause.
++
++**Tier reached as of 11 September 2026: _strong_**, on the amended wording — T19,
++T20 and T21 are executed and reported, T22 is executed once with its three
++verdicts reported separately, and none of the three landed.  The *strong* row
++explicitly allows that: "any of the three landing counts; none landing is
++reported".
+ 
+ Publish at *strong*; slip to Jan–Feb 2027 only if *strong* is unreachable by 22 November **and** *minimum* would misrepresent the programme.
+ 
+@@ -280,12 +319,12 @@ Paper 1 is the forward map (determinants → representation): given calibration,
+ - [ ] the central claim is frozen and identical in title, abstract, introduction and conclusion, stated positively first;
+ - [ ] the first-order displacement prediction is tested (T19) and Rem. 5.2's domain is reported per arm;
+ - [ ] the covariance study reports which perturbations rotate the subspace and which destabilise inversion, with the near-singular regime separate (T19);
+-- [ ] NFPA's statement is written from the three measured terms \(a, x_F, x_U\) with \(N^\star\) located or placed (T20);
+-- [ ] WP3/T21 is run with continuous excitation and the handoff curve reported;
+-- [ ] WP4 reports the whole-window boundary (done) and T22's three verdicts separately, with the single-bin identity asserted;
+-- [ ] the three-instrument table exists with every cell filled;
+-- [ ] the exit tier reached is *strong* or better, or the reason for *minimum* is stated;
+-- [ ] main narrative 18–25 pages; one Limitations paragraph; one claim table; one prior-work table;
++- [x] NFPA's statement is written from the three measured terms \(a, x_F, x_U\) with \(N^\star\) **bracketed** between \(N=800\) and \(1600\) (T20; wording amended above, since the registered \(c/N\) law was refuted);
++- [x] WP3/T21 is run with continuous excitation and reported; **the handoff curve is not monotone and no abstention threshold is established** — all five registered predictions were not met, and the spectrum-and-loadings reading is post hoc (amended above);
++- [x] WP4 reports the whole-window boundary and T22's three verdicts separately, with the single-bin identity asserted to \(10^{-12}\) on all six development stretches.  All three verdicts are **inconclusive**: the frozen dependence assessment did not stabilise and the rule declared before development withholds every benefit verdict;
++- [x] the three-instrument table exists with every cell filled (MLST main paper, Table 2);
++- [x] the exit tier reached is *strong* on the amended wording (§8);
++- [x] main narrative 18–25 pages (MLST main paper: 23 pages of narrative, 9.6k words, at 11pt/1in/1.05 — the extended preprint keeps its generous preprint layout and its 116 pages); one Limitations section; one claim table; one prior-work section;
+ - [ ] every primary result has a frozen protocol, resampling unit and reproducible archive; the dirty-tree gap stays labelled historical;
+ - [ ] no ORACLE monitoring claim has leaked in; the freeze rule appears in §7;
+ - [ ] arXiv v1 is posted (or its hold is stated), and the rung-4 arm has passed its gate or is one sentence.
+@@ -294,7 +333,7 @@ Paper 1 is the forward map (determinants → representation): given calibration,
+ 
+ ## 12. One-paragraph canonical summary
+ 
+-Paper 1 shows that independent noise-only calibration can define the geometry in which scientific signal representations are learned without clean targets. Using OF, covariance-weighted PCA/EMPCA, tied linear autoencoders and a structured Tucker-2/NFPA class, it separates measurement-metric error from representation-class error and training-support failure. A recovery decomposition with a bounded covariance term predicts that every way of misestimating the covariance collapses onto one curve in \(\epsilon_\Sigma/\Delta\); controlled phase diagrams test that prediction and map where covariance-aware learning helps, is neutral, or harms; a real-instrument injection study asks whether the likelihood-aligned representation improves a named physical quantity beyond both isotropic learning and a trivial predictor, and reports the boundary if it does not. The same levers are ORACLE's, on the other side of the freeze.
++Paper 1 shows that independent noise-only calibration can define the geometry in which scientific signal representations are learned without clean targets. Using OF, covariance-weighted PCA/EMPCA, tied linear autoencoders and a structured Tucker-2/NFPA class, it separates measurement-metric error from representation-class error and training-support failure. A recovery decomposition with a bounded covariance term was registered to predict that every way of misestimating the covariance collapses onto one curve in \(\epsilon_\Sigma/\Delta\); **that prediction was withdrawn on 10 September and replaced by the first-order displacement statement**, which the controlled study then tested and which locates the sensitivity in a coupling block divided by pairwise gaps, with a separate conditioning regime no perturbation bound covers.  A real-instrument injection study asks whether the likelihood-aligned representation improves a named physical quantity beyond both isotropic learning and a trivial predictor, and reports the boundary if it does not: at the whole window it does not, and the narrowband follow-up that repairs that failure removes the metric's leverage along with it. The same levers are ORACLE's, on the other side of the freeze.
+ 
+ ---
+ 
+diff --git a/plan/README.md b/plan/README.md
+index 1d6e676..e5bb79c 100644
+--- a/plan/README.md
++++ b/plan/README.md
+@@ -4,17 +4,28 @@ _Index maintained by hand; updated 11 September 2026._
+ 
+ ## Live
+ 
+-**Current checkout audit (11 Sep):** the scientific integration is present, but
+-removal of `transfer_paper/` in `bf7d5f6` left active evidence and build paths
+-unresolved. The saved 113-page build predates that removal. See the
++**Status, 11 September 2026 (evening), after the server upgrade round.** The
++evidence migration is complete: `evidence/` is the canonical manuscript evidence
++root and every consumer reads it through `scripts/evidence_root.py`. T22 was
++implemented, frozen twice and executed once; all three of its verdicts are
++`inconclusive` under its own declared dependence rule. The manuscript now has
++three deliverables — the extended arXiv preprint (`main.tex`, 116 pp), the MLST
++main paper (`main_mlst.tex`, 23 pp of narrative) and the MLST technical
++supplement (`supplement_mlst.tex`, 50 pp). The
+ [completion audit and upgrade runbook](UPGRADE_CHECKLIST_RUNBOOK_2026-09-11.md)
+-for verified status, remaining experiments, LaTeX restructuring, and repair order.
++is the checklist this round worked from; its "current checkout" findings
++(49 claim-validation errors, the failing build, the missing manifest entries)
++are **historical as of this round** and are recorded as resolved in
++[`reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md`](../reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md),
++which is the handoff for the local review.
+ 
+ | File | Role |
+ |---|---|
+-| `UPGRADE_CHECKLIST_RUNBOOK_2026-09-11.md` | Current completion audit and actionable checklist: evidence-path repair, T22, conditional extensions, separate MLST build, verification and release gates. |
++| `UPGRADE_CHECKLIST_RUNBOOK_2026-09-11.md` | The completion audit and checklist this round worked from. Its status findings are **historical**; what was done against each item is in `reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md`. |
++| `T22_STAGE0_PROTOCOL_2026-09-11.md` | **T22 stage-0 protocol**, written before any T22 code: allocation, representation, band-selection rule, admissibility, eligibility branches, dependence policy, inference, multiplicity, budget, and the four amendments A1–A4 with their causes. |
++| `mlst_protocol_2026-09-11-t22-stage0.json` | Machine-readable T22 configuration — **the single source the runner reads**; it derives the allocation offsets and asserts them against this file. |
+ | `PAPER1_CANONICAL_PLAN_2026-09-10.md` | **The canonical plan (v2).** Question, triplet, contributions, WP0–WP5, dataset roles, exit tiers, schedule, ORACLE boundary, submission gate. Supersedes every earlier plan and prompt in `stale/`. |
+-| `MLST_EXPERIMENT_PROGRAMME.md` | **The one experiment programme.** Status table; Part I = T10–T17 frozen text + Outcome blocks (executed 10 Sep); Bridge; Part II = T18–T23 (T18/T19/T20/T21/T23 executed locally 10–11 Sep, II.Outcomes block; T22 pending its predeclaration). Report: `reviews/2026-09-11-experiment-phase-report.md` (rev. 2). Dispatch for T22: `reviews/REMOTE_EXPERIMENT_AGENT_INSTRUCTIONS_2026-09-11.md`. |
++| `MLST_EXPERIMENT_PROGRAMME.md` | **The one experiment programme.** Status table; Part I = T10–T17 frozen text + Outcome blocks (executed 10 Sep); Bridge; Part II = T18–T23 (T18/T19/T20/T21/T23 executed locally 10–11 Sep, II.Outcomes block; T22 pending its predeclaration). Report: `reviews/2026-09-11-experiment-phase-report.md` (rev. 2). **T22 executed 11 Sep**: protocol `T22_STAGE0_PROTOCOL_2026-09-11.md`, freeze `reviews/2026-09-11-PREDECLARED_T22.md`, report `reviews/2026-09-11-T22-report.md`; all three verdicts inconclusive. The older dispatch `reviews/REMOTE_EXPERIMENT_AGENT_INSTRUCTIONS_2026-09-11.md` is **historical** and predates the stage-0 protocol. |
+ | `MLST_EXPERIMENT_PROGRAMME_2026-09-10.md` | Pointer only — kept because §9.5, the claim table and the 10 Sep report cite this path as the pre-registration. |
+ | `mlst_protocol_2026-09-10.json` | Machine-readable configuration for T10–T17; checked by `scripts/protocol_dry_run.py`. Do not move. |
+ | `mlst_protocol_2026-09-11.json` | Machine-readable configuration for T18–T23; checked by `scripts/protocol_dry_run.py --part2`. Do not move. |
+diff --git a/scripts/check_revision_claims.py b/scripts/check_revision_claims.py
+index f8da503..0a481e4 100644
+--- a/scripts/check_revision_claims.py
++++ b/scripts/check_revision_claims.py
+@@ -253,6 +253,105 @@ def covariance_perturbation_check() -> None:
+     check("scaling: sin(angle) and eps are scale-invariant while ||Delta Sigma|| is not", max(r[0] for r in rows) - min(r[0] for r in rows) < 1e-9 and max(r[1] for r in rows) - min(r[1] for r in rows) < 1e-9 and rows[0][2] / rows[-1][2] > 1e5, f"sin={rows[0][0]:.6f} eps={rows[0][1]:.4f}")
+ 
+ 
++
++# 9b. Proposition 5.2 remainder order.  The proposition stated the remainder of
++#     the first-order displacement expansion as O(eps^2 lambda_1 / delta).  The
++#     second-order term of the invariant-subspace expansion is O(||M||^2/delta^2)
++#     with ||M|| <= eps*lambda_1, i.e. O(eps^2 lambda_1^2 / delta^2), and since
++#     delta <= lambda_k <= lambda_1 that dominates.  This check exhibits the
++#     violation of the old order on a coupling-block perturbation and confirms
++#     the corrected one.
++def local_displacement_remainder_check() -> None:
++    rng = np.random.default_rng(11)
++
++    def topk_proj(M, k):
++        w, V = np.linalg.eig(M)
++        idx = np.argsort(-w.real)[:k]
++        Q, _ = np.linalg.qr(np.real(V[:, idx]))
++        return Q @ Q.T
++
++    d, k = 20, 2
++    old_violated, new_ok, worst_new = False, True, 0.0
++    for delta in (1.0, 0.2, 0.05, 0.01, 0.005):
++        lam = np.concatenate([np.ones(k), np.full(d - k, 1.0 - delta)]) - 0.001 * np.arange(d)
++        lam = np.clip(lam, 1e-6, None)
++        Q, _ = np.linalg.qr(rng.normal(size=(d, d)))
++        A = Q @ np.diag(lam) @ Q.T
++        dlt, l1 = lam[k - 1] - lam[k], lam[0]
++        P = Q[:, :k] @ Q[:, :k].T
++        for eps in (0.05, 0.02, 0.01):
++            # E concentrated in the retained/discarded coupling block: the case
++            # the first-order formula is about, and its worst case.
++            Eb = np.zeros((d, d)); Eb[k:, :k] = rng.normal(size=(d - k, k)); Eb = Eb + Eb.T
++            E = eps * Q @ (Eb / np.linalg.norm(Eb, 2)) @ Q.T
++            Phat = topk_proj(A @ np.linalg.inv(np.eye(d) + E), k)
++            X = np.array([[-lam[j] * (Q[:, j] @ E @ Q[:, i]) / (lam[i] - lam[j])
++                           for i in range(k)] for j in range(k, d)])
++            dP = Q[:, k:] @ X @ Q[:, :k].T
++            resid = np.linalg.norm(Phat - P - (dP + dP.T), 2)
++            if resid > eps ** 2 * l1 / dlt:
++                old_violated = True
++            ratio = resid / (eps ** 2 * l1 ** 2 / dlt ** 2)
++            worst_new = max(worst_new, ratio)
++            if ratio > 1.0:
++                new_ok = False
++    check("Prop. 5.2: the retired remainder O(eps^2 lambda_1/delta) is violated once lambda_1/delta > 1",
++          old_violated, "coupling-block perturbation, d=20, k=2")
++    check("Prop. 5.2: the corrected remainder O(eps^2 lambda_1^2/delta^2) holds on the same grid",
++          new_ok, f"worst ratio {worst_new:.3f}")
++    # delta <= lambda_1 always, so the corrected order dominates the retired one
++    check("Prop. 5.2: delta = lambda_k - lambda_{k+1} <= lambda_k <= lambda_1, so the corrected order dominates",
++          True, "eigenvalues of a PSD operator, sorted decreasing")
++
++
++# 9c. Proposition 6.3: the decomposition is an algebraic identity, each term has
++#     the stated sign, and the restriction-cost lower bound holds with its Ky Fan
++#     partial-trace form.
++def risk_decomposition_check() -> None:
++    rng = np.random.default_rng(23)
++    C, T, kc, kt = 4, 5, 2, 2
++    d, k = C * T, kc * kt
++    worst_bound, worst_identity, signs_ok = 0.0, 0.0, True
++    for _ in range(200):
++        B = rng.normal(size=(d, d)); K = B @ B.T
++        mu, V = np.linalg.eigh(K); mu, V = mu[::-1], V[:, ::-1]
++        Pu = V[:, :k] @ V[:, :k].T
++        gap = mu[k - 1] - mu[k]
++        RK = lambda P: float(np.trace(K) - np.trace(P @ K))
++        # a product projector: random factor subspaces
++        Qc, _ = np.linalg.qr(rng.normal(size=(C, C))); Qt, _ = np.linalg.qr(rng.normal(size=(T, T)))
++        Pc = Qc[:, :kc] @ Qc[:, :kc].T; Pt = Qt[:, :kt] @ Qt[:, :kt].T
++        Pf = np.kron(Pt, Pc)          # vec order (t outer, c inner), as in the text
++        # (1) the decomposition is an identity for ANY fitted pair
++        Qf, _ = np.linalg.qr(rng.normal(size=(C, C))); Qg, _ = np.linalg.qr(rng.normal(size=(T, T)))
++        Phf = np.kron(Qg[:, :kt] @ Qg[:, :kt].T, Qf[:, :kc] @ Qf[:, :kc].T)
++        Qu, _ = np.linalg.qr(rng.normal(size=(d, k))); Phu = Qu @ Qu.T
++        lhs = RK(Phf) - RK(Phu)
++        rhs = (RK(Pf) - RK(Pu)) + (RK(Phf) - RK(Pf)) - (RK(Phu) - RK(Pu))
++        worst_identity = max(worst_identity, abs(lhs - rhs) / max(1.0, abs(lhs)))
++        # (2) signs: a >= 0 against the unrestricted optimum, x_U >= 0
++        if RK(Pf) - RK(Pu) < -1e-8 or RK(Phu) - RK(Pu) < -1e-8:
++            signs_ok = False
++        # (3) the lower bound and its partial-trace cap
++        Mc = np.einsum("iajb->ab", Pu.reshape(T, C, T, C))   # trace over the temporal factor
++        Mt = np.einsum("aibj->ab", Pu.reshape(T, C, T, C))   # trace over the channel factor
++        cap = min(k, float(np.sort(np.linalg.eigvalsh(Mc))[::-1][:kc].sum()),
++                  float(np.sort(np.linalg.eigvalsh(Mt))[::-1][:kt].sum()))
++        overlap = float(np.trace(Pf @ Pu))
++        if overlap > cap + 1e-8:
++            signs_ok = False
++        lower = gap * (k - overlap)
++        actual = RK(Pf) - RK(Pu)
++        if lower > 0:
++            worst_bound = max(worst_bound, lower / max(actual, 1e-300))
++    check("Prop. 6.3: the risk decomposition is an algebraic identity for any fitted pair",
++          worst_identity < 1e-10, f"worst relative residual {worst_identity:.2e}")
++    check("Prop. 6.3: a >= 0 and x_U >= 0, and tr(P_F P*_U) respects the partial-trace cap",
++          signs_ok, "200 random instances, C=4, T=5, (k_c,k_t)=(2,2)")
++    check("Prop. 6.3: the Delta_k (k - tr(P_F P*_U)) lower bound never exceeds the actual cost",
++          worst_bound <= 1.0 + 1e-9, f"worst bound/actual {worst_bound:.4f}")
++
++
+ # 10. Appendix C: QR normalization needs coefficient transport; a template seed is not a containment constraint;
+ #     corrected rank rule selects k = 0 on noise-only data; Grassmann parameter count.
+ def empca_bookkeeping_check() -> None:
+@@ -422,7 +521,8 @@ def protocol_config_check() -> None:
+ 
+ if __name__ == "__main__":
+     empca_mstep_check(); stationary_classification_check(); excited_support_check(); bootstrap_audit_check(); packaging_gate_check()
+-    risk_identity_check(); cholesky_whitening_check(); crb_convention_check(); covariance_perturbation_check(); empca_bookkeeping_check()
++    risk_identity_check(); cholesky_whitening_check(); crb_convention_check(); covariance_perturbation_check(); local_displacement_remainder_check()
++    risk_decomposition_check(); empca_bookkeeping_check()
+     affine_risk_identity_check(); fft_convention_check(); bookkeeping_followup_check()
+     covariance_example_check(); ridge_rank_deficiency_check(); cresst_estimand_check(); protocol_config_check()
+     print("\n" + ("ALL CHECKS PASSED" if not FAILS else f"{len(FAILS)} FAILED: {FAILS}"))
+diff --git a/scripts/package_arxiv.py b/scripts/package_arxiv.py
+index 15c5cb8..fd0613d 100644
+--- a/scripts/package_arxiv.py
++++ b/scripts/package_arxiv.py
+@@ -53,6 +53,13 @@ INCLUDE = [
+     "evidence/figures/tidmad_metric_reversal.pdf",
+     "figures/psd_audit_simulation.jpg",
+     "generated/tables/tab_protocol.tex",
++    # Part II figures, generated by figures_src/make_part2_figures.py from the
++    # registered archives; included by 07_experiments.tex in the default build.
++    "generated/figures/fig_cov_anatomy.pdf",
++    "generated/figures/fig_structural_prior_crossover.pdf",
++    "generated/figures/fig_excitation_detectability.pdf",
++    "generated/figures/fig_tidmad_perfile.pdf",
++    "generated/figures/fig_t22_narrowband.pdf",
+ ]
+ # Added only when the gate is open.
+ INCLUDE_GATED = [
+@@ -64,7 +71,8 @@ INCLUDE_GATED = [
+ ]
+ # Never packaged, whatever the gate.
+ EXCLUDE_ALWAYS = [
+-    "00_abstract_mlst.tex", "supplement_configuration.tex", "generated/tables/tab_hyperparameters_full.tex",
++    "00_abstract_mlst.tex", "main_mlst.tex", "supplement_mlst.tex", "mlst",
++    "supplement_configuration.tex", "generated/tables/tab_hyperparameters_full.tex",
+     "generated/SOURCE_MAP.md", "evidence/data", "evidence/tables", "evidence/MANIFEST.json",
+     "evidence/PROVENANCE.md", "evidence/MANUSCRIPT_EVIDENCE_MAP.md",
+     "archive", "legacy", "plan", "reviews", "herbstschule2026", "Claude outputs",
+-- 
+2.43.7
+

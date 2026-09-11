@@ -66,10 +66,12 @@ The hard cap is cumulative over the run tree, not per stage.
 and the fits it executed.  Before ``development``, ``validation`` or
 ``final-test`` opens a data file, the stage's fits are enumerated from the
 protocol, characterisation and freeze alone and added to the cumulative executed
-count -- the LARGER of the ledger's sum and a scan of the ``T22_*`` stage
-outputs beside the ledger and beside the output directory, so a missing, stale
-or relocated ledger cannot lower it -- and the stage refuses if the total would
-exceed the cap.  Any stage refuses to start where stage outputs exist but no
+count -- the deduplicated UNION of the ledger's entries, a scan of the
+``T22_*`` stage outputs beside the ledger and beside the output directory, and
+any open, failed or interrupted reservations (``fit_accounting``), so a missing,
+stale or relocated ledger cannot lower it and two *disjoint* records sum instead
+of collapsing to the larger of the two -- and the stage refuses if the total
+would exceed the cap.  Any stage refuses to start where stage outputs exist but no
 ledger does (run ``audit-budget`` first).  Smoke runs are appended but counted
 separately, as the protocol's ``budget.smoke_runs`` declares.
 
@@ -96,6 +98,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from experiments.mlst2026 import tidmad_band as tb  # noqa: E402
 from experiments.mlst2026 import tidmad_endpoint as te  # noqa: E402
+from experiments.mlst2026 import fit_accounting as fa  # noqa: E402
 from experiments.mlst2026.provenance import (  # noqa: E402
     RunRecorder, git_provenance, sha256_file, write_json)
 
@@ -1382,29 +1385,55 @@ def _write_ledger(path, ledger: dict, *, exclusive: bool = False) -> None:
 
 
 def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, *,
-                            scan_dirs) -> dict:
+                            scan_dirs, reservations_path=None) -> dict:
     """Refuse a stage whose planned fits would take the cumulative total past the cap.
 
-    Cumulative executed fits are the larger of the ledger's non-smoke sum and the
-    ledger-independent scan of stage outputs, so neither a missing ledger nor an
-    output that never reached it can make room under the cap.
+    Cumulative expenditure is the deduplicated UNION of what the ledger recorded,
+    what a ledger-independent scan of the stage outputs finds, and what the
+    reservation store still holds open (``fit_accounting.union_executed``): an
+    execution both sources saw counts once, and two *disjoint* records sum rather
+    than collapsing to the larger of the two, which is what ``max`` got wrong.
+    Failed and interrupted reservations keep their charge, so a crash and a retry
+    accumulate.  The old ``max(ledger, scan)`` is kept as a floor: the union may
+    raise a refusal but is never allowed to lower one.  Nothing here writes: a
+    reservation store is read only where one already exists.
     """
     ledger = load_ledger(ledger_path, P)
     ledger_total = ledger["executed_total"] if ledger is not None else None
     scan = scan_executed_fits(scan_dirs)
-    spent = max(ledger_total or 0, scan["executed_total"])
+    res_path = (Path(reservations_path) if reservations_path
+                else Path(ledger_path).parent / fa.RESERVATION_NAME)
+    reservations = fa.load_reservations(res_path, cap=P.cap)
+    union = fa.union_executed(ledger, scan, ledger_path=ledger_path,
+                              reservations=reservations)
+    floor = max(ledger_total or 0, scan["executed_total"])
+    spent = max(union["charged"], floor)
     shown = "absent" if ledger_total is None else ledger_total
     print(f"  [budget] {stage} plans {planned} fits; cumulative executed {spent} "
           f"(ledger {shown}, archive scan {scan['executed_total']}); cap {P.cap}")
+    print(f"  [budget] union: {union['executed']} executed, "
+          f"{union['unique_scientific']} unique scientific, "
+          f"{union['inference_only_fits']} inference-only, "
+          f"{union['reserved_open_fits']} reserved open/failed/interrupted "
+          f"({union['duplicates_merged']} duplicate record(s) merged)")
     if spent + planned > P.cap:
         raise SystemExit(
             f"{stage} refused: cumulative executed fits {spent} + planned {planned} = "
             f"{spent + planned} would exceed the hard cap {P.cap} (ledger {ledger_path}: "
-            f"{shown}; archive scan of {_clip(scan_dirs)}: {scan['executed_total']})")
+            f"{shown}; archive scan of {_clip(scan_dirs)}: {scan['executed_total']}; "
+            f"union: {union['executed']} executed, {union['unique_scientific']} unique "
+            f"scientific, {union['reserved_open_fits']} held by reservations)")
     return {"planned": int(planned), "cumulative_executed_before": int(spent),
             "hard_cap": P.cap, "ledger": str(ledger_path), "ledger_executed_total": ledger_total,
             "archive_scan_executed_total": scan["executed_total"],
-            "archive_scan_outputs": scan["outputs"]}
+            "archive_scan_outputs": scan["outputs"],
+            "union": {k: union[k] for k in (
+                "executed", "unique_scientific", "fitted_models", "inference_only_fits",
+                "restart_fits", "scientific_configurations", "reserved_open_fits",
+                "charged", "duplicates_merged", "ledger_only", "scan_only",
+                "seen_by_both")},
+            "reservation_store": str(res_path) if reservations is not None else None,
+            "legacy_max_floor": int(floor)}
 
 
 def require_ledger_beside_outputs(ledger_path, scan_dirs, stage: str) -> None:
@@ -1594,6 +1623,11 @@ def main(argv=None) -> int:
     ap.add_argument("--ledger", metavar="PATH",
                     help=f"cumulative fit ledger (default: {LEDGER_NAME} in the parent of "
                          "--out; for audit-budget, in --results-root)")
+    ap.add_argument("--reservations", metavar="PATH",
+                    help=f"fit reservation store (default: {fa.RESERVATION_NAME} beside the "
+                         "ledger). Pending, running, failed and interrupted reservations are "
+                         "charged against the cap; it is read where it exists, never created "
+                         "here")
     ap.add_argument("--results-root", metavar="DIR",
                     help="audit-budget only: the run tree whose T22_*/t22_*.json outputs are "
                          "verified and entered in a new ledger")
@@ -1668,7 +1702,8 @@ def main(argv=None) -> int:
         planned = len(files) * len(P.methods)
     if planned is not None and not args.smoke:
         payload["budget_preflight"] = check_cumulative_budget(
-            P, ledger_path, planned, args.stage, scan_dirs=scan_dirs)
+            P, ledger_path, planned, args.stage, scan_dirs=scan_dirs,
+            reservations_path=args.reservations)
     elif planned is not None:
         print(f"  [budget] smoke run: its {planned} planned fits are recorded separately and "
               "not counted against the cap")

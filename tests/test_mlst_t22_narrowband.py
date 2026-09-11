@@ -881,6 +881,18 @@ def _recombine(protocol, b, av, out_name, *extra):
                      "--draws", str(av.draws), *extra])
 
 
+def test_recombine_never_looks_up_raw_science_files(
+        P, bound, archived_validation, no_data, monkeypatch):
+    def forbidden_lookup(*args, **kwargs):
+        raise AssertionError("archive-only recombination accessed raw science paths")
+
+    monkeypatch.setattr(t22, "_science_paths", forbidden_lookup)
+    assert _recombine(P.path, bound, archived_validation, "T22_validation_v2") == 0
+    output = json.loads((bound.runs / "T22_validation_v2" / "t22_recombine.json").read_text())
+    assert not any(entry["role"] == "science_noise"
+                   for entry in output["provenance"]["inputs"])
+
+
 def test_recombine_admits_a_protocol_difference_only_through_a_registered_amendment(
         tmp_path, P, bound, archived_validation, no_data):
     av = archived_validation

@@ -1675,8 +1675,10 @@ def main(argv=None) -> int:
     require_ledger_beside_outputs(ledger_path, scan_dirs, args.stage)
 
     data_root = Path(args.data_root)
-    for p in _science_paths(data_root)[:2]:
-        rec.add_input("science_noise", p)
+    # Recombination uses archived summaries and draws only, including provenance.
+    if args.stage != "recombine":
+        for p in _science_paths(data_root)[:2]:
+            rec.add_input("science_noise", p)
 
     if args.stage == "characterize":
         payload.update(stage_characterize(args, P, rec))

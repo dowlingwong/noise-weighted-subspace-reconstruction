@@ -58,6 +58,14 @@ def test_signal_basis_is_orthonormal_and_not_a_sinusoid_pair():
     assert p.max() / p.sum() < 0.25
 
 
+#: Precision floor of the ``sqrt(1 - cos^2)`` principal-angle estimator that
+#: ``t15.sin_theta`` implements.  Near coincidence a relative error ``delta`` in
+#: the cosine becomes ``sqrt(2*delta)`` in the sine, so with ``delta`` at
+#: double-precision epsilon nothing below ``sqrt(2*eps) ~ 2.1e-8`` is
+#: resolvable; the measured value on an exactly coincident pair is 3.7e-8.
+ARCCOS_FLOOR = 1e-7
+
+
 def test_signal_basis_is_frozen_across_calls():
     np.testing.assert_array_equal(t15.frozen_signal_basis(),
                                   t15.frozen_signal_basis())
@@ -71,7 +79,16 @@ def test_oracle_arm_has_exactly_zero_covariance_error():
     # The theorem's target is the shift away from the paired oracle fit, which
     # for the oracle arm is identically zero; the distance to the *planted*
     # subspace is nonzero even here, purely from the finite training sample.
-    assert r["sin_theta_vs_paired_oracle_fit"] == pytest.approx(0.0, abs=1e-9)
+    #
+    # Tolerance: sin_theta is computed as sqrt(1 - cos^2), which near cos = 1
+    # amplifies a relative error delta into sqrt(2*delta).  With delta at
+    # double-precision epsilon the achievable floor is sqrt(2*eps) ~ 2.1e-8, and
+    # the measured value on an exactly coincident pair is 3.7e-8.  The 1e-9 this
+    # test used was below the estimator's own precision floor and could only pass
+    # by luck of rounding; ARCCOS_FLOOR is that floor with a small margin.  The
+    # estimator itself is unchanged, because the archived T15 results were
+    # produced with it.
+    assert r["sin_theta_vs_paired_oracle_fit"] == pytest.approx(0.0, abs=ARCCOS_FLOOR)
     assert r["bound_holds"] is True
     assert r["sin_theta_vs_planted"] > 0.0
 
@@ -178,5 +195,7 @@ def test_sin_theta_is_zero_for_identical_subspaces_and_one_for_orthogonal():
     S = t15.covariance_from_psd(t15.psd_vector(t15.TRUE_EXPONENT, t15.KNEE_BINS))
     Sinv = np.linalg.inv(S)
     U = t15.frozen_signal_basis()
-    assert t15.sin_theta(U, U, Sinv) == pytest.approx(0.0, abs=1e-8)
-    assert t15.sin_theta(U, 2.5 * U, Sinv) == pytest.approx(0.0, abs=1e-8)
+    # See ARCCOS_FLOOR above: sqrt(1 - cos^2) cannot resolve coincidence below
+    # sqrt(2*eps) ~ 2.1e-8, so 1e-8 was below the formula's floor.
+    assert t15.sin_theta(U, U, Sinv) == pytest.approx(0.0, abs=ARCCOS_FLOOR)
+    assert t15.sin_theta(U, 2.5 * U, Sinv) == pytest.approx(0.0, abs=ARCCOS_FLOOR)

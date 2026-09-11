@@ -1,0 +1,192 @@
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+.......s................................................................ [ 67%]
+...............................F.Fssssss................................ [ 84%]
+..................................................................       [100%]
+=================================== FAILURES ===================================
+_____________ test_shared_fir_statistic_is_identical_across_paths ______________
+
+    def test_shared_fir_statistic_is_identical_across_paths():
+        sample_rate = 256.0
+        length = 1024
+        template, _ = build_waveform(
+            length,
+            sample_rate,
+            {
+                "type": "sine_gaussian",
+                "central_frequency_hz": 40.0,
+                "quality_factor": 8.0,
+            },
+        )
+        _, psd = make_powerlaw_psd(
+            length,
+            sample_rate,
+            kind="pink",
+            level=1e-3,
+        )
+        traces = generate_colored_noise(
+            np.random.default_rng(5),
+            psd,
+            length,
+            sample_rate,
+            24,
+        )
+    
+>       result = compare_filter_statistics(
+            traces,
+            template,
+            psd,
+            sample_rate,
+            fduration_seconds=0.5,
+            edge_trim_seconds=0.25,
+            highpass_hz=10.0,
+            detrend="constant",
+            floor_fraction=1e-6,
+        )
+
+tests/test_gwosc_diagnostics.py:107: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/noise_geometry/gwosc/diagnostics.py:389: in compare_filter_statistics
+    prepared = _prepare_filter_statistics(
+src/noise_geometry/gwosc/diagnostics.py:236: in _prepare_filter_statistics
+    fir = design_gwpy_whitening_fir(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+psd = array([1.00000000e-03, 1.00000000e-03, 5.00000000e-04, 3.33333333e-04,
+       2.50000000e-04, 2.00000000e-04, 1.666666...458e-06, 1.97238659e-06,
+       1.96850394e-06, 1.96463654e-06, 1.96078431e-06, 1.95694716e-06,
+       1.95312500e-06])
+sampling_frequency = 256.0, trace_length = 1024, fduration_seconds = 0.5
+highpass_hz = 10.0, floor_fraction = 1e-06, window = 'hann'
+
+    def design_gwpy_whitening_fir(
+        psd: np.ndarray,
+        sampling_frequency: float,
+        trace_length: int,
+        *,
+        fduration_seconds: float,
+        highpass_hz: float | None,
+        floor_fraction: float,
+        window: str = "hann",
+    ) -> np.ndarray:
+        """Design the exact FIR used by GWpy for a supplied trace-grid PSD."""
+>       from gwpy.signal.filter_design import fir_from_transfer
+E       ModuleNotFoundError: No module named 'gwpy'
+
+src/noise_geometry/gwosc/diagnostics.py:82: ModuleNotFoundError
+_______ test_diagnostic_experiment_entry_points_use_cached_real_windows ________
+
+tmp_path = PosixPath('/tmp/pytest-of-dwong/pytest-0/test_diagnostic_experiment_ent0')
+
+    def test_diagnostic_experiment_entry_points_use_cached_real_windows(tmp_path):
+        _write_cached_fixture(tmp_path)
+        common = {
+            "event": "GWTEST",
+            "detectors": ["H1"],
+            "analysis_duration_seconds": 2.0,
+            "analysis_highpass_hz": 10.0,
+            "waveform": {
+                "type": "sine_gaussian",
+                "central_frequency_hz": 30.0,
+                "quality_factor": 6.0,
+                "peak_time_seconds": 1.0,
+                "normalization": "peak",
+            },
+            "psd_floor_fraction": 1e-6,
+            "psd_estimator": {
+                "window": "hann",
+                "average": "median",
+                "detrend": "constant",
+            },
+            "psd_calibration_fraction": 0.75,
+            "offsource_split_seed": 1,
+            "minimum_psd_calibration_windows": 24,
+            "minimum_evaluation_windows": 12,
+            "data_quality": {"required": True},
+        }
+>       filter_result = run_filter_statistic_equivalence(
+            {
+                **common,
+                "fir_sweep": {
+                    "durations_seconds": [0.25, 0.5],
+                    "edge_trims_seconds": [0.125, 0.25],
+                    "window": "hann",
+                    "detrend": "constant",
+                    "primary_duration_seconds": 0.5,
+                    "primary_edge_trim_seconds": 0.25,
+                },
+                "synthetic_control": {
+                    "sample_rate_hz": 128.0,
+                    "duration_seconds": 2.0,
+                    "n_evaluation_traces": 16,
+                    "noise_kind": "white",
+                    "noise_level": 1e-3,
+                    "seed": 3,
+                },
+                "acceptance": {
+                    "max_abs_identity_difference": 1e-10,
+                    "max_identity_relative_l2": 1e-10,
+                },
+            },
+            tmp_path,
+        )
+
+tests/test_gwosc_diagnostics.py:218: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/noise_geometry/gwosc/diagnostics.py:522: in run_filter_statistic_equivalence
+    synthetic_results = _filter_sweep(
+src/noise_geometry/gwosc/diagnostics.py:459: in _filter_sweep
+    prepared = _prepare_filter_statistics(
+src/noise_geometry/gwosc/diagnostics.py:236: in _prepare_filter_statistics
+    fir = design_gwpy_whitening_fir(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+psd = array([0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+       0.001, 0.001, 0.001, 0.001, 0.001, 0.001,...0.001, 0.001, 0.001,
+       0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001,
+       0.001, 0.001, 0.001])
+sampling_frequency = 128.0, trace_length = 256, fduration_seconds = 0.25
+highpass_hz = 10.0, floor_fraction = 1e-06, window = 'hann'
+
+    def design_gwpy_whitening_fir(
+        psd: np.ndarray,
+        sampling_frequency: float,
+        trace_length: int,
+        *,
+        fduration_seconds: float,
+        highpass_hz: float | None,
+        floor_fraction: float,
+        window: str = "hann",
+    ) -> np.ndarray:
+        """Design the exact FIR used by GWpy for a supplied trace-grid PSD."""
+>       from gwpy.signal.filter_design import fir_from_transfer
+E       ModuleNotFoundError: No module named 'gwpy'
+
+src/noise_geometry/gwosc/diagnostics.py:82: ModuleNotFoundError
+=============================== warnings summary ===============================
+experiments/synthetic/nfpa_confirmatory/tests/test_correctness.py::test_archived_degenerate_case_reproduced
+  /ceph/dwong/noise-weighted-subspace-reconstruction/src/NFPA/nfpa_demo.py:65: RuntimeWarning: divide by zero encountered in divide
+    _cf_raw  = np.where(white_f > 1e-10, 1.0/white_f, 0.0)
+
+noise_module/noise_module/tests/test_noise_generator.py::test_noise_generator_build_psd_and_metadata_are_consistent
+  /ceph/dwong/noise-weighted-subspace-reconstruction/noise_module/noise_module/tests/test_noise_generator.py:31: DeprecationWarning: build_psd() is deprecated because it returns rFFT-bin power, not a PSD density; use build_psd_density() or build_rfft_power().
+    freqs, psd, psd_meta = generator.build_psd(2048, return_metadata=True)
+
+noise_module/noise_module/tests/test_qp_simulator.py::test_build_psd_alias_returns_rfft_power_not_density
+  /ceph/dwong/noise-weighted-subspace-reconstruction/noise_module/noise_module/tests/test_qp_simulator.py:127: DeprecationWarning: build_psd() is deprecated because it returns rFFT-bin power, not a PSD density; use build_psd_density() or build_rfft_power().
+    freqs_power, rfft_power = generator.build_psd(128)
+
+src/tidmad/tests/test_train_loop.py::test_checkpoint_round_trips_exactly
+  /ceph/dwong/noise-weighted-subspace-reconstruction/src/tidmad/tests/test_train_loop.py:63: UserWarning: Detected call of `lr_scheduler.step()` before `optimizer.step()`. In PyTorch 1.1.0 and later, you should call them in the opposite order: `optimizer.step()` before `lr_scheduler.step()`.  Failure to do this will result in PyTorch skipping the first value of the learning rate schedule. See more details at https://pytorch.org/docs/stable/optim.html#how-to-adjust-learning-rate
+    s.step()
+
+tests/test_cresst_validation.py::test_amplitude_error_summary_bias_and_rmse
+  /ceph/dwong/noise-weighted-subspace-reconstruction/.venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py:3023: RuntimeWarning: invalid value encountered in divide
+    c /= stddev[:, None]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_gwosc_diagnostics.py::test_shared_fir_statistic_is_identical_across_paths
+FAILED tests/test_gwosc_diagnostics.py::test_diagnostic_experiment_entry_points_use_cached_real_windows
+2 failed, 417 passed, 7 skipped, 5 warnings in 1261.40s (0:21:01)

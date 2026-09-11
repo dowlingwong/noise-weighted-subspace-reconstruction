@@ -401,9 +401,27 @@ def test_hierarchical_bootstrap_carries_within_file_uncertainty():
 
 def test_hierarchical_bootstrap_is_seed_deterministic():
     d = [np.linspace(-1, 1, 100) for _ in range(4)]
-    x = t22.hierarchical_file_bootstrap(d, replicates=500, seed=5)
-    y = t22.hierarchical_file_bootstrap(d, replicates=500, seed=5)
+    kw = dict(replicates=500, seed=5, point_estimates=[0.1, 0.2, 0.3, 0.4])
+    x = t22.hierarchical_file_bootstrap(d, **kw)
+    y = t22.hierarchical_file_bootstrap(d, **kw)
     assert x == y
+
+
+def test_hierarchical_bootstrap_reports_the_observed_estimand_not_the_bootstrap_mean():
+    """The two point summaries are different quantities and must not be conflated."""
+    rng = np.random.default_rng(21)
+    # Each file's draw array is deliberately offset from its observed value.
+    draws = [rng.normal(0.5, 0.01, 400), rng.normal(0.7, 0.01, 400)]
+    observed = [0.10, 0.20]
+    out = t22.hierarchical_file_bootstrap(draws, replicates=400, seed=2,
+                                          point_estimates=observed)
+    assert np.isclose(out["equal_file_mean_of_point_estimates"], 0.15)
+    assert np.isclose(out["equal_file_mean_of_bootstrap_means"], 0.6, atol=0.01)
+    assert out["equal_file_mean_of_point_estimates"] != out["equal_file_mean_of_bootstrap_means"]
+    # Without point estimates the estimand field is explicitly NaN, never a
+    # silently substituted bootstrap quantity.
+    bare = t22.hierarchical_file_bootstrap(draws, replicates=50, seed=2)
+    assert np.isnan(bare["equal_file_mean_of_point_estimates"])
 
 
 def test_empty_combination_is_reported_not_crashed():

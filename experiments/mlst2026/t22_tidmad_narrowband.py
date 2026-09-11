@@ -386,20 +386,27 @@ def choose_band(dev: dict, admiss: dict, boot: dict, P: Protocol, *, bands) -> d
 
 # --- cross-file inference -----------------------------------------------------
 def hierarchical_file_bootstrap(draws_by_file: list[np.ndarray], *, replicates: int,
-                                seed: int) -> dict:
+                                seed: int, point_estimates=None) -> dict:
     """Two-stage percentile bootstrap of the equal-file mean.
 
     Each replicate resamples files with replacement and, within each drawn file,
     draws one value from that file's joint-bootstrap replicate array, so
     within-file calibration and block uncertainty enters the file-level interval.
+
+    Two point summaries are reported and they are different quantities:
+    ``equal_file_mean_of_point_estimates`` is the equal-file mean of the
+    **observed** per-file contrasts and is the estimand; it must be supplied in
+    ``point_estimates``.  ``equal_file_mean_of_bootstrap_means`` is the
+    equal-file mean of each file's bootstrap mean, which differs from it by the
+    bootstrap's own (small) bias and is reported as a diagnostic.
     """
     n = len(draws_by_file)
     if n == 0:
         return {"n_files": 0, "note": "no file entered the combined estimate"}
     rng = np.random.default_rng(seed)
     point = float(np.mean([float(np.mean(d)) for d in draws_by_file]))
-    obs = float(np.mean([float(d[0]) if d.size == 1 else float(np.mean(d))
-                         for d in draws_by_file]))
+    obs = (float(np.mean(np.asarray(point_estimates, dtype=float)))
+           if point_estimates is not None else float("nan"))
     means = np.empty(replicates)
     for j in range(replicates):
         idx = rng.integers(0, n, size=n)
@@ -437,7 +444,8 @@ def combine_stage(per_file: dict, P: Protocol, dependence_verdict: str) -> dict:
         key = f"{a}|{b}"
         draws = [np.asarray(r["_draws"][key]) for r in entering]
         primary = hierarchical_file_bootstrap(
-            draws, replicates=P.file_replicates, seed=P.file_seed + stable_offset(key))
+            draws, replicates=P.file_replicates, seed=P.file_seed + stable_offset(key),
+            point_estimates=[r["contrasts"][key]["mean_delta_squared"] for r in entering])
         rows = [{"mean_delta_squared": r["contrasts"][key]["mean_delta_squared"],
                  "bootstrap_variance": r["contrasts"][key]["bootstrap_sd"] ** 2}
                 for r in entering]
@@ -714,7 +722,10 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--stage", required=True,
-                    choices=["characterize", "development", "freeze", "validation", "final-test"])
+                    choices=["characterize", "development", "freeze", "validation",
+                             "final-test", "recombine"])
+    ap.add_argument("--stage-output", help="recombine: the stage JSON to re-summarise")
+    ap.add_argument("--draws", help="recombine: the matching *_draws.npz")
     ap.add_argument("--protocol", required=True, help="stage-0 protocol JSON")
     ap.add_argument("--data-root", default="/ceph/dwong/paper1_dataset")
     ap.add_argument("--out", required=True)
@@ -799,6 +810,33 @@ def main(argv=None) -> int:
         payload["frozen"]["input_hashes"] = {
             r["role"] + ":" + Path(r["path"]).name: r.get("sha256")
             for r in rec.inputs if r.get("sha256")}
+
+    elif args.stage == "recombine":
+        # Deterministic post-processing of an archived hold-out stage: the
+        # per-file results and their bootstrap draw arrays are read back and the
+        # combined block is recomputed.  No data file is opened and no estimator
+        # is fitted, so this is not a second evaluation of the hold-out; the
+        # original stage output is left untouched and both versions are kept.
+        src = json.loads(Path(args.stage_output).read_text())
+        rec.add_input("stage_output", Path(args.stage_output))
+        rec.add_input("draws", Path(args.draws))
+        fz = json.loads(Path(args.freeze_file).read_text())["frozen"]
+        rec.add_input("freeze", Path(args.freeze_file))
+        label = src["stage"]
+        arrays = np.load(args.draws)
+        per = src[label]["per_file"]
+        for name, r in per.items():
+            r["_draws"] = {f"{a}|{b}": np.asarray(arrays[f"{name}|{a}|{b}"])
+                           for (a, b) in P.contrasts if f"{name}|{a}|{b}" in arrays}
+        summary = combine_stage(per, P, fz.get("dependence_verdict", "inconclusive"))
+        for r in per.values():
+            r.pop("_draws", None)
+        payload[label] = {"per_file": per,
+                          "files_evaluated": src[label]["files_evaluated"],
+                          "fit_count": src[label]["fit_count"],
+                          "recombined_from": str(Path(args.stage_output).name),
+                          "fits_performed": 0, **summary}
+        payload["stage"] = label
 
     elif args.stage in ("validation", "final-test"):
         if not args.freeze_file or not Path(args.freeze_file).exists():

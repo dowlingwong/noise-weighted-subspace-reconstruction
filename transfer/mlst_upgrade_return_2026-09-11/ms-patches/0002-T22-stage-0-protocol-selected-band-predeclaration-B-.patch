@@ -1,0 +1,2503 @@
+From 1d56c4db953a0025921ab2454b3731095a381785 Mon Sep 17 00:00:00 2001
+From: dwong <dowling.wong@kit.edu>
+Date: Fri, 11 Sep 2026 18:23:36 +0200
+Subject: [PATCH 2/7] T22: stage-0 protocol, selected-band predeclaration
+ (B=9), amendments A1-A4
+
+Stage-0 protocol (plan/T22_STAGE0_PROTOCOL_2026-09-11.md + its JSON, the single
+configuration source the runner reads) resolves audit items (a)-(g) and prompt
+items 1-7 before any T22 code was written.
+
+Selected-band freeze: B = 9 by the declared smallest-within-one-bootstrap-sd
+rule over four eligible development stretches; b_eval = 32, b_cal = 8;
+dependence verdict INCONCLUSIVE, which by amendment A3 withholds all three
+benefit verdicts.  Validation 0012/0013/0014, final test 0015-0019 (0016 chirped
+in the new time region, excluded from combined estimates, leaving four eligible).
+Development spent 176 of the 250 fit cap.
+
+Amendments, all recorded before the affected outcomes:
+A1 development set 3 -> 6 stretches (only one of the three original ones is
+   eligible-coupled at w=65536); nominal fits 184 -> 240, cap unchanged.
+A2 evaluation block grid gains 32 (nine complete blocks at 300 windows).
+A3 the dependence withholding rule applies to all three benefit verdicts, and
+   the primary combined interval becomes a two-stage bootstrap carrying
+   within-file uncertainty.
+A4 the second-line admissibility test is restated as a local-maximum test beyond
+   a one-bin guard.  The first form compared observed band power against the
+   idealised boxcar Dirichlet skirt and rejected every band of width >= 3 on
+   three of four development stretches; the measured profiles decay
+   monotonically outward on both sides -- leakage, not a second line -- but sit
+   ~4x above the idealisation.  Development was re-scored once with identical
+   seeds; all contrasts reproduce exactly (0 differences).
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01U6mbPSodUAc4RGoW72AUg7
+---
+ ARXIV_CHECKLIST.md                            |   8 +-
+ RPS_WORKSHOP_PAPER_MOVED.md                   |   2 +-
+ SUBMISSION.md                                 |  17 +-
+ archive/README.md                             |   4 +-
+ .../iopart.cls.broken-download                |   0
+ main_mlst.tex                                 |  79 ++++
+ mlst/01_intro.tex                             | 144 +++++++
+ mlst/02_model.tex                             | 195 +++++++++
+ mlst/03_theory.tex                            | 228 +++++++++++
+ mlst/04_estimators.tex                        | 112 ++++++
+ mlst/05_controlled.tex                        | 248 ++++++++++++
+ mlst/06_instruments.tex                       | 199 ++++++++++
+ mlst/07_discussion.tex                        | 187 +++++++++
+ plan/T22_STAGE0_PROTOCOL_2026-09-11.md        | 309 +++++++++++++++
+ plan/mlst_protocol_2026-09-11-t22-stage0.json | 373 ++++++++++++++++++
+ reviews/2026-09-11-PREDECLARED_T22.md         | 195 +++++++++
+ 16 files changed, 2288 insertions(+), 12 deletions(-)
+ rename iopart.cls => archive/iopart.cls.broken-download (100%)
+ create mode 100644 main_mlst.tex
+ create mode 100644 mlst/01_intro.tex
+ create mode 100644 mlst/02_model.tex
+ create mode 100644 mlst/03_theory.tex
+ create mode 100644 mlst/04_estimators.tex
+ create mode 100644 mlst/05_controlled.tex
+ create mode 100644 mlst/06_instruments.tex
+ create mode 100644 mlst/07_discussion.tex
+ create mode 100644 plan/T22_STAGE0_PROTOCOL_2026-09-11.md
+ create mode 100644 plan/mlst_protocol_2026-09-11-t22-stage0.json
+ create mode 100644 reviews/2026-09-11-PREDECLARED_T22.md
+
+diff --git a/ARXIV_CHECKLIST.md b/ARXIV_CHECKLIST.md
+index e65f64b..d72edf0 100644
+--- a/ARXIV_CHECKLIST.md
++++ b/ARXIV_CHECKLIST.md
+@@ -22,10 +22,10 @@
+ | Author metadata | ⚠️ **author action** (not verifiable by an agent; unchanged) | Renders as: Dowling Wong, Department of Physics, Karlsruhe Institute of Technology, `dowling.wong@kit.edu`. Nothing further Claude can verify — confirm this is how you want it to appear, then mark ✅. Ten-minute item; the only one gating posting. |
+ | Dataset citation form | ✅ (verified 2026-09-08) | CRESST: description document + EPJ Plus 138, 100 (2023), as requested in the description document; data at the ORIGINS DMDC. TIDMAD: arXiv:2406.04378 (NeurIPS 2025 spotlight), CC BY 4.0, author list corrected. GWOSC: O1 bulk release (LOSC 4 kHz V1 files) + Abbott et al. SoftwareX 13 (2021) 100658 + acknowledgement sentence, CC BY 4.0. |
+ | Abstract length | ✅ | 199 words (arXiv), 191 words (`00_abstract_mlst.tex`), both ≤ 200 (rewritten and recounted 2026-09-11). |
+-| Figure count | ✅ | 2026-09-11: eight main-text figures (nine in the private preview) — the four below plus `fig_cov_anatomy`, `fig_structural_prior_crossover`, `fig_excitation_detectability`, `fig_tidmad_perfile` from `figures_src/make_part2_figures.py` (registered archives under `transfer_paper/data/paper1/mlst_2026-09-11/`; the TIDMAD per-file values are transcribed from the phase report, see that directory's README). Previously: four main-text figures (five in the private preview), all in one house style: `likelihood_geometry_hierarchy` (new, TikZ — OF/EMPCA/tied-AE as one projection), `synthetic_validation_overview`, `cresst_validation`, `tidmad_metric_reversal`. Regenerable via `figures_src/make_figures.py`; every value read from an archived CSV/JSON, nothing hard-coded. |
+-| Evidence bundle verifies | ✅ | 2026-09-08: `transfer_paper/scripts/verify_bundle.py --require-complete --compare <experiment repo>` passes in both repositories (325 / 322 entries, 9 retired logs recorded under `excluded_unavailable`, every file under `data/`, `figures/`, `tables/` listed, all shared scientific files byte-identical except the two regenerated overview figures, which each verify against their own manifest). |
+-| Quantitative results re-verified | ✅ | 2026-09-06: every printed number in §9 (S1–S4, S6–S9 gate values; all CRESST, GWOSC and TIDMAD values in the tables and text) was traced by a rounding-tolerant search to a file in `transfer_paper/data` (`reviews/2026-09-06-paper-review.md`, "Verified clean"). S5 provenance closed 2026-09-03 in the experiment repo (`results/paper1/P1-E5/PROVENANCE_REPORT.md`); the 30-seed file now sits in this bundle at `data/synthetic/S5_confirmatory/`. |
+-| Every quantitative claim traces to a checksummed record | ✅ *(bundle)* | 2026-09-08: the September runs (P1-E0/E2/E4b/E6/E9/E11/E12) and the R/PS summaries are registered; the gated block's numbers were re-verified against them; `generated/SOURCE_MAP.md` maps every generated table cell to its file and field. Previous note: | 2026-09-06: the S5 30-seed JSON/CSV and its provenance report were copied into `transfer_paper/data/synthetic/S5_confirmatory/` and added to `BUNDLE_MANIFEST.json` (283 entries; 274 present files verify, the 9 phantom `.log` entries of OPEN_ISSUES #1b remain). The removed §Code-and-data sentence may be restored once #1b is closed. |
++| Figure count | ✅ | 2026-09-11: eight main-text figures (nine in the private preview) — the four below plus `fig_cov_anatomy`, `fig_structural_prior_crossover`, `fig_excitation_detectability`, `fig_tidmad_perfile` from `figures_src/make_part2_figures.py` (registered archives under `evidence/data/paper1/mlst_2026-09-11/`; the TIDMAD per-file values are now exported at full precision from the T10-T12 archive by `scripts/export_tidmad_heldout.py`, see that directory's README). Previously: four main-text figures (five in the private preview), all in one house style: `likelihood_geometry_hierarchy` (new, TikZ — OF/EMPCA/tied-AE as one projection), `synthetic_validation_overview`, `cresst_validation`, `tidmad_metric_reversal`. Regenerable via `figures_src/make_figures.py`; every value read from an archived CSV/JSON, nothing hard-coded. |
++| Evidence bundle verifies | ✅ | 2026-09-08: `transfer_paper/scripts/verify_bundle.py --require-complete --compare <experiment repo>` (the migrated equivalent is `scripts/verify_evidence.py --require-complete --compare <EXP>/transfer_paper`) passes in both repositories (325 / 322 entries, 9 retired logs recorded under `excluded_unavailable`, every file under `data/`, `figures/`, `tables/` listed, all shared scientific files byte-identical except the two regenerated overview figures, which each verify against their own manifest). |
++| Quantitative results re-verified | ✅ | 2026-09-06: every printed number in §9 (S1–S4, S6–S9 gate values; all CRESST, GWOSC and TIDMAD values in the tables and text) was traced by a rounding-tolerant search to a file in what is now `evidence/data` (`reviews/2026-09-06-paper-review.md`, "Verified clean"). S5 provenance closed 2026-09-03 in the experiment repo (`results/paper1/P1-E5/PROVENANCE_REPORT.md`); the 30-seed file now sits at `evidence/data/synthetic/S5_confirmatory/`. |
++| Every quantitative claim traces to a checksummed record | ✅ *(bundle)* | 2026-09-08: the September runs (P1-E0/E2/E4b/E6/E9/E11/E12) and the R/PS summaries are registered; the gated block's numbers were re-verified against them; `generated/SOURCE_MAP.md` maps every generated table cell to its file and field. Previous note: | 2026-09-06: the S5 30-seed JSON/CSV and its provenance report were copied into what is now `evidence/data/synthetic/S5_confirmatory/` and added to `BUNDLE_MANIFEST.json` (283 entries; 274 present files verify, the 9 phantom `.log` entries of OPEN_ISSUES #1b remain). The removed §Code-and-data sentence may be restored once #1b is closed. |
+ 
+ **State 2026-09-08 (second review).** The remaining non-passing row is the author-metadata confirmation. Dataset citation forms were verified on 2026-09-08 against the official records (see the bibliography row). The HOLD above (R/PS decision) still applies and is enforced by `RELEASE_GATE.json` + `scripts/package_arxiv.py`.
+ 
+diff --git a/RPS_WORKSHOP_PAPER_MOVED.md b/RPS_WORKSHOP_PAPER_MOVED.md
+index 578eb0f..7199ada 100644
+--- a/RPS_WORKSHOP_PAPER_MOVED.md
++++ b/RPS_WORKSHOP_PAPER_MOVED.md
+@@ -27,7 +27,7 @@ class of path errors rather than documenting around it.
+ ## What stays here
+ 
+ This repository remains the home of the arXiv v1 extended preprint (Paper 1):
+-`main.tex`, its sections and appendices, and `transfer_paper/`, whose archived
++`main.tex`, its sections and appendices, and `evidence/` (until 11 September 2026 `transfer_paper/`), whose archived
+ GWOSC, CRESST and TIDMAD evidence the workshop paper cites.
+ 
+ The full history of the workshop paper up to the move is in this repository's
+diff --git a/SUBMISSION.md b/SUBMISSION.md
+index b026e3e..d6bafbf 100644
+--- a/SUBMISSION.md
++++ b/SUBMISSION.md
+@@ -10,13 +10,20 @@ The default build is the arXiv v1 extended preprint: main text
+ (`00_abstract`–`08_discussion`, including `06b_related_work`) plus appendices
+ A–I via `appendix.tex` (App.~I is a pointer to the separately built
+ `supplement_configuration.pdf`).  Before building, regenerate the evidence tables and
+-figure from the registered bundle:
++figures from the evidence root:
+ 
+ ```
+-python3 figures_src/make_paper1_evidence.py     # writes generated/
+-python3 transfer_paper/scripts/verify_bundle.py --require-complete
++python3 scripts/verify_evidence.py --require-complete   # evidence/MANIFEST.json
++python3 figures_src/make_paper1_evidence.py             # writes generated/
++python3 figures_src/make_part2_figures.py               # writes generated/figures/
+ ```
+ 
++Evidence lives in `evidence/` (`scripts/evidence_root.py` resolves
++`--evidence-root`, then `$PAPER1_EVIDENCE_ROOT`, then `<repo>/evidence`).  If
++the directory is missing, rebuild it with
++`python3 scripts/materialize_evidence.py --source <EXP>/transfer_paper` or
++`--from-git c826ef6`; see `evidence/PROVENANCE.md`.
++
+ ## Private preview build (gated evidence)
+ 
+ `main.tex` defines `\newif\ifgatedevidence` and sets `\gatedevidencefalse`.
+@@ -38,7 +45,7 @@ decision has actually arrived (`decision_received: true`).  While the gate
+ is held the script refuses to write any package — a LaTeX switch hides
+ output, not source, and `07b_separable_evidence.tex`, the gated rows of the
+ protocol/inventory tables, `generated/figures/fig_separable_evidence.pdf`,
+-`generated/SOURCE_MAP.md` and `transfer_paper/data/rps2026/` must not exist
++`generated/SOURCE_MAP.md` and `evidence/data/rps2026/` must not exist
+ in any distributable archive before the decision.  `--dry-run` lists what
+ would be packaged and flags any file referenced by an included `.tex` that
+ is not on the list.  No pre-release "safe" package is maintained: there is
+@@ -54,7 +61,7 @@ tarball with a SHA-256 manifest, and distributes nothing.  Always excluded:
+ `00_abstract_mlst.tex`, `supplement_configuration.tex` and the full inventory
+ table, every build byproduct, `tmp*.tmp`, `archive/`, `legacy/`, `plan/`,
+ `reviews/`, `herbstschule2026/`, `Claude outputs/`, `output/`,
+-`figures_src/`, `scripts/`, and all of `transfer_paper/` except the four
++`figures_src/`, `scripts/`, and all of `evidence/` except the four
+ referenced figure PDFs.  `main.bbl` is packaged because arXiv needs it.
+ The tracked build byproducts and `tmp1.tmp`–`tmp5.tmp` are untracked in the
+ housekeeping commit of 2026-09-08 (files left on disk).
+diff --git a/archive/README.md b/archive/README.md
+index 03057c9..76aa4e2 100644
+--- a/archive/README.md
++++ b/archive/README.md
+@@ -8,11 +8,11 @@ Swept on 2026-09-02.
+ |---|---|---|
+ | `plan_stale/` | The 2026-06 planning set (revision1, experiment, paper1 scope, Paper 2 draft/checklist, brainstorming) and its README | Retired 2026-07-26; formerly `plan/stale/` |
+ | `plan_executed_2026-07/` | `REVISION_PLAN_2026-07-26.md`, `CORRECTION_PLAN_2026-07-26_AUDIT.md` | Executed in the 2026-07-28 revision (see `CHANGELOG.md`) |
+-| `figures/` | `figure_placement.md` | June figure map for the pre-restructure notebook layout; superseded by `transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md` |
++| `figures/` | `figure_placement.md` | June figure map for the pre-restructure notebook layout; superseded by `evidence/MANUSCRIPT_EVIDENCE_MAP.md` |
+ | `sources/` | ML4PS vs R/PS venue research and career comparison (2026-08-07); `rps_paper_audit_2026-08-19.md` (moved here 2026-09-11 from the top-level `sources/`) | Decision taken: R/PS 2026, submitted 2026-08-29 |
+ 
+ Removed on 2026-09-11 (recoverable from git history at `a8806a5`): the top-level `legacy/` (pre-restructure section drafts), `output/pdf/` (the July 2026 revised PDF; `main.pdf` is the build), and the retired `plan/stale/` prompts. Current documents: `OPEN_ISSUES.md`, `ARXIV_CHECKLIST.md`, `SUBMISSION.md`,
+ `CHANGELOG.md`, `plan/README.md` (index of the live plan, programme and storyline),
+-`transfer_paper/MANUSCRIPT_EVIDENCE_MAP.md`. The `transfer_paper/` bundle is
++`evidence/MANUSCRIPT_EVIDENCE_MAP.md`. The `evidence/` root is
+ checksummed by `BUNDLE_MANIFEST.json` and is deliberately left untouched even
+ where its handoff documents are superseded.
+diff --git a/iopart.cls b/archive/iopart.cls.broken-download
+similarity index 100%
+rename from iopart.cls
+rename to archive/iopart.cls.broken-download
+diff --git a/main_mlst.tex b/main_mlst.tex
+new file mode 100644
+index 0000000..35a24de
+--- /dev/null
++++ b/main_mlst.tex
+@@ -0,0 +1,79 @@
++%% ============================================================
++%% MLST main paper.  Build:  latexmk -pdf main_mlst.tex
++%% The extended arXiv preprint is a separate deliverable (main.tex);
++%% the technical supplement is supplement_mlst.tex.
++%% Build and submission instructions: see SUBMISSION.md
++%% ============================================================
++\documentclass[12pt]{article}
++\usepackage[margin=1.1in]{geometry}
++\linespread{1.15}
++\usepackage{amsmath, amssymb, amsthm}
++\usepackage{graphicx}
++\usepackage{booktabs}
++\usepackage{hyperref}
++\usepackage{xcolor}
++\usepackage{cleveref}
++\usepackage{longtable}
++\usepackage{array}
++\usepackage{multirow}
++\usepackage[section]{placeins}
++\usepackage{tikz}
++\usepackage[numbers,sort&compress]{natbib}
++\usetikzlibrary{positioning,arrows.meta}
++\hypersetup{hypertexnames=false}
++\setlength{\emergencystretch}{3em}
++
++\providecommand{\R}{\mathbb{R}}
++\providecommand{\C}{\mathbb{C}}
++\providecommand{\tr}{\operatorname{tr}}
++\providecommand{\range}{\operatorname{range}}
++\providecommand{\vecop}{\operatorname{vec}}
++\providecommand{\Sn}{\Sigma}
++
++%% Gated evidence switch: identical policy to main.tex.  The controlled
++%% separable-class block is held until the companion workshop review
++%% concludes; the default build never sets this true.
++\newif\ifgatedevidence
++\gatedevidencefalse
++\newcommand{\sepevidenceref}{\ifgatedevidence Section~\ref{subsec:separable-evidence}\else the controlled separable-class evidence, held from this version (Section~\ref{sec:mlst-intro})\fi}
++
++%% Cross-document pointer.  The main paper cites the technical supplement by
++%% section number; \sup{X} renders "Supplement, Section X".
++\newcommand{\sup}[1]{Supplement,~Section~#1}
++
++\newtheorem{theorem}{Theorem}[section]
++\newtheorem{proposition}[theorem]{Proposition}
++\newtheorem{corollary}[theorem]{Corollary}
++\newtheorem{lemma}[theorem]{Lemma}
++\newtheorem{definition}{Definition}[section]
++\newtheorem{remark}{Remark}[section]
++\newtheorem{example}[theorem]{Example}
++
++\title{Noise Covariance Defines Reconstruction Geometry:
++Optimal Filtering, Weighted Subspaces, and Tied Linear Autoencoders}
++\author{Dowling Wong\thanks{Corresponding author.}\\
++  \small Department of Physics, Karlsruhe Institute of Technology\\
++  \small \texttt{dowling.wong@kit.edu}}
++
++\date{Draft of 11 September 2026}
++
++\begin{document}
++
++\maketitle
++
++\input{00_abstract_mlst}
++\input{mlst/01_intro}
++\input{mlst/02_model}
++\input{mlst/03_theory}
++\input{mlst/04_estimators}
++\input{mlst/05_controlled}
++\input{mlst/06_instruments}
++\input{mlst/07_discussion}
++
++\bibliographystyle{unsrt}
++\begingroup
++\footnotesize
++\bibliography{references}
++\endgroup
++
++\end{document}
+diff --git a/mlst/01_intro.tex b/mlst/01_intro.tex
+new file mode 100644
+index 0000000..306aa1d
+--- /dev/null
++++ b/mlst/01_intro.tex
+@@ -0,0 +1,144 @@
++\section{Introduction}
++\label{sec:mlst-intro}
++
++Scientific detectors record a structured response superposed with electronic,
++thermal and environmental fluctuations that are rarely independent and
++identically distributed: they are colored in frequency, heteroskedastic across
++samples, correlated between readout channels, or slowly varying in time.
++Reconstruction must therefore do more than smooth a waveform.  It must avoid
++spending model capacity on directions dominated by detector noise.
++
++Three communities solve closely related problems in different language.
++Signal processing projects a trace onto a known template with inverse-noise
++weighting \citep{turin1960introduction,kay1993fundamentals}; in cryogenic
++calorimetry this is the optimal-filter (OF) amplitude estimator
++\citep{szymkowiak1993signal,fixsen1993pulse,kurinsky2021}.  Statistics
++replaces the fixed template by a learned low-dimensional model --- probabilistic
++PCA under isotropic noise \citep{tipping1999probabilistic}, factor analysis
++under diagonal noise \citep{rubin1982algorithms}, weighted or
++expectation--maximization PCA (EMPCA) under nonuniform weights
++\citep{bailey2012principal,yu2020optimal}.  Machine learning writes the same
++projection as an encoder, a latent code and a decoder; under Euclidean
++mean-squared error a tied linear autoencoder recovers the PCA subspace
++\citep{baldi1989neural,bourlard1988auto,plaut2018principal}.
++
++The common object is the observation-space metric.  For $x=s+n$ with
++$n\sim\mathcal{N}(0,\Sigma)$, the Gaussian negative log-likelihood of a
++candidate reconstruction $\hat s$ contains $(x-\hat s)^{\dagger}\Sigma^{-1}(x-\hat s)$,
++so $\Sigma^{-1}$ decides which residual directions are costly.  Isotropic MSE
++is not a neutral default: it is the Gaussian likelihood only when
++$\Sigma=\sigma^{2}I$, and under colored noise it ranks residuals in a
++different geometry.  A method can reduce raw MSE while worsening the
++covariance-weighted residual that follows from the assumed detector model.
++That is a likelihood misspecification, not a change of units.
++
++\paragraph{The question.}
++What determines which representation a detector model learns, and when does
++covariance weighting --- or a structural restriction of the learned class ---
++improve recovery of a physical signal?  For a calibrated readout the theory
++exposes three determinants: the \emph{metric} the measurement fixes, the
++\emph{class} the architecture fixes, and the \emph{support} the training data
++excite.  This paper establishes the first two, states the third as an exact
++population identity, and then asks what each does at finite sample, where the
++covariance is estimated and the data are limited.  The answers are mostly
++negative in the places where the finite-sample question bites, and the paper
++reports them that way.
++
++\paragraph{Contributions.}
++\begin{enumerate}
++\item[(i)] \emph{One projection, four classes.}  OF, covariance-weighted PCA,
++the tied noise-aware linear autoencoder and its Kronecker-separable
++restriction are one $\Sigma^{-1}$-orthogonal projection whose classes differ
++only in the admissible set, with the tied encoder as an adjoint condition and
++untying stated as a change of parameterization rather than of optimum
++(Section~\ref{sec:mlst-theory}).
++\item[(ii)] \emph{Which risk the residual predicts.}  The weighted residual
++predicts the population whitened clean-signal error of a fixed linear map
++exactly, up to a trace correction; it need not predict Euclidean clean-signal
++error, and a two-dimensional example separates them
++(Section~\ref{subsec:mlst-risks}).
++\item[(iii)] \emph{Covariance error acts locally.}  To first order the learned
++subspace moves by the retained--discarded coupling block of the relative
++covariance error divided by the pairwise eigenvalue gaps
++(Proposition~\ref{prop:mlst-local-displacement}).  A diagonal error in the
++fitted eigenbasis is exactly harmless until it reorders the spectrum; a
++near-singular estimate is a separate regime.  In a controlled study,
++perturbations of equal norm differed by two orders of magnitude in effect,
++as the local statement predicts and the global norm bound cannot
++(Section~\ref{subsec:mlst-cov-anatomy}).
++\item[(iv)] \emph{A structural prior trades approximation for estimation.}
++The finite-sample contrast between the separable and the unrestricted class
++decomposes exactly into a population approximation cost, for which a
++computable lower bound is given, and two estimation excesses
++(Proposition~\ref{prop:mlst-risk-decomposition}).  On fresh seeds the
++restricted learner won at $N=800$ and lost at $N=1600$: both regimes were
++observed and the crossover is bracketed, not located
++(Section~\ref{subsec:mlst-structural-prior}).
++\item[(v)] \emph{Excited is not detectable.}  Scaling the excitation of one
++physical latent in the training draw did not set its recovery.  All five
++registered predictions of that study failed; an exploratory reading in terms
++of the induced population spectrum and the direction's eigenvector loadings is
++recorded for an independent test (Section~\ref{subsec:mlst-excitation}).
++\item[(vi)] \emph{An evidence programme with named boundaries.}  For each
++public dataset we report which of three questions --- reconstruction in the
++assumed geometry, calibration of the assumed covariance, agreement with
++recorded truth in a named metric --- it can and cannot answer, including the
++failures (Table~\ref{tab:mlst-instruments}).
++\end{enumerate}
++
++\paragraph{What is recalled and what is added.}
++The identities organizing (i) are largely classical: that the generalized
++least-squares amplitude is the optimal filter, that covariance-weighted
++low-rank approximation reduces to an SVD of whitened data
++\citep{gabriel1979lower,allen2014gls}, that Euclidean linear autoencoders
++recover PCA \citep{baldi1989neural}, and that alternating per-axis projections
++are multilinear PCA \citep{lu2008mpca}.  Statement (ii) specializes classical
++unbiased-risk accounting \citep{mallows1973cp,stein1981estimation} to a fixed
++linear map in whitened coordinates; (iii) is first-order invariant-subspace
++perturbation theory \citep{stewart1990matrix} applied to the operator the
++estimator actually diagonalizes; (iv) is the ordinary
++approximation--estimation decomposition of a constrained estimator with a
++Ky~Fan bound.  What is added is their statement in one geometry, and what the
++controlled programme found when it tested them.  No statement here is claimed
++as an independently substantiated novelty; \sup{S1} marks each as established,
++specialized, a corollary, a synthesis, or derived here.
++
++\paragraph{Evidence arc.}
++Controlled simulations first test consequences that are known under the
++data-generating model.  Public CRESST-II/III pulse-shape data
++\citep{angloher2025cresstpulshape} then give a positive but narrow
++real-detector test of within-channel reconstruction.  Public H1/L1 data around
++GW150914 \citep{gwoscgw150914} give a negative calibration stress test.
++Neither release records the signal that was present, so both compare residuals
++rather than distance to truth; public TIDMAD data from the ABRACADABRA axion
++search \citep{fry2024tidmad} supply the missing ground truth through an
++injected reference channel, and deliver two positive and two negative results.
++This order separates reconstruction performance from detection sensitivity,
++and implementation identity from statistical calibration.
++
++\ifgatedevidence
++On planted physics we then test whether the wrong metric learns the wrong
++physical structure (Section~\ref{subsec:separable-evidence}).
++\else
++One block of controlled planted-physics evidence for the separable class ---
++whether the wrong metric learns the wrong physical structure, and how much of
++the excited span a finite sample recovers --- is complete and is held from this
++version until the double-blind review of its companion workshop submission
++concludes on 29~September 2026.  Nothing else is held; the September programme
++on the same planted family is reported in full
++(Section~\ref{sec:mlst-controlled}).
++\fi
++
++\paragraph{Scope.}
++The scope is linear and Gaussian.  The exact statements do not extend to
++nonlinear autoencoders, non-Gaussian transients, or a covariance model that is
++wrong for the evaluation data.  CRESST is used only for within-channel
++reconstruction of public held-out pulses, not cross-channel transfer or
++detector sensitivity.  GWOSC is used to test whether two specific PSD models
++calibrate a matched statistic on one public interval, not to estimate GW150914
++significance.  TIDMAD is used at named operating points on named validation
++files; it is not a survey of the release's parameter space.  Detection
++sensitivity is not claimed anywhere.  Full derivations, proofs, implementation
++details, verification grids and per-file diagnostics are in the technical
++supplement, and every number traces to a checksummed record
++(Section~\ref{sec:mlst-availability}).
+diff --git a/mlst/02_model.tex b/mlst/02_model.tex
+new file mode 100644
+index 0000000..609d805
+--- /dev/null
++++ b/mlst/02_model.tex
+@@ -0,0 +1,195 @@
++\section{Observation model and target risks}
++\label{sec:mlst-model}
++
++\subsection{Model, whitening and the common objective}
++\label{subsec:mlst-objective}
++
++Write the measurement as
++\begin{equation}
++    x_i = s_i + n_i,\qquad
++    n_i\sim\mathcal{N}_{\mathbb{C}}(0,\Sigma),\qquad
++    \Sigma\succ0,\qquad i=1,\dots,N,
++    \label{eq:mlst-generative}
++\end{equation}
++with $x_i\in\mathbb{C}^{d}$ a single trace (or a vectorized channel--time
++block) and $s_i$ the structured response.  The complex circular convention is
++used throughout; the real case is identical with $\dagger\to T$.  Let
++$\Sigma=\Sigma^{1/2}\Sigma^{\dagger/2}$ and define the whitening map
++$y=\Sigma^{-1/2}x$, under which the noise becomes isotropic,
++$\Sigma^{-1/2}n\sim\mathcal{N}_{\mathbb{C}}(0,I)$.
++
++Up to constants the Gaussian negative log-likelihood of a reconstruction
++$\hat s$ is
++\begin{equation}
++    \chi^{2}(\hat s)=(x-\hat s)^{\dagger}\Sigma^{-1}(x-\hat s)
++    =\bigl\|\Sigma^{-1/2}(x-\hat s)\bigr\|_{2}^{2},
++    \label{eq:mlst-chi2}
++\end{equation}
++so every method in this paper solves one problem --- minimize
++\eqref{eq:mlst-chi2} --- over a different admissible set $\mathcal{F}$ for
++$\hat s$.  Fixing $\hat s\in\operatorname{span}\{p\}$ for a known template $p$
++gives the optimal filter; letting $\hat s$ range over a learned
++$k$-dimensional subspace gives covariance-weighted (EMPCA) reconstruction;
++parameterizing that subspace by an encoder and decoder gives the tied
++noise-aware linear autoencoder; restricting it to a Kronecker product of a
++channel and a time subspace gives the separable class.  The measurement fixes
++the metric, the architecture fixes the class.
++
++By contrast the isotropic loss $\mathcal{L}_{\mathrm{MSE}}=N^{-1}\sum_i\|x_i-\hat x_i\|_2^{2}$
++coincides with \eqref{eq:mlst-chi2} up to scale exactly when
++$\Sigma=\sigma^{2}I$.  The two losses define different inner products, hence
++different notions of which waveform directions matter: isotropic MSE weights
++every bin equally and is driven by raw variance, which under colored noise is
++typically dominated by noise-rich, low-information directions, while the
++$\Sigma^{-1}$-weighted loss is driven by signal-to-noise structure.  The same
++class, rank, data and optimizer can therefore converge to substantially
++different subspaces.  We call the resulting failure mode \emph{metric
++reversal}: a method can achieve lower raw MSE together with a worse weighted
++residual --- equivalently a worse held-out Gaussian likelihood --- while
++learning a subspace nearly orthogonal, in the whitened metric, to the one
++efficient estimation requires.
++
++\subsection{Which risk the weighted residual predicts}
++\label{subsec:mlst-risks}
++
++The likelihood fixes a residual geometry.  It does not by itself say which
++scientific error a reconstruction chosen in that geometry makes small, so
++every claim below names its target.  For a reconstruction $\hat x=\hat x(x)$
++of $x=s+n$ four risks are in play: the observation residual
++$\mathcal{R}_{\mathrm{obs}}=\mathbb{E}\,(x-\hat x)^{T}\Sigma^{-1}(x-\hat x)$;
++the whitened clean-signal risk
++$\mathcal{R}_{\mathrm{clean},\Sigma}=\mathbb{E}\,(s-\hat x)^{T}\Sigma^{-1}(s-\hat x)$;
++the Euclidean clean-signal risk
++$\mathcal{R}_{\mathrm{clean},I}=\mathbb{E}\,\|s-\hat x\|_{2}^{2}$; and the
++physical-parameter risk
++$\mathcal{R}_{\vartheta}=\mathbb{E}\,\|\hat\vartheta-\vartheta\|^{2}$.
++
++\begin{proposition}[Fixed affine-estimator risk identity]
++\label{prop:mlst-risk-identity}
++Work in real whitened coordinates, $y=\Sigma^{-1/2}x=t+w$.  Let $\hat y=By+b$
++be an affine reconstruction with $(B,b)$ fixed --- fitted on other data, or
++population quantities --- and let the evaluation noise satisfy, conditionally
++on $(B,b)$, $\mathbb{E}[w]=0$, $\mathbb{E}[ww^{T}]=I$ and
++$\mathbb{E}[tw^{T}]=0$.  Then
++\begin{equation}
++    \mathcal{R}_{\mathrm{clean},\Sigma}
++    =\mathcal{R}_{\mathrm{obs}}+2\operatorname{tr}(B)-d .
++    \label{eq:mlst-risk-correction}
++\end{equation}
++Every idempotent $B$ of rank $k$ --- orthogonal or oblique --- has
++$\operatorname{tr}B=k$ and correction $2k-d$; a shrinkage estimator
++$B=\sum_j\beta_ju_ju_j^{T}$ has correction $2\sum_j\beta_j-d$.
++\end{proposition}
++
++The proof is two lines of unbiased-risk accounting
++\citep{mallows1973cp,stein1981estimation} and is in \sup{S2}.  Four
++consequences bound what the rest of the paper may claim.
++\emph{(a) Population and conditional.}  The identity is a population
++statement conditional on the fitted $(B,b)$; its moment conditions must hold
++for the evaluation noise given the training data.  A chronological split makes
++them plausible but does not establish them under dependent noise, and a wrong
++$\Sigma$ violates $\mathbb{E}[ww^{T}]=I$ and biases the correction.
++\emph{(b) Ordering.}  Within any set of fixed estimators of equal trace ---
++in particular all rank-$k$ idempotent maps, so that a raw-PCA projector
++expressed in true whitened coordinates is covered --- ordering by the
++observation residual is ordering by the whitened clean-signal risk.  That is
++the precise sense in which the covariance-weighted subspace is the better
++reconstruction.  On a finite evaluation sample the two orderings can differ,
++so every comparison below carries its own interval.
++\emph{(c) Roles.}  Training minimizes a sample objective; a held-out residual
++estimates the population risk of the fitted map; validation selects among
++fitted maps; a final test compares the selected maps once.  The identity
++connects the second of these to the clean-signal risk and says nothing about
++the first.
++\emph{(d) Silent about other targets.}  Maps of different trace need the
++correction; a nonlinear or data-dependent map is outside the identity; and
++neither the Euclidean clean-signal risk nor a physical-parameter risk is
++implied.  Training on a clean target with isotropic MSE is therefore not an
++assertion that the noise is white --- it is the choice of
++$\mathcal{R}_{\mathrm{clean},I}$ as the prediction risk, a legitimate target
++that the weighted residual need not predict.
++
++\begin{example}[The two clean-signal risks can order oppositely]
++\label{ex:mlst-risk-counterexample}
++Let $d=2$, $k=1$, with independent zero-mean Gaussian signal and noise,
++$\mathbb{E}[ss^{T}]=\operatorname{diag}(100,30)$ and
++$\Sigma=\operatorname{diag}(4,1)$.  Raw PCA retains $e_1$ (observed variances
++$104,31$); weighted PCA retains $e_2$ (whitened observed variances $26,31$).
++With the exact covariance, infinite data and exact optimization,
++$\mathcal{R}_{\mathrm{obs}}$ and $\mathcal{R}_{\mathrm{clean},\Sigma}$ are
++$31$ against $26$ --- both prefer weighted PCA, as
++Proposition~\ref{prop:mlst-risk-identity} requires with $2k-d=0$ --- while
++$\mathcal{R}_{\mathrm{clean},I}$ is $34$ against $101$ and prefers raw PCA,
++because the Euclidean clean error of the projector onto $e_j$ is the signal
++variance it discards plus the noise variance it keeps.  The example separates
++the objective from another legitimate risk: a disagreement between the two
++orderings is not by itself evidence for the likelihood-aligned one.
++\end{example}
++
++\subsection{Three testable predictions}
++\label{subsec:mlst-predictions}
++
++Holding class, rank, data, preprocessing and split fixed and changing only the
++loss geometry gives three predictions, which organize the evidence of
++Sections~\ref{sec:mlst-controlled}--\ref{sec:mlst-instruments}:
++\textbf{(P1)} under white noise, isotropic PCA and EMPCA recover the same
++subspace and agree on all metrics --- an internal control, since if the two
++coincide at $\Sigma\propto I$ and separate under colored noise, the effect is
++attributable to loss geometry rather than to rank, optimization or
++preprocessing;
++\textbf{(P2)} under colored noise the objectives diverge, each winning in the
++metric it optimizes;
++\textbf{(P3)} where a clean signal or injected reference is recorded, the
++reconstruction preferred by the weighted residual also has the lower
++clean-signal error in a named metric.  For the whitened clean-signal risk and
++fixed maps of equal trace, (P3) is the population content of
++Proposition~\ref{prop:mlst-risk-identity}; for the Euclidean risk it is not
++implied (Example~\ref{ex:mlst-risk-counterexample}); for a physical parameter
++scored against a reference --- what the TIDMAD stage measures --- it is an
++empirical hypothesis of this paper.  (P3) is what distinguishes the claim from
++a tautology, because (P2) alone says only that each objective wins in its own
++metric.  (P1) and (P2) are testable on any release; (P3) needs a dataset that
++records the injected signal.
++
++A gain in the weighted residual is not by itself a gain in energy resolution
++or detector sensitivity, which additionally require a frozen
++signal-injection and background protocol; none is claimed here.
++
++\subsection{Pulling the metric back onto a representation}
++\label{subsec:mlst-pullback}
++
++Two further consequences of the same metric are needed to say what the
++controlled evidence measures.  For a forward model $x=g(\vartheta)+n$ with
++physical latents $\vartheta\in\mathbb{R}^{m}$ and Jacobian $J_g$, the Fisher
++information of $\vartheta$ is $I(\vartheta)=J_g^{T}\Sigma^{-1}J_g$: the
++likelihood \emph{pulls the $\Sigma^{-1}$ inner product back} onto latent
++space, and a latent displacement's length is the distance it moves the
++observation in units of what the noise can resolve.  The same construction
++applies to any representation $h$ whose prediction is compared with $x$ under
++$\Sigma$, giving $J_h^{T}\Sigma^{-1}J_h$, degenerate on $\ker J_h$.  A
++Euclidean latent distance is therefore the wrong statistic in the same sense
++that isotropic MSE is --- with the same qualification, that the two coincide
++wherever the pulled-back form is a multiple of the identity, as in whitened
++orthonormal coordinates.  Where $I(\vartheta)$ is singular the latent
++coordinates are not locally identifiable to first order; that is a statement
++about rate, not about injectivity of $g$.
++
++Second, if the training distribution varies only the latent coordinates
++$S$, write $T_S=\operatorname{range}(\Sigma^{-1/2}A_{\cdot S})$ for the
++excited span in whitened coordinates and $R_t$ for the second moment of the
++whitened signal displacement.  The population rank-$k$ objective depends on
++the projector only through $\operatorname{tr}(\Pi R_t)$, so it is
++\emph{exactly} invariant under every rotation fixing $T_S$ pointwise.  With
++$r=\operatorname{rank}R_t$: if $k\ge r$ the minimizers are exactly the
++projectors containing $\operatorname{range}R_t$, and the remaining $k-r$
++dimensions are not determined by the population objective; if $k<r$ they are
++the top-$k$ eigenspaces of $R_t$, contained in $T_S$.  Unexcited directions
++are therefore invisible to the population objective, and a finite sample
++recovers the excited span only above its own sampling-noise floor.  The full
++statement and proof are in \sup{S3}.
++
++The three determinants are now explicit: the measurement fixes the metric
++$\Sigma^{-1}$, the architecture fixes the class $\mathcal{F}$, and the
++training data fix the excited support $S$.  Sections~\ref{sec:mlst-theory}
++and~\ref{sec:mlst-estimators} establish the first two;
++Section~\ref{sec:mlst-controlled} asks what each does at finite sample.
+diff --git a/mlst/03_theory.tex b/mlst/03_theory.tex
+new file mode 100644
+index 0000000..37db5e9
+--- /dev/null
++++ b/mlst/03_theory.tex
+@@ -0,0 +1,228 @@
++\section{Recovery theory: one projection, four classes}
++\label{sec:mlst-theory}
++
++\subsection{The hierarchy}
++\label{subsec:mlst-hierarchy}
++
++Every estimator in this paper minimizes \eqref{eq:mlst-chi2} over a different
++admissible set.  Table~\ref{tab:mlst-hierarchy} is the whole hierarchy;
++Figure~\ref{fig:mlst-hierarchy} draws it as one projection whose faces are
++transposes.  The classes are nested, $\text{OF}\subset\text{NFPA}\subset\text{EMPCA}$,
++with the tied linear autoencoder a \emph{parameterization} of the EMPCA class
++rather than a fifth class.
++
++\begin{table}[!htbp]
++\centering
++\small
++\caption{One $\Sigma^{-1}$-orthogonal projection, four admissible classes.
++$C$ channels, $T$ time samples, $d=CT$.  ``Degenerates to'' names the exact
++finite-sample coincidence, not an asymptotic one.}
++\label{tab:mlst-hierarchy}
++\begin{tabular}{@{}llll@{}}
++\toprule
++class & admissible $\hat s$ & free parameters & degenerates to \\
++\midrule
++optimal filter & $\alpha p$, $p$ known & $\alpha\in\mathbb{C}$ & --- \\
++EMPCA (rank $k$) & $\hat s\in\mathcal{S}$, $\dim\mathcal{S}=k$ & Grassmannian $\mathrm{Gr}(k,d)$ & OF at $k=1$, $p\in\mathcal{S}$ \\
++tied linear AE & as EMPCA, $P^{\dagger}\Sigma^{-1}P=I_k$ & $P\in\mathbb{C}^{d\times k}$ & EMPCA exactly (Thm.~\ref{thm:mlst-bridge}) \\
++NFPA (separable) & $\mathcal{S}=\mathcal{S}_c\otimes\mathcal{S}_t$ & $\mathrm{Gr}(k_c,C)\times\mathrm{Gr}(k_t,T)$ & EMPCA iff optimum separable; OF at $(1,1)$ \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++\begin{figure}[!tp]
++    \centering
++    \includegraphics[width=\textwidth,height=0.60\textheight,keepaspectratio]{evidence/figures/likelihood_geometry_hierarchy.pdf}
++    \caption{The estimators as one $\Sigma^{-1}$-orthogonal projection,
++    differing only in the admissible column space of $P$.  Rank-1 optimal
++    filtering fixes that column space to a known template; EMPCA learns a
++    $k$-dimensional subspace over the full Grassmannian; the tied linear
++    autoencoder writes the same subspace as an encoder and a decoder related
++    by $P^{\dagger}\Sigma^{-1}P=I_k$, so the two faces are transposes.  Block
++    widths and heights encode matrix shapes; cell counts illustrate axis
++    structure and are not literal dimensions.}
++    \label{fig:mlst-hierarchy}
++\end{figure}
++
++\subsection{The bridge to representation learning}
++\label{subsec:mlst-bridge}
++
++\begin{theorem}[Bridge Theorem: noise-aware linear AE $\equiv$ EMPCA]
++\label{thm:mlst-bridge}
++Let $x_1,\dots,x_N\in\mathbb{C}^{d}$ be any observations, $\Sigma\succ0$ any
++Hermitian weight, $1\le k\le d$.  Consider the tied noise-aware loss
++\begin{equation}
++    \mathcal{L}(P)=\frac1N\sum_{i=1}^{N}
++    (x_i-PP^{\dagger}\Sigma^{-1}x_i)^{\dagger}\Sigma^{-1}(x_i-PP^{\dagger}\Sigma^{-1}x_i),
++    \qquad P^{\dagger}\Sigma^{-1}P=I_k,
++    \label{eq:mlst-bridge-loss}
++\end{equation}
++and let $\lambda_1\ge\cdots\ge\lambda_d\ge0$ be the eigenvalues of the whitened
++second moment $\Sigma^{-1/2}\hat R_x\Sigma^{-1/2}$.  Then $P^{*}$ minimizes
++$\mathcal{L}$ if and only if $\Sigma^{-1/2}P^{*}$ spans a top-$k$ invariant
++subspace of that operator --- equivalently, $P^{*}$ spans the top-$k$
++generalized eigenspace of $\hat R_x\Sigma^{-1}v=\lambda v$ --- and
++$\mathcal{L}^{*}=\operatorname{tr}(\Sigma^{-1}\hat R_x)-\sum_{j\le k}\lambda_j$.
++If $\lambda_k>\lambda_{k+1}$ the subspace is unique and equals the rank-$k$
++EMPCA range, up to a unitary rotation within it.  If $\lambda_k=\lambda_{k+1}$
++the minimizers form a family; in particular when $\operatorname{rank}\hat R_x<k$
++every direction of $\Sigma\ker\hat R_x$ --- the null space of
++$\hat R_x\Sigma^{-1}$, \emph{not} of $\hat R_x$ --- is an equally good
++completion.
++\end{theorem}
++
++Whitening turns the constraint into $W^{\dagger}W=I_k$ and the loss into
++$N^{-1}\|\tilde X(I-WW^{\dagger})\|_F^{2}$, so Rayleigh--Ritz gives the result;
++the proof is in \sup{S4}.
++
++\begin{remark}[What the theorem uses, and what it does not]
++\label{rem:mlst-bridge-scope}
++The bridge is a \emph{deterministic identity} between two optimization
++problems: it holds for any data, any $\Sigma\succ0$ and any $N\ge1$, and its
++proof uses no noise model.  The measurement model enters only in motivating
++the weight.  Three distinctions matter for reading the evidence.  The theorem
++characterizes the \emph{global} minimizers, whereas the alternating algorithm
++reaches a stationary point and every $k$-dimensional invariant subspace is
++stationary, so agreement with the global optimum is a property of the
++initialization and the spectrum.  The minimizer is unique only up to the
++latent gauge $P^{*}\mapsto P^{*}Q$, $Q\in\mathcal{U}(k)$; physical quantities
++depend on the reconstruction $P^{*}P^{*\dagger}\Sigma^{-1}x$ and are
++gauge-invariant.  And \emph{untying} the encoder changes neither the optimal
++reconstruction nor the class --- only the parameterization and the landscape
++(\sup{S5}).
++\end{remark}
++
++\subsection{The metric is architecture-neutral}
++\label{subsec:mlst-architecture-neutral}
++
++The weighted loss is not one modeling choice among many.  For quadratic
++residual losses $\mathcal{L}_M(r)=r^{\dagger}Mr$ with $M\succ0$, invariance
++under the isometry group of the measured noise --- the maps preserving
++$\Sigma$ --- is \emph{equivalent} to $M\propto\Sigma^{-1}$ (\sup{S6}).  The
++argument acts on the residual vector alone and mentions no architecture, so a
++reconstruction method is the pair $(\Sigma^{-1},\mathcal{F})$ of a residual
++geometry fixed by the likelihood and an admissible class fixed by the
++architecture.  This is what makes ``metric'' and ``class'' separable
++determinants rather than two names for the same choice.
++
++A related invariance is worth stating because it is often assumed rather than
++checked: the projector $PP^{\dagger}\Sigma^{-1}$ and every reconstruction
++derived from it are invariant under the joint rescaling
++$(\Sigma,x)\mapsto(c^{2}\Sigma,cx)$, so nothing in the hierarchy depends on
++the physical units of the readout; only the relative shape of $\Sigma$ enters.
++
++\subsection{Covariance error acts locally}
++\label{subsec:mlst-local}
++
++In practice $\Sigma$ is estimated.  Write the supplied covariance as
++$\hat\Sigma=\Sigma^{1/2}(I+E)\Sigma^{1/2}$ with $E$ Hermitian and
++$\varepsilon=\|E\|_{\mathrm{op}}<1$; $\varepsilon$ is the natural
++\emph{relative} error, invariant under the rescaling above.  A Davis--Kahan
++argument gives the global bound $\sin\Theta\le6\varepsilon\lambda_1/\Delta_\lambda$
++for $\varepsilon\le1/2$ (\sup{S7}).  That bound is valid but, where it applies,
++usually uninformative: on the planted two-axis configuration of
++Section~\ref{subsec:mlst-structural-prior} it is vacuous at any $\varepsilon$
++of practical size, because $\lambda_1/\Delta_\lambda\approx2.7\times10^{3}$ at
++rank six.  The local statement is the informative one.
++
++\begin{proposition}[First-order displacement under covariance error]
++\label{prop:mlst-local-displacement}
++Let $A$ be the whitened operator whose top-$k$ eigenspace the estimator
++returns, with eigenpairs $(\lambda_i,q_i)$, retained set
++$\mathcal R=\{1,\dots,k\}$ and $\lambda_k>\lambda_{k+1}$; let $E_{ji}=q_j^{T}Eq_i$;
++and let $P,\hat P$ be the projectors, in the whitened coordinates of the true
++$\Sigma$, onto the subspaces fitted with $\Sigma$ and with $\hat\Sigma$.  Then
++$\hat P=P+\delta P+O(\varepsilon^{2})$ with
++\begin{equation}
++    q_j^{T}\,\delta P\,q_i=-\frac{\lambda_j E_{ji}}{\lambda_i-\lambda_j}
++    \qquad(i\in\mathcal R,\ j\notin\mathcal R),
++    \label{eq:mlst-local-displacement}
++\end{equation}
++and every other entry of $\delta P$ zero.  Consequently: \emph{(1)} only the
++coupling block $E_{\mathcal R^{\perp}\mathcal R}$ rotates the subspace to
++first order --- the within-retained and within-discarded blocks deform
++coordinates and rotate nothing; \emph{(2)} each coupling entry is weighted by
++the discarded eigenvalue and divided by its \emph{own} pairwise gap, not by
++the global gap, so
++$\|\delta P\|_F^{2}=2\sum_{i\in\mathcal R,j\notin\mathcal R}\lambda_j^{2}E_{ji}^{2}/(\lambda_i-\lambda_j)^{2}$;
++\emph{(3)} if $E$ commutes with $A$ (entries $e_i>-1$) the statement is exact
++at every order --- the eigenvectors are unchanged, the eigenvalues become
++$\lambda_i/(1+e_i)$, and the fitted subspace equals the oracle one until the
++perturbed spectrum reorders, at which point the retained set is exchanged;
++\emph{(4)} if the estimator diagonalizes a sample operator $\hat A=A+D$, the
++joint first-order displacement from the population subspace is
++$(D_{ji}-\lambda_j E_{ji})/(\lambda_i-\lambda_j)$ --- the training-sample and
++covariance terms add and are separated by the same gaps.  Expanding instead in
++the eigenbasis of $\hat A$, at fixed training data, removes $D$ and gives
++\eqref{eq:mlst-local-displacement} with $(\hat\lambda_i,\hat q_i)$; that is
++the form the controlled test of Section~\ref{subsec:mlst-cov-anatomy} checks.
++The remainder is of order $\varepsilon^{2}\lambda_1(A)/\delta$ with
++$\delta=\min_{i\in\mathcal R,j\notin\mathcal R}|\lambda_i-\lambda_j|$.
++\end{proposition}
++
++The expansion requires $I+E\succ0$.  A near-singular $\hat\Sigma$,
++$\lambda_{\min}(I+E)\to0$, is \emph{outside} it, and outside the global bound
++as well; Section~\ref{subsec:mlst-cov-anatomy} reports that regime
++separately.  A covariance model wrong in \emph{structure} rather than merely
++noisy need not have a large $\varepsilon$ ---
++$\hat\Sigma=\Sigma^{1/2}(I+\delta vv^{T})\Sigma^{1/2}$ is a covariance with
++$\varepsilon=|\delta|$ --- but its $\varepsilon$ does not vanish as the
++calibration sample grows: the estimate converges to the misspecified model.
++That case is what the GWOSC stage probes.  The proof is in \sup{S7}.
++
++\subsection{A structural prior trades approximation for estimation}
++\label{subsec:mlst-structural-prior-theory}
++
++Holding the metric fixed, the fourth class \emph{restricts} the learned
++subspace: for a two-axis measurement $Z\in\mathbb{C}^{C\times T}$ with
++separable noise $\Sigma=\Sigma_c\otimes\Sigma_t$, the noise-factored
++projection autoencoder (NFPA) admits only $\mathcal{S}_c\otimes\mathcal{S}_t$.
++The restricted bridge (\sup{S8}) says it solves the same objective over a
++product Grassmannian, with equality to the unrestricted optimum exactly when
++that optimum is separable; at $(k_c,k_t)=(1,1)$ with a separable template it
++degenerates to the joint-channel optimal filter.  The separable class matters
++because it is the first at which the \emph{architecture}, not the metric,
++decides what can be represented.
++
++Its cost is measurable, and the following identity is what a finite-sample
++class contrast actually measures.
++
++\begin{proposition}[Exact risk decomposition and a lower bound on the restriction cost]
++\label{prop:mlst-risk-decomposition}
++Let $K\succeq0$ be the whitened clean-signal second moment with eigenvalues
++$\mu_1\ge\mu_2\ge\cdots$; for a rank-$k$ projector $P$ ($k=k_ck_t$) let
++$R_K(P)=\operatorname{tr}K-\operatorname{tr}(PK)$; let $P^{\star}_U$ be the
++top-$k$ eigenprojector of $K$ with gap $\Delta_k=\mu_k-\mu_{k+1}$; let
++$\mathcal F$ be the compact set of product projectors and
++$P^{\star}_{\mathcal F}\in\arg\min_{\mathcal F}R_K$.  Then for any fitted
++$\hat P_{\mathcal F}\in\mathcal F$ and any fitted rank-$k$ projector $\hat P_U$,
++\begin{equation}
++    R_K(\hat P_{\mathcal F})-R_K(\hat P_U)
++    =\underbrace{R_K(P^{\star}_{\mathcal F})-R_K(P^{\star}_U)}_{a\ \ge\ 0}
++    +\underbrace{R_K(\hat P_{\mathcal F})-R_K(P^{\star}_{\mathcal F})}_{x_{\mathcal F}\ \ge\ 0}
++    -\underbrace{R_K(\hat P_U)-R_K(P^{\star}_U)}_{x_U\ \ge\ 0},
++    \label{eq:mlst-risk-decomposition}
++\end{equation}
++an identity, and for every $P_F\in\mathcal F$
++\begin{equation}
++    R_K(P_F)-R_K(P^{\star}_U)\ \ge\ \Delta_k\bigl(k-\operatorname{tr}(P_FP^{\star}_U)\bigr),
++    \quad
++    \operatorname{tr}(P_FP^{\star}_U)\le\min\Bigl\{k,\ \textstyle\sum_{i\le k_c}\mu_i(M_c),\ \sum_{i\le k_t}\mu_i(M_t)\Bigr\},
++    \label{eq:mlst-restriction-bound}
++\end{equation}
++where $M_c$ and $M_t$ are the partial traces of $P^{\star}_U$ over the
++temporal and channel factors.  Hence $a$ is bounded below by a quantity
++computed from $K$ alone, and when $\Delta_k>0$ it vanishes if and only if
++$P^{\star}_U\in\mathcal F$.
++\end{proposition}
++
++The bound is what makes the sign of the first term a fact about the generator
++rather than about the fits.  Two cautions govern its use.  An observed signed
++contrast between held-out weighted residuals at matched rank is a
++\emph{finite-sample class contrast}: it mixes $a$ with the two estimation
++excesses, and it can be negative --- the restriction acting as a regularizer
++at finite $N$ --- without the population approximation error being negative,
++which it cannot be.  And agreement of the objective across random restarts
++bounds the optimization term \emph{only for the restarts tried}; it does not
++certify a global optimum.  Section~\ref{subsec:mlst-structural-prior} reports
++both terms under those names.  The proof is in \sup{S9}.
+diff --git a/mlst/04_estimators.tex b/mlst/04_estimators.tex
+new file mode 100644
+index 0000000..1168918
+--- /dev/null
++++ b/mlst/04_estimators.tex
+@@ -0,0 +1,112 @@
++\section{Estimator instances}
++\label{sec:mlst-estimators}
++
++\subsection{Optimal filtering as the rank-1 case}
++\label{subsec:mlst-of}
++
++Fixing $\hat s=\alpha p$ for a known template $p$ turns \eqref{eq:mlst-chi2}
++into a one-parameter generalized least-squares problem with the closed-form
++minimizer and variance
++\begin{equation}
++    \hat\alpha=\frac{p^{\dagger}\Sigma^{-1}x}{p^{\dagger}\Sigma^{-1}p},
++    \qquad
++    \operatorname{Var}(\hat\alpha)=\frac{1}{p^{\dagger}\Sigma^{-1}p},
++    \label{eq:mlst-of}
++\end{equation}
++which attains the Cram\'er--Rao bound for the amplitude under the assumed
++model.  For stationary noise with one-sided PSD $J$, the kernel of
++\eqref{eq:mlst-of} is the familiar $\tilde p^{*}_k/J_k$ matched filter and the
++resolution is $\sigma_E^{-2}=\sum_k|\tilde p_k|^{2}/J_k$.  Time-shift and
++joint-channel OF are the same projection with an enlarged fixed class
++(\sup{S10}); the estimator is unbiased only if the true response lies in
++$\operatorname{span}\{p\}$, and template mismatch biases it by the component
++of the response orthogonal to $p$ in the $\Sigma^{-1}$ metric --- the
++limitation the learned classes remove.
++
++\paragraph{The token-axis principle.}
++For wide-sense stationary noise periodic with the record length, $\Sigma$ is
++circulant and $\Sigma^{-1}=F^{\dagger}\operatorname{diag}(1/J_k)F$: the
++eigenvectors of the precision operator \emph{are} the discrete Fourier modes
++and its eigenvalues are the inverse-PSD weights of the OF kernel.  An encoding
++of the time axis by the leading eigenvectors of $\Sigma^{-1}$, weighted by
++their eigenvalues, is therefore the matched-filter weighting itself.  This is
++the same construction that positional encodings for attention arrive at from
++the other side, where the operator is an \emph{assumed} graph Laplacian
++\citep{bronstein2021geometric,dwivedi2020generalization,vaswani2017attention};
++here it is the \emph{measured} noise precision.  Three qualifications keep the
++statement where it belongs.  The precision weights $1/J_k$ are not the
++whitening scalings $1/\sqrt{J_k}$: the two operators share the eigenbasis, and
++the proposition identifies a basis and its weights, not a preferred encoding.
++Nothing here concerns a learned model --- a learned query--key projection
++changes the geometry attention computes, so no statement about attention
++scores follows from prewhitening inputs.  And on a finite non-periodic window
++the covariance is Toeplitz, asymptotically equivalent to its circulant
++counterpart in normalized Hilbert--Schmidt norm but \emph{not} in operator
++norm \citep{gray2006toeplitz}, so an inverse-covariance-weighted statistic on
++a finite window is not uniformly approximated by its circulant version: the
++exact statements here need the periodic model.
++
++\subsection{Covariance-weighted subspaces}
++\label{subsec:mlst-empca}
++
++Letting $\hat s$ range over a learned rank-$k$ subspace gives
++\begin{equation}
++    \min_{U,\,\{c_i\}}\ \frac1N\sum_i(x_i-Uc_i)^{\dagger}\Sigma^{-1}(x_i-Uc_i),
++    \label{eq:mlst-rankk}
++\end{equation}
++whose solution in whitened coordinates is the top-$k$ SVD subspace of
++$\Sigma^{-1/2}X$ --- a classical reduction \citep{gabriel1979lower,allen2014gls}
++implemented here by the EMPCA alternation \citep{bailey2012principal}.  Two
++population statements follow.  At $k=1$ with a unique leading whitened signal
++eigendirection and nonzero eigengap, weighted PCA recovers the OF direction;
++at finite sample the degeneracy is exact whenever the fitted rank-1 basis
++spans the template, in which case the two estimators coincide identically, not
++merely in expectation.  At $k>1$ containment is \emph{not} automatic: the
++learned subspace need not contain the template, and the OF--EMPCA comparison
++therefore tests the benefit of enlarging the class, while the same-rank
++PCA--EMPCA comparison tests the contribution of the geometry.  We keep the two
++apart throughout, because a gain over a fixed template is not by itself
++evidence that inverse-covariance weighting caused it.
++
++The subspace is determined only up to the gauge $U\mapsto UQ$; latent
++coordinates are not observables, and every quantity reported below is a
++function of the projector or of the reconstruction.  Finite-sample stability
++is governed by the whitened spectral gap through a Davis--Kahan argument, made
++local and quantitative by Proposition~\ref{prop:mlst-local-displacement}.
++Rank selection is not part of the theory: rank is fixed by the protocol in
++every experiment below and is never selected on the evaluation data.
++
++\subsection{Tied and untied autoencoders}
++\label{subsec:mlst-ae}
++
++Writing the same projection as an encoder and a decoder makes the connection
++to representation learning explicit.  With decoder $P$ and encoder
++$P^{\dagger}\Sigma^{-1}$ --- the $\Sigma^{-1}$-adjoint of the decoder, which
++is the tying condition --- the reconstruction is $PP^{\dagger}\Sigma^{-1}x$ and
++Theorem~\ref{thm:mlst-bridge} identifies its optimum with EMPCA's.  Untying
++the encoder leaves the optimal reconstruction and the class unchanged; it
++changes the parameterization and the optimization landscape, and in a
++controlled comparison at fixed budget the untied arm needed more iterations
++without finding a better optimum (\sup{S11}).  The practical consequence for
++loss design is direct: a noise-aware autoencoder trained under
++\eqref{eq:mlst-chi2} is not a heuristic reweighting but the Gaussian
++likelihood of the assumed detector model, and its optimum is a classical
++weighted-PCA subspace.
++
++\subsection{The separable class and its alternation}
++\label{subsec:mlst-nfpa}
++
++For $Z\in\mathbb{C}^{C\times T}$ with $\Sigma=\Sigma_c\otimes\Sigma_t$,
++per-axis whitening $\tilde Z=\Sigma_c^{-1/2}Z\,\Sigma_t^{-\dagger/2}$ turns
++the objective into a Frobenius one, and NFPA restricts the reconstruction to
++$U_cU_c^{\dagger}\tilde Z\,U_tU_t^{\dagger}$ with orthonormal factors.  The
++restricted bridge makes this the same objective over
++$\mathrm{Gr}(k_c,C)\times\mathrm{Gr}(k_t,T)$, solved by alternating per-axis
++eigendecompositions --- multilinear PCA \citep{lu2008mpca} in the whitened
++metric.  The parameter count drops from $k(CT-k)$ to
++$k_c(C-k_c)+k_t(T-k_t)$, which is the source of the estimation saving that
++Proposition~\ref{prop:mlst-risk-decomposition} sets against the approximation
++cost.  The alternation is not convex: agreement across restarts bounds the
++optimization term only for the restarts tried, and every claim below that
++depends on it is labelled \emph{best-found} rather than optimal.  Gauge and
++update details are in \sup{S12}.
+diff --git a/mlst/05_controlled.tex b/mlst/05_controlled.tex
+new file mode 100644
+index 0000000..cedd853
+--- /dev/null
++++ b/mlst/05_controlled.tex
+@@ -0,0 +1,248 @@
++\section{Controlled evidence}
++\label{sec:mlst-controlled}
++
++\subsection{Conventions}
++\label{subsec:mlst-conventions}
++
++Every study below was predeclared, executed once, and is reported with the
++registered predictions that were \emph{not} met.  Rank is fixed by the
++protocol and never selected on evaluation data; splits are chronological or
++seed-paired as stated; intervals are bootstrap unless named otherwise, and a
++95\% interval is reported beside every contrast.  The programme file, the
++protocol JSONs and the per-task fit caps are archived, and every number traces
++to a checksummed record (Section~\ref{sec:mlst-availability}).  The full
++verification grid, per-cell tables and diagnostics are in \sup{S13--S16}.
++
++A suite of nine frozen regression gates (S1--S9) verifies the estimator
++identities rather than the paper's scientific claims: OF normalization against
++the Cram\'er--Rao bound gave $0.994$ $[0.985,1.002]$; an independently trained
++tied linear autoencoder reached the EMPCA objective with mean relative gap
++$1.95\times10^{-16}$, confirming Theorem~\ref{thm:mlst-bridge} numerically;
++and under white noise PCA and EMPCA differed by $1.48\times10^{-6}$ degrees in
++maximum principal angle, which is prediction (P1) and the arccos precision
++floor.  The colored-noise gate S5 is (P2) and (P3) on one generator: over
++30~seeds the paired PCA-minus-EMPCA held-out weighted residual was $+0.550$
++$[0.530,0.571]$ and the held-out negative log-likelihood $+11.67$
++$[11.24,12.11]$, both favouring EMPCA, while \emph{raw MSE preferred the
++opposite reconstruction} ($2330$ against $7413$) and the two subspaces were
++nearly orthogonal in the whitened metric ($86.25^{\circ}$
++$[85.16,87.21]$).  The same run archives the Euclidean clean-signal error,
++which favoured EMPCA in all thirty seeds ($58.2$ against $5110.9$); by
++Example~\ref{ex:mlst-risk-counterexample} that agreement is a property of this
++generator, not a guarantee.
++
++\subsection{Covariance error: what actually moves the subspace}
++\label{subsec:mlst-cov-anatomy}
++
++Two studies on one frozen generator ($d=256$, exponent $-1$ power-law PSD,
++rank-2 signal at SNR~3 and $3/2$, $N=512$, $\lambda_1/\Delta_\lambda=3.74$)
++ask how a wrong covariance moves the learned subspace.
++
++The first (T15, 80~fits) varies the \emph{source} of the error --- calibration
++sample size $m$, or structured misspecification of the PSD exponent and
++correlation length at fixed trace --- and compares the rotation against the
++\emph{paired oracle fit on the same training draw}, because the bound governs
++the effect of handing the estimator a perturbed covariance, not the distance
++to the planted subspace (which the oracle arm itself misses by
++$\sin\Theta=0.32$ from training-sample error alone).  The global bound held on
++all 80~fits, but its hypothesis $\varepsilon\le1/2$ holds only for the oracle
++arm and the two largest calibration sizes, and \emph{where the theorem applies
++it is uninformative}: $6\varepsilon\lambda_1/\Delta_\lambda$ is $8.6$ and
++$4.3$, above the value $1$ that $\sin\Theta$ cannot exceed, and by the fitted
++scaling $\varepsilon\approx0.59\sqrt{d/m}$ an informative value would need
++$m\approx4.5\times10^{4}$ calibration traces at this $d$.  The instructive
++comparison is between two arms of nearly equal $\varepsilon$: the structured
++correlation-length misspecification ($\varepsilon=0.557$) is nearly harmless
++($\sin\Theta=0.012$; amplitude-probe $R^{2}$ $0.921$ against the oracle's
++$0.922$), while an empirical covariance from $m=256=d$ traces
++($\varepsilon=0.575$) is catastrophic ($\sin\Theta=0.94$, $R^{2}=0.11$).
++Recovery is well under way at $m=2d$ ($R^{2}=0.83$) and near complete at
++$m=8d$ ($0.91$).  An upper bound in $\varepsilon$ never implied that
++perturbations of equal $\varepsilon$ act alike; what this shows is that
++$\varepsilon$ is an \emph{incomplete summary}.
++
++The second study (T19, 38~arms, ten seeds, 380~fits) tests the local statement
++that explains why.  Because the fit diagonalizes the \emph{sample} whitened
++operator, the perturbation families were engineered in the sample eigenbasis
++at a fixed training draw, so the training-sample term drops out and the
++displacement isolates the covariance term.  Three regimes appeared, and
++Figure~\ref{fig:mlst-cov-anatomy} collects them.
++\emph{Coupling.}  On the designed coupling, random-symmetric and
++stationary/Toeplitz families at $\varepsilon\le0.2$, the measured Frobenius
++displacement was within a factor of two of the first-order value of
++Proposition~\ref{prop:mlst-local-displacement} on 70~of~70 fits (medians
++$0.98$--$1.02$), with residuals scaling as $\varepsilon^{2.05}$ for a generic
++$E$ and $\varepsilon^{2.9}$ for a pure coupling block, whose second-order term
++vanishes identically.  The registered slope prediction for the coupling family
++is \emph{not} something the theory implies, and it was scored not met.
++\emph{Separation.}  A diagonal $E$ preserving the eigenvalue ordering left the
++subspace unchanged ($\sin\Theta\le4\times10^{-8}$ on 40~of~40 fits up to
++$\varepsilon=0.4$), and an order-reversing one exchanged the retained subspace
++exactly when the \emph{sample} spectrum check flipped (30~of~30; sample
++threshold $0.35$--$0.43$ at $d/N=1/2$, against the population value $0.72$).
++\emph{Conditioning} is a separate regime, outside both the proposition and the
++global bound.  An empirical covariance from $m\le d$ traces has
++$\lambda_{\min}(I+E)<0.05$ on all 20~fits; at $m=d$ the subspace is destroyed
++($\sin\Theta=0.99$), at $m=d/2$ with a uniform eigenvalue floor it is only
++partially lost (median $0.73$), and NLL-selected shrinkage restores
++$\lambda_{\min}$ to $0.21$--$0.35$ while leaving $\sin\Theta$ between $0.21$
++and $0.99$: the regularizer repairs the spectrum floor, not the direction of
++the sampling error.
++
++This is a \emph{conditional} check at fixed training data with engineered
++perturbations, not a test of an independently estimated covariance, and it is
++a local theorem check, not a finite-perturbation guarantee.  A
++finite-perturbation bound of this form remains open.
++
++\begin{figure}[!htbp]
++    \centering
++    \includegraphics[width=\textwidth]{generated/figures/fig_cov_anatomy.pdf}
++    \caption{Covariance-perturbation anatomy (T19; ten seeds per arm,
++    $d=256$, $k=2$, $N=512$; displacement measured against the paired oracle
++    fit on the same training draw).  (a)~Measured Frobenius displacement of
++    the fitted projector against the first-order value of
++    Proposition~\ref{prop:mlst-local-displacement} for perturbations built in
++    the sample eigenbasis: a pure coupling block (C), a full random symmetric
++    $E$ (F), and estimated/misspecified covariances (M); filled markers are
++    the primary band $\varepsilon\le0.2$, the band is a factor of two about
++    the identity.  (b)~Diagonal $E$: ordering-preserving perturbations (P)
++    leave the subspace unchanged at every $\varepsilon$ tested;
++    order-reversing ones (R) exchange it exactly at the sample-spectrum
++    reversal (shaded: per-seed sample thresholds; dashed: the population
++    value).  (c)~Conditioning: subspace error against $\lambda_{\min}(I+E)$
++    for the near-singular empirical covariances (consistent decoder, v2), the
++    shrinkage estimates, and the well-conditioned arms.  Registered inputs and
++    field names: \nolinkurl{generated/SOURCE_MAP_part2.md}.}
++    \label{fig:mlst-cov-anatomy}
++\end{figure}
++
++\subsection{A structural prior at finite sample}
++\label{subsec:mlst-structural-prior}
++
++Proposition~\ref{prop:mlst-risk-decomposition} says what the separable
++restriction costs and buys.  Two studies on a planted two-axis family measure
++it.
++
++T14 mapped the finite-sample class contrast at $C=8$, $T=256$,
++$(k_c,k_t)=(2,3)$ with the oracle covariance, over
++$N\in\{200,\dots,3200\}$ and $\alpha\in\{0,0.4,0.8\}$ (25~cells, 1000~fits).
++The contrast was negative in every cell at SNR~10 --- the restriction helping
++--- with paired intervals excluding zero in fourteen of fifteen, and
++indistinguishable from zero at $\alpha=0.8$, SNR~3.  \emph{No crossover was
++found anywhere on the grid}, so the predeclared confirmation stage was not
++triggered and the original gate --- a transition within the grid --- was not
++met.  The null is not explained by the exploration itself, but the population
++approximation cost at $\alpha>0$ was never established independently of the
++fits, so the follow-up measured it directly.
++
++T20 carried out the population accounting at $T=32$ ($d=256$), same ranks and
++SNR~10, with $K$ estimated from $2\times10^{5}$ clean events per $\alpha$.
++The unrestricted reference is the top-six eigenprojector of $K$; the
++restricted reference is the \emph{best of 51} alternating least-squares
++solutions on $K$, all agreeing to $10^{-13}$ --- restart agreement, not a
++certificate.  The resulting cost $a$ is $-7\times10^{-15}$ at $\alpha=0$,
++where the product family contains the excited signal exactly (the planted
++rank-six class excites only four directions there, because the coefficient map
++ties two entries), and $2.71$ and $2.82$ at $\alpha=0.4$ and $0.8$, about
++$3\%$ of $\operatorname{tr}K$.  The lower bound \eqref{eq:mlst-restriction-bound},
++computed from the gap and the partial traces on the same $K$, gives $0.10$ and
++$0.55$: \emph{the cost is provably positive at both nonzero $\alpha$}, and the
++true optimum lies between the bound and the best-found value.  Both apply to
++the archived Monte-Carlo covariance proxy, not to an exactly known population.
++
++Over $N\in\{50,\dots,1600\}$ (180~paired comparisons) the identity holds by
++construction, $x_U>x_{\mathcal F}$ throughout with fitted constants
++$c_U/c_F$ between 3 and 5, and the \emph{registered $c/N$ form is refuted}:
++the unrestricted excess decays with effective slopes $N^{-0.49}$ and
++$N^{-0.38}$, and the crossover those constants forecast near $N=160$ is not
++there.  On fresh seeds $10$--$19$, chosen after the exploration and evaluated
++once, the contrast is negative at $N=800$ ($-0.39$ $[-0.49,-0.29]$ and $-0.29$
++$[-0.40,-0.18]$) and positive at $N=1600$ ($+0.90$ $[+0.83,+0.96]$ and $+0.87$
++$[+0.80,+0.94]$) at $\alpha=0.4$ and $0.8$.  At $C=8$, $T=32$ and SNR~10 the
++restricted learner therefore wins at $N=800$ and the unrestricted one at
++$N=1600$ for both tested nonseparabilities; at $\alpha=0$, where $a=0$, it is
++negative at every $N$.  An exploratory log-linear interpolation places the
++sign change near $N=960$; that is interpolation, the registered $1/N$
++extrapolation did not predict it, and $N^{\star}$ is \emph{bracketed, not
++located}.  The T14 null at $T=256$ stands as a null: the two configurations
++differ in dimension and in the pulse family, and the whitened spectra at the
++three $\alpha$ were not matched as the protocol asked, so within-$\alpha$
++comparisons across $N$ are the evidence.  Restart selection by training loss
++matched the population-best restart in $50$--$90\%$ of fits, with spreads up
++to $0.18$ --- of the order of the contrast near the sign change --- so the
++optimization term is visible exactly where the classes are closest.
++
++\begin{figure}[!htbp]
++    \centering
++    \includegraphics[width=\textwidth]{generated/figures/fig_structural_prior_crossover.pdf}
++    \caption{Structural prior at finite sample (T20; planted two-axis family,
++    $C=8$, $T=32$, $(k_c,k_t)=(2,3)$, SNR~10, oracle covariance).
++    (a)~Clean-signal risk contrast between the fitted separable and
++    unrestricted subspaces against $N$: exploration seeds $0$--$9$ with
++    seed-paired 95\% intervals, and fresh seeds $10$--$19$ evaluated once
++    (open diamonds).  (b)~The terms of
++    Proposition~\ref{prop:mlst-risk-decomposition}: the estimation excesses
++    $x_U$ (solid) and $x_{\mathcal F}$ (dashed), the best-found approximation
++    cost $a$ (solid horizontal) and its provable lower bound
++    \eqref{eq:mlst-restriction-bound} (dotted).  The contrast changes sign
++    where $x_U-x_{\mathcal F}$ falls through $a$.  Registered inputs:
++    \nolinkurl{generated/SOURCE_MAP_part2.md}.}
++    \label{fig:mlst-structural-prior}
++\end{figure}
++
++\subsection{Excited is not detectable}
++\label{subsec:mlst-excitation}
++
++Section~\ref{subsec:mlst-pullback} covers two cases --- a direction the
++training data excite and one they do not.  T21 scaled the excitation of one
++physical latent continuously between them (planted family at $\alpha=0$,
++$C=8$, $T=256$, oracle covariance, SNR~10, $s\in\{0,0.03,0.1,0.3\}$ with the
++others at~1, plus three controls; 19~cells, ten seeds, 190~closed-form rank-4
++fits) and asked what sets recovery $\|Pu_j\|^{2}/\|u_j\|^{2}$ of the whitened
++Jacobian column $u_j$.
++
++\emph{None of the five registered predictions was met as registered.}
++Recovery is not a function of the excitation ratio alone.  At $s=0$ recovery
++is $0.13$--$0.37$ for three of four directions against a geometric chance of
++$0.002$, because the planted directions are not orthogonal (Gram entries to
++$-0.65$); the $s=0$ probe returning the prior is a constant-target artefact,
++not evidence about the representation.  The weak-regime variance signature
++failed under its registered baseline, the $0.95$ strong-excitation level was
++not reached at $N=800$ and only two directions reached it at $N=3200$, and the
++across-seed recovery variance is \emph{peaked} at the detection edge rather
++than monotone.
++
++An exploratory reading --- recorded for an independent test, post hoc, and
++claimed as nothing more --- is that recovery is set by the spike strengths of
++the population signal covariance relative to $d/N$ and by each direction's
++loadings on the population eigenvectors: the fourth population spike, $0.54$
++above the noise floor, lies below $\sqrt{d/N}$ at both $N$, and the
++isolated-spike overlap combined with those loadings reproduces all eight
++observed full-excitation recoveries to within $0.01$.  The grid lesson is
++recorded too: $s\in\{0.03,0.1\}$ are near-replicas of $s=0$ because the
++induced variance scales as $s^{2}$, so a successor should grid on eigen-spike
++strength, keep the loadings, measure each direction's unique component, use a
++frozen readout and include a genuine all-zero control.
++\emph{Excited and detectable are different properties of a planted direction},
++and no abstention threshold for any downstream diagnostic is established here.
++
++\begin{figure}[!htbp]
++    \centering
++    \includegraphics[width=\textwidth]{generated/figures/fig_excitation_detectability.pdf}
++    \caption{Excitation and detectability (T21; planted family at $\alpha=0$,
++    $C=8$, $T=256$, rank four, oracle covariance, ten seeds per cell).
++    (a)~Seed-mean recovery of each planted direction against the Rayleigh
++    quotient of the training-distribution signal covariance along it, in
++    excess of the noise floor and relative to $\sqrt{d/N}$; recovery is not a
++    function of this scalar.  (b)~\emph{Post hoc, not predeclared}: recovery
++    predicted by the isolated-spike overlap weighted by each direction's
++    squared eigenvector loadings, against the observed seed mean.  Agreement
++    is within $0.015$ on every point; it is a description of these runs, and
++    its test on fresh data is left open.  Registered inputs:
++    \nolinkurl{generated/SOURCE_MAP_part2.md}.}
++    \label{fig:mlst-excitation}
++\end{figure}
++
++\ifgatedevidence
++\input{07b_separable_evidence}
++\fi
+diff --git a/mlst/06_instruments.tex b/mlst/06_instruments.tex
+new file mode 100644
+index 0000000..505b873
+--- /dev/null
++++ b/mlst/06_instruments.tex
+@@ -0,0 +1,199 @@
++\section{Instrument evidence}
++\label{sec:mlst-instruments}
++
++\subsection{Three instruments, three questions}
++\label{subsec:mlst-instrument-table}
++
++No public release answers every question the theory raises, and the three used
++here answer different ones.  Table~\ref{tab:mlst-instruments} states, for each
++release, which of three questions it can and cannot decide: whether the
++reconstruction improves \emph{in the assumed geometry}; whether the
++\emph{assumed covariance is calibrated} on that data; and whether the
++reconstruction agrees with \emph{recorded truth in a named metric}.  Detection
++sensitivity is not among them and is not claimed anywhere in this paper.
++
++\begin{table}[!htbp]
++\centering
++\small
++\caption{What each public release can and cannot answer.  ``--'' marks a
++question the release cannot pose, not a test that failed.  Untested quantities
++are named as such; detection sensitivity is not claimed for any release.}
++\label{tab:mlst-instruments}
++\begin{tabular}{@{}p{0.16\linewidth}p{0.25\linewidth}p{0.25\linewidth}p{0.25\linewidth}@{}}
++\toprule
++& \textbf{Q1.} Fixed-rank weighted risk: does covariance weighting lower the held-out weighted residual at matched rank?
++& \textbf{Q2.} Noise calibration: is the assumed covariance calibrated on this data?
++& \textbf{Q3.} Named physical truth metric: does it agree with recorded truth? \\
++\midrule
++\textbf{CRESST-II/III} pulse shapes &
++\emph{Yes, positive.}  EMPCA lower in all 7 channels; equal-channel mean $21.6\%$, hierarchical 95\% CI $[10.3,38.8]\%$ &
++\emph{Not tested.}  A stationary PSD with shrinkage $0.1$ is assumed, not validated &
++\emph{--}\ No recorded truth: residuals only \\
++\addlinespace
++\textbf{GWOSC} O1 H1/L1 &
++\emph{Not the question asked.}  Used as a calibration stress test &
++\emph{Yes, negative.}  Global and local-64\,s PSD models fail the null-spread gate on both detectors (up to $10.5$); implementation checks pass &
++\emph{--}\ No injected reference \\
++\addlinespace
++\textbf{TIDMAD} validation files &
++\emph{Yes, in direction only.}  Band-EMPCA below band-PCA; at the whole window the margin is small beside the gap to a bin read &
++\emph{Yes, positive, second moments only.}  $\chi^{2}$/dof $1.0031$, score dispersion $1.0142$ in $[0.9,1.1]$; no tails, dependence or coverage &
++\emph{Yes.}  Injected reference channel; scored as squared injected-amplitude error in readout units.  \textbf{Whole window: no useful recovery} (Sec.~\ref{subsec:mlst-tidmad}); narrowband: Sec.~\ref{subsec:mlst-t22} \\
++\bottomrule
++\end{tabular}
++\end{table}
++
++\subsection{CRESST: within-channel reconstruction}
++\label{subsec:mlst-cresst}
++
++The public CRESST-II/III pulse-shape release
++\citep{angloher2025cresstpulshape,angloher2023datacleaning} supplies seven
++run/channel pairs, each treated independently and split chronologically
++(70\% calibration, 30\% evaluation), with pulse and noise streams split
++separately; no evaluation pulse entered a fitted object, and within-stream row
++and trace-hash overlap is zero.  The pooled held-out comparison is 19{,}335
++pulses.  The frozen model is rank-6 EMPCA with a stationary PSD covariance and
++shrinkage $0.1$; the learned models are affine ($\mu+P(x-\mu)$) while
++single-template OF is a line through zero.
++
++\emph{The same-rank contrast is the covariance-weighting evidence.}  Holding
++rank at six, EMPCA had the lower channel-mean weighted residual in \emph{all
++seven} channels, with fractional reduction $1-R_{\mathrm{EMPCA}}/R_{\mathrm{PCA}}$
++from $1.6\%$ to $62.0\%$ and an equal-channel mean of $21.6\%$; the
++hierarchical 95\% interval for that estimand is $[10.3,38.8]\%$
++(channel-fixed $[17.4,27.1]\%$, ratio-of-means sensitivity $[12.1,39.8]\%$,
++block lengths 16--256 moving it by under $0.35$ points), from a
++channel-then-event bootstrap with 10{,}000 replicates.  All seven channel
++effects are individually positive with intervals excluding zero, and nearly all
++the uncertainty is channel-level.  This is a \emph{sensitivity analysis of the
++archive, not an independent replication}: seven channels from two runs are
++seven correlated clusters, one operating point, one rank, one shrinkage.
++
++\emph{The signal-model contrast is capacity, not geometry.}  Rank-6 EMPCA also
++beat single-template OF in every channel, by an equal-channel fractional
++reduction of $96.2\%$, and met the multi-template competitiveness gate
++everywhere.  That contrast is an order of magnitude larger than the same-rank
++one and primarily measures replacing a fixed template with a rank-6 model; it
++is not evidence about covariance weighting, and we keep the two apart for that
++reason.  All five negative controls degraded at the pooled level; the weakest,
++wrong-PSD weighting, has two of seven channel intervals including zero.
++
++The tied-AE row deserves its caveat: at the archived commit the CRESST path
++evaluates the tied autoencoder through its closed form, which delegates to the
++same weighted-PCA routine that fits EMPCA.  Its maximum principal angle of
++$1.91\times10^{-6}$ degrees is a \emph{parameterization-consistency check of
++two code paths}, not an independently optimized model.  The independent
++optimizer check is the synthetic gate S3.
++
++\subsection{GWOSC: a calibration boundary}
++\label{subsec:mlst-gwosc}
++
++Public 4-kHz H1/L1 strain around GW150914
++\citep{gwoscgw150914,abbott2021opendata} was used as a stress test, not an
++event search: one 256-second interval, 62 valid off-source windows per
++detector, a Hann-windowed bias-corrected median-Welch PSD from calibration
++windows, and template-score dispersion on held-out windows over five random and
++five chronological splits, with a null spread near one as the target.
++
++The implementation checks passed and the calibration tests did not.  PSD ratios
++against GWpy \citep{macleod2021gwpy} were one at recorded precision and the
++shared-FIR paths agreed to $\sim10^{-13}$, far below tolerance; yet the global
++PSD failed the aggregate random and chronological gates for both detectors,
++with individual null-spread ratios reaching $10.480$ (H1) and $7.619$ (L1), and
++the predeclared 64-second local model passed its stationary synthetic control
++($1.148$) but failed on real H1 and L1 ($9.424$, $8.827$).  Event scores and
++nominal injections remain archived diagnostics; they are not converted to
++significance, false-alarm probability or sensitivity.
++
++This is a boundary result, not a verdict on the geometry, and it motivates the
++next stage: because GWOSC carries no injected reference, a calibration failure
++there cannot be separated from the question the theory asks.  A
++structurally wrong covariance model, moreover, need not have a large
++$\varepsilon$ and its $\varepsilon$ does not shrink with more calibration data
++(Section~\ref{subsec:mlst-local}).
++
++\subsection{TIDMAD: recovery against recorded truth at the whole window}
++\label{subsec:mlst-tidmad}
++
++The TIDMAD release from the ABRACADABRA axion search \citep{fry2024tidmad}
++records an injected reference channel alongside the SQUID readout at 10~MHz, so
++a reconstruction can be scored against a real injected signal in real detector
++noise.  A redesigned protocol, predeclared and executed once, asked the
++recovery question on untouched data.  Its endpoint is the physical injected
++amplitude in readout units, $a=2q/\sqrt{w}$ with $q$ the unitary-DFT
++coefficient at the injection bin, so window lengths are comparable; its truth
++label transfers the reference coefficient to readout units through a complex
++gain fitted on 64 disjoint transfer-calibration windows per stretch; every
++stretch is characterized (line, drift, coupling, multi-tone) on those
++calibration windows \emph{before any method is fitted}; and the usefulness
++criterion is predeclared --- an estimator is useful only if it beats both the
++zero predictor and the calibration-mean predictor with 95\% intervals excluding
++zero.  Three development files selected $w=65536$ at rank~2, three validation
++files confirmed the direction, and the final test ran once on fourteen files,
++of which eight were eligible-coupled.
++
++\emph{There is no useful recovery at this operating point.}  Over the eleven
++eligible stretches rank-2 PCA and EMPCA are indistinguishable from predicting
++zero (mean amplitude RMSE $0.661$ and $0.655$ against $0.654$) and about
++$2.7\times$ worse than reading the injection bin with no denoising ($0.246$).
++The combined paired contrasts of EMPCA against both usefulness references
++include zero ($+1.6\times10^{-5}$ $[-8.9\times10^{-5},+1.2\times10^{-4}]$ and
++$+4.6\times10^{-4}$ $[-3.8\times10^{-5},+9.6\times10^{-4}]$), while the bin
++read beats EMPCA at $-1.19\times10^{-2}$
++$[-1.31\times10^{-2},-1.08\times10^{-2}]$.  No ``useful'' verdict was issued
++anywhere --- both because the criterion fails on its own terms and because the
++frozen block-dependence assessment was inconclusive at nine evaluation blocks,
++which by the declared rule withholds it.
++
++Three further facts are recorded.  EMPCA does beat PCA consistently, in the
++direction the metric predicts, and the diagnostic shows why: it places
++$2.8\times10^{-3}$ of its reconstruction energy at the injection bin against
++PCA's $2.1\times10^{-4}$ --- an order of magnitude more, still not enough to
++compete with the bin itself.  The quadrature-OF and bin-read estimators agree
++to $2.6\times10^{-13}$ on all eligible stretches, confirming the
++diagonal-Fourier-weighting identity on real data.  And the precision-weighted
++combined estimate is \emph{effectively one file}: \texttt{0019}, whose injected
++amplitudes are the smallest and whose bootstrap standard deviation is therefore
++the narrowest, carries $98.65\%$ of the inverse-variance weight, while the
++equal-file mean is $+7.8\times10^{-3}$ (Fig.~\ref{fig:mlst-tidmad-perfile}).
++Two post-hoc sensitivities on the eight eligible files agree about scale and
++differ about sign: an equal-file mean with a file-level $t$-interval,
++$+7.8\times10^{-3}$ $[-4.2\times10^{-3},+2.0\times10^{-2}]$, includes zero; a
++DerSimonian--Laird random-effects combination, $+6.5\times10^{-3}$
++$[+1.9\times10^{-3},+1.1\times10^{-2}]$, excludes it.  With eight files and
++$I^{2}\approx0.98$ neither replaces the predeclared primary, which stands as
++executed.
++
++\emph{The leading hypothesis for the cause is dimensional, and it is stated as
++a hypothesis.}  At $w=65536$ the real-view dimension is $p=65536$ against
++$n=350$ fit windows, $p/n=187$.  In the spiked-covariance model a population
++spike must exceed the noise level by about $\sqrt{p/n}\approx14$ before the
++leading sample eigenvector overlaps it, and the injected tone's bin power is
++about $25$ times the noise floor --- near that threshold rather than clearly
++beyond it, and the measured bin SNR is not a population spike in any case.
++What is measured is the outcome: the injection bin carries $1.65\times10^{-3}$
++of the window energy while PCA's rank-2 reconstruction places
++$2.1\times10^{-4}$ there, an under-representation of about $8\times$.  Whether
++estimation error in the whole-window subspace is the cause is what a narrowband
++representation at the same window length is designed to decide.
++
++\begin{figure}[!htbp]
++    \centering
++    \includegraphics[width=\textwidth]{generated/figures/fig_tidmad_perfile.pdf}
++    \caption{TIDMAD held-out operating-range test, per file ($w=65536$,
++    rank~2).  (a)~The paired contrast $\overline{\Delta}(\text{zero},\text{EMPCA})$
++    on each of the fourteen final-test files, ordered by injection frequency,
++    with its joint calibration/evaluation block-bootstrap 95\% interval; a
++    positive value favours EMPCA over predicting zero.  The dashed line is the
++    unweighted mean of the eight eligible files; the precision-weighted
++    estimate coincides with file \texttt{0019}.  (b)~Inverse-variance weight
++    shares.  (c)~Mean amplitude RMSE by method over the eleven eligible
++    stretches: the learned rank-2 reconstructions sit at the trivial-predictor
++    level (dotted), the frequency-domain estimators at $0.24$--$0.25$.
++    Exported at full precision from the archived stage outputs by
++    \nolinkurl{scripts/export_tidmad_heldout.py}; see
++    \nolinkurl{evidence/data/paper1/mlst_2026-09-11/README.md}.}
++    \label{fig:mlst-tidmad-perfile}
++\end{figure}
++
++\input{mlst/06b_t22}
+diff --git a/mlst/07_discussion.tex b/mlst/07_discussion.tex
+new file mode 100644
+index 0000000..19ee6fc
+--- /dev/null
++++ b/mlst/07_discussion.tex
+@@ -0,0 +1,187 @@
++\section{Discussion}
++\label{sec:mlst-discussion}
++
++The theory and the evidence support one organizing statement: under the stated
++linear Gaussian model a reconstruction method is the pair
++$(\Sigma^{-1},\mathcal{F})$ of a residual metric fixed by the measured noise and
++an admissible class fixed by the architecture.  Once the metric is fixed, the
++four classes here are not competing likelihoods but different feasible sets for
++one $\Sigma^{-1}$-orthogonal projection, and the separable class is the first at
++which the architecture rather than the metric decides what can be represented.
++The equivalences are deterministic identities between optimization problems,
++exact under matched preprocessing, weighting and normalization; the noise model
++enters only in choosing the weight.
++
++What this version adds is what happens to that statement when the covariance is
++estimated and the sample is finite, and the answers are more specific --- and
++more negative --- than the identities alone suggest.
++
++\emph{The metric is only as good as the covariance supplied, and sensitivity is
++not a function of the error's size.}
++Proposition~\ref{prop:mlst-local-displacement} locates it in the coupling block
++of the relative error between retained and discarded eigenspaces, divided by the
++pairwise gaps, and the controlled study found the three regimes the proposition
++separates: a first-order regime in which the displacement follows the coupling
++block within a factor of two; an ordering regime in which a diagonal error of
++any size leaves the subspace untouched until the spectrum reorders and then
++exchanges it; and a conditioning regime --- near-singular empirical covariance
++--- that no perturbation statement here covers and that shrinkage repairs only
++in its spectrum.  This is why two perturbations of equal relative norm differed
++by two orders of magnitude in effect, and why the global norm bound, valid
++wherever its hypothesis held, was uninformative there.  A finite-perturbation
++statement of the same shape remains open.
++
++\emph{The class trades approximation for estimation, and the trade is
++measurable but not predictable from the registered model.}
++Proposition~\ref{prop:mlst-risk-decomposition} separates the finite-sample
++class contrast into a population approximation cost --- provably positive off
++the separable case --- and two estimation excesses, and the accounting observed
++both regimes on one configuration, with the crossover bracketed between $N=800$
++and $N=1600$ on fresh seeds.  The registered $c/N$ scaling of the estimation
++excesses was \emph{refuted}, and its forecast crossover was wrong by a factor of
++six; the interpolated $N^{\star}\approx960$ is interpolation, not measurement.
++
++\emph{Excitation in training does not make a physical direction recoverable.}
++All five registered predictions of the excitation study failed.  What the
++exploratory reading suggests --- that the induced population spectrum and the
++direction's eigenvector loadings set recovery --- is recorded as a hypothesis
++for an independent test and supplies no operational threshold for any
++downstream diagnostic.
++
++\emph{On real data the boundary is where the evidence is.}  CRESST gives a
++positive same-rank result under an assumed covariance it cannot validate;
++GWOSC shows that the assumed covariance can fail calibration badly while every
++implementation check passes; TIDMAD supplies recorded truth and reports no
++useful whole-window recovery at the frozen operating point, with a
++dimension-to-sample ratio of 187 as the leading hypothesis.
++Section~\ref{subsec:mlst-t22} tests that hypothesis directly.
++
++\paragraph{Untested design suggestions.}
++Two follow from Section~\ref{subsec:mlst-of} and are recorded as suggestions,
++not results: prewhiten before tokenization, and tokenize along the axis in
++which $\Sigma^{-1}$ is diagonal.  Neither is tested here.  Whitening supplies
++no locality, no graph structure and no deformation stability; those are
++properties of the detector domain, not of the noise model.
++
++\section{Limitations}
++\label{sec:mlst-limitations}
++
++\emph{Scope of the identities.}  They concern linear subspaces and Gaussian
++noise with a known or independently estimated positive-definite covariance.
++They do not cover curved signal manifolds, saturation, pile-up, heavy-tailed
++contamination, or covariance estimated from the very event being reconstructed.
++Timing variation can be approximated locally by extra linear directions, but a
++finite subspace need not represent large shifts.  A Mahalanobis objective is
++efficient only when its noise model is adequate: covariance drift or outliers
++can invalidate its uncertainty interpretation even when the optimization is
++correct.
++
++\emph{Identifiability of noise components.}  An eigendecomposition of a
++covariance produces decorrelated statistical modes, not uniquely labelled
++physical sources.  Nothing here recovers a physical noise decomposition from a
++measured total spectrum, and no result should be read as attributing residual
++improvement to a named noise mechanism.
++
++\emph{CRESST.}  Seven run/channel clusters from two runs, one operating point,
++one rank, one shrinkage.  The primary predeclared interval resamples 19{,}335
++pooled events and quantifies event-level uncertainty \emph{conditional on these
++channels}; it does not quantify variation from sampling a new channel.  The
++post-freeze channel-then-event analysis retains the effect directions but its
++intervals are coarse with seven clusters.  One negative-control exception
++(wrong-PSD weighting on \texttt{35/58.0}) shows that pooled control behaviour
++need not hold per channel.  The trigger-efficiency calculation was underpowered
++over the frozen amplitude grid --- six channels inconclusive at the primary 5\%
++false-positive rate, none reaching 90\% efficiency --- so reconstruction gains
++cannot be translated into a threshold, an exposure or a sensitivity
++improvement.  Rank/shrinkage robustness and time-cut sensitivity are
++\emph{deferred}, not established.
++
++\emph{GWOSC.}  One 256-second interval, one event region, two PSD models.  The
++shared-FIR result says two software paths agree when they implement the same
++finite-duration statistic; it does not establish equivalence between the
++PSD-domain GLS statistic and a finite FIR one.  Agreement with GWpy isolates
++one implementation question and cannot make a Gaussian PSD model adequate for
++nonstationary real noise.
++
++\emph{TIDMAD.}  Named validation files at named operating points, not a survey
++of the release.  The whole-window stage established \emph{no} useful recovery
++and did not confirm the rank-2 prediction on any real file; the linear
++estimator is not competitive on the release's own detector-facing denoising
++score.  The narrowband stage is a temporal hold-out on files already examined
++--- new time regions of previously used files --- and is \emph{not}
++independent-file replication.  Its dependence assessment leaves nine complete
++blocks at the largest block length, the same limiting count as the whole-window
++stage, and the declared rule withholds every benefit verdict when that
++assessment does not stabilise.  The calibration model is checked at second
++moments only: no tails, no dependence, no coverage.
++
++\emph{Controlled studies.}  One generator per study, oracle or engineered
++covariance, fixed rank.  The covariance study is conditional on a fixed
++training draw with engineered perturbations; it is a local theorem check, not a
++finite-perturbation guarantee, and it says nothing about an independently
++estimated covariance in deployment.  The structural-prior accounting uses a
++Monte-Carlo covariance proxy, and its restricted reference is the best of 51
++alternating-least-squares starts --- restart agreement, not a certified global
++optimum.  Restart spreads are of the order of the contrast near the sign
++change, so the optimization term is visible exactly where the classes are
++closest.  The excitation study's spectrum-and-loadings reading is post hoc,
++checked on the runs that suggested it.
++\ifgatedevidence
++The tied-versus-untied ablation concerns one colored configuration and a white
++control under one optimizer with a fixed budget.
++\else
++The tied-versus-untied ablation and the July excited-support experiment belong
++to the held evidence (Section~\ref{sec:mlst-intro}) and are not reported here.
++\fi
++
++\emph{Not claimed anywhere.}  Detection sensitivity, energy resolution,
++false-alarm probability, a universal recovery threshold, an operational
++abstention rule, exact restricted population optima, or a validated $c/N$ law.
++
++\section{Conclusion}
++\label{sec:mlst-conclusion}
++
++Under a linear Gaussian measurement model the inverse noise covariance is the
++metric in which a detector reconstruction is learned; the architecture fixes
++only the admissible class, and the training data only the excited directions.
++Optimal filtering, covariance-weighted PCA, tied noise-aware linear
++autoencoders and their Kronecker-separable restriction are one projection in
++that metric.  The residual it minimizes predicts the whitened, not the
++Euclidean, clean-signal error.  At finite sample the metric's sensitivity to
++covariance error is local --- a coupling block divided by pairwise gaps, with
++a separate conditioning regime that no perturbation bound covers --- the
++class's structural prior trades a provably positive approximation cost against
++an estimation saving whose crossover we bracket but cannot predict, and
++excitation in training is not detectability.  On public detector data the
++weighting lowers every held-out weighted residual on seven CRESST channels; a
++Gaussian PSD model fails calibration on GWOSC while every implementation check
++passes; and against recorded TIDMAD truth no rank-2 whole-window reconstruction
++beats predicting zero.  The determinants are separable, and each of them can
++fail on its own.
++
++\section{Code and data availability}
++\label{sec:mlst-availability}
++
++All results come from public datasets; no internal or unreleased detector data,
++noise budget or instrument simulation is used or described.  The CRESST
++pulse-shape release is described in Ref.~\citep{angloher2025cresstpulshape} and
++hosted by the ORIGINS Dark Matter Data Center; the collaboration asks that the
++description and Ref.~\citep{angloher2023datacleaning} be cited, and we do so.
++The GWOSC strain is the O1 bulk release \citep{gwoscgw150914,abbott2021opendata},
++CC~BY~4.0; this research has made use of data obtained from the Gravitational
++Wave Open Science Center, a service of the LIGO Scientific Collaboration, the
++Virgo Collaboration and KAGRA.  The TIDMAD data are the public release under
++CC-BY-4.0 \citep{fry2024tidmad}.
++
++Every quantitative claim in this paper is listed in the claim-to-evidence table
++of the accompanying record, with its mathematical assumption, dataset and
++split, the exact output field it is read from, the code revision, the archived
++output path, and its limitation.  The archived evidence is versioned with a
++complete SHA-256 manifest and is verified by a single command; figures and
++tables are regenerated from it by scripts that read every value from a
++registered file and hard-code none.  Preregistrations, protocol JSONs, fit caps
++and the deviations decided before each evaluation are archived alongside.  Raw
++public strain and pulse arrays are not duplicated: source locations and
++checksums are retained so the inputs can be retrieved from their public
++releases and the reported results audited.  \sup{S17} lists the archive
++identifiers, run commits and manifest digests.
+diff --git a/plan/T22_STAGE0_PROTOCOL_2026-09-11.md b/plan/T22_STAGE0_PROTOCOL_2026-09-11.md
+new file mode 100644
+index 0000000..8eee2d0
+--- /dev/null
++++ b/plan/T22_STAGE0_PROTOCOL_2026-09-11.md
+@@ -0,0 +1,309 @@
++# T22 stage-0 protocol — narrowband representation at the long TIDMAD window
++
++_Written 11 September 2026, **before** any T22 code was written and before any
++T22 stretch was opened. Machine-readable companion:
++[`mlst_protocol_2026-09-11-t22-stage0.json`](mlst_protocol_2026-09-11-t22-stage0.json),
++which is the single configuration source the runner reads. Design of record:
++[`MLST_EXPERIMENT_PROGRAMME.md` §II.T22](MLST_EXPERIMENT_PROGRAMME.md). This
++document resolves audit items (a)–(g) of
++[the Part II phase report §9](../reviews/2026-09-11-experiment-phase-report.md)
++and items 1–7 of the remote upgrade prompt; it does not change any success
++criterion._
++
++## 0. Why this stage exists
++
++T10–T12 evaluated a rank-2 whole-window subspace on TIDMAD at `w = 65536` and
++found **no useful recovery**: the combined contrasts against both usefulness
++references included zero, and a no-denoising bin read beat EMPCA by
++−1.19e−02 [−1.31e−02, −1.08e−02]. The diagnosed mechanism was dimensional: at
++`w = 65536` the real-view dimension is `p = 65536` against `n = 350` fit
++windows, `p/n = 187`, and the Marchenko–Pastur top-eigenvalue inflation is
++≈ 216× the noise level while the injected tone's bin power is only 25× it.
++
++T22 removes exactly that one factor. The window length, endpoint, labels,
++calibration, rank, baselines, bootstrap and reporting are the T10–T12 ones; the
++only change is the space the rank-2 subspace is fitted in, which becomes the
++real and imaginary parts of the `B` unitary-DFT bins centred on the injection
++bin (`2B ≤ 34` coordinates against the same 350 fit windows).
++
++**What a positive result would and would not mean.** A positive T22 does not
++rescue whole-window recovery, and it is not independent-file replication: the
++hold-out is new *time* in files already examined in T10–T12. A negative or
++inconclusive T22 is a complete outcome and is reported as such.
++
++## 1. Two recorded freezes
++
++| freeze | when | what it fixes | file |
++|---|---|---|---|
++| stage 0 | before any code, before any stretch is opened | allocation, representation, estimators, selection rule, admissibility, eligibility branches, dependence policy, inference, multiplicity, budget, output schema | this document + the JSON |
++| selected band | after development, before any hold-out outcome is read | the band `B`, the two block lengths, the dependence verdict, the file roles, all input and code hashes, the fit count spent so far | `reviews/2026-09-11-PREDECLARED_T22.md` |
++
++"Before any file opens" is defined operationally as **before any hold-out
++outcome is read**. The characterisation stage reads only the 64
++transfer-calibration windows of each hold-out stretch and reports no method
++outcome, so running it before the band freeze does not expose an outcome.
++
++## 2. Allocation and splits
++
++`w = 65536`, rank 2, guard 16 384 samples.
++
++| block | windows | samples | offset in the stretch |
++|---|---|---|---|
++| transfer calibration | 64 | 4 194 304 | 0 |
++| guard | — | 16 384 | 4 194 304 |
++| fit | 350 | 22 937 600 | 4 210 688 |
++| guard | — | 16 384 | 27 148 288 |
++| evaluation | 300 | 19 660 800 | 27 164 672 |
++| **stretch** | | **46 825 472** (4.6825 s) | |
++
++The runner derives the two offsets and the stretch length from the window
++counts and asserts them against the declared numbers, so the JSON cannot drift
++from the code.
++
++## 3. Data roles — temporal hold-out, not file replication
++
++**Hold-out.** Files `0012`–`0019`, one stretch each starting at sample
++**37 027 840** = 36 995 072 (the T10 stretch end) + 2 × 16 384, ending at
++83 853 312. Every file is 2 000 000 000 samples, so the stretch is well inside
++each. T10–T12 read `[0, 36 995 072)` of these files; the T22 stretch begins
++32 768 samples later, so **there is no overlap**. All eight were
++eligible-coupled at `w = 65536` in the T10 characterisation. This is a temporal
++hold-out on files already examined; it is not independent-file replication and
++is never written as such.
++
++Validation = the first three hold-out files in index order whose T22
++characterisation is eligible-coupled. Final test = every hold-out file not in
++validation. The two sets are disjoint by construction and validation outcomes
++never enter final-test summaries.
++
++**Development (amendment A1).** At `w = 65536` only one of the three original
++development files was eligible-coupled in the T10 characterisation (`0010`;
++`0000` uncoupled, `0005` chirped), which would have left the band-selection rule
++with a single input. The development set is therefore six stretches, in this
++declared priority order:
++
++| order | file | start | T10 role |
++|---|---|---|---|
++| 1 | `abra_validation_0010.h5` | 7 097 152 | development |
++| 2 | `abra_validation_0008.h5` | 0 | validation |
++| 3 | `abra_validation_0009.h5` | 0 | validation |
++| 4 | `abra_validation_0011.h5` | 0 | validation |
++| 5 | `abra_validation_0000.h5` | 7 097 152 | development |
++| 6 | `abra_validation_0005.h5` | 7 097 152 | development |
++
++The three added files were fully exposed in T10 and are **not** among the T22
++hold-out files, so adding them spends no hold-out. The full band grid runs on
++the first four stretches in this order whose T22 characterisation is
++eligible-coupled; all six carry the `B = 1` identity control.
++
++## 4. Representation and the identity control
++
++For a stretch with injection bin `k_inj`, the learned space is the isometric
++real view of the `B` unitary-rFFT bins centred on `k_inj` — `2B` real
++coordinates with the `√2` factor on interior bins, so that the diagonal weight
++`1/N_k` applied to both coordinates of a bin is exactly the noise-whitening
++metric. Every band bin must be interior: DC and Nyquist carry one real
++coordinate each and can never enter a band. Band-PCA and band-EMPCA receive
++**identical** bins, rank, fit windows and preprocessing, and differ only in the
++metric. Whitening uses the diagonal Fourier bin powers of 256 science-file noise
++windows.
++
++`B = 1` is the **single-bin identity control**: two real coordinates, so a
++rank-2 projector is the identity and band-PCA = band-EMPCA = bin read exactly.
++The runner asserts this to a relative `1e-12` on every development stretch and
++aborts the stage on failure. `B = 1` is excluded from selecting a learned
++representation.
++
++Estimators, unchanged from T10–T12: `zero`, `calibration-mean`, `raw-bin`
++(the bin read), `quadrature-OF`, band-`pca`, band-`empca`, `wiener`,
++`shrinkage-cal`. Only `pca` and `empca` see the band; the other six are exactly
++the T10–T12 ones, so the comparison isolates the representation.
++
++## 5. Band selection (development only) — audit item (c)
++
++Candidates `B ∈ {3, 5, 9, 17}`.
++
++**Statistic.** Per selection stretch `d`, `Δ_d(B)` is the observed mean paired
++squared-error contrast `mean_i [ e²_i(bin read) − e²_i(band-EMPCA) ]` over that
++stretch's 300 evaluation windows, in readout physical-amplitude units.
++`m(B)` is the **equal-stretch mean** of `Δ_d(B)` — the same equal-unit
++aggregation the primary estimand uses.
++
++**Resampling.** 2000 replicates, seed 20260911. One replicate draws, per
++selection stretch, one circular-block resample of its calibration windows and
++one of its evaluation windows, refits `ĝ` and every calibration-dependent
++estimator, and then recomputes `Δ_d(B)` for **every candidate from the same
++resampled indices**, so candidates are paired inside the replicate and their
++differences are not inflated by independent resampling noise. `sd(B)` is the
++bootstrap standard deviation of the replicate value of `m(B)`.
++
++**Rule.** Let `B*` maximise `m(B)` over the admissible candidates (ties → the
++smaller `B`) and let `s = sd(B*)`. The selected band is the **smallest**
++admissible candidate with `m(B) ≥ m(B*) − s`. The smallest-`B` search resolves
++ties by construction.
++
++**Admissibility**, required on *every* selection stretch:
++
++1. `B ≥ 3` (the identity control is not a learned band);
++2. every band bin is interior;
++3. no second characterised line inside the band — no band bin other than
++   `k_inj` carries an excess over its **predicted Dirichlet leakage** larger
++   than 0.1 of the line bin power. Comparing against the predicted skirt rather
++   than against the raw neighbour power is what keeps the main line's own
++   leakage from rejecting every wide band;
++4. `2B ≤ n_fit/10 = 35`.
++
++**Exceptions.** No admissible candidate → `blocked-no-admissible-band`; no
++eligible-coupled development stretch → `blocked-no-eligible-development-stretch`.
++In either case `selected_band = null`, validation and the final test do not run,
++and all three verdicts are reported as not evaluable. Both branches are in the
++code, are exercised by tests, and are not a licence to retune.
++
++All five candidates are scored on the full-grid stretches, so the report shows
++what the inadmissible ones would have given; only admissible ones enter the
++argmax.
++
++## 6. Calibration-only determination — audit item (d)
++
++`k_inj` is determined once per stretch, from the transfer-calibration windows of
++the **reference channel only**, by the frozen T10 characterisation function; it
++is never re-estimated per evaluation window and the evaluation block is never
++given to it. The declared thresholds are the T10 ones: prominence ≥ 1000,
++no second line within ±500 Hz at ≥ 10 % of the main line, drift ≤ 0.5 bins over
++the stretch, readout line SNR ≥ 1, reference line SNR ≥ 100 for the
++readout-unit target. Because the T22 stretch is 1.27× longer than T10's, the
++drift test is correspondingly stricter — that is intended and is not adjusted.
++
++Sub-bin offset `δ`, the Dirichlet attenuation `D(δ)`, the leakage-sensitivity of
++the off-line floor, the split-half gain agreement and the errors-in-variables
++note are all recorded per stretch. Transfer uncertainty enters the inference
++through the joint bootstrap, which refits `ĝ`, the calibration mean and the
++shrinkage weight inside every replicate.
++
++## 7. Dependence and precision — audit item (b)
++
++Evaluation block candidates `(1, 2, 4, 8, 16, 32)` — amendment A2, made possible
++by the 300-window allocation, which leaves `⌊300/32⌋ = 9` complete blocks at the
++top of the grid. Calibration candidates `(1, 2, 4, 8)`. Minimum 5 blocks;
++stabilisation ratio 1.15; the T10 plateau rule, which never accepts the largest
++candidate as a plateau.
++
++Nine complete blocks is **the same limiting count as T10's 150/16**. The longer
++evaluation set widens the diagnosable range; it does not solve the dependence
++problem, and this protocol does not claim that it does.
++
++**Declared precision policy (amendment A3).** If the aggregate development
++verdict is `inconclusive`, **all three** benefit verdicts — limited recovery,
++denoising benefit and metric contribution — are withheld and reported as
++inconclusive. T10 withheld only the "useful" verdict; the audit required the
++condition to apply to every benefit claim, and it now does. A
++`stabilised-at-endpoint` verdict permits the verdicts but is flagged in every
++summary.
++
++## 8. Inference and the three claims — audit items (b), (f) and prompt items 5–6
++
++**Per file.** Joint circular-block bootstrap (calibration and evaluation
++windows resampled together, `ĝ` refitted per replicate), 2000 replicates, seed
++20260911, 95 % percentile interval, with the calibration-only component
++reported beside it.
++
++**Primary combined estimand.** The **equal-file mean** of the per-file
++contrasts over the eligible final-test files, with a **two-stage percentile
++bootstrap over files** (10 000 replicates, seed 20260911): each replicate
++resamples files with replacement and, within each drawn file, draws one value
++from that file's stored joint-bootstrap replicate array. This is how within-file
++calibration and block uncertainty enters the combined interval. The equal-file
++choice is the 11 September amendment, made because in T11/T12 file `0019`
++carried 98.65 % of the inverse-variance weight, so the weighted estimand was one
++file.
++
++**Secondary sensitivities**, always reported, never the headline:
++inverse-variance with Cochran's Q, I² and every file's weight share;
++DerSimonian–Laird random effects; the equal-file mean with a Student-t interval
++on the point estimates alone.
++
++**Small final-test count.** At most five files, possibly fewer. With fewer than
++four eligible files the combined interval is labelled **indicative only** and the
++per-file verdicts carry the conclusion. The number of files is stated beside
++every combined number.
++
++**Multiplicity.** The three claims form one declared family, controlled by
++**Holm–Bonferroni step-down at familywise level 0.05**. Two-sided bootstrap
++p-values come from the file-level bootstrap with the `(r+1)/(R+1)` continuity
++correction; the limited-recovery claim takes the larger of its two constituent
++p-values, because it requires both contrasts. A claim is declared only when
++its Holm-adjusted p < 0.05 **and** its 95 % interval excludes zero in EMPCA's
++favour **and** the dependence verdict is not inconclusive. Unadjusted intervals
++and raw p-values are reported beside the adjusted decisions. Per-file verdicts
++are descriptive and are not multiplicity-adjusted.
++
++**The three verdicts, reported separately; none implies another.**
++
++| verdict | contrast(s) |
++|---|---|
++| limited recovery | Δ(zero, band-EMPCA) **and** Δ(calibration-mean, band-EMPCA) |
++| denoising benefit | Δ(bin read, band-EMPCA) |
++| metric contribution | Δ(band-PCA, band-EMPCA) at the same selected `B` |
++
++Registered directions: bin read ≈ quadrature OF ≈ Wiener; band-EMPCA beats
++band-PCA. **No direction is registered for band-EMPCA versus the bin read** —
++that is the open question.
++
++## 9. Budget and fit accounting — prompt item 7
++
++A *fit* is one estimator instantiated on one (stretch, band) cell; the eight
++declared estimators are counted per cell, as in the T10–T12 accounting.
++
++| stage | cells | fits |
++|---|---|---|
++| characterisation (11 stretches) | — | 0 |
++| development, full band grid | 4 stretches × 5 bands | 160 |
++| development, identity control only | 2 stretches × 1 band | 16 |
++| validation | ≤ 3 files × 1 band | ≤ 24 |
++| final test | ≤ 5 files × 1 band | ≤ 40 |
++| **nominal total** | | **240** |
++| **hard cap** | | **250** |
++
++The nominal rises from the programme's 184 to 240 because of amendment A1; it
++stays inside the declared hard cap of 250, which is **not** raised. The runner
++enumerates a stage's fits before opening any data file and refuses to start if
++the running total would exceed the cap. Because the final test takes every
++hold-out file not assigned to validation, the hold-out total is 64 fits however
++the roles fall.
++
++Resampling is not fitting and never counts against the cap; it is reported in
++its own row: 2000 per-file joint replicates, 2000 band-selection paired
++replicates, 10 000 file-level replicates, 400 block-variance-curve replicates.
++Smoke runs use seed base 999 000 001, are marked non-scientific, and are logged
++in the exposure record with their own count.
++
++## 10. Reconciliation with the server checkout — audit item (g)
++
++The T10–T12 implementation on the execution host is
++`experiments/mlst2026/t10_tidmad_runner.py` with
++`experiments/mlst2026/tidmad_endpoint.py`, at EXP `a7125ea` on branch
++`mlst/exp-phase-20260910`, and its archive `results/mlst_2026-09-10/` verifies
++against its `RESULTS_SHA256` (all ten stage outputs). T22 imports that endpoint
++module unchanged and adds `experiments/mlst2026/tidmad_band.py`; the local
++`tidmad_window_sweep.py` is **not** used and is not equivalent. Raw-data root
++`/ceph/dwong/paper1_dataset/tidmad/raw`. Every instrument file read is hashed
++once in the characterisation stage and cited by digest thereafter.
++
++## 11. Amendments, all made before the affected outcomes
++
++| id | what | why |
++|---|---|---|
++| A1 | development set 3 → 6 stretches; full grid on the first four eligible in the declared order; nominal fits 184 → 240 (cap unchanged) | only one original development file is eligible-coupled at `w = 65536`, so the selection rule would have had a single input; the added files are already exposed and are not hold-out |
++| A2 | evaluation block grid gains `32` | the 300-window allocation exists precisely so that `b = 32` leaves nine complete blocks |
++| A3 | the dependence withholding rule applies to all three benefit verdicts; the primary combined interval becomes a two-stage bootstrap | audit item (b) and prompt item 5 |
++
++None of these changes the hold-out set, the offsets, the estimators, the
++endpoint, the selection rule or any success criterion.
++
++## 12. Outputs
++
++`results/t22_2026-09-11/T22_<stage>_v1/` containing `t22_<stage>.json`,
++`t22_<stage>_draws.npz` (the per-file joint-bootstrap replicate arrays, so every
++interval and p-value can be recomputed without the instrument data) and
++`RESULTS_SHA256`. The freeze output embeds the whole stage-0 protocol, so the
++archive is self-describing.
+diff --git a/plan/mlst_protocol_2026-09-11-t22-stage0.json b/plan/mlst_protocol_2026-09-11-t22-stage0.json
+new file mode 100644
+index 0000000..c8d990f
+--- /dev/null
++++ b/plan/mlst_protocol_2026-09-11-t22-stage0.json
+@@ -0,0 +1,373 @@
++{
++  "schema": "mlst-t22-stage0/1",
++  "task": "T22",
++  "title": "Narrowband representation at the long TIDMAD window",
++  "written": "2026-09-11",
++  "status": "stage-0 protocol, frozen before any T22 code was written or any T22 stretch was opened",
++  "supersedes_for_t22": "plan/mlst_protocol_2026-09-11.json#t22 (cell enumeration and caps); the programme text plan/MLST_EXPERIMENT_PROGRAMME.md#II.T22 remains the design of record except where amendments below say otherwise",
++  "authority": "reviews/REMOTE_UPGRADE_AGENT_PROMPT_2026-09-11.md section 3; audit items (a)-(g) of reviews/2026-09-11-experiment-phase-report.md section 9",
++  "unchanged_from_t10_t12": {
++    "window_samples": 65536,
++    "rank": 2,
++    "guard_samples": 16384,
++    "endpoint": "mean paired squared quadrature error difference in readout physical-amplitude units a = 2q/sqrt(w)",
++    "truth_label": "t_i = g_hat * rho_i with g_hat the complex least-squares readout-on-reference gain fitted on the transfer-calibration windows",
++    "n_calibration_windows": 64,
++    "n_fit_windows": 350,
++    "characterisation_before_any_fit": true,
++    "uncertainty": "joint circular-block bootstrap over calibration windows (refitting g_hat, the calibration mean and the shrinkage weight) and evaluation windows",
++    "estimators": [
++      "zero",
++      "calibration-mean",
++      "raw-bin",
++      "quadrature-OF",
++      "pca",
++      "empca",
++      "wiener",
++      "shrinkage-cal"
++    ],
++    "characterisation_thresholds": {
++      "prominence_min": 1000.0,
++      "multi_tone_hz": 500.0,
++      "multi_tone_power_fraction": 0.1,
++      "chirp_bins": 0.5,
++      "coupled_readout_snr_min": 1.0,
++      "reference_snr_min": 100.0
++    }
++  },
++  "allocation": {
++    "n_calibration_windows": 64,
++    "n_fit_windows": 350,
++    "n_evaluation_windows": 300,
++    "guard_samples": 16384,
++    "stretch_samples": 46825472,
++    "stretch_seconds": 4.6825472,
++    "calibration_offset": 0,
++    "fit_offset": 4210688,
++    "evaluation_offset": 27164672,
++    "sampling_rate_hz": 10000000.0,
++    "note": "(64 + 350 + 300) * 65536 + 2 * 16384 = 46825472"
++  },
++  "representation": {
++    "band_candidates": [
++      1,
++      3,
++      5,
++      9,
++      17
++    ],
++    "identity_control_band": 1,
++    "excluded_from_selection": [
++      1
++    ],
++    "coordinates": "real and imaginary parts of the B unitary-rFFT bins centred on k_inj, in the isometric real view (sqrt(2) on interior bins), giving 2B real coordinates",
++    "whitening": "diagonal Fourier bin powers N_k estimated from 256 science-file noise windows at w = 65536; band-EMPCA uses 1/N_k on both real coordinates of each band bin, band-PCA uses the Euclidean metric",
++    "identical_inputs": "band-PCA and band-EMPCA receive identical bins, rank, fit windows and preprocessing; they differ only in the metric",
++    "identity_assertion": {
++      "statement": "at B = 1 a rank-2 projector on two real coordinates is the identity, so band-PCA = band-EMPCA = bin read exactly",
++      "relative_tolerance": 1e-12,
++      "applies_to": "every development stretch",
++      "on_failure": "the runner aborts the stage"
++    }
++  },
++  "band_selection": {
++    "stage": "development only",
++    "statistic": "per development stretch d and candidate B, the observed mean paired squared-error contrast Delta_d(B) = mean_i [ e2_i(bin read) - e2_i(band-EMPCA) ] over that stretch's 300 evaluation windows",
++    "aggregation": "equal-stretch mean m(B) over the eligible development stretches entering selection",
++    "resampling": {
++      "kind": "paired bootstrap over candidates",
++      "replicates": 2000,
++      "seed": 20260911,
++      "description": "one replicate draws, per development stretch, one circular-block resample of its calibration windows (block b_cal) and one of its evaluation windows (block b_eval), refits g_hat and the calibration-dependent estimators, and recomputes Delta_d(B) for EVERY candidate B from the SAME resampled indices; m*(B) is the equal-stretch mean within the replicate, so candidates are paired",
++      "sd": "bootstrap standard deviation of m*(B) over the replicates"
++    },
++    "rule": "let B* be the admissible candidate maximising m(B) (ties -> smaller B) and s = sd(B*); the selected band is the SMALLEST admissible candidate B with m(B) >= m(B*) - s",
++    "ties": "the smallest-B search resolves ties by construction; a tie for B* itself resolves to the smaller B",
++    "admissibility": [
++      "B >= 3",
++      "every bin of the band is interior at every selection stretch (never DC bin 0, never Nyquist bin m-1)",
++      "no second characterised line inside the band (amendment A4): a band bin b with |b - k_inj| > 1 whose mean calibration-reference bin power is at least multi_tone_power_fraction (0.1) of the line bin power AND which is a local maximum against its neighbour one bin closer to k_inj. The guard of one bin is the T10-T12 characterisation's own guard: the immediately adjacent bins always carry the main line's skirt and cannot be resolved from it at boxcar resolution. The local-maximum condition is what distinguishes a line from leakage.",
++      "2B <= n_fit_windows / 10 = 35"
++    ],
++    "no_admissible_band": "the frozen configuration records selected_band = null with disposition 'blocked-no-admissible-band'; validation and the final test do not run; all three verdicts are reported as not evaluable",
++    "eligibility_of_selection_stretches": "only development stretches whose characterisation outcome at the T22 stretch is eligible-coupled enter selection; the others are scored, reported and used for the B = 1 identity control, and are excluded from m(B)",
++    "no_eligible_selection_stretch": "disposition 'blocked-no-eligible-development-stretch'; as above"
++  },
++  "data_roles": {
++    "kind": "temporal hold-out of files already examined in T10-T12; NOT independent-file replication",
++    "development": {
++      "files_in_declared_priority_order": [
++        {
++          "file": "abra_validation_0010.h5",
++          "start_sample": 7097152,
++          "t10_role": "development"
++        },
++        {
++          "file": "abra_validation_0008.h5",
++          "start_sample": 0,
++          "t10_role": "validation"
++        },
++        {
++          "file": "abra_validation_0009.h5",
++          "start_sample": 0,
++          "t10_role": "validation"
++        },
++        {
++          "file": "abra_validation_0011.h5",
++          "start_sample": 0,
++          "t10_role": "validation"
++        },
++        {
++          "file": "abra_validation_0000.h5",
++          "start_sample": 7097152,
++          "t10_role": "development"
++        },
++        {
++          "file": "abra_validation_0005.h5",
++          "start_sample": 7097152,
++          "t10_role": "development"
++        }
++      ],
++      "full_band_grid_on": "the first four stretches in the declared order whose T22 characterisation is eligible-coupled",
++      "identity_control_on": "all six",
++      "amendment": "A1"
++    },
++    "holdout": {
++      "files": [
++        "abra_validation_0012.h5",
++        "abra_validation_0013.h5",
++        "abra_validation_0014.h5",
++        "abra_validation_0015.h5",
++        "abra_validation_0016.h5",
++        "abra_validation_0017.h5",
++        "abra_validation_0018.h5",
++        "abra_validation_0019.h5"
++      ],
++      "start_sample": 37027840,
++      "start_rule": "T10 stretch end (36995072) + 2 * guard (16384)",
++      "end_sample_exclusive": 83853312,
++      "file_length_samples": 2000000000,
++      "overlap_with_prior_exposure": "none: T10-T12 read [0, 36995072) of each of these files; the T22 stretch begins 32768 samples later",
++      "validation_assignment": "the first three holdout files in index order whose T22 characterisation is eligible-coupled",
++      "final_test_assignment": "every holdout file not assigned to validation",
++      "fewer_than_three_eligible_validation_files": "the eligible ones become the validation set, status 'underpowered', flagged in every summary; the final test still runs",
++      "no_eligible_validation_file": "status 'empty'; the final test still runs so the failure regime is reported, and no positive verdict may be issued anywhere",
++      "no_eligible_final_test_file": "the combined estimate is reported as empty and all three verdicts are 'not evaluable'; per-file rows are still archived",
++      "failed_characterisation": "outcome recorded, file excluded from every combined estimate, per-file verdict 'excluded-<outcome>'",
++      "separation": "validation and final test are disjoint by construction; validation outcomes never enter final-test summaries"
++    }
++  },
++  "dependence": {
++    "block_candidates_evaluation": [
++      1,
++      2,
++      4,
++      8,
++      16,
++      32
++    ],
++    "block_candidates_calibration": [
++      1,
++      2,
++      4,
++      8
++    ],
++    "min_blocks": 5,
++    "stabilisation_ratio": 1.15,
++    "selection": "the T10 plateau rule: the smallest plateau candidate whose larger candidates all stay within 1.15 of it; otherwise 'stabilised-at-endpoint' if the two topmost ratios are both within 1.15; otherwise 'inconclusive'",
++    "aggregation": "each development variance curve normalised by its own V(1); the maximum across (stretch, contrast) taken at each block length; the decision is made on that aggregate",
++    "complete_blocks_at_largest_candidate": 9,
++    "precision_target": "declared before development: an 'inconclusive' aggregate verdict withholds ALL THREE benefit verdicts (limited recovery, denoising benefit, metric contribution), not only the limited-recovery one; a 'stabilised-at-endpoint' verdict permits them but is flagged in every summary",
++    "rationale": "300 evaluation windows at block 32 leave nine complete blocks, the same limiting count as T10's 150/16; the protocol therefore does not claim that the longer evaluation set solves the dependence problem, it only widens the diagnosable range and applies the withholding rule to every claim"
++  },
++  "inference": {
++    "per_file": {
++      "kind": "joint circular-block bootstrap (calibration windows and evaluation windows resampled together, g_hat refitted per replicate)",
++      "replicates": 2000,
++      "seed": 20260911,
++      "interval": "95 % percentile",
++      "calibration_only_component": "the same bootstrap with the evaluation windows held fixed, reported beside it"
++    },
++    "primary_combined_estimand": {
++      "definition": "equal-file mean of the per-file contrasts over the eligible final-test files",
++      "interval": {
++        "kind": "two-stage (hierarchical) percentile bootstrap over files",
++        "replicates": 10000,
++        "seed": 20260911,
++        "description": "each replicate resamples the eligible files with replacement and, within each drawn file, draws one value from that file's stored joint-bootstrap replicate array, so within-file calibration and block uncertainty is carried into the file-level interval"
++      },
++      "small_sample_rule": "with fewer than four eligible final-test files the combined interval is reported as indicative only and the per-file verdicts carry the conclusion"
++    },
++    "secondary_sensitivities": [
++      "inverse-variance (precision-weighted) combination with Cochran's Q and I^2, reported with each file's weight share and never as the headline",
++      "DerSimonian-Laird random-effects combination",
++      "equal-file mean with a Student-t interval on the per-file point estimates, i.e. ignoring within-file uncertainty"
++    ],
++    "multiplicity": {
++      "family": [
++        "limited recovery",
++        "denoising benefit",
++        "metric contribution"
++      ],
++      "method": "Holm-Bonferroni step-down at familywise level 0.05",
++      "p_values": "two-sided bootstrap p from the file-level hierarchical bootstrap, p = 2 * min(P(theta* <= 0), P(theta* >= 0)) with the (r+1)/(R+1) continuity correction",
++      "decision_rule": "a claim is declared only if its Holm-adjusted p < 0.05 AND its 95 % interval excludes zero in EMPCA's favour AND the dependence verdict is not inconclusive",
++      "reported": "unadjusted intervals and raw p-values are reported beside the adjusted decisions",
++      "per_file_verdicts": "descriptive, not multiplicity-adjusted; stated as such"
++    },
++    "endpoint_definitions": {
++      "limited_recovery": "Delta(zero, band-EMPCA) > 0 and Delta(calibration-mean, band-EMPCA) > 0, both by the decision rule above",
++      "denoising_benefit": "Delta(bin read, band-EMPCA) > 0 by the decision rule above",
++      "metric_contribution": "Delta(band-PCA, band-EMPCA) > 0 by the decision rule above, at the same selected B"
++    },
++    "registered_directions": {
++      "bin_read_vs_quadrature_of_vs_wiener": "approximately equal, as in T10",
++      "band_empca_vs_band_pca": "band-EMPCA better (metric direction, as T10 found at the whole window)",
++      "band_empca_vs_bin_read": "no direction registered; this is the open question"
++    }
++  },
++  "contrasts": [
++    [
++      "zero",
++      "empca"
++    ],
++    [
++      "calibration-mean",
++      "empca"
++    ],
++    [
++      "raw-bin",
++      "empca"
++    ],
++    [
++      "pca",
++      "empca"
++    ],
++    [
++      "zero",
++      "pca"
++    ],
++    [
++      "calibration-mean",
++      "pca"
++    ],
++    [
++      "wiener",
++      "empca"
++    ],
++    [
++      "shrinkage-cal",
++      "empca"
++    ],
++    [
++      "zero",
++      "raw-bin"
++    ],
++    [
++      "zero",
++      "wiener"
++    ],
++    [
++      "quadrature-OF",
++      "raw-bin"
++    ]
++  ],
++  "budget": {
++    "fit_definition": "one estimator instantiated on one (stretch, band) cell; the eight declared estimators are counted per cell, as in the T10-T12 accounting",
++    "development_full_grid": {
++      "stretches": 4,
++      "bands": 5,
++      "estimators": 8,
++      "fits": 160
++    },
++    "development_identity_only": {
++      "stretches": 2,
++      "bands": 1,
++      "estimators": 8,
++      "fits": 16
++    },
++    "validation": {
++      "files": 3,
++      "bands": 1,
++      "estimators": 8,
++      "fits": 24
++    },
++    "final_test": {
++      "files": 5,
++      "bands": 1,
++      "estimators": 8,
++      "fits": 40
++    },
++    "nominal_total": 240,
++    "hard_cap": 250,
++    "enforcement": "the runner enumerates the fits of a stage before opening any data file and refuses to start if the running total would exceed the hard cap",
++    "resampling_workload_reported_separately": {
++      "per_file_joint_bootstrap_replicates": 2000,
++      "band_selection_paired_bootstrap_replicates": 2000,
++      "file_level_hierarchical_bootstrap_replicates": 10000,
++      "block_variance_curve_replicates": 400,
++      "note": "resampling operations are not fits and are never counted against the cap"
++    },
++    "smoke_runs": {
++      "seed_base": 999000001,
++      "counted": "separately, marked non-scientific, logged in the exposure record"
++    }
++  },
++  "amendments": [
++    {
++      "id": "A1",
++      "date": "2026-09-11",
++      "made": "before any T22 code was written and before any T22 stretch was opened",
++      "what": "the development set is extended from the three T10 development files (0000, 0005, 0010) to six stretches, adding the three T10 validation files (0008, 0009, 0011) at start 0; the full band grid runs on the first four eligible-coupled stretches in the declared priority order, and all six carry the B = 1 identity control",
++      "why": "at w = 65536 only one of the three original development files (0010) was eligible-coupled in the T10 characterisation (0000 uncoupled, 0005 chirped), so the declared band-selection rule would have had a single input. The three T10 validation files are eligible-coupled, were fully exposed in T10, and are NOT among the T22 hold-out files 0012-0019, so adding them strengthens selection without spending any hold-out.",
++      "cost": "nominal fits rise from 184 to 240, still inside the declared hard cap of 250",
++      "does_not_change": "the hold-out file set, the hold-out offsets, the estimators, the endpoint, the selection rule, the inference or any success criterion"
++    },
++    {
++      "id": "A2",
++      "date": "2026-09-11",
++      "made": "before any T22 code was written",
++      "what": "the evaluation block-length grid gains the candidate 32",
++      "why": "the allocation was raised to 300 evaluation windows precisely so that b = 32 leaves nine complete blocks; the T10 grid stopped at 16",
++      "does_not_change": "the plateau rule, the aggregation or the withholding rule"
++    },
++    {
++      "id": "A3",
++      "date": "2026-09-11",
++      "made": "before any T22 code was written",
++      "what": "the dependence withholding rule is applied to all three benefit verdicts, not only to limited recovery; and the primary combined interval is a two-stage bootstrap that carries within-file uncertainty",
++      "why": "audit item (b) and prompt item 5; T10 withheld only the 'useful' verdict, and its combined interval used per-file point estimates with inverse-variance weights",
++      "does_not_change": "the per-file joint bootstrap or the equal-file primary estimand of the 11 September amendment"
++    },
++    {
++      "id": "A4",
++      "date": "2026-09-11",
++      "made": "on development material, after the first development run and BEFORE any hold-out outcome was read; the hold-out characterisation reads only transfer-calibration windows and reports no method outcome",
++      "what": "the second-line admissibility test is restated: a second line is a band bin beyond the one-bin guard that carries at least 10 % of the line bin power AND is a local maximum against its inward neighbour. The previous form compared the observed band power against the idealised boxcar Dirichlet skirt of a single tone.",
++      "why": "the previous form rejected every band of width >= 3 on three of the four eligible development stretches. Inspection of the measured band profiles showed why: every profile decays monotonically outward on both sides -- the signature of leakage, not of a second line -- but real TIDMAD skirts sit about four times above the idealised boxcar prediction (rectangular-window leakage plus sub-bin frequency jitter across the 64 calibration windows). The test as written measured 'is the skirt wider than ideal', not 'is there a second line'. Recorded profiles: at B = 17 the relative band powers decay monotonically from the line on both sides on all four stretches, with no local maximum beyond the guard anywhere.",
++      "does_not_change": "the hold-out set, the offsets, the estimators, the endpoint, the selection statistic, the one-bootstrap-sd rule, the inference, the multiplicity control or any success criterion. It changes only which candidate bands are admissible.",
++      "cost": "the development stage is re-scored once with identical seeds and inputs; the contrasts are deterministic and are verified identical to the first run, so no new statistical evaluation is performed. Both runs are archived (v1 and v2).",
++      "exposure": "the first development run (T22_development_v1) computed and displayed the development contrasts for all 22 cells. Development material is what it is for; no hold-out stretch was scored."
++    }
++  ],
++  "prior_exposure": {
++    "t10_t12": "files 0000/0005/0010 at [7097152, 44092224); files 0001-0004, 0006-0009, 0011-0019 at [0, 36995072); science files abra_science_*.h5 first 256 windows at each of w = 4096, 16384, 65536 for the noise bin powers",
++    "t22_development": "the six development stretches listed above",
++    "t22_holdout": "none before the validation stage; the characterisation stage reads only the 64 transfer-calibration windows of each hold-out stretch and reports no method outcome"
++  },
++  "outputs": {
++    "directory": "results/t22_2026-09-11/<stage>_v1/",
++    "files": [
++      "t22_<stage>.json",
++      "t22_<stage>_draws.npz",
++      "RESULTS_SHA256"
++    ],
++    "draws_npz": "per (file, contrast) arrays of the 2000 joint-bootstrap replicate means, plus the band-selection replicate matrix, so every interval and p-value can be recomputed locally without the raw instrument data",
++    "json_schema": {
++      "stage": "characterize | development | freeze | validation | final-test",
++      "per_stretch": "characterisation, transfer_calibration, estimator_diagnostics, allocation, band, block_lengths_used, dependence, rmse_by_method_amplitude_units, contrasts, fit_count",
++      "combined": "per contrast: equal-file primary with its hierarchical interval and Holm-adjusted p, plus the three secondary sensitivities",
++      "provenance": "code and configuration hashes, input file hashes, seeds, environment, deviations, exposure record, fit accounting"
++    }
++  }
++}
+diff --git a/reviews/2026-09-11-PREDECLARED_T22.md b/reviews/2026-09-11-PREDECLARED_T22.md
+new file mode 100644
+index 0000000..c6ec840
+--- /dev/null
++++ b/reviews/2026-09-11-PREDECLARED_T22.md
+@@ -0,0 +1,195 @@
++# T22 selected-band predeclaration — 11 September 2026
++
++_Written **after** the development stage and **before** any hold-out outcome was
++scored._  The characterisation stage had already been run on all eleven
++stretches; it reads only the 64 transfer-calibration windows of each stretch and
++reports no method outcome, so no hold-out outcome has been read at the time of
++writing.  Validation and the final test refuse to start without this freeze
++file.
++
++Stage-0 protocol: [`plan/T22_STAGE0_PROTOCOL_2026-09-11.md`](../plan/T22_STAGE0_PROTOCOL_2026-09-11.md)
++and [`plan/mlst_protocol_2026-09-11-t22-stage0.json`](../plan/mlst_protocol_2026-09-11-t22-stage0.json),
++sha256 `843a71742fa81872284fa73f8c22b5beda90b3a553c9d2f9ddc125ddaffe1b85`.
++Programme: [`plan/MLST_EXPERIMENT_PROGRAMME.md`](../plan/MLST_EXPERIMENT_PROGRAMME.md) §II.T22.
++
++## 1. The frozen configuration
++
++| item | value |
++|---|---|
++| selected band | **B = 9** (18 real coordinates against 350 fit windows) |
++| window / rank | 65 536 samples / rank 2 |
++| evaluation block length | 32 |
++| calibration block length | 8 |
++| **dependence verdict** | **inconclusive** |
++| endpoint | mean paired squared quadrature error difference, readout physical-amplitude units `a = 2q/sqrt(w)` |
++| estimators | zero, calibration-mean, bin read, quadrature-OF, band-PCA, band-EMPCA, Wiener, calibration shrinkage |
++| per-file bootstrap | 2000 joint circular-block replicates, seed 20260911 |
++| file-level bootstrap | 10 000 two-stage replicates, seed 20260911 |
++| multiplicity | Holm–Bonferroni step-down, familywise 0.05, over the three claims |
++| hold-out stretch start | sample 37 027 840 (= 36 995 072 + 2 × 16 384), length 46 825 472 |
++| validation files | `0012`, `0013`, `0014` (status: complete) |
++| final-test files | `0015`, `0016`, `0017`, `0018`, `0019` |
++| development fits spent | 176 of the 250 hard cap |
++| planned hold-out fits | 24 (validation) + 40 (final test) = 64; total 240 |
++
++### How B = 9 was selected
++
++The declared rule is "the smallest admissible candidate whose equal-stretch mean
++Δ(bin read, band-EMPCA) is within one paired-bootstrap standard deviation of the
++best candidate".  On the four eligible-coupled development stretches:
++
++| B | admissible | equal-stretch mean | paired-bootstrap sd | bootstrap 95 % CI |
++|---|---|---|---|---|
++| 3 | yes | +0.004326 | 0.000575 | [0.003238, 0.005495] |
++| 5 | yes | +0.005387 | 0.000659 | [0.004088, 0.006656] |
++| 9 | yes | +0.005636 | 0.000710 | [0.004217, 0.007012] |
++| 17 | yes | **+0.006109** (best) | 0.000677 | [0.004772, 0.007387] |
++
++Best candidate B = 17; threshold = 0.006109 − 0.000677 = **0.005432**; the
++smallest admissible candidate at or above it is **B = 9** (B = 5 falls short at
++0.005387).  B = 1 is the identity control and is excluded from selection by the
++protocol.
++
++### The B = 1 identity control
++
++Asserted on **all six** development stretches at a relative tolerance of
++10⁻¹²: band-PCA = band-EMPCA = bin read.  The measured Δ(bin read, band-EMPCA)
++at B = 1 was between −1.2 × 10⁻¹⁸ and +2.9 × 10⁻¹⁷ on the six stretches, i.e.
++numerically zero; the runner aborts the stage on failure.
++
++### The dependence verdict, and what it does
++
++The aggregate evaluation variance curve over the development stretches is
++**still rising at the largest usable block**: adjacent ratios
++[2.089, 2.072, 1.731, 2.128, 1.745] over b = [1, 2, 4, 8, 16, 32], with
++V(32)/V(16) = 1.745, so the declared plateau rule returns **inconclusive**.
++Per-curve the picture is mixed (112 stabilised, 107 inconclusive, 1 at the
++endpoint); the declared decision is taken on the aggregated (maximum-normalised)
++curve, which is conservative by construction.  The calibration curve is
++inconclusive as well (b = 8).
++
++**By amendment A3, declared before development, an inconclusive dependence
++verdict withholds all three benefit verdicts** — limited recovery, denoising
++benefit and metric contribution — not only the limited-recovery one.  The
++hold-out stages still run once each and the estimates, intervals, p-values and
++per-file rows are all archived and reported; what is withheld is the positive
++verdict.  This is the outcome the audit anticipated: 300 evaluation windows at
++block 32 leave nine complete blocks, the same limiting count as T10's 150/16, so
++the longer evaluation set widened the diagnosable range without resolving the
++dependence problem.
++
++## 2. Hold-out characterisation, recorded before any hold-out outcome
++
++New time regions of files already examined in T10–T12 (`[0, 36 995 072)`); the
++T22 stretch begins 32 768 samples later, so there is **no overlap**.  This is a
++temporal hold-out, **not** independent-file replication.
++
++| file | f_inj (kHz) | k_inj | outcome | ref line SNR | readout line SNR | drift (bins) | δ | file sha256 (16) |
++|---|---|---|---|---|---|---|---|---|
++| `0012` | 160.065 | 1049 | eligible-coupled | 6614 | 22.36 | 0.000 | -0.2981 | `8616f96b7c22b70d` |
++| `0013` | 310.059 | 2032 | eligible-coupled | 8038 | 9.715 | 0.002 | -0.2306 | `f49802d961b58cca` |
++| `0014` | 469.971 | 3080 | eligible-coupled | 3.219e+04 | 51.55 | 0.001 | +0.0596 | `97962b5f9e77042c` |
++| `0015` | 619.965 | 4063 | eligible-coupled | 2.212e+04 | 39.45 | 0.001 | +0.0824 | `15b91fcb0357b7c2` |
++| `0016` | 780.029 | 5112 | chirped | 1.156e+04 | 20.61 | 5.543 | -0.0595 | `7f56af0e4541d850` |
++| `0017` | 930.023 | 6095 | eligible-coupled | 5.157e+04 | 58.32 | 0.000 | -0.0409 | `a8b3410a3a850a15` |
++| `0018` | 1799.927 | 11796 | eligible-coupled | 5162 | 37.6 | 0.000 | +0.4336 | `424f8de6c3197584` |
++| `0019` | 3399.963 | 22282 | eligible-coupled | 2.07e+04 | 28.12 | 0.000 | +0.0876 | `2174c0d8c3d74ae8` |
++
++`0016` is **chirped** in the new time region (drift 5.543 bins over the stretch
++against the declared 0.5), although it was eligible-coupled in the T10 region.
++It is evaluated and reported, and by the declared rule it is excluded from every
++combined estimate, leaving **four** eligible final-test files — exactly the
++declared threshold below which a combined interval would be labelled indicative
++only.
++
++Development stretches (already exposed in T10–T12):
++
++| file | start | outcome | k_inj | file sha256 (16) |
++|---|---|---|---|---|
++| `0000` | 7,097,152 | uncoupled | 456 | `a425f9a3ca07e786` |
++| `0005` | 7,097,152 | chirped | 58 | `1cb613587684b9bf` |
++| `0008` | 0 | eligible-coupled | 288 | `238a8f01ccee2af9` |
++| `0009` | 0 | eligible-coupled | 387 | `8abde88502798111` |
++| `0010` | 7,097,152 | eligible-coupled | 492 | `7373be4366ef76d2` |
++| `0011` | 0 | eligible-coupled | 590 | `ec95067b3e3cff55` |
++
++`0000` (uncoupled, prominence 146 < 1000) and `0005` (chirped, drift 2.212 bins)
++carry the B = 1 identity control only and do not enter band selection.
++
++## 3. Code, configuration and output hashes
++
++| artefact | sha256 |
++|---|---|
++| stage-0 protocol JSON | `843a71742fa81872284fa73f8c22b5beda90b3a553c9d2f9ddc125ddaffe1b85` |
++| runner `t22_tidmad_narrowband.py` | `8ba161a0fa45822d93bcc922f23b8f92aae7373abd8c663e356469a9cd8141bf` |
++| band module `tidmad_band.py` | `1067ac3578e4ff4a2b2de2ff832dbad99be78c5f1eda4722a32e09765445355c` |
++| endpoint module `tidmad_endpoint.py` | `7017a82fae5a8232e4798ccd93ab313064ed4c45598095cd5271ae7fc31b3f52` |
++| characterisation output | `2a361343bec81dcb7bd437548e49268c2a13e27b8578f89b49270b7e186f4db7` |
++| development output (v2, canonical) | `294cce2a8b13aef16e5da121b1ef6020f572647c07d42cd41ce7329876a7749e` |
++| development output (v1, superseded) | `92371aa5d9583e1c72eea25ae3d8846a7544bac9a822d397ee33aaed11a6ce4f` |
++| freeze output | `a05f062ab059a5ff0a549c1bb67778dd2c8f19879d848d616773d2eb017e02ac` |
++| science noise `abra_science_0000.h5` | `3d99e1bf984dc911d77ee0eec0a66455cfcf7058b4e211275fed1d3c41b762f5` |
++| science noise `abra_science_0001.h5` | `931227088b22fd0934301a0167536c87bbf420cf7cbf2da497cafd4b7f242c66` |
++
++EXP revision at freeze time: `a7125ea27890bf51d190087b0b03fac17d9653e2` on branch `mlst/t22-2026-09-11`, working tree
++dirty (`True`) — the T22 runner, band module and tests are new files not
++yet committed at the moment of the freeze; they are committed immediately after
++it and their content hashes above are the binding record.  Raw-data root
++`/ceph/dwong/paper1_dataset/tidmad/raw`; every instrument file read is hashed in
++the characterisation output.
++
++## 4. Prior exposure, in full
++
++1. **T10–T12** read `[7 097 152, 44 092 224)` of `0000`/`0005`/`0010` and
++   `[0, 36 995 072)` of every other validation file, at w ∈ {4096, 16384, 65536},
++   plus the first 256 windows of the two science files at each w.
++2. **T22 characterisation** read the 64 transfer-calibration windows of all
++   eleven T22 stretches (development and hold-out).  No method was fitted.
++3. **T22 development** scored 22 cells on the six development stretches, twice:
++   run v1 under the pre-amendment-A4 admissibility rule, and run v2 after it.
++   The two runs are byte-comparable in every contrast (0 differences, max
++   absolute difference 0.0), so v2 is a deterministic re-score and not a new
++   statistical evaluation.  Both are archived.
++4. **No hold-out stretch has been scored by any method** at the time this file
++   is written.
++
++## 5. Fit accounting
++
++| stage | fits | note |
++|---|---|---|
++| characterisation | 0 | calibration windows only |
++| development (executed, run v1) | 176 | superseded by v2 |
++| development (executed, run v2) | 176 | canonical; identical contrasts |
++| **development, counted scientifically** | **176** | one development stage, re-scored once |
++| validation (planned) | 24 | 3 files × 8 estimators |
++| final test (planned) | 40 | 5 files × 8 estimators |
++| **scientific total (planned)** | **240** | hard cap 250 |
++| development executions (resource figure) | 352 | 2 × 176 |
++| smoke runs | 0 | none executed on instrument data |
++
++Resampling is not fitting and does not count against the cap: 2000 per-file
++joint replicates, 2000 band-selection paired replicates, 10 000 file-level
++replicates, 400 block-variance-curve replicates.
++
++## 6. What each verdict will say
++
++| verdict | contrast(s) | declared decision rule |
++|---|---|---|
++| limited recovery | Δ(zero, band-EMPCA) **and** Δ(cal-mean, band-EMPCA) | both point estimates favour EMPCA, both 95 % equal-file intervals exclude zero, Holm-adjusted p < 0.05, dependence not inconclusive |
++| denoising benefit | Δ(bin read, band-EMPCA) | as above for the single contrast |
++| metric contribution | Δ(band-PCA, band-EMPCA) at B = 9 | as above |
++
++Because the frozen dependence verdict **is** inconclusive, every one of the
++three will be reported as `inconclusive` whatever the estimates show.  That is
++the declared rule applying as written, decided before the hold-out was opened,
++and it is not revisited after the fact.  Registered directions: bin read ≈
++quadrature OF ≈ Wiener; band-EMPCA better than band-PCA; **no direction is
++registered for band-EMPCA against the bin read** — that remains the open
++question.
++
++## 7. What a failed validation does not permit
++
++A failed validation does not permit retuning the band, the block lengths, the
++estimators or the criterion on those outcomes.  Crashes and retries are logged
++separately from statistical evaluations; the final test is executed once.
++
+-- 
+2.43.7
+

@@ -1,0 +1,62 @@
+From 6fbde0caca7623f2b044d61001e785fbf186fa9f Mon Sep 17 00:00:00 2001
+From: dwong <dowling.wong@kit.edu>
+Date: Fri, 11 Sep 2026 21:59:24 +0200
+Subject: [PATCH 7/7] handoff: point at the committed transfer package and the
+ pushed branches
+
+The return package moves from the loose server directory
+/ceph/dwong/mlst_upgrade_return_20260911/ into the experiment repository at
+transfer/mlst_upgrade_return_2026-09-11/.  Both branches are on their remotes, so
+the bundles and patches inside it are a redundant offline fallback rather than
+the transfer mechanism; the fetch commands are given, and the package's own
+snapshot semantics (one commit behind each tip) are stated.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01U6mbPSodUAc4RGoW72AUg7
+---
+ reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md | 22 +++++++++++++++++---
+ 1 file changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md b/reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md
+index aa49c08..42adf67 100644
+--- a/reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md
++++ b/reviews/REMOTE_UPGRADE_HANDOFF_2026-09-11.md
+@@ -478,9 +478,17 @@ These are mine to raise, not to settle.
+ 
+ ## 8. Synchronization inventory — both repositories
+ 
+-A private transfer package is at **`/ceph/dwong/mlst_upgrade_return_20260911/`**
+-(43 MB, `SHA256SUMS` inside, `README.md` with apply instructions). It is
+-**not** an arXiv release package.
++The private transfer package is committed into the experiment repository at
++**`EXP:transfer/mlst_upgrade_return_2026-09-11/`** (`SHA256SUMS` inside,
++`README.md` with apply instructions). It is **not** an arXiv release package.
++
++**Both branches are on their remotes**, so the bundles and patches below are a
++redundant offline fallback rather than the transfer mechanism:
++
++```bash
++git -C <MS>  fetch origin upgrade/remote-2026-09-11 && git -C <MS>  checkout upgrade/remote-2026-09-11
++git -C <EXP> fetch origin mlst/t22-2026-09-11       && git -C <EXP> checkout mlst/t22-2026-09-11
++```
+ 
+ | file | bytes | what |
+ |---|---|---|
+@@ -492,6 +500,14 @@ A private transfer package is at **`/ceph/dwong/mlst_upgrade_return_20260911/`**
+ | `pdfs/main_mlst.pdf` | 26 pp | MLST main paper |
+ | `pdfs/supplement_mlst.pdf` | 50 pp | MLST technical supplement |
+ | `pdfs/supplement_configuration.pdf` | 15 pp | configuration inventory |
++| `REMOTE_UPGRADE_HANDOFF_2026-09-11.md` | — | a copy of this document |
++
++The two bundle files and the two patch directories are a **snapshot taken before
++the commit that added the package to the experiment repository**, so each is one
++commit behind its branch tip; the branches themselves on the remotes are
++authoritative. The patch directories (31.6 MB of the package) duplicate the
++bundles, which duplicate the repositories; they can be deleted without losing
++anything now that both branches are pushed.
+ 
+ ### Everything scientific is inside Git — deliberately
+ 
+-- 
+2.43.7
+

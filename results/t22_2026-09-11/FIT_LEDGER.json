@@ -1,0 +1,147 @@
+{
+  "audit": {
+    "built_by": "t22_tidmad_narrowband --stage audit-budget",
+    "development_rescore_checks": [
+      {
+        "earlier": "T22_development_v1/t22_development.json",
+        "identical": true,
+        "later": "T22_development_v2/t22_development.json",
+        "values_compared": 968
+      }
+    ],
+    "note": "reconstructed after the fact from the archived stage outputs; nothing was re-run. executed_total counts every fit executed, deterministic re-scores included; unique_scientific_total leaves them out.",
+    "outputs_verified_against_results_sha256": 8,
+    "protocol_file": "/ceph/dwong/arXiv-v1-polished-extended-preprint/plan/mlst_protocol_2026-09-11-t22-stage0.json",
+    "protocol_sha256": "843a71742fa81872284fa73f8c22b5beda90b3a553c9d2f9ddc125ddaffe1b85",
+    "recorded_utc": "2026-09-11T20:59:13Z",
+    "results_root": "results/t22_2026-09-11",
+    "runner_git_commit": "9517fb025e65c9c04001e5c13b67835f84397f99",
+    "runner_git_tree_dirty": true
+  },
+  "counting_convention": "one estimator instantiated on one (stretch, band) cell; the eight declared estimators are counted per cell, as in the T10-T12 accounting",
+  "entries": [
+    {
+      "fits_executed": 0,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_characterize_v1",
+      "output_file": "t22_characterize.json",
+      "output_finished_utc": "2026-09-11T16:12:41Z",
+      "output_sha256": "2a361343bec81dcb7bd437548e49268c2a13e27b8578f89b49270b7e186f4db7",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "characterize"
+    },
+    {
+      "fits_executed": 176,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_development_v1",
+      "output_file": "t22_development.json",
+      "output_finished_utc": "2026-09-11T16:15:13Z",
+      "output_sha256": "92371aa5d9583e1c72eea25ae3d8846a7544bac9a822d397ee33aaed11a6ce4f",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "development"
+    },
+    {
+      "deterministic_rescore_of": "T22_development_v1/t22_development.json",
+      "fits_executed": 176,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_development_v2",
+      "output_file": "t22_development.json",
+      "output_finished_utc": "2026-09-11T16:20:22Z",
+      "output_sha256": "294cce2a8b13aef16e5da121b1ef6020f572647c07d42cd41ce7329876a7749e",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "rescore_comparison": {
+        "fields": [
+          "mean_delta_squared",
+          "ci95_lo",
+          "ci95_hi",
+          "bootstrap_sd"
+        ],
+        "identical": true,
+        "values_compared": 968
+      },
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "development"
+    },
+    {
+      "fits_executed": 0,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_freeze_v1",
+      "output_file": "t22_freeze.json",
+      "output_finished_utc": "2026-09-11T16:21:56Z",
+      "output_sha256": "a05f062ab059a5ff0a549c1bb67778dd2c8f19879d848d616773d2eb017e02ac",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "freeze"
+    },
+    {
+      "fits_executed": 24,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_validation_v1",
+      "output_file": "t22_validation.json",
+      "output_finished_utc": "2026-09-11T16:24:15Z",
+      "output_sha256": "6632909421261fdad23a601ff82c44839101c65e682bbc1702875b148ccb75ff",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "validation"
+    },
+    {
+      "fits_executed": 40,
+      "git_commit": "a7125ea27890bf51d190087b0b03fac17d9653e2",
+      "git_tree_dirty": true,
+      "output_dir": "T22_final_test_v1",
+      "output_file": "t22_final-test.json",
+      "output_finished_utc": "2026-09-11T16:25:38Z",
+      "output_sha256": "ce5fc6422002fbd5391970161ac79910d48ae113df803b9c6f4a49d2b6533c31",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "final-test"
+    },
+    {
+      "fits_executed": 0,
+      "git_commit": "928715ad1cef370951806f141fa110276afa149b",
+      "git_tree_dirty": true,
+      "output_dir": "T22_validation_v2",
+      "output_file": "t22_recombine.json",
+      "output_finished_utc": "2026-09-11T16:35:11Z",
+      "output_sha256": "3cfb771d76c627a71486db5fd4e3cf1cacb3696b84bdca7d511438692d5798ae",
+      "recombined_stage": "validation",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "recombine"
+    },
+    {
+      "fits_executed": 0,
+      "git_commit": "928715ad1cef370951806f141fa110276afa149b",
+      "git_tree_dirty": true,
+      "output_dir": "T22_final_test_v2",
+      "output_file": "t22_recombine.json",
+      "output_finished_utc": "2026-09-11T16:35:32Z",
+      "output_sha256": "453f6a6c9d28eef9ac7a0a4f092f27cc25f9302f52ae28a3cf945d20568adb98",
+      "recombined_stage": "final-test",
+      "recorded_utc": "2026-09-11T20:59:13Z",
+      "results_sha256_verified": true,
+      "smoke": false,
+      "stage": "recombine"
+    }
+  ],
+  "executed_total": 416,
+  "executed_total_exceeds_cap": true,
+  "hard_cap": 250,
+  "schema": "mlst-t22-fit-ledger/1",
+  "smoke_executed_total": 0,
+  "unique_scientific_total": 240
+}

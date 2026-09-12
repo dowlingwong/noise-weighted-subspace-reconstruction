@@ -83,6 +83,7 @@ being loaded; a short block reaching the scorer anyway is an integrity error.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -1384,6 +1385,75 @@ def _write_ledger(path, ledger: dict, *, exclusive: bool = False) -> None:
     os.replace(tmp, path)
 
 
+def reservations_path_for(ledger_path, explicit=None) -> Path:
+    """The reservation store: ``--reservations`` if given, else beside the ledger."""
+    return Path(explicit) if explicit else Path(ledger_path).parent / fa.RESERVATION_NAME
+
+
+def stage_exposure(P: Protocol, stage: str, files=None) -> list:
+    """The instrument files and sample regions the stage's allocation permits it.
+
+    Recorded on the reservation *before* the stage runs, so what a run was
+    allowed to touch is auditable independently of what it did touch.  See
+    :func:`fit_accounting.attach_exposure` for what this record does and does not
+    do.
+    """
+    if stage == "development":
+        targets = [(f, int(s)) for f, s in P.dev]
+    elif stage in HOLDOUT_STAGES:
+        targets = [(f, int(P.holdout_start)) for f in (files or [])]
+    else:
+        targets = []
+    return [{"dataset_id": f, "region": {"start_sample": s, "n_samples": int(P.stretch),
+                                         "end_sample_exclusive": s + int(P.stretch)},
+             "note": f"{stage}: declared allocation"} for f, s in targets]
+
+
+def reserve_stage_fits(P: Protocol, ledger_path, stage: str, planned: int, *, scan_dirs,
+                       reservations_path=None, smoke=False, files=None, meta=None) -> dict:
+    """Mint the reservation that pays for this stage, before it reads anything.
+
+    Called after the freeze binding and the budget pre-flight and *before* the
+    first instrument byte -- before the science files are even hashed.  Three
+    things happen here that the pre-flight alone cannot do:
+
+    * a ``running`` reservation whose owning process is gone is swept to
+      ``interrupted`` first.  It keeps its charge: the compute it spent before
+      dying is spent, so a retry adds to the total instead of resetting it.
+    * the cap is re-tested **under the store's exclusive lock**, against the
+      deduplicated union of completed executions plus every open charge.  Two
+      runners launched at once therefore cannot both see the same room: whoever
+      takes the lock second sees the first one's reservation already charged.
+    * the stage's planned fits become visible to every other process the moment
+      they are reserved, so a crash between here and the ledger append leaves the
+      compute charged rather than invisible.
+
+    Returns the reservation; raises ``SystemExit`` if it does not fit.
+    """
+    res_path = reservations_path_for(ledger_path, reservations_path)
+    if res_path.is_file():
+        swept = fa.sweep_interrupted(res_path)
+        if swept["swept"]:
+            print(f"  [reservation] swept {len(swept['swept'])} abandoned reservation(s) to "
+                  f"interrupted; their charge is kept: {_clip(swept['swept'], 4)}")
+        if swept["unverifiable"]:
+            print(f"  [reservation] {len(swept['unverifiable'])} running reservation(s) are "
+                  f"owned by another host and cannot be probed from here; still charged")
+    ledger = load_ledger(ledger_path, P)
+    scan = scan_executed_fits(scan_dirs)
+    reservations = fa.load_reservations(res_path, cap=P.cap)
+    union = fa.union_executed(ledger, scan, ledger_path=ledger_path, reservations=reservations)
+    spent = max(union["executed"], ledger["executed_total"] if ledger else 0,
+                scan["executed_total"])
+    row = fa.reserve(res_path, P.cap, planned, meta or {}, stage=stage, spent=spent,
+                     smoke=bool(smoke), config_id=f"t22:{stage}",
+                     exposure=stage_exposure(P, stage, files))
+    print(f"  [reservation] {stage} reserved {planned} fit(s) as {row['uuid']} in {res_path} "
+          f"(completed {spent} charged before this one: {row['charged_before']}, cap {P.cap}"
+          f"{'; smoke, exempt' if smoke else ''})")
+    return row
+
+
 def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, *,
                             scan_dirs, reservations_path=None) -> dict:
     """Refuse a stage whose planned fits would take the cumulative total past the cap.
@@ -1401,8 +1471,7 @@ def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, 
     ledger = load_ledger(ledger_path, P)
     ledger_total = ledger["executed_total"] if ledger is not None else None
     scan = scan_executed_fits(scan_dirs)
-    res_path = (Path(reservations_path) if reservations_path
-                else Path(ledger_path).parent / fa.RESERVATION_NAME)
+    res_path = reservations_path_for(ledger_path, reservations_path)
     reservations = fa.load_reservations(res_path, cap=P.cap)
     union = fa.union_executed(ledger, scan, ledger_path=ledger_path,
                               reservations=reservations)
@@ -1433,6 +1502,7 @@ def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, 
                 "charged", "duplicates_merged", "ledger_only", "scan_only",
                 "seen_by_both")},
             "reservation_store": str(res_path) if reservations is not None else None,
+            "completed_executed_before": int(max(union["executed"], floor)),
             "legacy_max_floor": int(floor)}
 
 
@@ -1473,17 +1543,35 @@ def ledger_entry(stage: str, out_dir, output_file: str, output_sha256: str, js: 
              "recorded_utc": recorded_utc or _utc_now()}
     if stage == "recombine":
         entry["recombined_stage"] = js.get("stage")
+    uid = fa.uuid_in_output(js)
+    if uid:
+        # the reservation this output was executed under: the one identity that
+        # survives the output being moved, rewritten or produced in duplicate
+        entry["reservation_uuid"] = uid
     return entry
 
 
 def record_in_ledger(ledger_path, P: Protocol, entry: dict) -> dict:
-    """Append one stage's entry and rewrite the totals (atomic replace)."""
-    ledger = load_ledger(ledger_path, P)
-    if ledger is None:
-        ledger = {"schema": LEDGER_SCHEMA, "hard_cap": P.cap,
-                  "counting_convention": P.raw["budget"]["fit_definition"], "entries": []}
-    ledger["entries"].append(entry)
-    _write_ledger(ledger_path, _ledger_totals(ledger))
+    """Append one stage's entry and rewrite the totals, under an exclusive lock.
+
+    The append is a read-modify-write: load the ledger, add an entry, replace the
+    file.  Unlocked, two stages completing at the same moment both read the same
+    ledger, both append their own entry and the second replace wins -- the first
+    entry, and every fit it recorded, is gone from the cap.  ``os.replace`` makes
+    each write atomic but does nothing about the interleaving.  The whole cycle
+    now runs inside ``fit_accounting.locked``, the same advisory lock the
+    reservation store takes, so completions serialise against each other.
+
+    The lock binds processes that take it -- this runner -- and nothing else: a
+    hand-edit of the ledger while a stage is completing is still a lost update.
+    """
+    with fa.locked(ledger_path):
+        ledger = load_ledger(ledger_path, P)
+        if ledger is None:
+            ledger = {"schema": LEDGER_SCHEMA, "hard_cap": P.cap,
+                      "counting_convention": P.raw["budget"]["fit_definition"], "entries": []}
+        ledger["entries"].append(entry)
+        _write_ledger(ledger_path, _ledger_totals(ledger))
     return ledger
 
 
@@ -1709,125 +1797,157 @@ def main(argv=None) -> int:
               "not counted against the cap")
     require_ledger_beside_outputs(ledger_path, scan_dirs, args.stage)
 
-    data_root = Path(args.data_root)
-    # Recombination uses archived summaries and draws only, including provenance.
-    if args.stage != "recombine":
-        for p in _science_paths(data_root)[:2]:
-            rec.add_input("science_noise", p)
+    # --- the reservation: minted before the first instrument byte -------------
+    # Nothing above this line has opened a data file; the science-file digests,
+    # noise_bin_power, load_stretch and every estimator call are below it.  A
+    # stage that fits nothing (characterize, freeze, recombine) has no planned
+    # count and reserves nothing.
+    res_path = reservations_path_for(ledger_path, args.reservations)
+    reservation = None
+    if planned is not None:
+        reservation = reserve_stage_fits(
+            P, ledger_path, args.stage, planned, scan_dirs=scan_dirs,
+            reservations_path=args.reservations, smoke=args.smoke, files=files,
+            meta={"out": str(out_dir), "argv": sys.argv[1:]})
 
-    if args.stage == "characterize":
-        payload.update(stage_characterize(args, P, rec))
+    # pending -> running for the whole execution; an exception of any kind (a
+    # refusal, a crash, a signal that unwinds) marks it failed, and failed is
+    # never refunded.  A death that unwinds nothing leaves it running, and the
+    # next launch sweeps it to interrupted -- still charged either way.
+    scope = (fa.running(res_path, reservation["uuid"]) if reservation is not None
+             else contextlib.nullcontext())
+    with scope:
+        data_root = Path(args.data_root)
+        # Recombination uses archived summaries and draws only, including provenance.
+        if args.stage != "recombine":
+            for p in _science_paths(data_root)[:2]:
+                rec.add_input("science_noise", p)
 
-    elif args.stage == "development":
-        rec.add_input("characterisation", Path(args.characterisation))
-        payload.update(stage_development(args, P, rec, chars))
+        if args.stage == "characterize":
+            payload.update(stage_characterize(args, P, rec))
 
-    elif args.stage == "freeze":
-        devj = json.loads(Path(args.development).read_text())
-        chj = json.loads(Path(args.characterisation).read_text())
-        rec.add_input("development", Path(args.development))
-        rec.add_input("characterisation", Path(args.characterisation))
-        sel = devj["band_selection"]
-        agg, agg_cal = devj["dependence_aggregate"], devj["dependence_aggregate_calibration"]
-        chars = chj["characterisation"]
-        eligible = [f for f in P.holdout_files
-                    if chars.get(f, {}).get("outcome") == "eligible-coupled"]
-        validation = eligible[:3]
-        final_test = [f for f in P.holdout_files if f not in validation]
-        status = "complete" if len(validation) == 3 else ("underpowered" if validation else "empty")
-        payload["frozen"] = {
-            "selected_band": sel.get("selected_band"),
-            "disposition": sel.get("disposition"),
-            "band_selection": sel,
-            "rank": P.rank, "window_samples": P.w, "methods": list(P.methods),
-            "contrasts": [list(c) for c in P.contrasts],
-            "endpoint": P.raw["unchanged_from_t10_t12"]["endpoint"],
-            "block_length_evaluation": int(agg["selection"]["block_length"]),
-            "block_length_calibration": int(agg_cal["selection"]["block_length"]),
-            "dependence_verdict": agg["selection"]["verdict"],
-            "dependence_aggregate": agg, "dependence_aggregate_calibration": agg_cal,
-            "bootstrap_replicates": P.boot_replicates, "bootstrap_seed": P.boot_seed,
-            "file_level_replicates": P.file_replicates, "file_level_seed": P.file_seed,
-            "holdout_start_sample": P.holdout_start,
-            "validation_files": validation, "final_test_files": final_test,
-            "n_eligible_coupled_holdout_files": len(eligible),
-            "eligible_holdout_files": eligible,
-            "validation_status": status,
-            "positive_verdict_permitted": status != "empty" and sel.get("selected_band") is not None,
-            "development_fit_count": devj.get("fit_count"),
-            "stage0_protocol": P.raw,
-        }
-        payload["frozen"]["input_hashes"] = {
-            r["role"] + ":" + Path(r["path"]).name: r.get("sha256")
-            for r in rec.inputs if r.get("sha256")}
-
-    elif args.stage == "recombine":
-        # Deterministic post-processing of an archived hold-out stage: the
-        # per-file results and their bootstrap draw arrays are read back and the
-        # combined block is recomputed.  No data file is opened and no estimator
-        # is fitted, so this is not a second evaluation of the hold-out; the
-        # original stage output is left untouched and both versions are kept.
-        # Everything read here was bound above: the stage output and draws match
-        # their RESULTS_SHA256, the output was produced under this freeze, and the
-        # protocol is the frozen one or differs only by registered amendments.
-        src, fz = loaded["stage_output"], loaded["frozen"]
-        rec.add_input("stage_output", Path(args.stage_output))
-        rec.add_input("draws", Path(args.draws))
-        rec.add_input("freeze", Path(args.freeze_file))
-        if args.characterisation:
+        elif args.stage == "development":
             rec.add_input("characterisation", Path(args.characterisation))
-        for a in payload["freeze_binding"]["amendments_applied"]:
-            rec.add_input("amendment", Path(a["file"]))
-        label = src["stage"]
-        arrays = np.load(args.draws)
-        per = src[label]["per_file"]
-        for name, r in per.items():
-            r["_draws"] = {f"{a}|{b}": np.asarray(arrays[f"{name}|{a}|{b}"])
-                           for (a, b) in P.contrasts if f"{name}|{a}|{b}" in arrays}
-        summary = combine_stage(per, P, fz.get("dependence_verdict", "inconclusive"))
-        for r in per.values():
-            r.pop("_draws", None)
-        payload[label] = {"per_file": per,
-                          "files_evaluated": src[label]["files_evaluated"],
-                          "fit_count": src[label]["fit_count"],
-                          "recombined_from": str(Path(args.stage_output).name),
-                          "fits_performed": 0, **summary}
-        payload["stage"] = label
+            payload.update(stage_development(args, P, rec, chars))
 
-    elif args.stage in HOLDOUT_STAGES:
-        # Bound in the pre-flight: the protocol, the freeze and the characterisation
-        # are the frozen ones, and the cumulative budget has room for ``files``.
-        fz, chars = loaded["frozen"], loaded["characterisation"]
-        rec.add_input("freeze", Path(args.freeze_file))
-        rec.add_input("characterisation", Path(args.characterisation))
-        if not files:
-            payload[args.stage] = {"per_file": {}, "files_evaluated": [], "fit_count": 0,
-                                   "note": "empty file list; " + fz.get("validation_status", "")}
-        else:
-            stage_payload, draws = stage_evaluate(args, P, rec, fz, files, args.stage, chars)
-            payload.update(stage_payload)
+        elif args.stage == "freeze":
+            devj = json.loads(Path(args.development).read_text())
+            chj = json.loads(Path(args.characterisation).read_text())
+            rec.add_input("development", Path(args.development))
+            rec.add_input("characterisation", Path(args.characterisation))
+            sel = devj["band_selection"]
+            agg, agg_cal = devj["dependence_aggregate"], devj["dependence_aggregate_calibration"]
+            chars = chj["characterisation"]
+            eligible = [f for f in P.holdout_files
+                        if chars.get(f, {}).get("outcome") == "eligible-coupled"]
+            validation = eligible[:3]
+            final_test = [f for f in P.holdout_files if f not in validation]
+            status = "complete" if len(validation) == 3 else ("underpowered" if validation else "empty")
+            payload["frozen"] = {
+                "selected_band": sel.get("selected_band"),
+                "disposition": sel.get("disposition"),
+                "band_selection": sel,
+                "rank": P.rank, "window_samples": P.w, "methods": list(P.methods),
+                "contrasts": [list(c) for c in P.contrasts],
+                "endpoint": P.raw["unchanged_from_t10_t12"]["endpoint"],
+                "block_length_evaluation": int(agg["selection"]["block_length"]),
+                "block_length_calibration": int(agg_cal["selection"]["block_length"]),
+                "dependence_verdict": agg["selection"]["verdict"],
+                "dependence_aggregate": agg, "dependence_aggregate_calibration": agg_cal,
+                "bootstrap_replicates": P.boot_replicates, "bootstrap_seed": P.boot_seed,
+                "file_level_replicates": P.file_replicates, "file_level_seed": P.file_seed,
+                "holdout_start_sample": P.holdout_start,
+                "validation_files": validation, "final_test_files": final_test,
+                "n_eligible_coupled_holdout_files": len(eligible),
+                "eligible_holdout_files": eligible,
+                "validation_status": status,
+                "positive_verdict_permitted": status != "empty" and sel.get("selected_band") is not None,
+                "development_fit_count": devj.get("fit_count"),
+                "stage0_protocol": P.raw,
+            }
+            payload["frozen"]["input_hashes"] = {
+                r["role"] + ":" + Path(r["path"]).name: r.get("sha256")
+                for r in rec.inputs if r.get("sha256")}
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    payload["provenance"] = rec.finalize()
-    name = f"t22_{args.stage}.json"
-    digest = write_json(out_dir / name, payload)
-    lines = [f"{digest}  {name}"]
-    if draws:
-        npz = out_dir / f"t22_{args.stage}_draws.npz"
-        np.savez_compressed(npz, **draws)
-        lines.append(f"{hashlib.sha256(npz.read_bytes()).hexdigest()}  {npz.name}")
-        print(f"[T22/{args.stage}] wrote {npz} ({len(draws)} arrays)")
-    (out_dir / "RESULTS_SHA256").write_text("\n".join(lines) + "\n")
-    print(f"[T22/{args.stage}] wrote {out_dir}/{name} sha256={digest}")
+        elif args.stage == "recombine":
+            # Deterministic post-processing of an archived hold-out stage: the
+            # per-file results and their bootstrap draw arrays are read back and the
+            # combined block is recomputed.  No data file is opened and no estimator
+            # is fitted, so this is not a second evaluation of the hold-out; the
+            # original stage output is left untouched and both versions are kept.
+            # Everything read here was bound above: the stage output and draws match
+            # their RESULTS_SHA256, the output was produced under this freeze, and the
+            # protocol is the frozen one or differs only by registered amendments.
+            src, fz = loaded["stage_output"], loaded["frozen"]
+            rec.add_input("stage_output", Path(args.stage_output))
+            rec.add_input("draws", Path(args.draws))
+            rec.add_input("freeze", Path(args.freeze_file))
+            if args.characterisation:
+                rec.add_input("characterisation", Path(args.characterisation))
+            for a in payload["freeze_binding"]["amendments_applied"]:
+                rec.add_input("amendment", Path(a["file"]))
+            label = src["stage"]
+            arrays = np.load(args.draws)
+            per = src[label]["per_file"]
+            for name, r in per.items():
+                r["_draws"] = {f"{a}|{b}": np.asarray(arrays[f"{name}|{a}|{b}"])
+                               for (a, b) in P.contrasts if f"{name}|{a}|{b}" in arrays}
+            summary = combine_stage(per, P, fz.get("dependence_verdict", "inconclusive"))
+            for r in per.values():
+                r.pop("_draws", None)
+            payload[label] = {"per_file": per,
+                              "files_evaluated": src[label]["files_evaluated"],
+                              "fit_count": src[label]["fit_count"],
+                              "recombined_from": str(Path(args.stage_output).name),
+                              "fits_performed": 0, **summary}
+            payload["stage"] = label
 
-    # Every stage output enters the ledger (smoke runs flagged and totalled apart),
-    # and the totals are recomputed from the entries.
-    entry = ledger_entry(args.stage, out_dir, name, digest, payload, ledger_path.parent)
-    ledger = record_in_ledger(ledger_path, P, entry)
-    print(f"[T22/{args.stage}] ledger {ledger_path}: +{entry['fits_executed']} fit(s)"
-          f"{' (smoke, counted separately)' if entry['smoke'] else ''}; executed total "
-          f"{ledger['executed_total']} against the hard cap {P.cap}")
-    return 0
+        elif args.stage in HOLDOUT_STAGES:
+            # Bound in the pre-flight: the protocol, the freeze and the characterisation
+            # are the frozen ones, and the cumulative budget has room for ``files``.
+            fz, chars = loaded["frozen"], loaded["characterisation"]
+            rec.add_input("freeze", Path(args.freeze_file))
+            rec.add_input("characterisation", Path(args.characterisation))
+            if not files:
+                payload[args.stage] = {"per_file": {}, "files_evaluated": [], "fit_count": 0,
+                                       "note": "empty file list; " + fz.get("validation_status", "")}
+            else:
+                stage_payload, draws = stage_evaluate(args, P, rec, fz, files, args.stage, chars)
+                payload.update(stage_payload)
+
+        out_dir.mkdir(parents=True, exist_ok=True)
+        # the reservation uuid travels inside the output's own provenance: the
+        # one identity that survives the file being moved or rewritten
+        payload["provenance"] = rec.finalize(
+            {fa.PROVENANCE_KEY: fa.reservation_provenance(reservation)}
+            if reservation is not None else None)
+        name = f"t22_{args.stage}.json"
+        digest = write_json(out_dir / name, payload)
+        lines = [f"{digest}  {name}"]
+        if draws:
+            npz = out_dir / f"t22_{args.stage}_draws.npz"
+            np.savez_compressed(npz, **draws)
+            lines.append(f"{hashlib.sha256(npz.read_bytes()).hexdigest()}  {npz.name}")
+            print(f"[T22/{args.stage}] wrote {npz} ({len(draws)} arrays)")
+        (out_dir / "RESULTS_SHA256").write_text("\n".join(lines) + "\n")
+        print(f"[T22/{args.stage}] wrote {out_dir}/{name} sha256={digest}")
+
+        # Every stage output enters the ledger (smoke runs flagged and totalled apart),
+        # and the totals are recomputed from the entries.
+        entry = ledger_entry(args.stage, out_dir, name, digest, payload, ledger_path.parent)
+        ledger = record_in_ledger(ledger_path, P, entry)
+        print(f"[T22/{args.stage}] ledger {ledger_path}: +{entry['fits_executed']} fit(s)"
+              f"{' (smoke, counted separately)' if entry['smoke'] else ''}; executed total "
+              f"{ledger['executed_total']} against the hard cap {P.cap}")
+
+        if reservation is not None:
+            # running -> completed, carrying what actually ran and the digest of
+            # the output it paid for
+            fa.mark_completed(res_path, reservation["uuid"], entry["fits_executed"],
+                              out_dir / name, output_sha256=digest, inference_only=False)
+            print(f"[T22/{args.stage}] reservation {reservation['uuid']} completed: "
+                  f"{entry['fits_executed']} fit(s) executed of {planned} planned")
+        return 0
 
 
 if __name__ == "__main__":

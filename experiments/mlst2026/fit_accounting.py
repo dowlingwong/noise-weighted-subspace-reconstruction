@@ -77,9 +77,13 @@ Limits -- do not overstate these
   on the same filesystem.  It serialises nothing against a process that edits the
   store by hand, and ``flock`` is advisory and unreliable on some network
   filesystems.
-* Nothing here makes the *completed-output* path crash-safe or concurrency-safe.
-  Only the reservation store is locked; the fit ledger's own append is still the
-  runner's single-writer ``os.replace``.
+* The lock makes two *cooperating* runners serialise.  It does nothing about a
+  process that writes the ledger or the store without taking it -- a hand-edit,
+  another tool -- and it cannot make a stage that never reserved visible before
+  its output exists.
+* Nothing here is crash-*safe* in the sense of losing no work: a stage that dies
+  mid-fit loses its fits.  What is guaranteed is that the compute it spent stays
+  charged, so a retry adds to the expenditure instead of resetting it.
 """
 from __future__ import annotations
 
@@ -431,7 +435,16 @@ def union_executed(ledger=None, scan=None, *, ledger_path=None, reservations=Non
             seen.add(r["config_id"])
             configs.append(r["config_id"])
 
-    open_fits = sum(_reservation_charge(r) for r in open_reservations)
+    # An open reservation whose output nevertheless landed is already counted by
+    # the record that carries its uuid; it holds only the remainder.  Without
+    # this, one execution that died between writing its output and completing its
+    # reservation would be charged twice.
+    counted = {r["execution_id"]: r["fits"] for r in real}
+
+    def _open_charge(r):
+        return max(0, _reservation_charge(r) - counted.get(f"r:{r.get('uuid')}", 0))
+
+    open_fits = sum(_open_charge(r) for r in open_reservations)
     return {
         "records": records,
         "executed": int(executed),
@@ -444,7 +457,8 @@ def union_executed(ledger=None, scan=None, *, ledger_path=None, reservations=Non
         "smoke_executed": int(smoke_executed),
         "reserved_open_fits": int(open_fits),
         "open_reservations": [{"uuid": r.get("uuid"), "state": r.get("state"),
-                               "stage": r.get("stage"), "charge": _reservation_charge(r)}
+                               "stage": r.get("stage"), "charge": _open_charge(r),
+                               "reserved": _reservation_charge(r)}
                               for r in open_reservations],
         "charged": int(executed + open_fits),
         "source_records": counts,
@@ -736,6 +750,31 @@ def mark_running(path, uid, *, pid=None, now=None):
     return _transition(path, uid, "running", allowed=("pending", "running"), now=now,
                        pid=pid, hostname=socket.gethostname(),
                        pid_start_ticks=_proc_start_ticks(pid))
+
+
+@contextlib.contextmanager
+def running(path, uid, *, now=None):
+    """Hold a reservation ``running`` for the duration of its compute.
+
+    Enter: ``pending`` -> ``running``, recording this process as the owner.  Any
+    exception -- an ordinary error, a refusal, a signal that unwinds -- leaves
+    it ``failed``, which is charged and never refunded, and then propagates
+    unchanged.  Leaving without an exception leaves it ``running``: the caller
+    marks it ``completed`` once the output it paid for is on disk.
+
+    A death that unwinds nothing (SIGKILL, a node going away) runs no handler at
+    all.  The reservation stays ``running``, which is still charged, until
+    :func:`sweep_interrupted` finds the owning process gone.
+    """
+    mark_running(path, uid, now=now)
+    try:
+        yield uid
+    except BaseException as exc:                    # noqa: BLE001 - re-raised below
+        try:
+            mark_failed(path, uid, f"{type(exc).__name__}: {exc}"[:500])
+        except BaseException:                       # pragma: no cover - never mask
+            pass
+        raise
 
 
 def heartbeat(path, uid, now=None):

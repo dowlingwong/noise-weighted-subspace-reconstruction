@@ -1380,7 +1380,7 @@ def _write_ledger(path, ledger: dict, *, exclusive: bool = False) -> None:
         with open(path, "x") as fh:          # never overwrite, not even under a race
             fh.write(data)
         return
-    tmp = path.with_name(path.name + ".tmp")
+    tmp = path.with_name(f".{path.name}.tmp.{os.getpid()}")
     tmp.write_text(data)
     os.replace(tmp, path)
 

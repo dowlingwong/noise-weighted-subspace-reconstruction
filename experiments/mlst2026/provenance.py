@@ -7,6 +7,7 @@ SHA-256 digests, the exact argv, the seeds and the wall-clock/resource cost.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -130,9 +131,22 @@ class RunRecorder:
 
 
 def write_json(path: str | os.PathLike[str], payload: dict) -> str:
-    """Write JSON deterministically and return the SHA-256 of the bytes."""
+    """Write JSON deterministically and return the SHA-256 of the bytes.
+
+    The write goes to a temporary file in the same directory and is moved into
+    place with ``os.replace``, so a concurrent reader -- the fit-budget scan that
+    reads every stage output under a run tree, for one -- sees either no file or
+    the whole file, never a half-written one.
+    """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     data = json.dumps(payload, indent=2, sort_keys=True, default=str).encode()
-    p.write_bytes(data)
+    tmp = p.with_name(f".{p.name}.tmp.{os.getpid()}")
+    try:
+        tmp.write_bytes(data)
+        os.replace(tmp, p)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+        raise
     return sha256_bytes(data)

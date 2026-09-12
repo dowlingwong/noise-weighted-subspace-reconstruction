@@ -1,0 +1,171 @@
+{
+  "schema": "mlst-local-package/1",
+  "package": "t21s",
+  "version": "v2-2026-09-13",
+  "title": "T21-S: independent geometry and excitation -- does the post-hoc spike/loadings explanation predict per-direction recovery?",
+  "status": "configured (local build; nothing executed; no outcome exists)",
+  "work_package": "L3 of plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md",
+
+  "question": "On an independent synthetic geometry (planted unit directions in whitened R^d with an orthogonal and a correlated Gram, Gaussian spiked signal covariance, identity noise, two aspect ratios gamma = d/N), does the frozen isolated-spike-times-loadings predictor reproduce the rank-k PCA recovery of each planted direction, and does unique-component recovery separate a direction's own excitation from its overlap with other excited directions?",
+
+  "hypotheses": [
+    "H1 (predictor, primary): for every confirmation configuration and direction classified 'primary' (no population spike carrying >= 0.05 of the direction lies in the BBP band 0.7 <= theta/sqrt(gamma) <= 1.8), the seed-mean ordinary recovery ||P u_j||^2/||u_j||^2 lies within 0.05 (absolute) of the frozen prediction sum_i loading^2(j,i) c^2(theta_i, gamma), in BOTH geometry arms and BOTH aspect ratios.",
+    "H1' (near-edge, secondary): configurations/directions classified 'near_edge' agree within 0.10 (finite-d corrections of the asymptotic overlap formula are largest at the transition; reported, not decisive).",
+    "H2 (overlap confound made explicit): in the correlated arm with the varied direction at theta_j = 0, ordinary recovery of u_j is predicted and observed well above chance while unique-component recovery of u_j^perp is at chance; in the orthogonal arm the two recoveries coincide identically.",
+    "H0 (all-zero control): with K = 0 the mean recovery equals the chance level k/d within z = 5 standard errors of the exact Beta(k/2,(d-k)/2) law (a pipeline check, not a scientific hypothesis)."
+  ],
+
+  "independent_unit": "one seed = one independent training draw (N x J latent Gaussians and N x d noise Gaussians). Uncertainty for every reported mean is computed across seeds within a configuration, never across the coordinates or directions of one draw. Seeds are shared across configurations (the same seed gives the same underlying draw for every configuration with the same N and d), so contrasts between configurations are paired; no across-configuration independence is claimed.",
+
+  "estimands": {
+    "recovery": "||P u_j||^2 / ||u_j||^2 for the rank-k PCA projector P fitted on centred training data in whitened coordinates (noise covariance I, so whitening is the identity map); dimensionless in [0, 1]",
+    "unique_recovery": "||P u_j^perp||^2 / ||u_j^perp||^2 with u_j^perp = u_j projected off span{u_i : i != j}; undefined (null, flag unique_defined=false) when ||u_j^perp||^2/||u_j||^2 < 1e-3",
+    "predicted_recovery": "sum_i loading^2(j,i) c^2(theta_i, gamma) with c^2 = (1 - gamma/theta^2)/(1 + gamma/theta) for theta > sqrt(gamma) else 0, theta_i the excess population eigenvalues of the exact K, loading(j,i) = u_j . v_i; the same expression on the normalised u_j^perp gives predicted_unique_recovery",
+    "abs_error_of_mean": "|seed-mean recovery - predicted_recovery| per (configuration, direction); the scored quantity",
+    "chance_level": "k/d, the expectation of recovery for a Haar-random rank-k projector",
+    "population quantities": "theta, theta/sqrt(gamma), population excess eigenvalues of the exact K, c^2 per spike, loadings^2 -- all computed from the exact K, never from data"
+  },
+
+  "controls": [
+    "all_zero: K = 0 (pure noise) per geometry x aspect ratio; recovery must be at chance k/d in expectation (checked; refusal exit 4 if violated)",
+    "all_strong: every direction at theta = 3 sqrt(gamma) per geometry x aspect ratio (reference configuration; descriptive)",
+    "orthogonal geometry: unique-component recovery must equal ordinary recovery identically (checked per cell to 1e-9)",
+    "correlated geometry: ordinary and unique-component recovery are different observables (difference reported, not scored)",
+    "geometry invariants (algebraic cells): realised Gram equals the declared Gram to 1e-10, unit norms, frame orthonormality, Schur identity for unique norms, exact K spectrum equals the spectrum of diag(sqrt theta) G diag(sqrt theta)",
+    "predictor sanity (algebraic cell): c^2 = 0 at and below sqrt(gamma), monotone above, tends to 1 as theta -> infinity, never outside [0, 1]"
+  ],
+
+  "seed_namespaces": {
+    "development": [900000, 900999],
+    "pilot": [5000, 5099],
+    "confirmation": [6000, 6299]
+  },
+
+  "design": {
+    "d": 256,
+    "n_train": {"hi": 128, "lo": 1024},
+    "gamma_note": "gamma = d/N: 'hi' arm gamma = 2 (> 1), 'lo' arm gamma = 0.25 (< 1)",
+    "k": 4,
+    "n_directions": 4,
+    "learner": "rank-k closed-form PCA (SVD of the centred N x d training matrix, top-k right singular vectors); one fit per cell",
+    "geometry": {
+      "frame_seed": 20260913,
+      "construction": "Q = QR(Gaussian d x J, seed frame_seed, diag(R) > 0); U = Q L^T with G = L L^T (Cholesky); K = U diag(theta) U^T; noise N(0, I)",
+      "arms": ["orthogonal", "correlated"],
+      "gram": {
+        "orthogonal": [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]],
+        "correlated": [[1.0, 0.6, -0.4, 0.0], [0.6, 1.0, 0.0, 0.0], [-0.4, 0.0, 1.0, 0.3], [0.0, 0.0, 0.3, 1.0]]
+      },
+      "correlated_gram_facts": "off-diagonals <u1,u2> = 0.6, <u1,u3> = -0.4, <u3,u4> = 0.3, <u1,u4> = <u2,u3> = <u2,u4> = 0; eigenvalues 0.258, 0.758, 1.242, 1.742; unique-norm ratios 1/(G^-1)_jj = 0.464, 0.563, 0.660, 0.880 (all defined)",
+      "independence_from_archive": "no pulse family, no channel/temporal bases, no Jacobian columns, no AR(1)/Brownian covariance; the archived Gram (-0.652, 0.594, -0.368, -0.315) and spectrum (39.6, 15.1, 2.11, 0.54) are not reproduced"
+    },
+    "grid": {
+      "theta_over_sqrt_gamma": [0.0, 0.5, 1.0, 1.5, 2.0, 4.0],
+      "varied_directions": [0, 1, 2, 3],
+      "strong_ratio": 3.0,
+      "rule": "one direction varied at theta_j = ratio * sqrt(gamma), the other three held at theta = strong_ratio * sqrt(gamma); strong_ratio = 3 is not a grid point so no grid cell duplicates the all_strong control",
+      "configurations_per_geometry_x_aspect_ratio": "4 directions x 6 ratios + all_zero + all_strong = 26",
+      "configurations_total": 104
+    },
+    "seeds": {
+      "pilot": [5000, 5003],
+      "confirmation": [6000, 6019],
+      "note": "inclusive ranges; 4 pilot seeds and 20 confirmation seeds per configuration; namespaces above are reservations, these are the allocations"
+    },
+    "predictor": {
+      "formula_id": "dgj2018-eq1.6-isolated-spike-x-loadings/1",
+      "source": "successor report 2026-09-12 (MS reviews/2026-09-12-T19-T22-SUCCESSOR-REPORT.md, T21-S): Donoho-Gavish-Johnstone 2018 eq. 1.6 with loadings; fixed before this package existed; no coefficient is fitted on any data",
+      "frozen_before_confirmation": "the pilot reducer writes FROZEN_PREDICTOR.json (formula id, tolerance, every confirmation configuration's data-free predictions and cell ids) into the run root; confirmation cells refuse to run (exit 6, nothing charged) without it",
+      "tolerance": {
+        "primary_abs": 0.05,
+        "near_edge_abs": 0.10,
+        "near_edge_band_theta_over_sqrt_gamma": [0.7, 1.8],
+        "near_edge_loading_min": 0.05,
+        "classification": "data-free, per (configuration, direction): 'near_edge' when some population spike with loading^2(j,i) >= 0.05 has 0.7 <= theta_i/sqrt(gamma) <= 1.8, else 'primary'"
+      },
+      "scoring_rule": "per (configuration, direction): pass iff |seed-mean observed - frozen predicted| <= tolerance for its class; H1 holds for a geometry arm iff every primary (configuration, direction) in that arm passes (an all-of rule: more scored pairs make a pass harder, never easier; no p-values are computed); near-edge and unique-component agreement are reported with the same tolerances as secondary; the bootstrap CI of the seed mean is descriptive",
+      "chance_floor_note": "the predictor ignores the chance floor k/d = 0.0156 (production), which is inside the primary tolerance; no chance-corrected variant is scored"
+    },
+    "pilot_regime_rule": {
+      "purpose": "check only that the grid populates the below / near / above-threshold regimes on pilot seeds; pilot outcomes are never scored against the predictor",
+      "below_ratios": [0.0, 0.5],
+      "below_max_excess_over_chance": 0.25,
+      "below_statistic": "mean over pilot seeds and varied directions of the varied direction's unique-component recovery",
+      "near_ratios": [1.0, 1.5],
+      "above_ratios": [4.0],
+      "above_min_recovery": 0.5,
+      "above_statistic": "mean over pilot seeds and varied directions of the varied direction's ordinary recovery",
+      "evaluated_per": "geometry x aspect ratio; all four arms must populate",
+      "if_not_populated": "FROZEN_PREDICTOR.json records confirmation_permitted=false; confirmation is refused; a changed grid is a new protocol version (v3) with provenance to this one"
+    },
+    "controls": {
+      "all_zero": {"z_tolerance": 5.0, "law": "recovery of a fixed unit direction under a Haar-random rank-k projector is Beta(k/2,(d-k)/2): mean k/d, var 2k(d-k)/(d^2 (d+2)); tolerance = z * sd / sqrt(n_seeds) on the per-seed direction-mean, the direction average not credited"}
+    }
+  },
+
+  "fixture": {
+    "d": 24,
+    "n_train": {"hi": 12, "lo": 96},
+    "development_seeds": {"pilot_phase": [900000, 900001], "confirmation_phase": [900010, 900011]},
+    "note": "development namespace only; full grid, 2 seeds per phase; outputs are marked development_only and are never citable; the chance level 4/24 = 0.167 exceeds the primary tolerance, so fixture agreement numbers mean nothing"
+  },
+
+  "inference": {
+    "rule": "deterministic tolerance rule on seed means (design.predictor.scoring_rule); uncertainty across independent seeds within a configuration (sd, se, fixed-seed percentile bootstrap CI of the mean, 1000 replicates, seed derived from the configuration key); no hypothesis tests, no p-values",
+    "multiplicity": "the verdict per geometry arm is an all-of over its primary (configuration, direction) pairs; adding pairs cannot manufacture a pass; the number of scored pairs is reported",
+    "replicates": "bootstrap replicates are reported as 'replicates', never as fits"
+  },
+
+  "stopping_rule": "fixed allocation: 104 configurations x 4 pilot seeds (416 fits) + 104 configurations x 20 confirmation seeds (2080 fits) + 3 algebraic cells (0 fits, 2 solves); every cell is run and reduced; no early stop, no sequential decision, no outcome-dependent extension",
+
+  "failure_interpretation": {
+    "predictor_fails_on_correlated": "if H1 fails in the correlated arm the post-hoc spike/loadings explanation of the archived T21 outcome is NOT supported; the archived verdicts (5/5 predictions not met) are unchanged either way",
+    "predictor_fails_on_orthogonal_only": "if H1 fails in the orthogonal arm the isolated-spike overlap itself does not describe this learner at these sizes; the loadings step is then untested",
+    "predictor_passes": "if H1 passes in both arms the explanation is supported on synthetic Gaussian spiked data with identity noise only; nothing follows for the pulse family, for real detectors, or for any universal detection edge or abstention threshold",
+    "near_edge_disagreement": "disagreement confined to near-edge pairs is reported as the expected finite-d limitation of an asymptotic formula, not as support and not as refutation",
+    "all_zero_control_fails": "pipeline error: the run is refused at reduce (exit 4); nothing scientific is concluded",
+    "regimes_not_populated": "design error found at pilot: confirmation is refused; the grid is revised in a new protocol version"
+  },
+
+  "budget": {
+    "estimator_fits_cap": 2750,
+    "planned_fits": 2496,
+    "planned_solves": 2498,
+    "fit_definition": "one fit = one rank-k PCA on one drawn training matrix; one solve = the eigen-decomposition of the exact K per data cell plus one per geometry-invariant algebraic cell (counted, costed, not capped)",
+    "fixture_to_production_scale": {"default": 1214.0},
+    "fixture_to_production_scale_note": "ratio of the dominant flop counts N d min(N,d): production (128,256) or (1024,256) over fixture (12,24) or (96,24) = 10.67^3 = 1214 for both aspect ratios; fixture cells are overhead-dominated so this is an upper bound",
+    "retry_policy": "one retry per failed cell, charged; a second failure of the same cell stops the run for inspection; headroom under the cap = 254 fits (10.2% of the plan); failures, retries and interrupts are never refunded"
+  },
+
+  "explicitly_not_claimed": [
+    "any repair of the five unmet registered T21 predictions (they remain NOT met; see FINDINGS_T21S.md)",
+    "any statement about the archived pulse family, its Jacobian directions or its Gram/spectrum",
+    "a universal detection edge in theta/sqrt(gamma) (c^2 depends on theta and gamma separately) or any abstention threshold",
+    "recoverability or non-recoverability of physical latents in any real detector",
+    "validity of the predictor beyond Gaussian spiked data with identity noise, rank-k PCA and k = J",
+    "any conclusion from fixture (development-only) outputs"
+  ],
+
+  "provenance": {
+    "supersedes": null,
+    "prior_protocol": "none: no T21-S protocol was written on 12 September 2026 (successor report: 'frozen protocol: none written'; 0 of 320 allocated fits; seeds 5000-5079 / 6000-6239 reserved and unused). This v2 file is the first T21-S protocol; 'v2' marks that it follows the archived T21 design (v1 = experiments/paper1/t21_excitation.py, immutable).",
+    "design_inputs_from_archive": {
+      "predictor": "c^2(theta,gamma) = (1 - gamma/theta^2)/(1 + gamma/theta) for theta > sqrt(gamma) else 0 (DGJ eq. 1.6); predicted recovery sum_i loading^2(j,i) c^2(theta_i,gamma); frozen, no coefficient fitted on confirmation",
+      "recovery_metric": "||P u_j||^2/||u_j||^2 in whitened coordinates",
+      "historical_geometry_to_differ_from": "planted pulse family at alpha=0, C=8, T=256 (d=2048), four latents (amplitude, rise, decay, secondary), Gram <amp,decay> = -0.652, <rise,decay> = 0.594, <amp,rise> = -0.368, <decay,secondary> = -0.315; population excess eigenvalues 39.6, 15.1, 2.11, 0.54; N in {800, 3200}",
+      "design_lessons": [
+        "the archive had no all-zero cell (only all-at-0.1): a genuine all-zero control is included here",
+        "grid on eigen-spike strength relative to sqrt(gamma), not on an excitation ratio (s in {0.03, 0.1} were near-replicas of s = 0 because induced variance is proportional to s^2)",
+        "the s = 0 probe returning the prior is a constant-target artefact: no probe is used here",
+        "theta/sqrt(gamma) alone does not fix c^2: no universal detection edge and no abstention threshold is claimed"
+      ],
+      "historical_verdicts": "all five registered T21 predictions remain NOT met; this package cannot repair them"
+    },
+    "governing_documents": [
+      "MS plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md (L3)",
+      "MS plan/MLST_UPGRADE_INSTRUCTIONS_2026-09-13.md (Phase 3E, T21 paragraph)",
+      "MS reviews/2026-09-12-mlst-paper-review.md (S8)",
+      "MS reviews/2026-09-12-T19-T22-SUCCESSOR-REPORT.md (T21-S section)"
+    ]
+  }
+}

@@ -565,8 +565,10 @@ def lock_is_effective(directory, *, workers=6, rounds=25, timeout_s=120):
     directory.mkdir(parents=True, exist_ok=True)
     counter = directory / "lock_probe.json"
     counter.write_text(json.dumps({"n": 0}))
+    errors = directory / "lock_probe_errors"
+    errors.mkdir(exist_ok=True)
     kids = []
-    for _ in range(int(workers)):
+    for w in range(int(workers)):
         pid = os.fork()
         if pid == 0:                                   # pragma: no cover - child
             try:
@@ -576,29 +578,42 @@ def lock_is_effective(directory, *, workers=6, rounds=25, timeout_s=120):
                         time.sleep(0.0005)             # widen the race window
                         counter.write_text(json.dumps({"n": n + 1}))
                 os._exit(0)
-            except BaseException:
+            except BaseException as exc:
+                try:
+                    (errors / f"{w}.txt").write_text(f"{type(exc).__name__}: {exc}")
+                except BaseException:
+                    pass
                 os._exit(1)
         kids.append(pid)
-    bad = 0
+    status_by_pid, bad = {}, 0
     deadline = time.time() + float(timeout_s)
     for pid in kids:
         while True:
             done, status = os.waitpid(pid, os.WNOHANG)
             if done:
-                bad += 0 if (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0) else 1
+                ok = os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0
+                status_by_pid[pid] = "ok" if ok else f"raw status {status}"
+                bad += 0 if ok else 1
                 break
             if time.time() > deadline:                 # pragma: no cover - hung child
                 os.kill(pid, 9)
                 os.waitpid(pid, 0)
+                status_by_pid[pid] = "timed out"
                 bad += 1
                 break
             time.sleep(0.01)
     observed = int(json.loads(counter.read_text())["n"])
     expected = int(workers) * int(rounds)
+    reported = sorted(f.read_text() for f in errors.glob("*.txt"))
     counter.unlink(missing_ok=True)
     Path(str(counter) + ".lock").unlink(missing_ok=True)
+    for f in errors.glob("*.txt"):
+        f.unlink()
+    errors.rmdir()
     return {"effective": bool(observed == expected and not bad), "observed": observed,
-            "expected": expected, "failed_workers": bad, "directory": str(directory)}
+            "expected": expected, "lost_updates": expected - observed,
+            "failed_workers": bad, "worker_status": status_by_pid,
+            "worker_errors": reported, "directory": str(directory)}
 
 
 def load_reservations(path, *, required=False, cap=None):
@@ -695,7 +710,9 @@ def reserve(path, cap, planned, meta=None, *, stage=None, spent=0, exposure=None
         spent + open charge + planned > cap.
 
     A ``smoke`` reservation is recorded but charges nothing: the protocol exempts
-    smoke runs from the cap and totals them apart.
+    smoke runs from the cap and totals them apart.  Neither it nor a zero-fit
+    reservation is ever refused: a charge of nothing cannot cross a cap, even one
+    that is already spent.
     """
     planned = int(planned)
     if planned < 0:
@@ -709,7 +726,10 @@ def reserve(path, cap, planned, meta=None, *, stage=None, spent=0, exposure=None
         # a smoke run is exempt from the cap and totalled apart, so it reserves
         # its fits (they are recorded) without charging for them
         charge = 0 if smoke else planned
-        if before + charge > int(cap):
+        # a reservation that charges nothing cannot cross a cap, and must not be
+        # refused by one that is already spent: a zero-fit reservation exists to
+        # record and bound a stage's data access, not to buy compute
+        if charge and before + charge > int(cap):
             raise SystemExit(
                 f"reservation refused: charged {before} (completed {int(spent)}, open "
                 f"reservations {open_charge}) + planned {planned} = {before + charge} "

@@ -1344,6 +1344,11 @@ def bind_to_freeze(P: Protocol, freeze_path, characterisation_path, stage: str,
 LEDGER_NAME = "FIT_LEDGER.json"
 LEDGER_SCHEMA = "mlst-t22-fit-ledger/1"
 FIT_STAGES = ("development",) + HOLDOUT_STAGES
+#: Stages that open instrument data without executing any fit.  They reserve
+#: zero fits -- which costs nothing and is never refused -- so that every stage
+#: that reads raw data does so under a reservation whose declared exposure binds
+#: it.  freeze and recombine read archived JSON only and reserve nothing.
+DATA_ACCESS_STAGES = ("characterize",)
 #: The per-cell numbers that must agree exactly for a development output to be a
 #: deterministic re-score of an earlier one rather than a new evaluation.
 RESCORE_FIELDS = ("mean_delta_squared", "ci95_lo", "ci95_hi", "bootstrap_sd")
@@ -1517,12 +1522,18 @@ def stage_exposure(P: Protocol, stage: str, files=None) -> list:
     A fit stage is allowed its allocated stretches (the declared start sample for
     ``stretch_samples``) and the leading PSD windows of the science files.  It is
     allowed nothing else: a validation stage cannot open a final-test file, and
-    no stage can read past the end of its own stretch.
+    no stage can read past the end of its own stretch.  Characterisation executes
+    no fits but opens every allocated stretch, so it declares all of them.
     """
     if stage == "development":
         targets = [(f, int(s)) for f, s in P.dev]
     elif stage in HOLDOUT_STAGES:
         targets = [(f, int(P.holdout_start)) for f in (files or [])]
+    elif stage == "characterize":
+        # characterisation fits nothing, but it opens every allocated stretch:
+        # its allowance is all of them, and nothing else
+        targets = [(f, int(s)) for f, s in P.dev]
+        targets += [(f, int(P.holdout_start)) for f in P.holdout_files]
     else:
         return []
     psd = int(P.n_psd_windows * P.w)
@@ -1587,8 +1598,9 @@ def reserve_stage_fits(P: Protocol, ledger_path, stage: str, planned: int, *, sc
                      smoke=bool(smoke), config_id=f"t22:{stage}",
                      exposure=stage_exposure(P, stage, files))
     print(f"  [reservation] {stage} reserved {planned} fit(s) as {row['uuid']} in {res_path} "
-          f"(completed {spent} charged before this one: {row['charged_before']}, cap {P.cap}"
-          f"{'; smoke, exempt' if smoke else ''})")
+          f"(charged before this one: {row['charged_before']}, cap {P.cap}"
+          f"{'; smoke, exempt' if smoke else ''}"
+          f"{'; data access only, charges nothing' if not planned else ''})")
     return row
 
 
@@ -1948,11 +1960,15 @@ def main(argv=None) -> int:
     # stage that fits nothing (characterize, freeze, recombine) has no planned
     # count and reserves nothing.
     reservation = None
-    if planned is not None:
+    if planned is not None or args.stage in DATA_ACCESS_STAGES:
+        # A stage that fits nothing still reserves before it reads: the
+        # reservation costs nothing and can never be refused, and it is what
+        # makes the run's data access bounded (below) and auditable.
         reservation = reserve_stage_fits(
-            P, ledger_path, args.stage, planned, scan_dirs=scan_dirs,
-            reservations_path=res_path, smoke=args.smoke, files=files,
-            meta={"out": str(out_dir), "argv": sys.argv[1:]})
+            P, ledger_path, args.stage, 0 if planned is None else planned,
+            scan_dirs=scan_dirs, reservations_path=res_path, smoke=args.smoke,
+            files=files, meta={"out": str(out_dir), "argv": sys.argv[1:],
+                               "executes_fits": planned is not None})
 
     # pending -> running for the whole execution; an exception of any kind (a
     # refusal, a crash, a signal that unwinds) marks it failed, and failed is

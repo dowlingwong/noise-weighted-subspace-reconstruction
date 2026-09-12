@@ -364,9 +364,11 @@ def test_flock_actually_excludes_on_the_execution_filesystem(on_ceph):
     probe = fa.lock_is_effective(on_ceph.base / "lockprobe", workers=6, rounds=25)
     assert probe["effective"], (
         f"flock did NOT exclude on {on_ceph.base}: {probe['observed']} of "
-        f"{probe['expected']} increments survived.  The reservation store and the "
-        f"fit ledger are not safe against concurrent writers on this filesystem; "
-        f"serialise the runs by hand.")
+        f"{probe['expected']} increments survived ({probe['lost_updates']} lost, "
+        f"{probe['failed_workers']} worker(s) failed: {probe['worker_errors']}).  If "
+        f"updates were lost rather than a worker failing, the reservation store and "
+        f"the fit ledger are not safe against concurrent writers on this filesystem "
+        f"and the runs must be serialised by hand.  Full probe: {probe}")
 
 
 @needs_fork
@@ -556,6 +558,47 @@ def test_without_an_allowance_nothing_is_restricted(local, monkeypatch):
     with t22.open_instrument_file(local.data / "anything.h5", start=0, length=10**9):
         pass
     assert seen == [("anything.h5", "r")]              # the guard is opt-in, by stage
+
+
+def test_characterisation_reads_under_a_zero_fit_reservation(local, monkeypatch):
+    """The stage that fits nothing still reserves before it reads.
+
+    It executes no fits, so it charges nothing and a spent cap cannot refuse it --
+    but its data access is bounded by the same declared allocation and recorded
+    the same way.
+    """
+    seen = _opened(monkeypatch)
+    _seed_ledger(local, 250)                            # the cap is fully spent
+    state = {}
+
+    def characterize(args, P_, rec):
+        state["store"] = json.loads(local.store.read_text())
+        root = Path(args.data_root)
+        name, start = P_.dev[0]
+        with t22.open_instrument_file(root / name, start=start, length=P_.n_cal * P_.w,
+                                      role="characterisation"):
+            pass
+        with pytest.raises(SystemExit, match="does not declare"):
+            t22.open_instrument_file(root / "abra_elsewhere_0001.h5", start=0, length=10)
+        return {"characterisation": {}}
+
+    monkeypatch.setattr(t22, "stage_characterize", characterize)
+    assert t22.main(_argv(local, "characterize", "T22_characterize_v1")) == 0
+
+    (row,) = state["store"]["reservations"]
+    assert row["state"] == "running" and row["planned"] == 0
+    assert row["meta"]["executes_fits"] is False
+    assert {e["dataset_id"] for e in row["exposure"]} == (
+        {f for f, _ in t22.Protocol(local.protocol).dev}
+        | set(t22.Protocol(local.protocol).holdout_files) | {t22.SCIENCE_GLOB})
+    after = fa.load_reservations(local.store)["reservations"][0]
+    assert after["state"] == "completed" and after["actual_fits"] == 0
+    assert fa.charged_total(reservations=fa.load_reservations(local.store)) == 0
+    assert [n for n, _ in seen] == [t22.Protocol(local.protocol).dev[0][0]]
+
+    entry = json.loads(local.ledger.read_text())["entries"][-1]
+    assert entry["stage"] == "characterize" and entry["fits_executed"] == 0
+    assert entry["reservation_uuid"] == row["uuid"]
 
 
 def test_a_validation_stage_cannot_open_a_final_test_file(local, monkeypatch):

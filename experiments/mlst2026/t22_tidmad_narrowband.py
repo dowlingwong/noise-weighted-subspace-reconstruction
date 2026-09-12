@@ -1466,6 +1466,40 @@ def reservations_path_for(ledger_path, explicit=None) -> Path:
     return Path(explicit) if explicit else Path(ledger_path).parent / fa.RESERVATION_NAME
 
 
+def reservation_stores(scan_dirs, explicit=None) -> list:
+    """Every reservation store this run must honour, not only its own.
+
+    A store beside the ledger and a store beside ``--out`` can be different
+    files.  Two launches that point ``--ledger`` at different paths would then
+    reserve in different stores, take the same room twice and both pass the cap.
+    The expenditure scan already covers both directories for exactly this reason;
+    the reservations follow it.
+    """
+    paths = ([Path(explicit)] if explicit else []) + [Path(d) / fa.RESERVATION_NAME
+                                                      for d in scan_dirs]
+    seen, out = set(), []
+    for q in paths:
+        key = q.resolve()
+        if key not in seen:
+            seen.add(key)
+            out.append(q)
+    return out
+
+
+def load_all_reservations(paths, cap):
+    """Every store that exists, merged into one read-only view of the charges."""
+    rows, found = [], []
+    for q in paths:
+        store = fa.load_reservations(q, cap=cap)
+        if store is not None:
+            rows.extend(store["reservations"])
+            found.append(q)
+    if not found:
+        return None, []
+    return {"schema": fa.RESERVATION_SCHEMA, "hard_cap": int(cap),
+            "reservations": rows}, found
+
+
 #: The science files the readout-noise PSD is estimated from, as a class: the
 #: protocol allocates "the science files", and which ones exist is a property of
 #: the data root rather than of the protocol.
@@ -1525,20 +1559,30 @@ def reserve_stage_fits(P: Protocol, ledger_path, stage: str, planned: int, *, sc
     Returns the reservation; raises ``SystemExit`` if it does not fit.
     """
     res_path = reservations_path_for(ledger_path, reservations_path)
-    if res_path.is_file():
-        swept = fa.sweep_interrupted(res_path)
+    stores = reservation_stores(scan_dirs, reservations_path or res_path)
+    for q in stores:
+        if not q.is_file():
+            continue
+        swept = fa.sweep_interrupted(q)
         if swept["swept"]:
-            print(f"  [reservation] swept {len(swept['swept'])} abandoned reservation(s) to "
-                  f"interrupted; their charge is kept: {_clip(swept['swept'], 4)}")
+            print(f"  [reservation] swept {len(swept['swept'])} abandoned reservation(s) in "
+                  f"{q} to interrupted; their charge is kept: {_clip(swept['swept'], 4)}")
         if swept["unverifiable"]:
-            print(f"  [reservation] {len(swept['unverifiable'])} running reservation(s) are "
-                  f"owned by another host and cannot be probed from here; still charged")
+            print(f"  [reservation] {len(swept['unverifiable'])} running reservation(s) in "
+                  f"{q} are owned by another host and cannot be probed from here; "
+                  "still charged")
     ledger = load_ledger(ledger_path, P)
     scan = scan_executed_fits(scan_dirs)
-    reservations = fa.load_reservations(res_path, cap=P.cap)
+    reservations, _found = load_all_reservations(stores, P.cap)
     union = fa.union_executed(ledger, scan, ledger_path=ledger_path, reservations=reservations)
-    spent = max(union["executed"], ledger["executed_total"] if ledger else 0,
+    floor = max(union["charged"], ledger["executed_total"] if ledger else 0,
                 scan["executed_total"])
+    # fa.reserve re-adds this store's own open charge under its lock; everything
+    # else -- completed executions, and reservations held in any other store this
+    # run tree exposes -- is what it is told has been spent already.
+    mine = {r["uuid"] for r in (fa.load_reservations(res_path, cap=P.cap)
+                                or {"reservations": []})["reservations"]}
+    spent = floor - sum(o["charge"] for o in union["open_reservations"] if o["uuid"] in mine)
     row = fa.reserve(res_path, P.cap, planned, meta or {}, stage=stage, spent=spent,
                      smoke=bool(smoke), config_id=f"t22:{stage}",
                      exposure=stage_exposure(P, stage, files))
@@ -1566,7 +1610,8 @@ def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, 
     ledger_total = ledger["executed_total"] if ledger is not None else None
     scan = scan_executed_fits(scan_dirs)
     res_path = reservations_path_for(ledger_path, reservations_path)
-    reservations = fa.load_reservations(res_path, cap=P.cap)
+    stores = reservation_stores(scan_dirs, reservations_path or res_path)
+    reservations, found = load_all_reservations(stores, P.cap)
     union = fa.union_executed(ledger, scan, ledger_path=ledger_path,
                               reservations=reservations)
     floor = max(ledger_total or 0, scan["executed_total"])
@@ -1596,6 +1641,7 @@ def check_cumulative_budget(P: Protocol, ledger_path, planned: int, stage: str, 
                 "charged", "duplicates_merged", "ledger_only", "scan_only",
                 "seen_by_both")},
             "reservation_store": str(res_path) if reservations is not None else None,
+            "reservation_stores": [str(q) for q in found],
             "completed_executed_before": int(max(union["executed"], floor)),
             "legacy_max_floor": int(floor)}
 
@@ -1843,6 +1889,11 @@ def main(argv=None) -> int:
     # The expenditure scan covers the ledger's directory AND the output's parent,
     # so pointing --ledger somewhere empty cannot hide the outputs beside --out.
     scan_dirs = list(dict.fromkeys([ledger_path.parent.resolve(), out_dir.parent.resolve()]))
+    # The reservations belong to the run tree, so that two launches which point
+    # --ledger at different files still contend for the same store; every store
+    # the scan directories expose is charged either way.
+    res_path = (Path(args.reservations) if args.reservations
+                else out_dir.parent / fa.RESERVATION_NAME)
 
     rec = RunRecorder(run_id=f"T22_tidmad_narrowband_{args.stage}",
                       protocol_refs={"stage0": "plan/mlst_protocol_2026-09-11-t22-stage0.json",
@@ -1885,7 +1936,7 @@ def main(argv=None) -> int:
     if planned is not None and not args.smoke:
         payload["budget_preflight"] = check_cumulative_budget(
             P, ledger_path, planned, args.stage, scan_dirs=scan_dirs,
-            reservations_path=args.reservations)
+            reservations_path=res_path)
     elif planned is not None:
         print(f"  [budget] smoke run: its {planned} planned fits are recorded separately and "
               "not counted against the cap")
@@ -1896,12 +1947,11 @@ def main(argv=None) -> int:
     # noise_bin_power, load_stretch and every estimator call are below it.  A
     # stage that fits nothing (characterize, freeze, recombine) has no planned
     # count and reserves nothing.
-    res_path = reservations_path_for(ledger_path, args.reservations)
     reservation = None
     if planned is not None:
         reservation = reserve_stage_fits(
             P, ledger_path, args.stage, planned, scan_dirs=scan_dirs,
-            reservations_path=args.reservations, smoke=args.smoke, files=files,
+            reservations_path=res_path, smoke=args.smoke, files=files,
             meta={"out": str(out_dir), "argv": sys.argv[1:]})
 
     # pending -> running for the whole execution; an exception of any kind (a

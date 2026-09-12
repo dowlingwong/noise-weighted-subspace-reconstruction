@@ -478,6 +478,32 @@ def test_concurrent_launches_cannot_oversubscribe_the_cap(on_ceph, no_instrument
         t22.main(_argv(on_ceph, "validation", "T22_validation_after"))
 
 
+def test_a_second_ledger_does_not_open_a_second_budget(local, no_instrument_data,
+                                                       monkeypatch):
+    """Pointing --ledger elsewhere must not buy a fresh cap.
+
+    The run tree's reservation store is charged whichever ledger a launch names,
+    so two launches into one tree contend even before either has written an
+    output for the expenditure scan to find.
+    """
+    _seed_ledger(local, 226)                            # room for exactly one stage
+    monkeypatch.setattr(t22, "stage_evaluate", _evaluator(
+        24, hook=lambda: (_ for _ in ()).throw(RuntimeError("died mid-stage"))))
+    with pytest.raises(RuntimeError, match="died mid-stage"):
+        t22.main(_argv(local, "validation", "T22_validation_v1"))
+    assert fa.charged_total(reservations=fa.load_reservations(local.store)) == 24
+    assert not any(local.runs.glob("T22_validation_v1/*"))   # no output to scan
+
+    other = local.base / "elsewhere" / t22.LEDGER_NAME
+    other.parent.mkdir(parents=True)
+    shutil.copy(local.ledger, other)                    # the same 226, a different file
+    monkeypatch.setattr(t22, "stage_evaluate", _evaluator(24))
+    # 226 + 24 planned would fit exactly; 226 + 24 held + 24 planned does not
+    with pytest.raises(SystemExit, match="hard cap 250"):
+        t22.main(_argv(local, "validation", "T22_validation_v2", "--ledger", str(other)))
+    assert not any(local.runs.glob("T22_validation_v2/*"))
+
+
 # --- 5. the declared exposure is enforced, not merely recorded --------------------
 def _opened(monkeypatch):
     """Record what reached h5py instead of opening anything."""

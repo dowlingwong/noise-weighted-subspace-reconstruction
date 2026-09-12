@@ -1,0 +1,105 @@
+{
+  "schema": "mlst-successor-mission-budget/1",
+  "mission": "T19-T22 successor overnight, 12 September 2026",
+  "written_utc": "2026-09-11T23:10:00Z",
+  "written_before_any_outcome_generating_run": true,
+  "authority": {
+    "plan": "MS:plan/UPGRADE_CLOSEOUT_AND_SUCCESSOR_PLAN_2026-09-12.md",
+    "plan_commit": "43374b6cd393fa977a46ff6aa1b23ddcbe32a414",
+    "prompt": "MS:plan/REMOTE_OVERNIGHT_CLOSEOUT_PROMPT_2026-09-12.md",
+    "note": "Ceilings below are the mission's planning limits, not targets to exhaust."
+  },
+  "ceilings": {
+    "elapsed_hours": 8,
+    "elapsed_start_utc": "2026-09-11T22:39:12Z",
+    "elapsed_hard_stop_utc": "2026-09-12T06:39:12Z",
+    "handback_reserved_from_utc": "2026-09-12T05:30:00Z",
+    "cpu_workers": 8,
+    "new_estimator_fits": 1000,
+    "synthetic_inference_replicates": 10000,
+    "gpu_training": "prohibited",
+    "paid_resources": "prohibited",
+    "real_instrument_outcome_evaluation": "prohibited; requires the handback review gate"
+  },
+  "host_limits_observed": {
+    "cpus_available": 40,
+    "memory_gb": 503,
+    "cephfs_inode_quota_max_files": 500000,
+    "cephfs_inode_rfiles_at_start": 440900,
+    "inode_headroom_at_start": 59100,
+    "binding_limit": "the mission ceiling, not the host; outputs kept compact for the inode quota"
+  },
+  "counting_conventions": {
+    "estimator_fit": "one execution of an estimator that produces a subspace/projector or decoder from data, including every alternating-least-squares restart, every failed or interrupted attempt, and every pilot fit. Deterministic re-scoring of an existing fit is not a fit.",
+    "inference_replicate": "one synthetic Monte-Carlo draw used for coverage, type-I error, or power assessment, counted per generated dataset realisation, not per bootstrap resample within it.",
+    "pilot_vs_confirmation": "pilot and design seeds are disjoint from confirmation seeds; a seed used to choose a model, threshold or grid is never used for confirmation."
+  },
+  "allocation": {
+    "B0_execution_accounting": {
+      "estimator_fits": 0,
+      "inference_replicates": 0,
+      "rationale": "synthetic accounting fixtures only; generates no scientific outcome"
+    },
+    "T19S_perturbation_observables": {
+      "estimator_fits": 120,
+      "inference_replicates": 0,
+      "pilot_fits": 20,
+      "confirmation_fits": 100,
+      "rationale": "deterministic linear-algebra checks are free; fits are the sample-covariance estimates in the in-domain and stress grids"
+    },
+    "T20S_risk_decomposition": {
+      "estimator_fits": 400,
+      "inference_replicates": 0,
+      "pilot_fits": 120,
+      "confirmation_fits": 280,
+      "rationale": "alternating-least-squares restarts dominate; each restart is charged"
+    },
+    "T21S_spike_loadings": {
+      "estimator_fits": 320,
+      "inference_replicates": 0,
+      "pilot_fits": 80,
+      "confirmation_fits": 240,
+      "rationale": "one fit per (geometry, aspect ratio, spike, seed) cell"
+    },
+    "T22S_design_and_calibration": {
+      "estimator_fits": 60,
+      "inference_replicates": 9000,
+      "pilot_replicates": 2000,
+      "confirmation_replicates": 7000,
+      "rationale": "synthetic dependence/coverage/type-I/power study; matched-band PCA fits only"
+    },
+    "reserve": {
+      "estimator_fits": 100,
+      "inference_replicates": 1000,
+      "rationale": "restarts, failures and re-runs after a defect is found"
+    },
+    "totals": {
+      "estimator_fits": 1000,
+      "inference_replicates": 10000
+    }
+  },
+  "execution_rules": {
+    "serial_until_accounting_tested": true,
+    "max_parallel_workers_after_B0_passes": 8,
+    "checkpoint_interval_minutes": 30,
+    "stop_conditions": [
+      "package acceptance checks pass",
+      "hypothesis refuted",
+      "predeclared package budget spent",
+      "dependency unavailable",
+      "mission elapsed ceiling reached"
+    ],
+    "prohibited": [
+      "changing success criteria after seeing outcomes",
+      "extending any cap",
+      "consuming fresh real instrument data",
+      "opening the release gate",
+      "merging main, force-pushing, deleting branches, removing transfer packages"
+    ]
+  },
+  "expenditure": {
+    "note": "updated as packages execute; see the per-package accounting ledgers",
+    "estimator_fits_spent": 0,
+    "inference_replicates_spent": 0
+  }
+}

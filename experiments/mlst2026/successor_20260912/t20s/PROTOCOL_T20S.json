@@ -1,0 +1,66 @@
+{
+  "schema": "mlst-successor-protocol/1",
+  "package": "T20-S",
+  "title": "Separate approximation, estimation and optimization in the structural-prior crossover",
+  "frozen_utc": "2026-09-12T00:35:00Z",
+  "frozen_before_any_outcome_generating_run": true,
+  "supersedes_nothing": "T14 and T20 (archived) are unchanged; the registered c/N law stays refuted and N* stays bracketed, not located.",
+
+  "question": "What explains the crossover once the 1/N extrapolation has failed, without confounding nonseparability with spectrum or with optimizer quality?",
+
+  "risk_accounting": {
+    "identity": "the finite-sample class contrast separates into a population approximation cost, an estimation excess, and an optimization error",
+    "benchmark_caveat": "Relative to a merely best-found restricted projector, an alleged excess need not be nonnegative. An optimality-gap term is carried explicitly wherever certification is unavailable, and reported as an interval, not dropped.",
+    "covariance_proxy": "Monte-Carlo covariance proxy error is quantified separately from finite-training-sample error and from optimizer variability; the archived T20 conflated none of these but certified none either."
+  },
+
+  "generator_requirement": {
+    "goal": "vary eigenvector and product geometry while holding designated eigenvalues, SNR, rank and sample sizes fixed",
+    "validation_before_use": "the intended nonseparability measure must be shown to change while the designated spectrum does not; if the constraint cannot be met, keep within-configuration claims only and record the failure",
+    "prohibited": "tuning the generator using confirmation outcomes"
+  },
+
+  "budget_estimator_fits": 400,
+  "pilot": {
+    "seeds": "3000-3119",
+    "fits": 120,
+    "purpose": "compare a small declared set of scaling explanations, including no parametric scaling assumption; select at most one model; never scored as confirmation"
+  },
+  "confirmation": {
+    "seeds": "4000-4279",
+    "fits": 280,
+    "purpose": "fresh-seed test of the frozen selected model and a fixed-grid refinement of the existing N bracket"
+  },
+
+  "declared_scaling_candidates": [
+    "no parametric scaling assumption (model-free bracket refinement)",
+    "c/N",
+    "c/N^alpha with alpha free",
+    "c/N + d/N^2"
+  ],
+  "selection_rule": "chosen on pilot seeds only, by out-of-sample error on held-out pilot seeds; frozen before any confirmation seed is drawn; 1/N is not reinstated for convenience",
+
+  "bracket_refinement": {
+    "grid": "fixed before sampling, inside the archived 800-1600 bracket",
+    "contrasts": "paired across methods on identical synthetic datasets",
+    "uncertainty": "simultaneous over the grid, declared before sampling",
+    "reporting": "tested sign brackets, never an exact crossover from interpolation; if signs are nonmonotone, report the profile rather than forcing a single crossing"
+  },
+
+  "optimization_accounting": {
+    "record": ["restart count", "achieved objective per restart", "training-loss restart selection", "valid lower and upper bounds where available"],
+    "prohibited_claim": "agreement among restarts is never reported as an optimality certificate"
+  },
+
+  "exit_criteria": [
+    "a controlled comparison, or an explicit infeasibility finding",
+    "a justified risk-accounting table",
+    "a fresh-seed bracket or model test with uncertainty"
+  ],
+  "explicitly_not_claimed": [
+    "broad universality of any scaling law",
+    "an exact crossover location",
+    "a certified restricted population optimum"
+  ],
+  "status": "design frozen; execution conditional on remaining mission budget and time. If unexecuted, this package is reported as designed and deferred, not complete."
+}

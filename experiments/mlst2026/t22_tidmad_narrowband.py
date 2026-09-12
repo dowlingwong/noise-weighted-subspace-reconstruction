@@ -84,6 +84,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import fnmatch
 import hashlib
 import json
 import os
@@ -190,6 +191,83 @@ def stable_offset(key: str) -> int:
 
 
 # --- data ---------------------------------------------------------------------
+#: The exposure the current stage is allowed: a list of
+#: ``{"dataset_id": <name or glob>, "region": {...}}`` records, or ``None`` for no
+#: restriction.  Set from the reservation, for the duration of the stage, by
+#: :func:`exposure_allowance`.
+_ALLOWED_EXPOSURE = None
+
+
+@contextlib.contextmanager
+def exposure_allowance(entries):
+    """Restrict instrument access to ``entries`` for the duration of the block.
+
+    ``entries`` is what the reservation declared (see :func:`stage_exposure`).
+    ``None`` means *no restriction*, which is what every stage that reserves
+    nothing runs under.
+
+    What this does and does not do
+    ------------------------------
+    Every instrument-file open in this runner goes through
+    :func:`open_instrument_file`, and with an allowance active that function
+    refuses a file, or a sample region, the reservation did not declare.  That is
+    the whole of it.  It is a guard inside this process, not a sandbox: it cannot
+    constrain another program, a hand-written script, or a future code path in
+    this file that calls ``h5py.File`` directly instead of going through the
+    opener.  It also cannot police reads made through a handle that is already
+    open -- the region is checked once, at the open.
+    """
+    global _ALLOWED_EXPOSURE
+    previous = _ALLOWED_EXPOSURE
+    _ALLOWED_EXPOSURE = None if entries is None else list(entries)
+    try:
+        yield _ALLOWED_EXPOSURE
+    finally:
+        _ALLOWED_EXPOSURE = previous
+
+
+def check_exposure(path, *, start=None, length=None, role="read") -> None:
+    """Refuse a read the active allowance does not cover.  No allowance, no refusal."""
+    allowed = _ALLOWED_EXPOSURE
+    if allowed is None:
+        return
+    name = Path(path).name
+    matching = [e for e in allowed if fnmatch.fnmatch(name, str(e.get("dataset_id", "")))]
+    declared = ", ".join(sorted({str(e.get("dataset_id")) for e in allowed})) or "nothing"
+    if not matching:
+        raise SystemExit(
+            f"exposure refused: {role} would open {name}, which this stage's reservation "
+            f"does not declare. Its declared allocation is: {declared}")
+    if start is None or length is None:
+        return
+    lo, hi = int(start), int(start) + int(length)
+    for e in matching:
+        region = e.get("region") or {}
+        r_lo = int(region.get("start_sample", 0))
+        r_hi = int(region.get("end_sample_exclusive",
+                              r_lo + int(region.get("n_samples", 0))))
+        if r_lo <= lo and hi <= r_hi:
+            return
+    windows = "; ".join(f"[{int((e.get('region') or {}).get('start_sample', 0))}, "
+                        f"{int((e.get('region') or {}).get('end_sample_exclusive', 0))})"
+                        for e in matching)
+    raise SystemExit(
+        f"exposure refused: {role} would read samples [{lo}, {hi}) of {name}, outside the "
+        f"region this stage's reservation declares ({windows})")
+
+
+def open_instrument_file(path, *, start=None, length=None, role="read"):
+    """The single point at which this runner opens an instrument file.
+
+    Every ``h5py.File`` in this module goes through here, so an active exposure
+    allowance sees every open.  See :func:`exposure_allowance` for the exact
+    scope of that guarantee.
+    """
+    check_exposure(path, start=start, length=length, role=role)
+    import h5py
+    return h5py.File(path, "r")
+
+
 def _read(h, dataset, start, length):
     ds = h[dataset]
     stop = min(int(start) + int(length), ds.shape[0])
@@ -212,11 +290,10 @@ def _windows(x: np.ndarray, offset: int, n: int, w: int) -> np.ndarray:
 
 def load_stretch(path: Path, start: int, P: Protocol, *, roles=("cal", "fit", "eval")) -> dict:
     """Read one stretch and return the unitary rFFT of each requested block."""
-    import h5py
     spec = {"cal": (0, P.n_cal), "fit": (P.fit_offset, P.n_fit),
             "eval": (P.eval_offset, P.n_eval)}
     need = max(spec[r][0] + spec[r][1] * P.w for r in roles)
-    with h5py.File(path, "r") as h:
+    with open_instrument_file(path, start=start, length=need, role="stretch") as h:
         n_total = int(h[SQUID].shape[0])
         x = _read(h, SQUID, start, need)
         r = _read(h, REFERENCE, start, need)
@@ -275,13 +352,12 @@ def _raw(data_root: Path, name: str) -> Path:
 
 def noise_bin_power(science_paths, P: Protocol) -> np.ndarray:
     """Readout noise bin power from science-file windows (no injection present)."""
-    import h5py
     need = P.n_psd_windows * P.w
     acc, got = [], 0
     for p in science_paths:
         if got >= P.n_psd_windows:
             break
-        with h5py.File(p, "r") as h:
+        with open_instrument_file(p, start=0, length=need, role="noise PSD") as h:
             x = _read(h, SQUID, 0, need)
         W = _windows(x, 0, min(P.n_psd_windows - got, x.size // P.w), P.w)
         acc.append(te.mean_bin_power(te.unitary_rfft(W)) * W.shape[0])
@@ -646,8 +722,8 @@ def stage_characterize(args, P: Protocol, rec: RunRecorder) -> dict:
         # Hash every instrument file once, here, so the later stages can cite
         # these digests instead of re-reading 31 GB per stage.
         rec.add_input(f"stretch:{role}", path)
-        import h5py
-        with h5py.File(path, "r") as h:
+        with open_instrument_file(path, start=start, length=P.n_cal * P.w,
+                                  role="characterisation") as h:
             n_total = int(h[SQUID].shape[0])
             n_total_ref = int(h[REFERENCE].shape[0])
             x = _read(h, SQUID, start, P.n_cal * P.w)
@@ -1390,23 +1466,41 @@ def reservations_path_for(ledger_path, explicit=None) -> Path:
     return Path(explicit) if explicit else Path(ledger_path).parent / fa.RESERVATION_NAME
 
 
-def stage_exposure(P: Protocol, stage: str, files=None) -> list:
-    """The instrument files and sample regions the stage's allocation permits it.
+#: The science files the readout-noise PSD is estimated from, as a class: the
+#: protocol allocates "the science files", and which ones exist is a property of
+#: the data root rather than of the protocol.
+SCIENCE_GLOB = "abra_science_*.h5"
 
-    Recorded on the reservation *before* the stage runs, so what a run was
-    allowed to touch is auditable independently of what it did touch.  See
-    :func:`fit_accounting.attach_exposure` for what this record does and does not
-    do.
+
+def stage_exposure(P: Protocol, stage: str, files=None) -> list:
+    """The instrument files and sample regions this stage's allocation permits.
+
+    Recorded on the reservation *before* the stage runs -- so what a run was
+    allowed to touch is auditable independently of what it did touch -- and
+    enforced for the duration of the stage by :func:`exposure_allowance`, which
+    states exactly how far that enforcement reaches.
+
+    A fit stage is allowed its allocated stretches (the declared start sample for
+    ``stretch_samples``) and the leading PSD windows of the science files.  It is
+    allowed nothing else: a validation stage cannot open a final-test file, and
+    no stage can read past the end of its own stretch.
     """
     if stage == "development":
         targets = [(f, int(s)) for f, s in P.dev]
     elif stage in HOLDOUT_STAGES:
         targets = [(f, int(P.holdout_start)) for f in (files or [])]
     else:
-        targets = []
-    return [{"dataset_id": f, "region": {"start_sample": s, "n_samples": int(P.stretch),
-                                         "end_sample_exclusive": s + int(P.stretch)},
-             "note": f"{stage}: declared allocation"} for f, s in targets]
+        return []
+    psd = int(P.n_psd_windows * P.w)
+    entries = [{"dataset_id": SCIENCE_GLOB,
+                "region": {"start_sample": 0, "n_samples": psd,
+                           "end_sample_exclusive": psd},
+                "note": f"{stage}: readout-noise PSD windows"}]
+    entries += [{"dataset_id": f,
+                 "region": {"start_sample": s, "n_samples": int(P.stretch),
+                            "end_sample_exclusive": s + int(P.stretch)},
+                 "note": f"{stage}: declared allocation"} for f, s in targets]
+    return entries
 
 
 def reserve_stage_fits(P: Protocol, ledger_path, stage: str, planned: int, *, scan_dirs,
@@ -1816,7 +1910,11 @@ def main(argv=None) -> int:
     # next launch sweeps it to interrupted -- still charged either way.
     scope = (fa.running(res_path, reservation["uuid"]) if reservation is not None
              else contextlib.nullcontext())
-    with scope:
+    # and the stage may open only what that reservation declared: every
+    # instrument open below goes through open_instrument_file, which refuses a
+    # file or a sample region outside the declared allocation.  A stage that
+    # reserved nothing runs unrestricted, as before.
+    with scope, exposure_allowance(reservation["exposure"] if reservation else None):
         data_root = Path(args.data_root)
         # Recombination uses archived summaries and draws only, including provenance.
         if args.stage != "recombine":

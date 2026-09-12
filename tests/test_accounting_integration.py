@@ -160,7 +160,8 @@ def test_the_reservation_is_running_before_the_first_data_access(local, no_instr
     assert [h["state"] for h in row["history"]] == ["pending", "running"]
     # and the declared exposure was recorded before the read, not after it
     assert {e["dataset_id"] for e in row["exposure"]} == set(
-        json.loads(local.freeze.read_text())["frozen"]["validation_files"])
+        json.loads(local.freeze.read_text())["frozen"]["validation_files"]) | {
+            t22.SCIENCE_GLOB}
 
     # the attempt is now failed, still charged, and nothing was written
     after = fa.load_reservations(local.store)["reservations"][0]
@@ -475,6 +476,92 @@ def test_concurrent_launches_cannot_oversubscribe_the_cap(on_ceph, no_instrument
     # and a seventh launch is refused on the spent total
     with pytest.raises(SystemExit, match="hard cap 250"):
         t22.main(_argv(on_ceph, "validation", "T22_validation_after"))
+
+
+# --- 5. the declared exposure is enforced, not merely recorded --------------------
+def _opened(monkeypatch):
+    """Record what reached h5py instead of opening anything."""
+    seen = []
+
+    class _Fake:
+        def __init__(self, path, mode):
+            seen.append((Path(path).name, mode))
+
+        def __enter__(self):
+            return {}
+
+        def __exit__(self, *a):
+            return False
+
+    _patch_h5py(monkeypatch, _Fake)
+    return seen
+
+
+def test_an_undeclared_file_is_refused_at_the_open(local, monkeypatch):
+    seen = _opened(monkeypatch)
+    allowed = [{"dataset_id": "abra_validation_0010.h5",
+                "region": {"start_sample": 0, "end_sample_exclusive": 1000}}]
+    with t22.exposure_allowance(allowed):
+        with pytest.raises(SystemExit) as exc:
+            t22.open_instrument_file(local.data / "abra_final_0042.h5", start=0, length=10,
+                                     role="stretch")
+    assert "does not declare" in str(exc.value) and "abra_final_0042.h5" in str(exc.value)
+    assert seen == []                                  # nothing was opened
+
+
+def test_a_region_outside_the_allocation_is_refused_at_the_open(local, monkeypatch):
+    seen = _opened(monkeypatch)
+    allowed = [{"dataset_id": "abra_validation_0010.h5",
+                "region": {"start_sample": 100, "end_sample_exclusive": 200}}]
+    with t22.exposure_allowance(allowed):
+        with pytest.raises(SystemExit) as exc:
+            t22.open_instrument_file(local.data / "abra_validation_0010.h5", start=150,
+                                     length=100, role="stretch")
+        assert "outside the region" in str(exc.value) and "[150, 250)" in str(exc.value)
+        # the declared window itself opens
+        with t22.open_instrument_file(local.data / "abra_validation_0010.h5", start=100,
+                                      length=100, role="stretch"):
+            pass
+    assert seen == [("abra_validation_0010.h5", "r")]
+
+
+def test_without_an_allowance_nothing_is_restricted(local, monkeypatch):
+    seen = _opened(monkeypatch)
+    with t22.open_instrument_file(local.data / "anything.h5", start=0, length=10**9):
+        pass
+    assert seen == [("anything.h5", "r")]              # the guard is opt-in, by stage
+
+
+def test_a_validation_stage_cannot_open_a_final_test_file(local, monkeypatch):
+    """The property the allocation exists for, enforced rather than recorded."""
+    frozen = json.loads(local.freeze.read_text())["frozen"]
+    seen = _opened(monkeypatch)
+    reached = {}
+
+    def evaluate(args, P_, rec, frozen_, files, label, chars):
+        root = Path(args.data_root)
+        # what the stage is allowed: its own stretch, in its own window
+        with t22.open_instrument_file(root / files[0], start=P_.holdout_start,
+                                      length=P_.stretch, role="stretch"):
+            reached["allowed"] = files[0]
+        # what it is not: a final-test stretch, and its own file past its window
+        with pytest.raises(SystemExit, match="does not declare"):
+            t22.open_instrument_file(root / frozen_["final_test_files"][0],
+                                     start=P_.holdout_start, length=P_.stretch,
+                                     role="stretch")
+        with pytest.raises(SystemExit, match="outside the region"):
+            t22.open_instrument_file(root / files[0], start=P_.holdout_start + 1,
+                                     length=P_.stretch, role="stretch")
+        return {label: {"per_file": {}, "files_evaluated": list(files),
+                        "fit_count": 24}}, {}
+
+    monkeypatch.setattr(t22, "stage_evaluate", evaluate)
+    monkeypatch.setattr(t22, "noise_bin_power", lambda paths, P_: None)
+    assert t22.main(_argv(local, "validation", "T22_validation_v1")) == 0
+    assert reached["allowed"] == frozen["validation_files"][0]
+    assert [n for n, _ in seen] == [frozen["validation_files"][0]]
+    # and the allowance is gone once the stage is over
+    assert t22._ALLOWED_EXPOSURE is None
 
 
 # --- 5. a process that dies mid-run ------------------------------------------------

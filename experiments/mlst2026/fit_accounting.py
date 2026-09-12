@@ -853,9 +853,12 @@ def sweep_interrupted(path, now=None, *, stale_after_s=None, is_alive=None):
 def attach_exposure(path, uid, *, dataset_id, region=None, note=None, now=None):
     """Record which dataset file and time region a reservation intends to touch.
 
-    This is a *record*, so that a future real-data campaign is auditable against
-    it.  Nothing in this module reads it to grant, widen or check access to
-    anything, and it changes no charge.
+    This is a *record*, and it changes no charge.  Nothing in *this* module reads
+    it to grant, widen or check access to anything.  The enforcement lives where
+    the files are opened: ``t22_tidmad_narrowband.exposure_allowance`` makes a
+    stage's declared exposure binding for the duration of that stage, and
+    ``open_instrument_file`` refuses a file or a sample region outside it.  That
+    docstring states how far the guarantee reaches.
     """
     stamp = now or _utc_now()
     with locked(path):

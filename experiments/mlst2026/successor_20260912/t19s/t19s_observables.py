@@ -2,217 +2,388 @@
 """T19-S: which perturbation observable has which leading residual order.
 
 Deterministic linear algebra only.  No data is fitted, so this script spends
-zero estimator fits from the mission budget.
+ZERO estimator fits from the mission budget.
 
-Setting.  A = diag(lambda) symmetric, retained block = top k, discarded block =
-the rest, cutoff gap delta = lambda_k - lambda_{k+1}.  Perturbation A + eps*G
-with G symmetric.  Write G in 2x2 block form (G11 retained-retained, G21
-discarded-retained, G22 discarded-discarded).
+=============================================================================
+TWO MODELS, DELIBERATELY KEPT SEPARATE
+=============================================================================
 
-The perturbed top-k invariant subspace is the graph of X: span([I; X]).  X
-solves the Riccati equation, and expanding X = eps*X1 + eps^2*X2 + eps^3*X3:
+  covariance   M(eps) = A (I + eps E)^{-1}     <-- the model the paper and the
+                                                   ARCHIVED T19 actually use
+  additive     M(eps) = A + eps G              <-- a mathematical control only;
+                                                   NOT the paper's model
 
-    order 1:  Lam2 X1 - X1 Lam1 = -G21
-    order 2:  Lam2 X2 - X2 Lam1 = -G22 X1 + X1 G11
-    order 3:  Lam2 X3 - X3 Lam1 = -G22 X2 + X2 G11 + X1 G12 X1
+An earlier revision of this script studied only the additive model and then
+described the archived mechanism as settled.  That was wrong: the additive
+recurrence omits the higher-order operator terms -eps A E, +eps^2 A E^2, ...
+that the covariance model carries.  The covariance derivation is given below
+and is what the archived result must be judged against.
 
-PREDICTION (derived, then tested below).  For a *pure coupling* perturbation
-(G11 = 0 and G22 = 0) the order-2 right-hand side vanishes identically, so
-X2 = 0 and the graph's first correction is O(eps^3).  For a generic G it is
-O(eps^2).  But the orthogonal projector
+=============================================================================
+WHAT THE ARCHIVED T19 ACTUALLY MEASURED
+=============================================================================
 
-    P = [I;X] (I + X^T X)^{-1} [I;X]^T
+From experiments/paper1/t19_coupling.py:
 
-has diagonal blocks -X^T X + O(X^4) and X X^T + O(X^4), which are O(eps^2)
-whether or not X2 vanishes.  So the projector *matrix* stays quadratic for
-pure coupling while the graph goes cubic.
+  * operator    : A (I + E)^{-1}, with A = Sigma^{-1/2} R_x Sigma^{-1/2} and
+                  E = Sigma^{-1/2}(Sigma_hat - Sigma) Sigma^{-1/2}   (line 143)
+  * observable  : T = C_disc C_ret^{-1}, i.e. the GRAPH MATRIX of the fitted
+                  invariant subspace in the eigenbasis Q           (lines 122-126)
+  * residual    : ||T_measured - T_first_order||_F                  (line 398)
+  * first order : T_ji = -lam_j E_ji / (lam_i - lam_j)              (line 133)
+  * families    : C = pure coupling, E_11 = E_22 = 0 exactly        (line 195)
+                  F = full random symmetric                         (line 200)
+  * measured    : slope 2.9227 (C), 2.0530 (F), sample basis
 
-The Frobenius *norm* behaves differently again:
-    ||P - P0||_F^2 = 2||X||_F^2 + ||X^T X||_F^2 + ||X X^T||_F^2 + ...
-so ||P - P0||_F = sqrt(2) ||X||_F (1 + O(eps^2)), and its residual against the
-first-order value is O(eps^3) for pure coupling -- the O(eps^2) diagonal part
-is Frobenius-orthogonal to the O(eps) off-diagonal part and does not enter the
-norm at second order.  A norm can therefore have a higher-order residual than
-the matrix whose norm it is.  This is the mechanism behind the archived T19
-observation of eps^2.9 for pure coupling against eps^2.05 for generic E: the
-archive measured a norm.
+So the archived observable is the GRAPH MATRIX, not a projector and not a
+norm of a projector displacement.  Any explanation of the 2.92 slope must be
+an explanation about the graph.
+
+=============================================================================
+DERIVATION FOR THE COVARIANCE MODEL (the one that matters)
+=============================================================================
+
+Work in the eigenbasis Q of A, so A = Lam = diag(lam) and E is Ehat = Q^T E Q.
+Expanding the resolvent,
+
+    M(eps) = Lam (I + eps Ehat)^{-1}
+           = Lam - eps Lam Ehat + eps^2 Lam Ehat^2 - eps^3 Lam Ehat^3 + ...
+
+so the operator perturbation has a whole series of terms,
+
+    G1 = -Lam Ehat,    G2 = +Lam Ehat^2,    G3 = -Lam Ehat^3.
+
+The perturbed top-k invariant subspace is the graph of X solving the Riccati
+equation M21 + M22 X - X M11 - X M12 X = 0.  With X = eps X1 + eps^2 X2 + ...:
+
+    order 1:  Lam2 X1 - X1 Lam1 = -(G1)21
+    order 2:  Lam2 X2 - X2 Lam1 = -(G2)21 - (G1)22 X1 + X1 (G1)11
+
+Order 1 reproduces the registered prediction exactly:
+    (X1)_ji (lam_j - lam_i) = lam_j Ehat_ji
+    => (X1)_ji = -lam_j Ehat_ji / (lam_i - lam_j)                   [matches]
+
+PURE COUPLING (Ehat_11 = Ehat_22 = 0, i.e. Ehat = [[0, B^T], [B, 0]]):
+
+    (G1)11 = -Lam1 Ehat_11 = 0
+    (G1)22 = -Lam2 Ehat_22 = 0
+    Ehat^2 = [[B^T B, 0], [0, B B^T]]   -- BLOCK DIAGONAL
+      => (Ehat^2)_21 = 0  =>  (G2)21 = Lam2 (Ehat^2)_21 = 0
+
+    Hence the entire order-2 right-hand side vanishes and X2 = 0 EXACTLY.
+
+The step (Ehat^2)_21 = 0 is new relative to the additive model and is exactly
+what the earlier additive-only argument failed to establish: in the additive
+model there simply is no G2 term, so its vanishing was assumed rather than
+shown.  Here it has to be proved, and it holds.
+
+At order 3, (Ehat^3)_21 = B^T B B^T is generally nonzero, and (G2)11, (G2)22
+are nonzero, so X3 != 0.  The graph residual is therefore O(eps^3).
+
+GENERIC E: (G1)11 and (G1)22 are nonzero, so X2 != 0 and the graph residual
+is O(eps^2).
+
+This is the mechanism behind the archived 2.92 (C) against 2.05 (F).
+
+=============================================================================
+THE PROJECTOR DISTANCE (corrected)
+=============================================================================
+
+For P(X) = [I;X](I + X^T X)^{-1}[I;X]^T, writing S = X^T X:
+
+    ||P(X) - P(0)||_F^2 = 2 tr[S (I + S)^{-1}]
+                        = 2||X||_F^2 - 2 tr[(X^T X)^2] + O(||X||^6)
+
+An earlier revision of this docstring added the squared diagonal-block
+contributions with the WRONG SIGN and omitted the off-diagonal normalization
+correction of the same order.  The corrected expansion is above; the cubic
+conclusion for the norm survives it, because the correction is relatively
+O(eps^2).
+
+Note that the projector MATRIX and the projector NORM behave differently:
+P has diagonal blocks -S(I+S)^{-1} and X(I+S)^{-1}X^T which are O(eps^2)
+whether or not X2 vanishes, while the norm above depends on X only through
+tr[S(I+S)^{-1}] and so returns to O(eps^3) when X2 = 0.
 """
+import argparse
+import sys
+
 import numpy as np
 
-np.random.seed(0)
+K = 3  # retained rank, matching the block split used throughout
 
 
-def blocks(M, k):
-    return M[:k, :k], M[:k, k:], M[k:, :k], M[k:, k:]
+# ---------------------------------------------------------------------------
+# assertion bookkeeping: every asserted check must reach the exit status
+# ---------------------------------------------------------------------------
+class Checks:
+    """Assertions decide the exit code; diagnostics are printed but never gate."""
+
+    def __init__(self):
+        self.failures = []
+        self.n_assert = 0
+
+    def assert_(self, name, passed, detail=""):
+        self.n_assert += 1
+        if not passed:
+            self.failures.append(name)
+        print(f"  [{'ok  ' if passed else 'FAIL'}] {name:<52s} {detail}")
+        return passed
+
+    def diagnostic(self, name, detail=""):
+        print(f"  [diag] {name:<52s} {detail}")
+
+    def report(self):
+        print()
+        if self.failures:
+            print(f"FAILED {len(self.failures)} of {self.n_assert} assertions: "
+                  + ", ".join(self.failures))
+            return 1
+        print(f"ALL {self.n_assert} ASSERTIONS PASSED")
+        return 0
 
 
-def first_order_graph(lam, G, k):
-    """X1[i,j] = G21[i,j] / (lam1[j] - lam2[i]) from Lam2 X1 - X1 Lam1 = -G21."""
-    lam1, lam2 = lam[:k], lam[k:]
-    G21 = G[k:, :k]
-    return G21 / (lam1[None, :] - lam2[:, None])
+# ---------------------------------------------------------------------------
+# linear algebra
+# ---------------------------------------------------------------------------
+def sym(M):
+    return 0.5 * (M + M.T)
 
 
-def top_k_basis(M, k):
-    """Orthonormal basis of the top-k invariant subspace via symmetric eigh."""
-    w, V = np.linalg.eigh(M)
-    idx = np.argsort(w)[::-1][:k]
-    return V[:, idx], w[np.argsort(w)[::-1]]
+def orth(M):
+    q, _ = np.linalg.qr(M)
+    return q
 
 
-def graph_of(V, k):
-    """X such that span(V) = span([I; X]); requires the top block invertible."""
-    V1, V2 = V[:k, :], V[k:, :]
-    return V2 @ np.linalg.inv(V1)
+def graph_of(V, Q):
+    """T = C_disc C_ret^{-1}: the archived T19 observable (t19_coupling.py:122)."""
+    C = Q.T @ V
+    return C[K:, :] @ np.linalg.inv(C[:K, :])
 
 
-def projector(V):
-    return V @ V.T
+def first_order_graph(lam, Eq, eps, model="covariance"):
+    """First-order graph displacement, which differs between the two models.
+
+    covariance  M = A(I + eps E)^{-1}, so G1 = -Lam E and
+                (X1)_ji = -lam_j E_ji / (lam_i - lam_j)   <- registered prediction
+    additive    M = A + eps G, so G1 = G and
+                (X1)_ji =  G_ji / (lam_i - lam_j)
+    """
+    denom = lam[:K][None, :] - lam[K:][:, None]      # lam_i - lam_j
+    blk = (eps * Eq)[K:, :K]
+    if model == "covariance":
+        return (-lam[K:][:, None] * blk) / denom
+    if model == "additive":
+        return blk / denom
+    raise ValueError(model)
 
 
-def sin_theta(V, k):
-    """Singular values of the discarded-block component: sin of principal angles."""
-    return np.linalg.svd(V[k:, :], compute_uv=False)
+def subspace_covariance_model(A, Eq, Q, eps):
+    """Top-k invariant subspace of A (I + eps E)^{-1}, via the similar symmetric
+    operator -- the same construction as t19_coupling.perturbed_spectrum."""
+    E = Q @ (eps * Eq) @ Q.T
+    IE = np.eye(A.shape[0]) + E
+    vals, vecs = np.linalg.eigh(sym(IE))
+    if vals.min() <= 0:
+        raise FloatingPointError("I + eps E is not positive definite")
+    S_isqrt = (vecs / np.sqrt(vals)[None, :]) @ vecs.T
+    S_sqrt = (vecs * np.sqrt(vals)[None, :]) @ vecs.T
+    B = S_isqrt @ A @ S_isqrt
+    mu, U = np.linalg.eigh(sym(B))
+    idx = np.argsort(mu)[::-1][:K]
+    return orth(S_sqrt @ U[:, idx])
 
 
-def make_perturbation(d, k, kind, rng):
-    G = np.zeros((d, d))
-    if kind == "generic":
-        M = rng.standard_normal((d, d))
-        G = (M + M.T) / 2
-    elif kind == "pure_coupling":
-        C = rng.standard_normal((d - k, k))
-        G[k:, :k] = C
-        G[:k, k:] = C.T
+def subspace_additive_model(A, Eq, Q, eps):
+    """Top-k invariant subspace of A + eps G (control model, NOT the paper's)."""
+    G = Q @ (eps * Eq) @ Q.T
+    w, V = np.linalg.eigh(sym(A + G))
+    idx = np.argsort(w)[::-1][:K]
+    return V[:, idx]
+
+
+MODELS = {"covariance": subspace_covariance_model, "additive": subspace_additive_model}
+
+
+def make_Eq(d, kind, rng):
+    """Perturbation in the eigenbasis, normalised to unit operator norm.
+
+    Mirrors t19_coupling.make_E_family: 'pure_coupling' is family C (off-diagonal
+    BLOCKS only, E_11 = E_22 = 0), 'generic' is family F (full random symmetric).
+    """
+    Eq = np.zeros((d, d))
+    if kind == "pure_coupling":
+        B = rng.standard_normal((d - K, K))
+        B /= np.linalg.norm(B, 2)
+        Eq[K:, :K] = B
+        Eq[:K, K:] = B.T
+    elif kind == "generic":
+        M = sym(rng.standard_normal((d, d)))
+        Eq = M / np.linalg.norm(M, 2)
     elif kind == "block_diagonal":
-        M1 = rng.standard_normal((k, k)); M2 = rng.standard_normal((d - k, d - k))
-        G[:k, :k] = (M1 + M1.T) / 2
-        G[k:, k:] = (M2 + M2.T) / 2
+        M1 = sym(rng.standard_normal((K, K)))
+        M2 = sym(rng.standard_normal((d - K, d - K)))
+        Eq[:K, :K] = M1
+        Eq[K:, K:] = M2
+        Eq /= np.linalg.norm(Eq, 2)
     elif kind == "zero":
         pass
     else:
         raise ValueError(kind)
-    n = np.linalg.norm(G, 2)
-    return G / n if n > 0 else G
+    return Eq
 
 
-def residual_orders(d, k, lam, kind, eps_grid, rng):
+def observables(A, Q, lam, Eq, eps, model):
     """Residuals of four observables against their first-order values."""
-    A = np.diag(lam)
-    G = make_perturbation(d, k, kind, rng)
-    X1 = first_order_graph(lam, G, k)
-    P0 = np.zeros((d, d)); P0[:k, :k] = np.eye(k)
-    rows = []
-    for eps in eps_grid:
-        V, _ = top_k_basis(A + eps * G, k)
-        # fix column gauge: make the retained block close to identity
-        V = V @ np.linalg.inv(np.linalg.qr(V[:k, :])[0]) if k > 1 else V
-        X = graph_of(V, k)
-        P = projector(V)
-        st = np.sort(sin_theta(V, k))[::-1]
-        st1 = np.sort(np.linalg.svd(eps * X1, compute_uv=False))[::-1]
-        dP = P - P0
-        dP_first = np.zeros_like(dP)
-        dP_first[k:, :k] = eps * X1
-        dP_first[:k, k:] = eps * X1.T
-        rows.append(dict(
-            eps=eps,
-            graph=np.linalg.norm(X - eps * X1, "fro"),
-            projector_matrix=np.linalg.norm(dP - dP_first, "fro"),
-            projector_diag=np.linalg.norm(dP[:k, :k], "fro") + np.linalg.norm(dP[k:, k:], "fro"),
-            projector_fro_norm=abs(np.linalg.norm(dP, "fro") - np.sqrt(2) * eps * np.linalg.norm(X1, "fro")),
-            sin_theta=np.linalg.norm(st - st1),
-        ))
-    return rows, X1, G
+    V = MODELS[model](A, Eq, Q, eps)
+    X = graph_of(V, Q)
+    X1 = first_order_graph(lam, Eq, eps, model)
+
+    d = A.shape[0]
+    P0 = np.zeros((d, d))
+    P0[:K, :K] = np.eye(K)
+    C = Q.T @ V                       # orthonormal: V is, and Q is orthogonal
+    dP = C @ C.T - P0                 # projector displacement, exactly
+    dP1 = np.zeros_like(dP)
+    dP1[K:, :K] = X1
+    dP1[:K, K:] = X1.T
+
+    # sin of the principal angles: singular values of the discarded-block component
+    st = np.sort(np.linalg.svd(C[K:, :], compute_uv=False))[::-1]
+    st1 = np.sort(np.linalg.svd(X1, compute_uv=False))[::-1]
+
+    return {
+        "graph": np.linalg.norm(X - X1, "fro"),
+        "projector_matrix": np.linalg.norm(dP - dP1, "fro"),
+        "projector_fro_norm": abs(np.linalg.norm(dP, "fro")
+                                  - np.sqrt(2) * np.linalg.norm(X1, "fro")),
+        "sin_theta": np.linalg.norm(st - st1),
+    }
 
 
-def slope(eps, y):
-    """Log-log slope, ignoring points at the numerical floor."""
-    eps = np.asarray(eps); y = np.asarray(y)
+def slope(eps_grid, y):
+    eps_grid = np.asarray(eps_grid, float)
+    y = np.asarray(y, float)
     m = y > 1e-13
     if m.sum() < 3:
         return float("nan")
-    return float(np.polyfit(np.log(eps[m]), np.log(y[m]), 1)[0])
+    return float(np.polyfit(np.log(eps_grid[m]), np.log(y[m]), 1)[0])
+
+
+OBS = ["graph", "projector_matrix", "projector_fro_norm", "sin_theta"]
+PREDICTED = {
+    "generic":       {"graph": 2, "projector_matrix": 2, "projector_fro_norm": 2, "sin_theta": 2},
+    "pure_coupling": {"graph": 3, "projector_matrix": 2, "projector_fro_norm": 3, "sin_theta": 3},
+}
+
+
+def run(checks, *, break_block_diagonal=False):
+    d = 24
+    rng = np.random.default_rng(20260912)
+    lam = np.concatenate([np.array([10.0, 9.4, 8.8]), np.linspace(4.0, 1.0, d - K)])
+    Q = orth(rng.standard_normal((d, d)))
+    A = Q @ np.diag(lam) @ Q.T
+    eps_grid = np.logspace(-1, -3, 9)
+
+    print(f"d={d} k={K} cutoff gap delta={lam[K-1]-lam[K]:.3f} lambda1={lam[0]:.3f}")
+    print(f"eps grid {eps_grid[0]:.1e} .. {eps_grid[-1]:.1e}")
+
+    for model in ("covariance", "additive"):
+        label = ("THE PAPER'S MODEL  A (I + eps E)^{-1}" if model == "covariance"
+                 else "CONTROL ONLY      A + eps G  (not the paper's model)")
+        print(f"\n=== model: {model}   [{label}]")
+        for kind in ("generic", "pure_coupling"):
+            Eq = make_Eq(d, kind, np.random.default_rng(7))
+            rows = [observables(A, Q, lam, Eq, e, model) for e in eps_grid]
+            for obs in OBS:
+                s = slope(eps_grid, [r[obs] for r in rows])
+                pred = PREDICTED[kind][obs]
+                checks.assert_(f"{model}/{kind}/{obs} slope",
+                               abs(s - pred) < 0.25, f"slope {s:5.2f}  predicted {pred}")
+
+    # ---------------- deterministic edge checks (all are ASSERTIONS) --------
+    print("\n=== deterministic edge checks (covariance model)")
+    P0 = np.zeros((d, d))
+    P0[:K, :K] = np.eye(K)
+
+    Eq0 = make_Eq(d, "zero", rng)
+    V = subspace_covariance_model(A, Eq0, Q, 0.0)
+    z = np.linalg.norm(Q.T @ V @ (Q.T @ V).T - P0, "fro")
+    checks.assert_("zero perturbation leaves the projector unchanged", z < 1e-12, f"{z:.2e}")
+
+    Eqb = make_Eq(d, "block_diagonal", np.random.default_rng(11))
+    if break_block_diagonal:                       # mutation fixture, self-test only
+        Eqb[K:, :K] = 0.05
+        Eqb[:K, K:] = 0.05
+    V = subspace_covariance_model(A, Eqb, Q, 0.05)
+    X = graph_of(V, Q)
+    zb = np.linalg.norm(X, "fro")
+    checks.assert_("block-diagonal E leaves the invariant subspace fixed",
+                   zb < 1e-10, f"||X||_F = {zb:.2e}")
+
+    lam_rep = np.concatenate([np.array([10.0, 10.0, 8.8]), np.linspace(4.0, 1.0, d - K)])
+    A_rep = Q @ np.diag(lam_rep) @ Q.T
+    Eqc = make_Eq(d, "pure_coupling", np.random.default_rng(7))
+    rows = [observables(A_rep, Q, lam_rep, Eqc, e, "covariance") for e in eps_grid]
+    s = slope(eps_grid, [r["graph"] for r in rows])
+    checks.assert_("repeated retained eigenvalues keep the cubic graph order",
+                   abs(s - 3) < 0.3, f"slope {s:.2f}")
+
+    lam_tie = np.concatenate([np.array([10.0, 9.4, 4.0]), np.linspace(4.0, 1.0, d - K)])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        X1t = first_order_graph(lam_tie, Eqc, 0.1, 'covariance')
+    nf = int((~np.isfinite(X1t)).sum())
+    checks.assert_("exact tie at the cutoff is non-identifiable, not divided through",
+                   nf > 0, f"{nf} non-finite first-order entries")
+
+    # exact projector identity, corrected expansion
+    Xr = np.random.default_rng(3).standard_normal((d - K, K)) * 0.01
+    S = Xr.T @ Xr
+    lhs = 2.0 * np.trace(S @ np.linalg.inv(np.eye(K) + S))
+    Vg = orth(np.vstack([np.eye(K), Xr]))
+    rhs = np.linalg.norm(Vg @ Vg.T - P0, "fro") ** 2
+    checks.assert_("||P(X)-P(0)||_F^2 == 2 tr[S (I+S)^{-1}]",
+                   abs(lhs - rhs) < 1e-12, f"|diff| = {abs(lhs-rhs):.2e}")
+    series = 2 * np.trace(S) - 2 * np.trace(S @ S)
+    omitted = 2 * abs(np.trace(S @ S @ S))          # leading O(||X||^6) term
+    checks.assert_("corrected series 2||X||^2 - 2 tr[(X^T X)^2] matches to O(||X||^6)",
+                   abs(series - lhs) < 10 * omitted + 1e-15,
+                   f"|diff| = {abs(series-lhs):.2e}, leading omitted term {omitted:.2e}")
+
+    # ---------------- informational diagnostics (never gate the exit code) --
+    print("\n=== diagnostics (informational only, not assertions)")
+    for gap in (2.0, 1.0, 0.5, 0.25):
+        lam_g = np.concatenate([np.array([10.0, 9.4, 4.0 + gap]), np.linspace(4.0, 1.0, d - K)])
+        X1g = first_order_graph(lam_g, Eqc, 0.1, 'covariance')
+        checks.diagnostic(f"cutoff gap {gap:<5} -> ||X1||_F",
+                          f"{np.linalg.norm(X1g,'fro'):.4f}  (all gaps move with lam_k, "
+                          f"so this does NOT isolate a 1/delta law)")
+    w, Vq = np.linalg.eigh(sym(A))
+    checks.diagnostic("eigensolver residual floor",
+                      f"{np.linalg.norm(A @ Vq - Vq @ np.diag(w), 'fro'):.2e}")
 
 
 def main():
-    d, k = 24, 3
-    rng = np.random.default_rng(20260912)
-    # retained eigenvalues well separated from the discarded ones
-    lam = np.concatenate([np.array([10.0, 9.4, 8.8]), np.linspace(4.0, 1.0, d - k)])
-    delta = lam[k - 1] - lam[k]
-    eps_grid = np.logspace(-1, -3, 9)
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--self-test", action="store_true",
+                    help="mutation regression: inject a broken block-diagonal fixture "
+                         "and require the exit status to become non-zero")
+    args = ap.parse_args()
 
-    print(f"d={d} k={k} cutoff gap delta={delta:.3f} lambda1={lam[0]:.3f}")
-    print(f"eps grid {eps_grid[0]:.1e} .. {eps_grid[-1]:.1e}\n")
+    if args.self_test:
+        print("### mutation regression: injecting a faulty block-diagonal fixture\n")
+        checks = Checks()
+        run(checks, break_block_diagonal=True)
+        status = checks.report()
+        if status == 0:
+            print("\nSELF-TEST FAILED: a broken fixture still returned success")
+            return 1
+        print("\nSELF-TEST PASSED: the broken fixture is detected and fails the exit status")
+        return 0
 
-    OBS = ["graph", "projector_matrix", "projector_diag", "projector_fro_norm", "sin_theta"]
-    PREDICTED = {
-        "generic":       dict(graph=2, projector_matrix=2, projector_diag=2, projector_fro_norm=2, sin_theta=2),
-        "pure_coupling": dict(graph=3, projector_matrix=2, projector_diag=2, projector_fro_norm=3, sin_theta=3),
-    }
-
-    print(f"{'family':<15}{'observable':<22}{'slope':>8}{'predicted':>11}{'verdict':>10}")
-    print("-" * 66)
-    ok = True
-    for kind in ("generic", "pure_coupling"):
-        rows, X1, G = residual_orders(d, k, lam, kind, eps_grid, rng)
-        for obs in OBS:
-            s = slope([r["eps"] for r in rows], [r[obs] for r in rows])
-            pred = PREDICTED[kind][obs]
-            good = abs(s - pred) < 0.25
-            ok &= good
-            print(f"{kind:<15}{obs:<22}{s:>8.2f}{pred:>11}{'ok' if good else 'MISMATCH':>10}")
-        print()
-
-    # ---- deterministic edge checks -------------------------------------
-    print("deterministic checks")
-    print("-" * 66)
-    A = np.diag(lam)
-
-    # 1. zero perturbation moves nothing
-    V, _ = top_k_basis(A, k)
-    z = np.linalg.norm(projector(V) - np.diag([1.0] * k + [0.0] * (d - k)), "fro")
-    print(f"  zero perturbation, ||dP||_F                     {z:.2e}  {'ok' if z < 1e-12 else 'FAIL'}")
-
-    # 2. block-diagonal (commuting with the block structure) leaves the subspace fixed
-    G = make_perturbation(d, k, "block_diagonal", rng)
-    V, _ = top_k_basis(A + 0.05 * G, k)
-    P0 = np.zeros((d, d)); P0[:k, :k] = np.eye(k)
-    z = np.linalg.norm(projector(V) - P0, "fro")
-    print(f"  block-diagonal E, ||dP||_F                      {z:.2e}  {'ok' if z < 1e-10 else 'FAIL'}")
-
-    # 3. repeated eigenvalues *within* the retained block: first order still valid
-    lam_rep = np.concatenate([np.array([10.0, 10.0, 8.8]), np.linspace(4.0, 1.0, d - k)])
-    rows, X1, _ = residual_orders(d, k, lam_rep, "pure_coupling", eps_grid, rng)
-    s = slope([r["eps"] for r in rows], [r["graph"] for r in rows])
-    print(f"  repeated retained eigenvalues, graph slope      {s:.2f}      {'ok' if abs(s-3) < 0.3 else 'FAIL'}")
-
-    # 4. shrinking cutoff gap: first-order graph grows like 1/delta
-    print("  shrinking cutoff gap (first-order graph norm ~ 1/delta):")
-    for gap in (2.0, 1.0, 0.5, 0.25):
-        lam_g = np.concatenate([np.array([10.0, 9.4, 4.0 + gap]), np.linspace(4.0, 1.0, d - k)])
-        Gp = make_perturbation(d, k, "pure_coupling", np.random.default_rng(7))
-        X1g = first_order_graph(lam_g, Gp, k)
-        print(f"      delta={gap:<5} ||X1||_F={np.linalg.norm(X1g,'fro'):8.3f}"
-              f"   delta*||X1||={gap*np.linalg.norm(X1g,'fro'):8.3f}")
-
-    # 5. exact tie at the cutoff: first order is undefined, not merely large
-    lam_tie = np.concatenate([np.array([10.0, 9.4, 4.0]), np.linspace(4.0, 1.0, d - k)])
-    Gp = make_perturbation(d, k, "pure_coupling", np.random.default_rng(7))
-    with np.errstate(divide="ignore", invalid="ignore"):
-        X1t = first_order_graph(lam_tie, Gp, k)
-    nonfinite = int((~np.isfinite(X1t)).sum())
-    print(f"  exact tie at the cutoff, non-finite X1 entries  {nonfinite:>8}  "
-          f"{'ok (non-identifiable, reported not divided)' if nonfinite > 0 else 'FAIL'}")
-
-    # 6. numerical floor: how small a residual this precision can resolve
-    V, _ = top_k_basis(A, k)
-    floor = np.linalg.norm(A @ V - V @ (V.T @ A @ V), "fro")
-    print(f"  eigensolver residual floor                      {floor:.2e}")
-
-    print("\nALL ORDER PREDICTIONS MATCHED" if ok else "\nSOME PREDICTIONS DID NOT MATCH")
-    return 0 if ok else 1
+    checks = Checks()
+    run(checks)
+    return checks.report()
 
 
 if __name__ == "__main__":

@@ -62,10 +62,12 @@ so a crash-and-retry cycle accumulates rather than resets.
 
 Limits -- do not overstate these
 --------------------------------
-* Identity by digest merges two genuinely distinct executions that produced
-  byte-identical output files.  In this runner the provenance block (argv,
-  finished time, resource usage) makes that practically impossible, but it is
-  not excluded by construction.
+* Identity by digest merges two records of byte-identical output files.  Where
+  both carry reservation uuids the uuids win and the executions stay apart (see
+  :func:`_components`); where *neither* does, two genuinely distinct executions
+  that produced identical bytes are still merged into one.  Reserving before
+  executing is what removes that case, so an execution that ran without a
+  reservation keeps it.
 * Conversely, a ledger entry whose recorded digest is stale or a placeholder does
   *not* merge with the file on disk; it is then counted twice.  That is the
   conservative direction for a cap, but it is not correct deduplication.
@@ -275,9 +277,13 @@ def _merge(group: list) -> dict:
     """Collapse candidates sharing an identity key into one execution record."""
     fits = [c["fits"] for c in group]
     opinions = [c["inference_only"] for c in group if c["inference_only"] is not None]
+    kind = sorted({c["identity"] for c in group}, key=_IDENTITY_ORDER.index)[0]
     return {
-        "execution_id": sorted(c["execution_id"] for c in group)[0],
-        "identity": sorted({c["identity"] for c in group}, key=_IDENTITY_ORDER.index)[0],
+        # the id of the strongest identity present, so a group holding a
+        # reservation is named by its uuid rather than by its bytes
+        "execution_id": sorted(c["execution_id"] for c in group
+                               if c["identity"] == kind)[0],
+        "identity": kind,
         "stage": next((c["stage"] for c in group if c["stage"]), None),
         "output_file": next((c["output_file"] for c in group if c["output_file"]), None),
         "fits": max(fits),
@@ -295,7 +301,38 @@ def _merge(group: list) -> dict:
     }
 
 
+def _digest_key(c: dict):
+    return next((k for k in c["keys"] if k.startswith("d:")), None)
+
+
+def _contested_digests(cands: list) -> set:
+    """Digest keys claimed by more than one reservation uuid.
+
+    Two *distinct* reservations whose outputs happen to be byte-identical share a
+    digest key.  The digest cannot then decide which execution a record belongs
+    to, and merging on it would collapse two executions that really did both
+    spend compute -- exactly the way a cap is silently widened.
+    """
+    claims: dict = {}
+    for c in cands:
+        dk = _digest_key(c)
+        if dk and c["reservation_uuid"]:
+            claims.setdefault(dk, set()).add(c["reservation_uuid"])
+    return {k for k, uuids in claims.items() if len(uuids) > 1}
+
+
 def _components(cands: list) -> list:
+    """Group candidate records into executions.
+
+    Union-find over the merge keys, with one exclusion: **a reservation uuid is
+    an identity, not a hint**.  Where a digest key is claimed by two different
+    uuids, the records carrying a uuid merge on their uuid alone and ignore the
+    digest, so the two executions stay apart.  A record of those same bytes that
+    carries no uuid cannot be attributed to either; it merges only with other
+    unclaimed records of the same bytes and is counted as its own execution,
+    which over-counts rather than under-counts a cap.
+    """
+    contested = _contested_digests(cands)
     parent: dict = {}
 
     def find(x):
@@ -313,6 +350,8 @@ def _components(cands: list) -> list:
         node = f"c{i}"
         parent.setdefault(node, node)
         for k in c["keys"]:
+            if k in contested and c["reservation_uuid"]:
+                continue                 # identity is the uuid, not the bytes
             parent.setdefault(k, k)
             join(node, k)
     groups: dict = {}
@@ -424,8 +463,15 @@ def charged_total(ledger=None, scan=None, reservations=None, *, ledger_path=None
 
 # --- the reservation store --------------------------------------------------------
 def _reservation_charge(r: dict) -> int:
-    """What a reservation costs.  A failed or interrupted attempt consumed compute
-    and is never refunded; an over-run charges what actually ran."""
+    """What a reservation costs *against the cap*.
+
+    A failed or interrupted attempt consumed compute and is never refunded; an
+    over-run charges what actually ran.  A reservation marked ``smoke`` charges
+    nothing: the protocol exempts smoke runs from the cap and totals them apart,
+    exactly as the ledger does for a smoke entry.
+    """
+    if r.get("smoke"):
+        return 0
     return max(int(r.get("planned") or 0), int(r.get("actual_fits") or 0))
 
 
@@ -456,14 +502,20 @@ def validate_reservations(store, path=None) -> None:
 
 
 @contextlib.contextmanager
-def _locked(store_path):
-    """Exclusive lock around a read-modify-write of the reservation store.
+def locked(store_path):
+    """Exclusive lock around a read-modify-write of the file at ``store_path``.
 
     The lock file is created with ``O_CREAT | O_EXCL`` so the first process to
     need it creates it without clobbering a concurrent creator; mutual exclusion
     itself is ``fcntl.flock(LOCK_EX)``, which serialises the whole
     read-modify-write.  The lock file is never unlinked -- unlinking races with
     processes that already hold a descriptor on it.
+
+    Used for the reservation store and, by the runner, for the fit ledger's own
+    append: both are read-modify-write cycles that a second process must not
+    interleave with.  ``flock`` is advisory -- it binds only processes that take
+    the same lock, and on some network filesystems it does not bind even those.
+    :func:`lock_is_effective` probes an actual directory rather than assuming.
     """
     lock = Path(str(store_path) + ".lock")
     lock.parent.mkdir(parents=True, exist_ok=True)
@@ -479,6 +531,60 @@ def _locked(store_path):
             fcntl.flock(fd, fcntl.LOCK_UN)
     finally:
         os.close(fd)
+
+
+def lock_is_effective(directory, *, workers=6, rounds=25, timeout_s=120):
+    """Probe whether :func:`locked` really excludes on *this* filesystem.
+
+    ``flock`` is advisory, and on some network filesystems (NFS without a lock
+    manager, some FUSE mounts) it silently does not exclude at all.  Rather than
+    assume, this forks ``workers`` children that each do ``rounds`` locked
+    read-modify-write increments of a counter file in ``directory``.  A working
+    lock ends at ``workers * rounds``; anything less is a lost update, which is
+    exactly the failure the lock exists to prevent.
+
+    Returns ``{"effective": bool, "observed": int, "expected": int, ...}``.  It
+    is a probe, not a proof: a pass means no lost update was observed in this
+    many contended cycles on this mount, nothing stronger.
+    """
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    counter = directory / "lock_probe.json"
+    counter.write_text(json.dumps({"n": 0}))
+    kids = []
+    for _ in range(int(workers)):
+        pid = os.fork()
+        if pid == 0:                                   # pragma: no cover - child
+            try:
+                for _ in range(int(rounds)):
+                    with locked(counter):
+                        n = json.loads(counter.read_text())["n"]
+                        time.sleep(0.0005)             # widen the race window
+                        counter.write_text(json.dumps({"n": n + 1}))
+                os._exit(0)
+            except BaseException:
+                os._exit(1)
+        kids.append(pid)
+    bad = 0
+    deadline = time.time() + float(timeout_s)
+    for pid in kids:
+        while True:
+            done, status = os.waitpid(pid, os.WNOHANG)
+            if done:
+                bad += 0 if (os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0) else 1
+                break
+            if time.time() > deadline:                 # pragma: no cover - hung child
+                os.kill(pid, 9)
+                os.waitpid(pid, 0)
+                bad += 1
+                break
+            time.sleep(0.01)
+    observed = int(json.loads(counter.read_text())["n"])
+    expected = int(workers) * int(rounds)
+    counter.unlink(missing_ok=True)
+    Path(str(counter) + ".lock").unlink(missing_ok=True)
+    return {"effective": bool(observed == expected and not bad), "observed": observed,
+            "expected": expected, "failed_workers": bad, "directory": str(directory)}
 
 
 def load_reservations(path, *, required=False, cap=None):
@@ -573,20 +679,26 @@ def reserve(path, cap, planned, meta=None, *, stage=None, spent=0, exposure=None
     The reservation is refused, and nothing is written, when
 
         spent + open charge + planned > cap.
+
+    A ``smoke`` reservation is recorded but charges nothing: the protocol exempts
+    smoke runs from the cap and totals them apart.
     """
     planned = int(planned)
     if planned < 0:
         raise ValueError("planned must be non-negative")
     stamp = now or _utc_now()
-    with _locked(path):
+    with locked(path):
         store = _load_unlocked(path, cap)
         open_charge = int(sum(_reservation_charge(r) for r in store["reservations"]
                               if r.get("state") in CHARGED_STATES))
         before = int(spent) + open_charge
-        if before + planned > int(cap):
+        # a smoke run is exempt from the cap and totalled apart, so it reserves
+        # its fits (they are recorded) without charging for them
+        charge = 0 if smoke else planned
+        if before + charge > int(cap):
             raise SystemExit(
                 f"reservation refused: charged {before} (completed {int(spent)}, open "
-                f"reservations {open_charge}) + planned {planned} = {before + planned} "
+                f"reservations {open_charge}) + planned {planned} = {before + charge} "
                 f"would exceed the hard cap {cap}")
         row = {"uuid": str(_uuid.uuid4()), "state": "pending", "stage": stage,
                "planned": planned, "actual_fits": None, "smoke": bool(smoke),
@@ -604,7 +716,7 @@ def reserve(path, cap, planned, meta=None, *, stage=None, spent=0, exposure=None
 
 def _transition(path, uid, new_state, *, allowed, now=None, **fields):
     stamp = now or _utc_now()
-    with _locked(path):
+    with locked(path):
         store = _load_unlocked(path)
         row = _find(store, uid)
         if allowed is not None and row["state"] not in allowed:
@@ -629,7 +741,7 @@ def mark_running(path, uid, *, pid=None, now=None):
 def heartbeat(path, uid, now=None):
     """Refresh the liveness timestamp of a running reservation."""
     stamp = now or _utc_now()
-    with _locked(path):
+    with locked(path):
         store = _load_unlocked(path)
         row = _find(store, uid)
         row["heartbeat_utc"] = stamp
@@ -676,7 +788,7 @@ def sweep_interrupted(path, now=None, *, stale_after_s=None, is_alive=None):
     stamp = now or _utc_now()
     alive_fn = is_alive or process_alive
     swept, unverifiable = [], []
-    with _locked(path):
+    with locked(path):
         store = _load_unlocked(path)
         for row in store["reservations"]:
             if row.get("state") != "running":
@@ -707,7 +819,7 @@ def attach_exposure(path, uid, *, dataset_id, region=None, note=None, now=None):
     anything, and it changes no charge.
     """
     stamp = now or _utc_now()
-    with _locked(path):
+    with locked(path):
         store = _load_unlocked(path)
         row = _find(store, uid)
         row.setdefault("exposure", []).append(

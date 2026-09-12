@@ -203,6 +203,68 @@ def test_a_record_that_refits_nothing_separates_fitted_models_from_executed():
     assert u["executed"] == 200 and u["fitted_models"] == 176
 
 
+def test_byte_identical_outputs_from_distinct_reservations_stay_distinct(tmp_path):
+    """Two executions that produced the same bytes are still two executions."""
+    store = tmp_path / fa.RESERVATION_NAME
+    a = fa.reserve(store, 250, 24, stage="validation")
+    b = fa.reserve(store, 250, 24, stage="validation")
+    assert a["uuid"] != b["uuid"]
+    pa = _write_output(tmp_path / "T22_validation_v1", "t22_validation.json",
+                       _payload("validation", fits=24))
+    pb = _write_output(tmp_path / "T22_validation_v2", "t22_validation.json",
+                       _payload("validation", fits=24))
+    assert _sha(pa) == _sha(pb)                   # identical bytes, different runs
+    fa.mark_completed(store, a["uuid"], 24, pa, output_sha256=_sha(pa))
+    fa.mark_completed(store, b["uuid"], 24, pb, output_sha256=_sha(pb))
+
+    u = fa.union_executed(reservations=fa.load_reservations(store))
+    assert u["executed"] == 48 and len(u["records"]) == 2
+    assert sorted(r["execution_id"] for r in u["records"]) == sorted(
+        [f"r:{a['uuid']}", f"r:{b['uuid']}"])
+    assert all(r["identity"] == "reservation" for r in u["records"])
+
+    # the same through the ledger: two entries, same digest, different uuids
+    ledger = _ledger([
+        _entry("validation", "T22_validation_v1", "t22_validation.json", 24, _sha(pa),
+               reservation_uuid=a["uuid"]),
+        _entry("validation", "T22_validation_v2", "t22_validation.json", 24, _sha(pb),
+               reservation_uuid=b["uuid"])])
+    assert fa.union_executed(ledger, None)["executed"] == 48
+
+
+def test_an_unclaimed_record_of_contested_bytes_is_counted_on_its_own(tmp_path):
+    """A digest two reservations both claim cannot attribute a third record.
+
+    The conservative direction for a cap is to count it separately rather than
+    merge it into whichever execution happens to be listed first.
+    """
+    store = tmp_path / fa.RESERVATION_NAME
+    a = fa.reserve(store, 250, 24, stage="validation")
+    b = fa.reserve(store, 250, 24, stage="validation")
+    pa = _write_output(tmp_path / "T22_validation_v1", "t22_validation.json",
+                       _payload("validation", fits=24))
+    pb = _write_output(tmp_path / "T22_validation_v2", "t22_validation.json",
+                       _payload("validation", fits=24))
+    fa.mark_completed(store, a["uuid"], 24, pa, output_sha256=_sha(pa))
+    fa.mark_completed(store, b["uuid"], 24, pb, output_sha256=_sha(pb))
+    # a ledger entry of those same bytes that names no reservation
+    ledger = _ledger([_entry("validation", "T22_validation_v3", "t22_validation.json",
+                             24, _sha(pa))])
+    u = fa.union_executed(ledger, None, reservations=fa.load_reservations(store))
+    assert len(u["records"]) == 3 and u["executed"] == 72
+    assert u["duplicates_merged"] == 0
+
+
+def test_a_smoke_reservation_is_recorded_and_charges_nothing(tmp_path):
+    store = tmp_path / fa.RESERVATION_NAME
+    r = fa.reserve(store, 250, 500, stage="development", smoke=True, spent=200)
+    assert r["planned"] == 500 and r["smoke"] is True
+    # exempt from the cap, like a smoke ledger entry: recorded, totalled apart
+    assert fa.charged_total(reservations=fa.load_reservations(store)) == 0
+    with pytest.raises(SystemExit):                # a real run still cannot
+        fa.reserve(store, 250, 500, stage="development", spent=200)
+
+
 def test_execution_identity_kinds_and_what_they_key_on():
     res, kind = fa.execution_id(reservation_uuid="u-1", output_sha256="ab", stage="development",
                                 output_file="t22_development.json", output_dir="d")

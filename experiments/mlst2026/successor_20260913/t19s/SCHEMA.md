@@ -180,3 +180,19 @@ selection was frozen) · 2 budget refusal · 3 reconciliation (missing / extra /
 duplicate / unattributed / tampered cells, frozen selection missing, differing or
 tampered) · 4 schema **or a scientific check failed** · 5 duplicate completion ·
 6 protocol / usage error.
+
+## Fit accounting (`fits_used`, `fits_observed`)
+
+`fits_used` is the number of estimator invocations on drawn data the cell actually
+performed.  It is **observed**, not restated: `synthetic.fit_subspace` — the package's only estimator invocation on drawn data — is instrumented, so a paired cell's charge is the number of CW-PCA fits it ran.  `common.cli` runs every cell
+inside a `common.fitcount` counting region and refuses the cell (exit 4, charged) unless
+the count declared in the run matrix (`n_fits`), the count the cell reports and the count
+the instrumentation saw all agree.  Each cell file therefore also carries
+
+| key | type | meaning |
+|---|---|---|
+| `fits_observed.total` | int | estimator invocations instrumented while this cell ran; equal to `fits_used` and to the matrix's `n_fits` |
+| `fits_observed.by_label` | dict | the same total split by call site (`cw_pca`) |
+
+`solves_used` (algebraic/analytic solves that fit no drawn data) is counted by the
+package itself where it performs them and is not part of the `fitcount` instrumentation.

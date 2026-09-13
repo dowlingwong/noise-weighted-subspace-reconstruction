@@ -15,7 +15,7 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from experiments.mlst2026.successor_20260913.common import cli, ledger as L, matrix as M, protocol as PR, results as R  # noqa: E402
+from experiments.mlst2026.successor_20260913.common import cli, fitcount as FC, ledger as L, matrix as M, protocol as PR, results as R  # noqa: E402
 
 TOY_PROTOCOL = {
     "schema": PR.SCHEMA, "package": "toy", "version": "2026-09-13", "title": "toy", "question": "q",
@@ -37,11 +37,18 @@ def _toy_matrix(P, fixture):
     return M.RunMatrix("toy", P["_sha256"], cells)
 
 
+def _toy_estimator(rng):
+    """Stands in for an estimator invocation; counted where it happens."""
+    FC.count_fit("toy_estimator")
+    return float(rng.normal())
+
+
 def _toy_run_cell(P, cell, fixture, ctx):
     if cell["role"] == "algebraic":
         return {"value": 0.0}, 0, 1
     rng = np.random.default_rng(cell["seed"])
-    return {"value": float(rng.normal())}, 2, 0
+    v = _toy_estimator(rng) + _toy_estimator(rng)      # two estimator invocations
+    return {"value": v}, FC.observed(), 0
 
 
 def _toy_reduce(P, matrix, cells, out, partial):
@@ -49,8 +56,9 @@ def _toy_reduce(P, matrix, cells, out, partial):
     return {"mean": float(np.mean(vals)) if vals else None, "n": len(vals)}
 
 
-def _main(argv, tmp_protocol):
-    return cli.main_template(package="toy", description="toy", build_matrix=_toy_matrix, run_cell=_toy_run_cell,
+def _main(argv, tmp_protocol, *, build_matrix=None, run_cell=None):
+    return cli.main_template(package="toy", description="toy", build_matrix=build_matrix or _toy_matrix,
+                             run_cell=run_cell or _toy_run_cell,
                              reduce_run=_toy_reduce, result_required={"value": float}, source_files=[Path(__file__)],
                              argv=[argv[0], "--protocol", str(tmp_protocol)] + argv[1:])
 
@@ -184,3 +192,68 @@ def test_help_never_computes(proto, tmp_path):
     with pytest.raises(SystemExit) as e:
         _main(["--help"], proto)
     assert e.value.code == 0
+
+
+# --- the fit-accounting guard is a real check, not a constant compared with itself ---------
+def _ledger(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_guard_rejects_a_cell_that_restates_the_declared_constant(proto, tmp_path):
+    """A cell that reports ``cell['n_fits']`` instead of what it observed is the
+    defect the guard exists to catch: the declaration would be compared with
+    itself.  The instrumentation makes it a third, independent number."""
+    def restating_run_cell(P, cell, fixture, ctx):
+        if cell["role"] == "algebraic":
+            return {"value": 0.0}, 0, 1
+        rng = np.random.default_rng(cell["seed"])
+        v = _toy_estimator(rng)                    # ONE estimator invocation ...
+        return {"value": v}, int(cell["n_fits"]), 0   # ... but the declared two are restated
+
+    out = tmp_path / "restated"
+    assert _main(["run", "--out", str(out)], proto, run_cell=restating_run_cell) == 4
+    assert not list((out / "cells").glob("*.json"))
+    recs = _ledger(out)
+    assert [r["state"] for r in recs] == ["running", "failed"]
+    assert "instrumentation mismatch" in recs[-1]["error"]
+
+
+def test_fit_guard_rejects_a_wrong_declaration_in_the_matrix(proto, tmp_path):
+    """The other direction: the matrix declares three fits, the cell performs two."""
+    def wrong_matrix(P, fixture):
+        m = _toy_matrix(P, fixture)
+        for c in m.cells:
+            if c["role"] == "pilot":
+                c["n_fits"] = 3
+        return m
+
+    out = tmp_path / "misdeclared"
+    assert _main(["run", "--out", str(out)], proto, build_matrix=wrong_matrix) == 4
+    recs = _ledger(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    # charged and not refunded: the failed attempt still counts its planned fits
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy",
+                            protocol_sha256=recs[-1]["protocol_sha256"])
+    assert led.charged()["fits"] == 3 and led.charged()["by_state"]["failed"] == 1
+
+
+def test_observed_fit_breakdown_is_written_into_every_cell_file(proto, tmp_path):
+    out = tmp_path / "obs"
+    assert _main(["run", "--out", str(out)], proto) == 0
+    for p in sorted((out / "cells").glob("*.json")):
+        js = json.loads(p.read_text())
+        assert js["fits_observed"]["total"] == js["fits_used"]
+        if js["role"] == "pilot":
+            assert js["fits_observed"]["by_label"] == {"toy_estimator": 2}
+
+
+def test_count_fit_outside_a_counting_region_is_inert(proto):
+    assert FC.current() is None
+    assert FC.count_fit("nowhere") == 1
+    with pytest.raises(RuntimeError):
+        FC.observed()
+    with FC.counting() as fc:
+        FC.count_fit("a", n=2)
+        FC.count_fit("b")
+        assert FC.observed() == 3 and fc.as_dict()["by_label"] == {"a": 2, "b": 1}
+    assert FC.current() is None

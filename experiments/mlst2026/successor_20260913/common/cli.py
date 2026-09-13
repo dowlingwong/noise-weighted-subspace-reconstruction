@@ -15,6 +15,11 @@ Safety rules implemented here and inherited by all packages:
   ``results/`` or ``evidence/`` of the repository (the frozen archives);
 * ``--fixture`` forces the development seed namespace, marks every output
   ``development_only: true`` and refuses confirmation cells;
+* fit accounting is *observed*: every cell runs inside a ``common.fitcount``
+  counting region, the packages count each estimator invocation at its call
+  site, and the cell is refused (exit 4) unless the declared count, the
+  reported count and the instrumented count all agree.  The observed
+  breakdown is written into the cell file as ``fits_observed``;
 * exit codes: 0 ok, 1 failure/exception, 2 budget refusal, 3 reconciliation,
   4 schema, 5 duplicate completion, 6 protocol/usage error.
 """
@@ -27,8 +32,9 @@ import time
 import traceback
 from pathlib import Path
 
+from . import fitcount
 from .ledger import BudgetExceeded, DuplicateCompletion, ExecutionLedger
-from .matrix import RunMatrix, check_seed_roles
+from .matrix import ROLES, RunMatrix, check_seed_roles
 from .protocol import ProtocolError, load_protocol, namespace_of_seed, protocol_hash
 from .results import (ReconciliationError, SchemaError, check_cell_schema, code_provenance, read_cells, reconcile,
                       require_reconciled, sha256_file, write_json_atomic)
@@ -189,12 +195,21 @@ def _run(args, P, matrix, out, package, run_cell, result_required, source_files,
         try:
             if args.fail_cell and cell["cell_id"] == args.fail_cell:
                 raise RuntimeError("injected failure (--fail-cell)")
-            result, fits_used, solves_used = run_cell(P, cell, fixture, ctx)
+            # Estimator invocations are instrumented at the call sites (common.fitcount),
+            # so the count the cell reports is observed rather than restated from the
+            # constant that produced the matrix declaration.
+            with fitcount.counting() as observed_fits:
+                result, fits_used, solves_used = run_cell(P, cell, fixture, ctx)
             js = {"cell_id": cell["cell_id"], "attempt_uuid": u, "role": cell["role"], "seed": cell["seed"], "family": cell["family"],
                   "params": cell["params"], "fits_used": int(fits_used), "solves_used": int(solves_used), "result": result,
+                  "fits_observed": observed_fits.as_dict(),
                   "development_only": bool(fixture), "wall_s": time.time() - t0, "provenance": {**prov, "protocol_sha256": P["_sha256"],
                   "matrix_sha256": matrix.matrix_hash(), "fixture_overrides": ctx["fixture_overrides"]}}
             check_cell_schema(js, result_required, where=cell["cell_id"])
+            if int(fits_used) != int(observed_fits.total):
+                raise SchemaError(f"{cell['cell_id']}: instrumentation mismatch: the cell reports {fits_used} fits but "
+                                  f"{observed_fits.total} estimator invocations were instrumented "
+                                  f"({observed_fits.as_dict()['by_label']}); the reported count must be the observed one")
             if int(fits_used) != int(cell["n_fits"]) or int(solves_used) != int(cell.get("n_solves", 0)):
                 raise SchemaError(f"{cell['cell_id']}: accounting mismatch: planned fits/solves {cell['n_fits']}/{cell.get('n_solves', 0)} "
                                   f"but the cell reports {fits_used}/{solves_used}")
@@ -260,13 +275,30 @@ def _ledger_digest(ledger: ExecutionLedger, attempt_uuid: str) -> str | None:
     return a.get("output_sha256") if a else None
 
 
+def _production_only(matrix: RunMatrix) -> RunMatrix:
+    """The cells a remote production run will execute: everything but ``development``.
+
+    A resource projection and the cell counts printed beside it must cover the
+    same set of cells.  Development cells are fixture work, priced at the
+    production scale they were never meant to carry, so they are excluded here
+    and the exclusion is recorded in the estimate."""
+    return matrix.subset(roles=[r for r in ROLES if r != "development"])
+
+
 def _estimate(P, matrix, out, *, fixture_matrix=None) -> int:
     """Resource estimate: measured per-cell wall time by family from whatever
     cells exist under --out (a fixture run), scaled by the declared
     ``budget.fixture_to_production_scale`` per family, times the PRODUCTION
     matrix (``matrix``).  Nothing here is a guess: absent timings are reported
     as absent, and the root's own (fixture) counts are recorded beside the
-    production counts so the two are never confused."""
+    production counts so the two are never confused.
+
+    The priced set is the production matrix with ``role == development``
+    removed.  Development cells are fixture work and are never transferred, so
+    pricing them would make the projected total cover a different set of cells
+    from the counts printed beside it.  ``priced_counts`` below is the set the
+    total covers, and it is what the handoff prints."""
+    matrix = _production_only(matrix)
     observed = read_cells(out)
     timings: dict[str, list[float]] = {}
     for files in observed.values():
@@ -286,7 +318,11 @@ def _estimate(P, matrix, out, *, fixture_matrix=None) -> int:
                                 "production_seconds_per_cell": per, "production_cpu_seconds": per * info["cells"]}
         est["total_cpu_seconds_point"] += per * info["cells"]
     est["counts"] = matrix.counts()
+    est["priced_counts"] = matrix.counts()
     est["priced_matrix"] = "production"
+    est["priced_roles"] = sorted({c["role"] for c in matrix.cells})
+    est["priced_cells_note"] = ("the total covers exactly the cells in 'priced_counts': the production matrix "
+                                "with role 'development' (fixture-only work, never transferred) excluded")
     est["timing_source_matrix"] = "fixture" if fixture_matrix is not None else "production"
     if fixture_matrix is not None:
         est["fixture_counts"] = fixture_matrix.counts()

@@ -62,6 +62,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 
 from experiments.mlst2026 import t13a_cresst_channel_bootstrap as t13a  # noqa: E402
 from experiments.mlst2026.successor_20260913.common import cli  # noqa: E402
+from experiments.mlst2026.successor_20260913.common import fitcount  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.matrix import RunMatrix, make_cell  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.protocol import ProtocolError  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.results import SchemaError  # noqa: E402
@@ -393,13 +394,13 @@ def run_cell(P: dict, cell: dict, fixture: bool, ctx: dict):
     if fam == "cluster_report":
         return _cell_cluster_report(P, cell), 0, 0
     if fam == "science_control":
-        return _cell_science_control(P, cell), cell["n_fits"], 0
+        return _cell_science_control(P, cell), fitcount.observed(), 0
     if fam == "calib_control":
         return _cell_calibration_control(P, cell), 0, 0
     if fam in ("calib_pilot", "calib_confirm"):
         return _cell_calibration(P, cell), 0, 0
     if fam in ("robustness_pilot", "robustness_confirm"):
-        return _cell_robustness(P, cell, fixture, ctx), cell["n_fits"], 0
+        return _cell_robustness(P, cell, fixture, ctx), fitcount.observed(), 0
     raise RuntimeError(f"unknown family {fam!r}")
 
 
@@ -579,9 +580,9 @@ def _cell_science_control(P: dict, cell: dict) -> dict:
                                                           "relative_difference": r["relative_difference_flat"],
                                                           "tolerance": r["tolerance"]},
                   "weighting_changes_the_problem": {"passed": r["weighting_changes_the_problem"]}}
-        if int(r["n_fits"]) != int(cell["n_fits"]):
-            raise SchemaError(f"{cell['cell_id']}: control performed {r['n_fits']} fits, matrix planned "
-                              f"{cell['n_fits']}")
+        if int(r["n_fits"]) != int(fitcount.observed()):
+            raise SchemaError(f"{cell['cell_id']}: the control's own tally is {r['n_fits']} fits but "
+                              f"{fitcount.observed()} estimator invocations were instrumented")
     else:  # pragma: no cover
         raise RuntimeError(f"unknown control {name!r}")
     return {"kind": "science_control", "passed": all(c["passed"] for c in checks.values()), "checks": checks,
@@ -635,8 +636,9 @@ def _cell_robustness(P: dict, cell: dict, fixture: bool, ctx: dict) -> dict:
     else:
         data_root = _CRESST_DATA_ROOT
     scored = RD.run_robustness_cell(P, p, data_root=data_root, seed=int(cell["seed"]), niter=int(p["niter"]))
-    if int(scored["n_fits"]) != int(cell["n_fits"]):
-        raise SchemaError(f"{cell['cell_id']}: performed {scored['n_fits']} fits, matrix planned {cell['n_fits']}")
+    if int(scored["n_fits"]) != int(fitcount.observed()):
+        raise SchemaError(f"{cell['cell_id']}: the cell's own tally is {scored['n_fits']} fits but "
+                          f"{fitcount.observed()} estimator invocations were instrumented")
     checks = {"residuals_finite_and_positive": {
         "passed": bool(np.isfinite(scored["weighted_residual_pca"]) and scored["weighted_residual_pca"] > 0
                        and np.isfinite(scored["weighted_residual_empca"]) and scored["weighted_residual_empca"] > 0)},

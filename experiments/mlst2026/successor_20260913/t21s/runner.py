@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy as np
 
 from ..common import cli
+from ..common import fitcount
 from ..common.cli import UsageError
 from ..common.matrix import RunMatrix, make_cell
 from ..common.protocol import ProtocolError, load_protocol, namespace_of_seed
@@ -147,8 +148,12 @@ def _recovery(P_basis: np.ndarray, w: np.ndarray) -> float:
     return float(np.sum((P_basis.T @ w) ** 2) / float(w @ w))
 
 
+@fitcount.counted("pca")
 def fit_pca(Z: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
-    """Rank-k closed-form PCA on centred data: returns (d x k orthonormal basis, top-k sample eigenvalues of Z^T Z / N)."""
+    """Rank-k closed-form PCA on centred data: returns (d x k orthonormal basis, top-k sample eigenvalues of Z^T Z / N).
+
+    Instrumented: this is the package's only estimator invocation on drawn data,
+    and the cell reports what was counted here rather than the declared 1."""
     Zc = Z - Z.mean(axis=0, keepdims=True)
     _, s, vt = np.linalg.svd(Zc, full_matrices=False)
     return vt[:k].T, (s[:k] ** 2) / Z.shape[0]
@@ -244,7 +249,10 @@ def run_cell(P: dict, cell: dict, fixture: bool, ctx: dict):
         frozen = Path(ctx["out"]) / FROZEN_NAME
         if not frozen.exists():
             raise ScientificCheckError(f"{cell['cell_id']}: confirmation cell without {FROZEN_NAME} in the run root")
-    return run_data_cell(P, cell), 1, 1
+    res = run_data_cell(P, cell)
+    obs = fitcount.require()                            # the counting region cli._run opened
+    res["fits_observed"] = obs.as_dict()
+    return res, obs.total, 1
 
 
 # --------------------------------------------------------------------------- scientific checks
@@ -663,7 +671,7 @@ def _project_estimate_to_production(argv) -> None:
     P = load_protocol(args.protocol)
     path = Path(args.out) / "RESOURCE_ESTIMATE.json"
     est = json.loads(path.read_text())
-    prod = build_matrix(P, False)
+    prod = cli._production_only(build_matrix(P, False))
     counts = prod.counts()
     fams = {}
     total = 0.0

@@ -481,3 +481,45 @@ def test_robustness_grid_is_paired_and_marked_unexecutable(P):
             groups.setdefault(c["params"]["contrast_group"], set()).add(c["seed"])
     assert groups and all(len(s) == 1 for s in groups.values())
     assert len({next(iter(s)) for s in groups.values()}) == 21
+
+
+# --- the fit-accounting guard is a real check ------------------------------------------------
+def _ledger_records(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch, P):
+    """The estimator control reports the ``classic_pca``/``empca`` invocations
+    instrumented in ``robustness_design.fit_and_score``.  Declare one more in the
+    matrix and the run is refused (exit 4), charged, with no cell file written."""
+    real = RU.build_matrix
+    target = next(c for c in real(P, True).cells
+                  if c["params"].get("control") == "empca_uniform_weight_limit")
+    assert target["n_fits"] == 2 * RD.FITS_PER_CELL
+
+    def misdeclared(P_, fixture):
+        m = real(P_, fixture)
+        for c in m.cells:
+            if c["cell_id"] == target["cell_id"]:
+                c["n_fits"] = int(c["n_fits"]) + 1
+        return m
+
+    monkeypatch.setattr(RU, "build_matrix", misdeclared)
+    out = tmp_path / "misdeclared"
+    assert main(["run", "--out", str(out), "--fixture", "--cells", target["cell_id"]],
+                archive=False) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert not list((out / "cells").glob("*.json"))
+
+
+def test_estimator_control_reports_the_instrumented_fit_count(tmp_path, P):
+    target = next(c for c in RU.build_matrix(P, True).cells
+                  if c["params"].get("control") == "empca_uniform_weight_limit")
+    out = tmp_path / "counted"
+    assert main(["run", "--out", str(out), "--fixture", "--cells", target["cell_id"]],
+                archive=False) == 0
+    js = json.loads((out / "cells" / f"{target['cell_id']}.json").read_text())
+    assert js["fits_used"] == js["fits_observed"]["total"] == 2 * RD.FITS_PER_CELL
+    assert js["fits_observed"]["by_label"] == {"classic_pca": 2,
+                                               "empca_restart": 2 * RD.EMPCA_RESTARTS}

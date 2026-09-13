@@ -42,6 +42,7 @@ for p in (str(_ROOT), str(_ROOT / "src")):
 from experiments.mlst2026 import t22_tidmad_narrowband as t22  # noqa: E402
 from experiments.mlst2026 import tidmad_band as tb  # noqa: E402
 from experiments.mlst2026 import tidmad_endpoint as te  # noqa: E402
+from experiments.mlst2026.successor_20260913.common import fitcount  # noqa: E402
 
 ARCHIVE_ROOTS = (_ROOT / "results" / "t22_2026-09-11", _ROOT / "results" / "mlst_2026-09-10")
 EXPOSURE_LABELS = ("matched-rerun-on-already-exposed-data", "unexposed-hold-out", "synthetic-fixture")
@@ -305,8 +306,11 @@ def matched_scores(stretch: dict, *, k_inj: int, B: int, w: int, N_bins: np.ndar
                    contrasts=ARCHIVED_CONTRASTS) -> dict:
     """Whole-window and band estimates on identical windows, labels and scorer.
 
-    Fits charged: ``len(te.METHODS)`` per representation (the archived counting
-    convention: eight estimators per cell), i.e. 16 for the two representations.
+    Fits charged: one per estimator actually produced, per representation (the
+    archived counting convention: eight declared estimators per representation).
+    The count is taken from the estimate dictionaries the two representation
+    entry points return, so it is observed rather than restated from
+    ``len(te.METHODS)``; ``common.cli`` cross-checks it against the matrix.
     """
     if exposure_status not in EXPOSURE_LABELS:
         raise ValueError(f"exposure_status must be one of {EXPOSURE_LABELS}, got {exposure_status!r}")
@@ -320,7 +324,9 @@ def matched_scores(stretch: dict, *, k_inj: int, B: int, w: int, N_bins: np.ndar
     t_eval = cal.g * stretch["eval_ref"][:, k]
     eval_index = np.arange(stretch["eval_read"].shape[0])
     est_ww, diag_ww = te.compute_estimates(stretch["eval_read"], stretch["fit_read"], k, w, N_bins, cal)
+    fitcount.count_fit("whole-window-estimator", n=len(est_ww))
     est_b, diag_b = tb.compute_band_estimates(stretch["eval_read"], stretch["fit_read"], k, B, w, N_bins, cal)
+    fitcount.count_fit("band-estimator", n=len(est_b))
     reps = {"whole-window": est_ww, "band": est_b}
     e2 = {rep: {m: te.squared_errors(q, t_eval, w) for m, q in est.items()} for rep, est in reps.items()}
     within = {}
@@ -355,8 +361,10 @@ def matched_scores(stretch: dict, *, k_inj: int, B: int, w: int, N_bins: np.ndar
         "whole_window_vs_band_same_method": across,
         "shared_methods_identical_across_representations": bool(shared_identical),
         "diagnostics": {"whole-window": diag_ww, "band": diag_b},
-        "n_fits": 2 * len(te.METHODS),
-        "counting_convention": "eight declared estimators per representation, as in the archived T10-T12/T22 accounting",
+        "n_fits": len(est_ww) + len(est_b),
+        "counting_convention": "one fit per estimator actually returned by each representation entry point "
+                               "(eight declared estimators per representation, as in the archived T10-T12/T22 accounting); "
+                               "counted from the returned estimate dictionaries, not from len(te.METHODS)",
     }
 
 

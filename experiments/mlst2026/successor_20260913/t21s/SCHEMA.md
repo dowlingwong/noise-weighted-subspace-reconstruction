@@ -105,3 +105,19 @@ duplicate / unattributed / digest) · **4 schema or scientific check** (invarian
 prediction ≠ recomputation, all-zero control off chance, frozen file missing or
 tampered) · 5 duplicate completion · 6 usage / protocol (including a confirmation run
 without a permitting `FROZEN_PREDICTOR.json`, which charges nothing).
+
+## Fit accounting (`fits_used`, `fits_observed`)
+
+`fits_used` is the number of estimator invocations on drawn data the cell actually
+performed.  It is **observed**, not restated: `runner.fit_pca` — the package's only estimator invocation on drawn data — is instrumented, so a data cell's charge is the number of PCA fits it ran.  `common.cli` runs every cell
+inside a `common.fitcount` counting region and refuses the cell (exit 4, charged) unless
+the count declared in the run matrix (`n_fits`), the count the cell reports and the count
+the instrumentation saw all agree.  Each cell file therefore also carries
+
+| key | type | meaning |
+|---|---|---|
+| `fits_observed.total` | int | estimator invocations instrumented while this cell ran; equal to `fits_used` and to the matrix's `n_fits` |
+| `fits_observed.by_label` | dict | the same total split by call site (`pca`) |
+
+`solves_used` (algebraic/analytic solves that fit no drawn data) is counted by the
+package itself where it performs them and is not part of the `fitcount` instrumentation.

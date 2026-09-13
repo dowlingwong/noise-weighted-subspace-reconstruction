@@ -68,6 +68,7 @@ for _p in (str(_ROOT), str(_ROOT / "src")):
 
 from src.canonical import empca as canonical_empca  # noqa: E402
 
+from ..common import fitcount  # noqa: E402
 from .archive_recompute import InputNotAvailable  # noqa: E402
 
 ROOT_FORMAT = "cresst-s-pulse-root/1"
@@ -225,9 +226,12 @@ def fit_and_score(pulses, times, noise, *, rank: int, shrinkage: float, time_cut
     if k >= min(x_train.shape):
         raise InputNotAvailable(f"input not available: rank {k} exceeds the {x_train.shape} training block")
 
+    # Every estimator invocation is counted where it happens: once here and once per
+    # EM restart below.  ``fits`` is the cell's own tally and ``common.fitcount`` is the
+    # shared instrumentation the CLI cross-checks against the matrix declaration.
     fits = 0
     m_pca = canonical_empca.classic_pca(x_train, nvec=k)
-    fits += 1
+    fits += fitcount.count_fit("classic_pca")
     m_pca.set_data(x_eval, w_eval)
     r_pca = float(m_pca.chi2()) / float(x_eval.shape[0])
 
@@ -235,7 +239,7 @@ def fit_and_score(pulses, times, noise, *, rank: int, shrinkage: float, time_cut
     for r in range(int(restarts)):
         m = canonical_empca.empca(x_train, weights=w_train, niter=int(niter), nvec=k,
                                   randseed=int(seed) * 100 + r, silent=True)
-        fits += 1
+        fits += fitcount.count_fit("empca_restart")
         c = float(m.chi2())
         if c < best_train:
             best, best_train = m, c

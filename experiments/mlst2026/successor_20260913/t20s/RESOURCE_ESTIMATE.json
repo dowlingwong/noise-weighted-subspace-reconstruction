@@ -88,30 +88,30 @@
   "algebraic": {
    "cells": 4,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.005792856216430664,
+   "fixture_seconds_per_cell": 0.005074143409729004,
    "measured": true,
-   "production_cpu_seconds": 10.427141189575195,
-   "production_seconds_per_cell": 2.606785297393799,
+   "production_cpu_seconds": 9.133458137512207,
+   "production_seconds_per_cell": 2.2833645343780518,
    "scale": 450.0,
    "solves": 140
   },
   "confirmation": {
    "cells": 576,
    "fits": 2880,
-   "fixture_seconds_per_cell": 0.016754180192947388,
+   "fixture_seconds_per_cell": 0.017051666975021362,
    "measured": true,
-   "production_cpu_seconds": 4342.683506011963,
-   "production_seconds_per_cell": 7.5393810868263245,
+   "production_cpu_seconds": 4419.792079925537,
+   "production_seconds_per_cell": 7.673250138759613,
    "scale": 450.0,
    "solves": 0
   },
   "pilot": {
    "cells": 384,
    "fits": 1920,
-   "fixture_seconds_per_cell": 0.017102301120758057,
+   "fixture_seconds_per_cell": 0.016787320375442505,
    "measured": true,
-   "production_cpu_seconds": 2955.277633666992,
-   "production_seconds_per_cell": 7.6960355043411255,
+   "production_cpu_seconds": 2900.848960876465,
+   "production_seconds_per_cell": 7.554294168949127,
    "scale": 450.0,
    "solves": 0
   }
@@ -157,32 +157,122 @@
   "fits": 48,
   "solves": 14
  },
- "priced_matrix": "production",
- "production_projection": {
-  "families": {
+ "priced_cells_note": "the total covers exactly the cells in 'priced_counts': the production matrix with role 'development' (fixture-only work, never transferred) excluded",
+ "priced_counts": {
+  "by_family": {
    "algebraic": {
     "cells": 4,
     "fits": 0,
-    "production_cpu_seconds": 10.427141189575195,
-    "production_seconds_per_cell": 2.606785297393799,
     "solves": 140
    },
    "confirmation": {
     "cells": 576,
     "fits": 2880,
-    "production_cpu_seconds": 4342.683506011963,
-    "production_seconds_per_cell": 7.5393810868263245,
     "solves": 0
    },
    "pilot": {
     "cells": 384,
     "fits": 1920,
-    "production_cpu_seconds": 2955.277633666992,
-    "production_seconds_per_cell": 7.6960355043411255,
     "solves": 0
    }
   },
-  "note": "production matrix counts x production_seconds_per_cell (fixture timing x declared scale); point estimate, no variance; single-threaded BLAS as measured; failures/retries add up to retry_allowance",
+  "by_role": {
+   "algebraic": {
+    "cells": 4,
+    "fits": 0,
+    "seeds": [],
+    "solves": 140
+   },
+   "confirmation": {
+    "cells": 576,
+    "fits": 2880,
+    "seeds": [
+     4000,
+     4001,
+     4002,
+     4003,
+     4004,
+     4005,
+     4006,
+     4007,
+     4008,
+     4009,
+     4010,
+     4011,
+     4012,
+     4013,
+     4014,
+     4015,
+     4016,
+     4017,
+     4018,
+     4019,
+     4020,
+     4021,
+     4022,
+     4023
+    ],
+    "solves": 0
+   },
+   "pilot": {
+    "cells": 384,
+    "fits": 1920,
+    "seeds": [
+     3000,
+     3001,
+     3002,
+     3003,
+     3004,
+     3005,
+     3006,
+     3007,
+     3008,
+     3009,
+     3010,
+     3011,
+     3012,
+     3013,
+     3014,
+     3015
+    ],
+    "solves": 0
+   }
+  },
+  "cells": 964,
+  "fits": 4800,
+  "solves": 140
+ },
+ "priced_matrix": "production",
+ "priced_roles": [
+  "algebraic",
+  "confirmation",
+  "pilot"
+ ],
+ "production_projection": {
+  "families": {
+   "algebraic": {
+    "cells": 4,
+    "fits": 0,
+    "production_cpu_seconds": 9.133458137512207,
+    "production_seconds_per_cell": 2.2833645343780518,
+    "solves": 140
+   },
+   "confirmation": {
+    "cells": 576,
+    "fits": 2880,
+    "production_cpu_seconds": 4419.792079925537,
+    "production_seconds_per_cell": 7.673250138759613,
+    "solves": 0
+   },
+   "pilot": {
+    "cells": 384,
+    "fits": 1920,
+    "production_cpu_seconds": 2900.848960876465,
+    "production_seconds_per_cell": 7.554294168949127,
+    "solves": 0
+   }
+  },
+  "note": "production matrix counts x production_seconds_per_cell (fixture timing x declared scale); point estimate, no variance; single-threaded BLAS as measured; failures/retries add up to retry_allowance; role 'development' is excluded, so the total and 'production_counts' cover the same cells",
   "production_counts": {
    "by_family": {
     "algebraic": {
@@ -271,8 +361,8 @@
    "fits_headroom_under_cap": 600,
    "policy": "600 fits of headroom under the cap = 120 whole-cell retries (12.5%); failures and interrupts are charged at start and never refunded; a retry is a new attempt"
   },
-  "total_cpu_hours_point": 2.030107855796814,
-  "total_cpu_seconds_point": 7308.38828086853,
+  "total_cpu_hours_point": 2.036048471927643,
+  "total_cpu_seconds_point": 7329.774498939514,
   "unmeasured_families": []
  },
  "retry_allowance": {
@@ -280,6 +370,6 @@
   "policy": "600 fits of headroom under the cap = 120 whole-cell retries (12.5%); failures and interrupts are charged at start and never refunded; a retry is a new attempt"
  },
  "timing_source_matrix": "fixture",
- "total_cpu_seconds_point": 7308.38828086853,
+ "total_cpu_seconds_point": 7329.774498939514,
  "unmeasured_families": []
 }

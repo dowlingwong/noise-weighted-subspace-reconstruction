@@ -367,3 +367,63 @@ def test_exposure_inventory_reads_the_archive_and_declares_what_it_cannot_derive
     assert "not an independent unit" in md and "unresolved input" in md
     committed = REPO / "experiments" / "mlst2026" / "successor_20260913" / "t22s" / "EXPOSURE_INVENTORY.md"
     assert committed.exists() and committed.read_text() == md
+
+
+# --- the fit-accounting guard is a real check ------------------------------------------------
+def _ledger_records(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch):
+    """The matched-fixture cell reports the estimators the two representation
+    entry points and the B = 1 identity control actually returned.  Declare one
+    more in the matrix and the run is refused (exit 4), charged, with no cell file."""
+    P = PR.load_protocol(PROTO)
+    real = RN.build_matrix
+    target = next(c for c in real(P, True).cells if c["family"] == "matched_fixture")
+
+    def misdeclared(P_, fixture):
+        m = real(P_, fixture)
+        for c in m.cells:
+            if c["cell_id"] == target["cell_id"]:
+                c["n_fits"] = int(c["n_fits"]) + 1
+        return m
+
+    monkeypatch.setattr(RN, "build_matrix", misdeclared)
+    out = tmp_path / "misdeclared"
+    assert main("run", "--out", str(out), "--fixture", "--families", "matched_fixture",
+                "--cells", target["cell_id"]) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert not list((out / "cells").glob("*.json"))
+
+
+def test_matched_cell_reports_the_instrumented_estimator_count(pilot_root):
+    js = [v for v in _cells(pilot_root).values() if v["family"] == "matched_fixture"]
+    assert len(js) == 1
+    by = js[0]["fits_observed"]["by_label"]
+    assert by == {"whole-window-estimator": len(te.METHODS), "band-estimator": len(te.METHODS),
+                  "b1-identity-estimator": len(te.METHODS)}
+    assert js[0]["fits_observed"]["total"] == js[0]["fits_used"] == RN.MATCHED_FITS
+
+
+def test_guard_fires_when_a_representation_runs_an_unaccounted_estimator(tmp_path, monkeypatch):
+    """The declaration is unchanged; the estimator work grows by one.  Because the
+    count is observed at the call site and not restated from ``MATCHED_FITS``, the
+    cell is refused (exit 4) instead of silently charging the declared 24."""
+    from experiments.mlst2026 import tidmad_band as tb
+
+    real = tb.compute_band_estimates
+
+    def one_estimator_extra(*a, **kw):
+        est, diag = real(*a, **kw)
+        return {**est, "unaccounted-estimator": est["raw-bin"].copy()}, diag
+
+    monkeypatch.setattr(tb, "compute_band_estimates", one_estimator_extra)
+    P = PR.load_protocol(PROTO)
+    target = next(c for c in RN.build_matrix(P, True).cells if c["family"] == "matched_fixture")
+    out = tmp_path / "short"
+    assert main("run", "--out", str(out), "--fixture", "--families", "matched_fixture",
+                "--cells", target["cell_id"]) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]

@@ -240,3 +240,19 @@ statement                   the scope statement (seven clusters, two runs, no ne
 `3` reconciliation (missing / extra / duplicate / unattributed / tampered),
 `4` schema **or a failed scientific check**, `5` duplicate completion,
 `6` protocol or usage error.
+
+## Fit accounting (`fits_used`, `fits_observed`)
+
+`fits_used` is the number of estimator invocations on drawn data the cell actually
+performed.  It is **observed**, not restated: `robustness_design.fit_and_score` counts the `classic_pca` call and each EM restart where they happen, so a robustness cell and the estimator control charge what they ran.  Every other family fits nothing and charges 0; its Monte-Carlo draws are reported as `replicates`.  `common.cli` runs every cell
+inside a `common.fitcount` counting region and refuses the cell (exit 4, charged) unless
+the count declared in the run matrix (`n_fits`), the count the cell reports and the count
+the instrumentation saw all agree.  Each cell file therefore also carries
+
+| key | type | meaning |
+|---|---|---|
+| `fits_observed.total` | int | estimator invocations instrumented while this cell ran; equal to `fits_used` and to the matrix's `n_fits` |
+| `fits_observed.by_label` | dict | the same total split by call site (`classic_pca`, `empca_restart`) |
+
+`solves_used` (algebraic/analytic solves that fit no drawn data) is counted by the
+package itself where it performs them and is not part of the `fitcount` instrumentation.

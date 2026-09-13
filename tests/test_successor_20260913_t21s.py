@@ -421,3 +421,32 @@ def test_protocol_records_archive_facts_and_no_prior_freeze():
         assert (PROTO.parent / name).exists()
     rc = (PROTO.parent / "REMOTE_COMMANDS.md").read_text()
     assert "<RUN_ROOT>" in rc and "<WORKERS>" in rc and "<DATA_ROOT>" in rc
+
+
+# --- the fit-accounting guard is a real check ------------------------------------------------
+def _ledger_records(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch):
+    """A data cell reports the invocations instrumented in ``runner.fit_pca``;
+    declare two in the matrix and the run is refused (exit 4), charged."""
+    P = _P()
+    real = RUN.build_matrix
+    target = next(c for c in real(P, True).cells
+                  if c["n_fits"] > 0 and c["params"].get("phase") == "pilot")
+
+    def misdeclared(P_, fixture):
+        m = real(P_, fixture)
+        for c in m.cells:
+            if c["cell_id"] == target["cell_id"]:
+                c["n_fits"] = int(c["n_fits"]) + 1
+        return m
+
+    monkeypatch.setattr(RUN, "build_matrix", misdeclared)
+    out = tmp_path / "misdeclared"
+    assert _main("run", "--protocol", str(PROTO), "--out", str(out), "--fixture",
+                 "--cells", target["cell_id"]) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert not list((out / "cells").glob("*.json"))

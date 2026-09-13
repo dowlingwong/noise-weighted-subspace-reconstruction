@@ -23,7 +23,10 @@ Matrix families
 Fit accounting: simulation cells fit nothing (their learned estimates are
 generated) and report bootstrap replicates; the matched fixture cell charges
 16 + 8 fits (eight estimators per representation plus the B = 1 identity
-control), the archived counting convention.
+control), the archived counting convention.  That charge is *observed*: every
+estimator the representation entry points return is counted through
+``common.fitcount`` at the call site, and the cell reports the count rather
+than the ``MATCHED_FITS`` constant the matrix was declared from.
 """
 from __future__ import annotations
 
@@ -46,6 +49,7 @@ from experiments.mlst2026 import t22_tidmad_narrowband as t22  # noqa: E402
 from experiments.mlst2026 import tidmad_band as tb  # noqa: E402
 from experiments.mlst2026 import tidmad_endpoint as te  # noqa: E402
 from experiments.mlst2026.successor_20260913.common import cli  # noqa: E402
+from experiments.mlst2026.successor_20260913.common import fitcount  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.matrix import RunMatrix, make_cell  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.protocol import ProtocolError, load_protocol  # noqa: E402
 from experiments.mlst2026.successor_20260913.common.results import (ReconciliationError, SchemaError,  # noqa: E402
@@ -242,7 +246,11 @@ def run_cell(P: dict, cell: dict, fixture: bool, ctx: dict):
     if fam == "control":
         return _run_control_cell(P, cell, fixture, ctx), 0, 0
     if fam == "matched_fixture":
-        return _run_matched_cell(P, cell, fixture, ctx), MATCHED_FITS, 0
+        res = _run_matched_cell(P, cell, fixture, ctx)
+        obs = fitcount.require()                       # the counting region cli._run opened
+        res["summary"]["n_fits"] = obs.total
+        res["summary"]["fits_observed"] = obs.as_dict()
+        return res, obs.total, 0
     raise RuntimeError(f"unknown family {fam!r}")
 
 
@@ -415,7 +423,8 @@ def _run_matched_cell(P: dict, cell: dict, fixture: bool, ctx: dict) -> dict:
     N[k] = te.offline_noise_floor(st["fit_read"], k)
     out = ms.matched_scores(st, k_inj=k, B=int(cfg["B"]), w=cfg["w"], N_bins=N, exposure_status="synthetic-fixture")
     cal = te.fit_transfer(st["cal_read"][:, k], st["cal_ref"][:, k], float(N[k]))
-    _, diag1 = tb.compute_band_estimates(st["eval_read"], st["fit_read"], k, 1, cfg["w"], N, cal)
+    est_b1, diag1 = tb.compute_band_estimates(st["eval_read"], st["fit_read"], k, 1, cfg["w"], N, cal)
+    fitcount.count_fit("b1-identity-estimator", n=len(est_b1))
     ident = tb.assert_single_bin_identity(diag1, "B=1 fixture", tb.IDENTITY_RTOL)
     pr = out["per_representation"]
     checks = {

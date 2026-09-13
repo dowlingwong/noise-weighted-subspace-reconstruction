@@ -24,6 +24,7 @@ import numpy as np
 from experiments.paper1 import g1 as G
 from experiments.paper1 import t19_coupling as T19
 
+from ..common import fitcount
 from . import observables as O
 
 ESTIMATED_FAMILIES = ("S_full", "S_toeplitz")
@@ -73,9 +74,13 @@ def draw_training(g: Generator, rng: np.random.Generator, n: int) -> tuple[np.nd
     return a @ g.B.T + noise, a
 
 
+@fitcount.counted("cw_pca")
 def fit_subspace(X: np.ndarray, Sigma_hat: np.ndarray, k: int, *, floor: bool) -> tuple[np.ndarray, np.ndarray, dict]:
     """Rank-k CW-PCA under the assumed covariance; identical to
-    ``t19_coupling.fit_subspace`` (v2, consistent decoder) for any d.  One fit."""
+    ``t19_coupling.fit_subspace`` (v2, consistent decoder) for any d.  One fit.
+
+    Instrumented: this is the package's only estimator invocation on drawn data,
+    so a paired cell's charged fit count is the number of times this ran."""
     d = X.shape[1]
     floor_val = T19.FLOOR_FRACTION * np.trace(Sigma_hat) / d if floor else None
     Si, diag = G.sym_inv_sqrt(Sigma_hat, floor=floor_val)

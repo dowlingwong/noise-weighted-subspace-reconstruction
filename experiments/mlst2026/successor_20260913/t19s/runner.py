@@ -498,7 +498,7 @@ def production_estimate(P: dict, fixture_root: Path) -> dict:
     for files in read_cells(fixture_root).values():
         for _, js in files:
             timings.setdefault(js["family"] or "-", []).append(float(js.get("wall_s", 0.0)))
-    prod = build_matrix(P, False)
+    prod = cli._production_only(build_matrix(P, False))   # development cells are fixture work; never priced
     scale = P["budget"].get("fixture_to_production_scale", {})
     est = {"basis": "fixture wall seconds per cell x declared scale x production matrix", "fixture_root": str(fixture_root),
            "families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": []}

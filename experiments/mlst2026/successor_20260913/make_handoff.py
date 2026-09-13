@@ -51,14 +51,17 @@ package whose scientific checks all skip has not been shown to work.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
+import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -171,6 +174,152 @@ def package_materials(dst: Path, matrices: dict) -> None:
             json.dumps(matrices[pkg], indent=1) + "\n")
 
 
+class HandoffFactError(RuntimeError):
+    """A per-package fact could not be discovered, or contradicts the package."""
+
+
+def _priced_counts(pkg: str, est: dict | None, summary: dict) -> dict | None:
+    """The cells the package's resource projection actually covers, checked against
+    the enumerated production matrix.
+
+    A projected CPU total printed beside a cell count that covers a different set of
+    cells is a silent disagreement, so it is refused here rather than shipped: the
+    handoff prints one pair of numbers and they must be the same pair.
+    """
+    if est is None:
+        return None
+    priced = est.get("priced_counts") or est.get("production_projection", {}).get("production_counts")
+    if priced is None:
+        raise HandoffFactError(
+            f"{pkg}: RESOURCE_ESTIMATE.json does not say which cells its total covers "
+            "(no 'priced_counts'); regenerate it with the current `estimate` subcommand")
+    for key in ("cells", "fits", "solves"):
+        if int(priced.get(key, -1)) != int(summary.get(key, -2)):
+            raise HandoffFactError(
+                f"{pkg}: the resource estimate prices {priced.get('cells')} cells / "
+                f"{priced.get('fits')} fits but `enumerate` gives {summary.get('cells')} / "
+                f"{summary.get('fits')}; the projection and the printed counts would "
+                "disagree.  Regenerate RESOURCE_ESTIMATE.json from a fixture run root.")
+    if "development" in (priced.get("by_role") or {}):
+        raise HandoffFactError(f"{pkg}: the resource estimate prices development cells; "
+                               "development work is fixture work and is never transferred")
+    return priced
+
+
+#: Names of module-level constants that hold the run-root file a pilot reduce freezes.
+#: Matched by NAME, not by a per-package lookup of file names, so a renamed freeze file
+#: is picked up automatically.
+_FREEZE_NAME_RE = re.compile(r"(FROZEN|SELECTION)", re.IGNORECASE)
+
+
+def discover_freeze_file(pkg: str) -> str | None:
+    """The file this package's pilot reduce freezes into the run root, or ``None``.
+
+    Read out of the package's own source: a module-level ``<...FROZEN...> = "X.json"``
+    or ``<...SELECTION...> = "X.json"``.  Cross-checked against the package's
+    ``REMOTE_COMMANDS.md`` (the authoritative document), so a drift between the code
+    and the commands fails the build instead of being printed as fact.
+    """
+    srcd = HERE / pkg
+    found: dict[str, str] = {}
+    for py in sorted(srcd.glob("*.py")):
+        tree = ast.parse(py.read_text(), filename=str(py))
+        for node in tree.body:
+            if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Constant):
+                continue
+            val = node.value.value
+            if not isinstance(val, str) or not val.endswith(".json"):
+                continue
+            for t in node.targets:
+                if isinstance(t, ast.Name) and _FREEZE_NAME_RE.search(t.id):
+                    found[val] = f"{py.name}:{t.id}"
+    commands = (srcd / "REMOTE_COMMANDS.md").read_text()
+    if len(found) > 1:
+        raise HandoffFactError(f"{pkg}: more than one freeze-file constant ({found}); "
+                               "the handoff cannot name one of them as THE freeze file")
+    if not found:
+        if re.search(r"\bFROZEN_[A-Z_]+\.json\b", commands):
+            raise HandoffFactError(f"{pkg}: REMOTE_COMMANDS.md names a frozen file but no "
+                                   "freeze-file constant was found in the package source")
+        return None
+    name, where = next(iter(found.items()))
+    if name not in commands:
+        raise HandoffFactError(f"{pkg}: the source freezes {name!r} ({where}) but "
+                               "REMOTE_COMMANDS.md never mentions it; the two have drifted")
+    return name
+
+
+_SUBCOMMANDS = ("validate", "enumerate", "run", "reduce", "estimate")
+
+
+def _fenced_command_lines(md: str) -> list[list[str]]:
+    """Tokenised command lines from the fenced code blocks of a commands document,
+    with ``\\`` continuations joined and comment lines dropped."""
+    lines: list[str] = []
+    inside = False
+    for raw in md.splitlines():
+        if raw.strip().startswith("```"):
+            inside = not inside
+            continue
+        if inside:
+            lines.append(raw)
+    joined: list[str] = []
+    buf = ""
+    for ln in lines:
+        s = ln.strip()
+        if s.endswith("\\"):
+            buf += s[:-1].strip() + " "
+            continue
+        joined.append((buf + s).strip())
+        buf = ""
+    if buf:
+        joined.append(buf.strip())
+    out = []
+    for s in joined:
+        if not s or s.startswith("#"):
+            continue
+        out.append(s.split())
+    return out
+
+
+def discover_run_selectors(pkg: str) -> list[str]:
+    """The phase selectors this package's own commands document actually uses.
+
+    Returned in the order ``REMOTE_COMMANDS.md`` gives them, de-duplicated.  Fixture
+    runs and shell-substituted shard lists are not part of the production sequence and
+    are skipped.  Packages do not agree on the flag: some select a phase by ``--roles``
+    and some by ``--families``, which is exactly why this is read out rather than
+    templated.
+    """
+    md = (HERE / pkg / "REMOTE_COMMANDS.md").read_text()
+    seen, out = set(), []
+    for toks in _fenced_command_lines(md):
+        if "run" not in toks or "--protocol" not in toks:
+            continue
+        if toks.index("run") > toks.index("--protocol"):
+            continue
+        if "--fixture" in toks or any("$(" in t for t in toks):
+            continue
+        sel = []
+        for flag in ("--roles", "--families"):
+            if flag in toks:
+                i = toks.index(flag)
+                vals = []
+                j = i + 1
+                while j < len(toks) and not toks[j].startswith("--"):
+                    vals.append(toks[j])
+                    j += 1
+                if vals:
+                    sel.append(" ".join([flag, *vals]))
+        s = "  ".join(sel) if sel else "(no selector: every cell not yet completed)"
+        if s not in seen:
+            seen.add(s)
+            out.append(s)
+    if not out:
+        raise HandoffFactError(f"{pkg}: no production `run` command found in REMOTE_COMMANDS.md")
+    return out
+
+
 def enumerate_matrix(pkg: str, workdir: Path) -> dict:
     """Enumerate the production matrix and return what the remote must reproduce."""
     proto = next((HERE / pkg).glob("PROTOCOL_*.json"))
@@ -189,9 +338,13 @@ def enumerate_matrix(pkg: str, workdir: Path) -> dict:
         by_role[r.get("role", "?")] = by_role.get(r.get("role", "?"), 0) + 1
     est_p = (HERE / pkg / "RESOURCE_ESTIMATE.json")
     est = json.loads(est_p.read_text()) if est_p.exists() else None
+    priced = _priced_counts(pkg, est, summary)
     return {
         "package": pkg,
         "protocol_file": proto.name,
+        "freeze_file": discover_freeze_file(pkg),
+        "run_selectors": discover_run_selectors(pkg),
+        "priced_counts": priced,
         "protocol_sha256": summary.get("protocol_sha256"),
         "matrix_sha256": summary.get("matrix_sha256"),
         "cells": summary.get("cells"),
@@ -265,6 +418,12 @@ that was locally accepted; stop and report it rather than running production cel
 
 {expected_table}
 
+Every row's cells/fits/solves are the enumerated production matrix, and the projected
+CPU seconds cover **exactly those cells**: the projection excludes `development` cells
+(fixture-only work, never transferred), and the build refuses to produce this archive if
+a package's `RESOURCE_ESTIMATE.json` prices a different set of cells from the one printed
+here. `packages/<pkg>/RESOURCE_ESTIMATE.json` states the same set in `priced_counts`.
+
 CPU-second figures are point projections from measured fixture timings scaled by each
 protocol's declared fixture-to-production factor, single-threaded BLAS. They carry no
 variance, exclude reduce time, and are upper bounds where the fixture cells are
@@ -281,24 +440,32 @@ summary. The shape common to all five:
 export PYTHONPATH=<DATA_ROOT>
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 PKG="python -m experiments.mlst2026.successor_20260913.<pkg>"
-PROTO=packages/<pkg>/PROTOCOL_<PKG>_v2.json
+PROTO=packages/<pkg>/<PROTOCOL FILE from the table below>
 
 $PKG validate  --protocol $PROTO
 $PKG enumerate --protocol $PROTO --out <RUN_ROOT>
-$PKG run       --protocol $PROTO --out <RUN_ROOT> --roles pilot algebraic
-$PKG reduce    --protocol $PROTO --out <RUN_ROOT> --allow-partial     # freezes the pilot selection
-$PKG run       --protocol $PROTO --out <RUN_ROOT> --roles confirmation
+$PKG run       --protocol $PROTO --out <RUN_ROOT> <PHASE 1 SELECTOR>
+$PKG reduce    --protocol $PROTO --out <RUN_ROOT> --allow-partial   # writes the freeze, where there is one
+$PKG run       --protocol $PROTO --out <RUN_ROOT> <PHASE 2 SELECTOR>
 $PKG reduce    --protocol $PROTO --out <RUN_ROOT>
 $PKG estimate  --protocol $PROTO --out <RUN_ROOT>
 ```
+
+The protocol file name, the phase selectors and the freeze file are **not** the same in
+every package, and the selector flags are not interchangeable: some packages select a
+phase by `--roles` and some by `--families`. The table below is read out of each package
+at build time — its protocol file is the one on disk, its selectors are the ones its own
+`REMOTE_COMMANDS.md` issues, in that order, and its freeze file is the one its reducer
+writes. Some packages need extra flags (CRESST-S takes `--archive-root`, and
+`--cresst-data-root` for its robustness grid); those are in the package's own document.
+
+{package_table}
 
 Three rules the runners enforce rather than document:
 
 * `<RUN_ROOT>` may not be inside `results/` or `evidence/`. Those trees are immutable
   historical evidence; the runner refuses to write there.
-* A confirmation cell is refused, before anything is charged, until the pilot reduce has
-  written the frozen selection (`FROZEN_SELECTION.json` for T20-S,
-  `FROZEN_PREDICTOR.json` for T21-S) for this protocol and this matrix.
+* {freeze_rule}
 * `--fixture` runs the development seed namespace only and marks its outputs
   `development_only`. It is refused on pilot and confirmation cells. Development
   outcomes are never citable.
@@ -337,8 +504,9 @@ is that it is complete:
 3. every file under `cells/`
 4. `EXECUTION_LEDGER.jsonl` and `LEDGER_SUMMARY.json` (**unedited** — the failures and
    retries are part of the record, not noise to be cleaned)
-5. `FROZEN_SELECTION.json` / `FROZEN_PREDICTOR.json` where the package writes one,
-   copied out at the moment the pilot reduce wrote it
+5. the freeze file the package writes, copied out at the moment the pilot reduce wrote
+   it — it is a different file in every package, and some write none:
+   {freeze_return_list}
 6. `REDUCED.json` from **both** the pilot reduce and the confirmation reduce
 7. `RESOURCE_ESTIMATE.json` from the production root
 8. a `RETURN_NOTES.md` recording: the resolved values of every UNRESOLVED item in
@@ -556,6 +724,37 @@ if __name__ == "__main__":
 '''
 
 
+def _package_table(matrices: dict) -> str:
+    rows = ["| package | protocol file | `run` phase selectors, in the order its "
+            "`REMOTE_COMMANDS.md` issues them | freeze written by the pilot reduce |",
+            "|---|---|---|---|"]
+    for pkg in PKGS:
+        m = matrices[pkg]
+        sels = "<br>".join(f"{i}. `{s}`" for i, s in enumerate(m["run_selectors"], 1))
+        fz = f"`{m['freeze_file']}`" if m["freeze_file"] else "none"
+        rows.append(f"| `{pkg}` | `{m['protocol_file']}` | {sels} | {fz} |")
+    return "\n".join(rows)
+
+
+def _freeze_rule(matrices: dict) -> str:
+    have = [(p, matrices[p]["freeze_file"]) for p in PKGS if matrices[p]["freeze_file"]]
+    none = [p for p in PKGS if not matrices[p]["freeze_file"]]
+    s = ("A confirmation cell is refused, before anything is charged, until the pilot reduce "
+         "has written that package's freeze for this protocol and this matrix: "
+         + ", ".join(f"`{f}` for `{p}`" for p, f in have) + ".")
+    if none:
+        s += ("  " + ", ".join(f"`{p}`" for p in none)
+              + " freezes nothing (no pilot-selected quantity), so it has no such gate;"
+                " see its `REMOTE_COMMANDS.md`.")
+    return textwrap.fill(s, width=88, subsequent_indent="  ")
+
+
+def _freeze_return_list(matrices: dict) -> str:
+    s = "; ".join(f"`{p}` -> " + (f"`{matrices[p]['freeze_file']}`" if matrices[p]["freeze_file"] else "none")
+                  for p in PKGS)
+    return textwrap.fill(s, width=88, initial_indent="   ", subsequent_indent="   ").lstrip()
+
+
 def build(out_dir: Path, verify: bool, ms_evidence: Path) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -621,7 +820,7 @@ def build(out_dir: Path, verify: bool, ms_evidence: Path) -> int:
     (staging / "verify_handoff.py").write_text(VERIFY_PY)
     (staging / "verify_handoff.py").chmod(0o755)
 
-    rows = ["| package | cells | fits | solves | projected CPU-seconds (point) |",
+    rows = ["| package | cells | fits | solves | projected CPU-seconds (point, same cells) |",
             "|---|---|---|---|---|"]
     for pkg in PKGS:
         m = matrices[pkg]
@@ -633,7 +832,10 @@ def build(out_dir: Path, verify: bool, ms_evidence: Path) -> int:
     (staging / "HANDOFF.md").write_text(HANDOFF_MD.format(
         date=datetime.now(timezone.utc).strftime("%d %B %Y"),
         branch=branch, commit=commit, tarname=f"{stem}.tar.gz", stem=stem,
-        expected_table="\n".join(rows)))
+        expected_table="\n".join(rows),
+        package_table=_package_table(matrices),
+        freeze_rule=_freeze_rule(matrices),
+        freeze_return_list=_freeze_return_list(matrices)))
 
     print("[handoff] writing manifest")
     files = {}

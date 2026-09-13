@@ -61,7 +61,16 @@ before any confirmation cell is drawn, and the confirmation reducer reads it.
 * inference replicates (bootstrap draws) are reported separately as
   `replicates`;
 * the cap in the protocol is on fits; the matrix must fit under it with the
-  declared retry headroom.
+  declared retry headroom;
+* fit counts are **observed, not restated**: each package instruments its own
+  estimator call sites through `common/fitcount.py`, and `common.cli` refuses a
+  cell (exit 4, charged) unless the count declared in the matrix, the count the
+  cell reports and the count the instrumentation saw all agree.  Every cell file
+  records the observed breakdown as `fits_observed`;
+* a resource projection covers the production matrix with `development` cells
+  excluded, and the estimate records that set as `priced_counts`; the handoff
+  builder refuses to ship an estimate whose priced set differs from the
+  enumerated production counts printed beside it.
 
 ## Required tests (per package, with the real reduced runner and synthetic fixtures)
 

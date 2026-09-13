@@ -125,3 +125,19 @@ without the freeze); 2 budget; 3 reconciliation (also a frozen file that differs
 from the deterministic pilot freeze, or confirmation cells scored under another
 freeze); 4 schema or scientific-check failure; 6 usage/protocol (also the
 command-line refusal to start confirmation-type cells without a freeze).
+
+## Fit accounting (`fits_used`, `fits_observed`)
+
+`fits_used` is the number of estimator invocations on drawn data the cell actually
+performed.  It is **observed**, not restated: the matched-fixture cell counts one fit per estimator each representation entry point actually returned (`te.compute_estimates`, `tb.compute_band_estimates`, and the B = 1 identity control), rather than restating `MATCHED_FITS`.  Simulation and control cells fit nothing and charge 0.  `common.cli` runs every cell
+inside a `common.fitcount` counting region and refuses the cell (exit 4, charged) unless
+the count declared in the run matrix (`n_fits`), the count the cell reports and the count
+the instrumentation saw all agree.  Each cell file therefore also carries
+
+| key | type | meaning |
+|---|---|---|
+| `fits_observed.total` | int | estimator invocations instrumented while this cell ran; equal to `fits_used` and to the matrix's `n_fits` |
+| `fits_observed.by_label` | dict | the same total split by call site (`whole-window-estimator`, `band-estimator`, `b1-identity-estimator`) |
+
+`solves_used` (algebraic/analytic solves that fit no drawn data) is counted by the
+package itself where it performs them and is not part of the `fitcount` instrumentation.

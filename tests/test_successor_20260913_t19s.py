@@ -400,3 +400,39 @@ def test_pilot_freeze_confirmation_flow(tmp_path, small_protocol):
     # the ledger charged everything, including the refused confirmation attempt
     ch = led.charged()
     assert ch["by_state"]["failed"] == 1 and ch["fits"] == 15 + 4 * 15
+
+
+# --- the fit-accounting guard is a real check ------------------------------------------------
+def _ledger_records(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch):
+    """A paired cell reports the CW-PCA invocations instrumented in
+    ``synthetic.fit_subspace``; declare one more in the matrix and the run is
+    refused (exit 4) with the attempt charged and no cell file written."""
+    P = PR.load_protocol(PROTOCOL)
+    real = R.build_matrix
+    target = next(c for c in real(P, True).cells if c["n_fits"] > 0)
+
+    def misdeclared(P_, fixture):
+        m = real(P_, fixture)
+        for c in m.cells:
+            if c["cell_id"] == target["cell_id"]:
+                c["n_fits"] = int(c["n_fits"]) + 1
+        return m
+
+    monkeypatch.setattr(R, "build_matrix", misdeclared)
+    out = tmp_path / "misdeclared"
+    assert _main(["run", "--out", str(out), "--fixture", "--cells", target["cell_id"]]) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert not list((out / "cells").glob("*.json"))
+
+
+def test_paired_cell_reports_the_instrumented_fit_count(fixture_run):
+    for files in RS.read_cells(fixture_run).values():
+        for _, js in files:
+            assert js["fits_observed"]["total"] == js["fits_used"]
+            if js["fits_used"]:
+                assert js["fits_observed"]["by_label"] == {"cw_pca": js["fits_used"]}

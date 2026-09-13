@@ -35,6 +35,7 @@ from pathlib import Path
 import numpy as np
 
 from ..common import cli
+from ..common import fitcount
 from ..common.matrix import RunMatrix, make_cell
 from ..common.protocol import ProtocolError, canonical_json, load_protocol
 from ..common.results import ReconciliationError, SchemaError, write_json_atomic
@@ -168,6 +169,7 @@ def run_fit_cell(P: dict, cell: dict, D: dict, ctx: dict) -> tuple[dict, int]:
     # learner U: top-k PCA of the centred sample second moment (closed form; 1 fit)
     S = Zc.T @ Zc / N
     w, U = np.linalg.eigh(S)
+    fitcount.count_fit("pca")                 # one estimator invocation on drawn data
     order = np.argsort(w)[::-1]
     B_U = U[:, order[:k]]
     pca_train_residual = float(np.trace(S) - np.sum(w[order[:k]]))
@@ -175,6 +177,9 @@ def run_fit_cell(P: dict, cell: dict, D: dict, ctx: dict) -> tuple[dict, int]:
     als_seed = int(cell["seed"]) * 100 + int(p["theta_index"]) * 10 + int(p["N_index"])
     out = als_fit(Zc.reshape(N, C, T, order="F"), k_c, k_t, n_iter=int(p["als_n_iter"]), n_restarts=R, seed=als_seed,
                   tol=float(p["als_tol"]), collect_restarts=True)
+    # ``als_fit`` is an audited historical module and is not edited; the restarts it
+    # actually performed are counted from what it returned, one fit per restart.
+    fitcount.count_fit("als_restart", n=len(out["restarts"]))
     losses = [float(r["loss"]) for r in out["restarts"]]
     risks = [float(GEN.risk(K, GEN.kron_basis(r["U_c"], r["U_t"]))) for r in out["restarts"]]
     sel = select_restart(losses)
@@ -200,9 +205,10 @@ def run_fit_cell(P: dict, cell: dict, D: dict, ctx: dict) -> tuple[dict, int]:
            "restart_spread_loss": float(max(losses) - min(losses)), "restart_spread_risk": spread_risk,
            "optimization_unresolved": bool(spread_risk >= abs(d)),
            "pca_train_residual": pca_train_residual, "als_train_loss": float(losses[sel]),
-           "fits": {"pca": 1, "als_restarts": R}, "checks_passed": True}
+           "fits": {"pca": 1, "als_restarts": len(out["restarts"])}, "fits_observed": fitcount.observed(),
+           "checks_passed": True}
     check_fit_result(res)
-    return res, 1 + R
+    return res, fitcount.observed()
 
 
 def run_cell(P: dict, cell: dict, fixture: bool, ctx: dict):
@@ -544,10 +550,11 @@ def _project_estimate_to_production(argv) -> None:
         return
     P = load_protocol(args.protocol)
     est = json.loads(path.read_text())
-    prod = build_matrix(P, False).counts()
+    prod = cli._production_only(build_matrix(P, False)).counts()
     proj = {"families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": [], "note":
             "production matrix counts x production_seconds_per_cell (fixture timing x declared scale); point estimate, no variance; "
-            "single-threaded BLAS as measured; failures/retries add up to retry_allowance"}
+            "single-threaded BLAS as measured; failures/retries add up to retry_allowance; role 'development' is excluded, so the "
+            "total and 'production_counts' cover the same cells"}
     for fam, info in prod["by_family"].items():
         e = est["families"].get(fam)
         if not e or not e.get("measured"):

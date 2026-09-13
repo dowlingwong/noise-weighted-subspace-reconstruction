@@ -134,3 +134,19 @@ means; band m_N ± q · SE_N. Used only with ≥ 8 seeds and ≥ 1000 valid repl
 otherwise the Bonferroni-t band (α / (2 n_N), n − 1 df) is reported and `method`
 says `bonferroni_t_fallback` with a `fallback_reason`. Signs are decided by the band;
 an interpolated crossing is never computed.
+
+## Fit accounting (`fits_used`, `fits_observed`)
+
+`fits_used` is the number of estimator invocations on drawn data the cell actually
+performed.  It is **observed**, not restated: the top-k PCA of the drawn sample is counted where it is computed, and the separable-ALS restarts are counted from the restart list `als_fit` returned (the audited historical estimator is called, never edited).  `common.cli` runs every cell
+inside a `common.fitcount` counting region and refuses the cell (exit 4, charged) unless
+the count declared in the run matrix (`n_fits`), the count the cell reports and the count
+the instrumentation saw all agree.  Each cell file therefore also carries
+
+| key | type | meaning |
+|---|---|---|
+| `fits_observed.total` | int | estimator invocations instrumented while this cell ran; equal to `fits_used` and to the matrix's `n_fits` |
+| `fits_observed.by_label` | dict | the same total split by call site (`pca`, `als_restart`) |
+
+`solves_used` (algebraic/analytic solves that fit no drawn data) is counted by the
+package itself where it performs them and is not part of the `fitcount` instrumentation.

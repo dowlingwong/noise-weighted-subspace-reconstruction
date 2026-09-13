@@ -437,3 +437,40 @@ def test_production_role_path_with_shrunken_protocol(tmp_path):
         assert p["sign_profile"]["profile"] is not None and len(p["by_N"]) == 3
     for name, sc in red["confirmation"]["scoring"].items():
         assert sc["selected"] == fz["selection"][name]["selected"]
+
+
+# --- the fit-accounting guard is a real check ------------------------------------------------
+def _ledger_records(out):
+    return [json.loads(l) for l in (out / "EXECUTION_LEDGER.jsonl").read_text().splitlines() if l.strip()]
+
+
+def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch):
+    """A fit cell reports 1 PCA + the ALS restarts actually returned; declare one
+    more in the matrix and the run is refused (exit 4), charged, with no cell file."""
+    P = PR.load_protocol(PROTO)
+    real = RN.build_matrix
+    target = next(c for c in real(P, True).cells
+                  if c["n_fits"] > 0 and c["params"].get("phase") == "pilot")
+
+    def misdeclared(P_, fixture):
+        m = real(P_, fixture)
+        for c in m.cells:
+            if c["cell_id"] == target["cell_id"]:
+                c["n_fits"] = int(c["n_fits"]) + 1
+        return m
+
+    monkeypatch.setattr(RN, "build_matrix", misdeclared)
+    out = tmp_path / "misdeclared"
+    assert _main(["run", "--out", str(out), "--fixture", "--cells", target["cell_id"]]) == 4
+    recs = _ledger_records(out)
+    assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert not list((out / "cells").glob("*.json"))
+
+
+def test_fit_cells_report_the_instrumented_pca_and_als_counts(full_run):
+    for files in R.read_cells(full_run).values():
+        for _, js in files:
+            assert js["fits_observed"]["total"] == js["fits_used"]
+            if js["result"]["kind"] == "fit":
+                by = js["fits_observed"]["by_label"]
+                assert by["pca"] == 1 and by["als_restart"] == js["result"]["fits"]["als_restarts"]

@@ -1,0 +1,509 @@
+{
+ "benchmark_wall_seconds": 129.1385212119999,
+ "families": {
+  "control": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "each of the five production control cells run once at its production configuration: ar1_autocorrelation 0.104s, dependence_gate 5.344s, holm_arithmetic 0.000s, iid_bootstrap_se 0.588s, simulator_estimand 0.040s",
+   "kernel": "control_cell",
+   "seconds_per_cell": {
+    "high": 1.2293685453999388,
+    "low": 1.201632514999892,
+    "median": 1.2155005301999153
+   },
+   "size": 1,
+   "size_symbol": "cell"
+  },
+  "sim_confirm": {
+   "basis": "measured",
+   "calls_per_cell": 100,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9590305338874856,
+   "how": "100 Monte-Carlo replicates per cell x the n_files-weighted measured replicate time (n=4:2.578s, n=8:4.141s, n=16:7.439s) at the ARCHIVED replicate setting; census of the 69 confirmation scenarios by n_files = {4: 27, 8: 15, 16: 27}",
+   "kernel": "pipeline_replicate",
+   "seconds_per_cell": {
+    "high": 484.9733242260794,
+    "low": 480.73834560000444,
+    "median": 481.9893229608624
+   },
+   "size": 2000,
+   "size_symbol": "R_file",
+   "theoretical_exponent": 1.0
+  },
+  "sim_pilot": {
+   "basis": "measured",
+   "calls_per_cell": 100,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9590305338874856,
+   "how": "100 replicates per cell; half the pilot cells run the archived setting and half the reduced one (measured ratio reduced/archived = 0.506), n_files census {4: 3, 16: 2, 8: 3}",
+   "kernel": "pipeline_replicate",
+   "seconds_per_cell": {
+    "high": 331.4656130341737,
+    "low": 328.7742759451304,
+    "median": 329.8011486040473
+   },
+   "size": 2000,
+   "size_symbol": "R_file",
+   "theoretical_exponent": 1.0
+  }
+ },
+ "generated_utc": "2026-09-13T09:06:11+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "kernels": {
+  "control_cell": {
+   "kernel": "control_cell",
+   "points": [
+    {
+     "max_s": 0.10647324999990815,
+     "median_s": 0.10448247800013633,
+     "min_s": 0.1024917060003645,
+     "repeats": 2,
+     "samples_s": [
+      0.1024917060003645,
+      0.10647324999990815
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.03810728914314658,
+     "warmup": 0,
+     "what": "ar1_autocorrelation"
+    },
+    {
+     "max_s": 5.402365660999749,
+     "median_s": 5.344218451499728,
+     "min_s": 5.286071241999707,
+     "repeats": 2,
+     "samples_s": [
+      5.402365660999749,
+      5.286071241999707
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.021760790666670148,
+     "warmup": 0,
+     "what": "dependence_gate"
+    },
+    {
+     "max_s": 8.706400012670201e-05,
+     "median_s": 5.472199995892879e-05,
+     "min_s": 2.237999979115557e-05,
+     "repeats": 2,
+     "samples_s": [
+      8.706400012670201e-05,
+      2.237999979115557e-05
+     ],
+     "size": 1.0,
+     "spread_fraction": 1.1820474468055728,
+     "warmup": 0,
+     "what": "holm_arithmetic"
+    },
+    {
+     "max_s": 0.5959041989999605,
+     "median_s": 0.5883324499998253,
+     "min_s": 0.58076070099969,
+     "repeats": 2,
+     "samples_s": [
+      0.5959041989999605,
+      0.58076070099969
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.025739695303692633,
+     "warmup": 0,
+     "what": "iid_bootstrap_se"
+    },
+    {
+     "max_s": 0.04201255299994955,
+     "median_s": 0.0404145494999284,
+     "min_s": 0.03881654599990725,
+     "repeats": 2,
+     "samples_s": [
+      0.04201255299994955,
+      0.03881654599990725
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.07908060437610377,
+     "warmup": 0,
+     "what": "simulator_estimand"
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production configuration",
+    "seconds_per_call_high": 1.2293685453999388,
+    "seconds_per_call_low": 1.201632514999892,
+    "seconds_per_call_median": 1.2155005301999153
+   }
+  },
+  "pipeline_replicate": {
+   "call_path": "t22s.pipeline.run_replicate: te.joint_bootstrap per evaluation file (R_file), t22.combine_stage two-stage hierarchical bootstrap (R_hier = 5 R_file) and te.block_variance_curve on the development files (R_curve = R_file/5)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.0409694661125144,
+    "fitted_exponent": 0.9590305338874856,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.0017983587047986941,
+    "b": 0.9590305338874856,
+    "max_abs_log_residual": 0.05177540017376714,
+    "n_points": 4,
+    "r_squared": 0.9994231484248036,
+    "residual_log_rms": 0.031005286230359235,
+    "sizes": [
+     60.0,
+     250.0,
+     1000.0,
+     2000.0
+    ],
+    "times_s": [
+     0.09369289500000377,
+     0.3404773590000332,
+     1.3838890729998639,
+     2.645381427000075
+    ]
+   },
+   "fixture_size": 60.0,
+   "kernel": "pipeline_replicate",
+   "notes": "the three replicate counts are moved together at the archived ratio 1 : 5 : 0.2, so the size axis is the whole replicate budget of one Monte-Carlo replicate; the production (archived) setting was run directly",
+   "points": [
+    {
+     "max_s": 0.09694062199992004,
+     "median_s": 0.09369289500000377,
+     "min_s": 0.09195152400002371,
+     "repeats": 3,
+     "samples_s": [
+      0.09694062199992004,
+      0.09195152400002371,
+      0.09369289500000377
+     ],
+     "size": 60.0,
+     "spread_fraction": 0.05324948065588249,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.3427009500001077,
+     "median_s": 0.3404773590000332,
+     "min_s": 0.3352382769999167,
+     "repeats": 3,
+     "samples_s": [
+      0.3404773590000332,
+      0.3352382769999167,
+      0.3427009500001077
+     ],
+     "size": 250.0,
+     "spread_fraction": 0.02191826505618032,
+     "warmup": 1
+    },
+    {
+     "max_s": 1.3918680520000635,
+     "median_s": 1.3838890729998639,
+     "min_s": 1.3580418379999628,
+     "repeats": 3,
+     "samples_s": [
+      1.3838890729998639,
+      1.3580418379999628,
+      1.3918680520000635
+     ],
+     "size": 1000.0,
+     "spread_fraction": 0.024442865154484815,
+     "warmup": 1
+    },
+    {
+     "max_s": 2.661635466000007,
+     "median_s": 2.645381427000075,
+     "memory": {
+      "kernel": "replicate",
+      "package": "t22s",
+      "rss_before_bytes": 44969984,
+      "rss_delta_bytes": 909312,
+      "rss_high_water_bytes": 45879296,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "size": 2000.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 2533447
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 2.643261768000002,
+     "repeats": 3,
+     "samples_s": [
+      2.645381427000075,
+      2.661635466000007,
+      2.643261768000002
+     ],
+     "size": 2000.0,
+     "spread_fraction": 0.006945576094423966,
+     "warmup": 1
+    }
+   ],
+   "production_size": 2000.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 2000.0,
+    "seconds_per_call_high": 2.661635466000007,
+    "seconds_per_call_low": 2.643261768000002,
+    "seconds_per_call_median": 2.645381427000075,
+    "spans_more_than_one_decade": false,
+    "target_size": 2000.0
+   },
+   "repeats": 3,
+   "size_symbol": "R_file",
+   "sizes_run": [
+    60.0,
+    250.0,
+    1000.0,
+    2000.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "a bootstrap is linear in the number of replicates"
+   },
+   "warmup": 1
+  },
+  "replicate_by_n_files": {
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.23540387257734696,
+    "fitted_exponent": 0.764596127422653,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.8765645469054939,
+    "b": 0.764596127422653,
+    "max_abs_log_residual": 0.037251667946839984,
+    "n_points": 3,
+    "r_squared": 0.9963082581101873,
+    "residual_log_rms": 0.026340907015720286,
+    "sizes": [
+     4.0,
+     8.0,
+     16.0
+    ],
+    "times_s": [
+     2.577541913999994,
+     4.140996031999748,
+     7.439409654999963
+    ]
+   },
+   "kernel": "replicate_by_n_files",
+   "points": [
+    {
+     "max_s": 2.585859392000202,
+     "median_s": 2.577541913999994,
+     "min_s": 2.5645117379999647,
+     "repeats": 3,
+     "samples_s": [
+      2.5645117379999647,
+      2.577541913999994,
+      2.585859392000202
+     ],
+     "size": 4,
+     "spread_fraction": 0.008282175309851265,
+     "warmup": 1
+    },
+    {
+     "max_s": 4.149456681999709,
+     "median_s": 4.140996031999748,
+     "min_s": 4.123994187000335,
+     "repeats": 3,
+     "samples_s": [
+      4.123994187000335,
+      4.149456681999709,
+      4.140996031999748
+     ],
+     "size": 8,
+     "spread_fraction": 0.006148881767239418,
+     "warmup": 1
+    },
+    {
+     "max_s": 7.502649625999766,
+     "median_s": 7.439409654999963,
+     "min_s": 7.429915878999964,
+     "repeats": 3,
+     "samples_s": [
+      7.439409654999963,
+      7.429915878999964,
+      7.502649625999766
+     ],
+     "size": 16,
+     "spread_fraction": 0.009776817028877853,
+     "warmup": 1
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "every production n_files (4, 8, 16) was run"
+   },
+   "size_symbol": "n_files",
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "the joint bootstrap is run once per evaluation file, so the replicate is linear in n_files above a fixed simulation cost"
+   }
+  }
+ },
+ "notes": [
+  "The production replicate setting (file 2000 / hier 10000 / curve 400) was run directly, so the per-replicate cost is a MEASUREMENT; only the multiplication by mc = 100 and by the cell count is arithmetic.",
+  "The dominant cost is te.joint_bootstrap, which runs once per evaluation file: the replicate time is close to linear in n_files, and the confirmation catalogue is 1/3 at n_files = 16."
+ ],
+ "package": "t22s",
+ "reduce": {
+  "bound": "compute",
+  "bound_note": "reduce reads every cell file once; measured throughput 3.9 MB/s against a warm page cache, so the step is compute-bound here",
+  "cells_read": 14,
+  "fixture_cell_bytes_median": 24828,
+  "fixture_cell_bytes_total": 302802,
+  "input_bytes_read": 316063,
+  "interpreter_and_import_seconds_measured": 0.11542669800019212,
+  "ledger_bytes_fixture": 13261,
+  "ledger_bytes_per_cell": 947.2142857142857,
+  "measured": true,
+  "reduced_output_bytes": 63276,
+  "returncode": 0,
+  "seconds_per_cell": 0.005583850357100216,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 3873440.888008759,
+  "wall_seconds_reduce_work": 0.07817390499940302,
+  "wall_seconds_total_including_interpreter": 0.19360060299959514
+ },
+ "scenario_shape_spread": {
+  "alt-large-n4-phi0.85-tau0.01": {
+   "max_s": 2.5907423560001916,
+   "median_s": 2.588384126499932,
+   "min_s": 2.586025896999672,
+   "repeats": 2,
+   "samples_s": [
+    2.5907423560001916,
+    2.586025896999672
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.00182216346956865,
+   "warmup": 1
+  },
+  "null-partial-n4-phi0.6-tau0.01-drift0.15": {
+   "max_s": 2.6092051420000644,
+   "median_s": 2.5808204119998663,
+   "min_s": 2.5524356819996683,
+   "repeats": 2,
+   "samples_s": [
+    2.6092051420000644,
+    2.5524356819996683
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.021996671963860383,
+   "warmup": 1
+  },
+  "null-partial-n4-phi0.6-tau0.01-t3": {
+   "max_s": 2.619707065000057,
+   "median_s": 2.590969566500007,
+   "min_s": 2.5622320679999575,
+   "repeats": 2,
+   "samples_s": [
+    2.5622320679999575,
+    2.619707065000057
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.022182814396287595,
+   "warmup": 1
+  }
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.14675390999946103,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5317739759993856
+  },
+  "transfer": {
+   "archive_bytes": 7407520,
+   "archive_path_measured": "/tmp/hf3/mlst-successor_20260913-handoff-20260913T093439Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few kB (timestamps and the report file)."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.634262579999813,
+   "seconds_min": 3.6129271500003597
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 68.0947735030004,
+   "seconds_min": 67.68266122000023
+  }
+ },
+ "storage": {
+  "basis": "measured for one Monte-Carlo record at n_files = 4 and the archived setting; a cell holds mc = 100 such records, so the cell file is projected linearly in mc (the records list is exactly mc entries long)",
+  "bytes_per_cell_by_family": {
+   "control": {
+    "basis": "measured",
+    "bytes": 964,
+    "how": "one production control cell result"
+   },
+   "sim_confirm": {
+    "basis": "projected",
+    "bytes": 998378,
+    "how": "mc = 100 Monte-Carlo records per cell; one record measured per n_files (4/8/16) and averaged over the scenario catalogue. The record was produced at the reduced replicate setting: a record's SIZE does not depend on the replicate counts (it holds summaries, not draws), only on n_files. Projected linearly in mc (the records list is exactly mc long)."
+   },
+   "sim_pilot": {
+    "basis": "projected",
+    "bytes": 928862,
+    "how": "mc = 100 Monte-Carlo records per cell; one record measured per n_files (4/8/16) and averaged over the scenario catalogue. The record was produced at the reduced replicate setting: a record's SIZE does not depend on the replicate counts (it holds summaries, not draws), only on n_files."
+   }
+  },
+  "cell_result_bytes_projected": 639600,
+  "records_per_cell": 100,
+  "simulation_cell_record_bytes_measured": 6396
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "estimator_calls": 0,
+  "estimator_calls_note": "the production matrix plans 0 estimator fits: the simulator generates the learned estimates, so no estimator is invoked on drawn data. All the work is simulation and bootstrap replicates.",
+  "frozen_setting_unknown": "the confirmation setting is frozen by the pilot; the archived setting is the more expensive of the two and is what is priced here, so the confirmation total is an UPPER bound (measured ratio reduced/archived = 0.506 at n_files = 4)",
+  "replicate_settings_production": {
+   "archived": {
+    "curve": 400,
+    "file": 2000,
+    "hier": 10000
+   },
+   "reduced": {
+    "curve": 200,
+    "file": 1000,
+    "hier": 4000
+   }
+  },
+  "restarts": "not applicable (nothing is fitted)",
+  "simulation_replicates_per_confirmation_cell": {
+   "block_curve_draws": "mc x n_dev x (4 x 6 + 4) x R_curve",
+   "joint_bootstrap_draws": "mc x n_files x R_file = 100 x n_files x 2000",
+   "monte_carlo": 100,
+   "two_stage_bootstrap_draws": "mc x 4 contrasts x R_hier = 100 x 4 x 10000"
+  }
+ }
+}

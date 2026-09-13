@@ -84,10 +84,21 @@ after that check.
 
 ## Resource estimate (local, measured)
 
-`RESOURCE_ESTIMATE_PRODUCTION.json` from the fixture root
-(`$M estimate-production --protocol $PROTO --out <FIXTURE_ROOT>`): the local
-fixture timings give 120 × 6.9 s (paired) + 16 × ≈ 1 s (deterministic) ≈ 840 CPU-s
-≈ 14 CPU-minutes on one core at the local speed (direct measurement of
-production-size cells: 6.5–7.8 s each), before retries; peak memory ≈ 0.3 GB per
-worker; disk under 20 MB of JSON.  Retry headroom: 960 fits under the cap =
-30 paired cells.
+Measured with the package's own code at d = 32, 64, 128 and 256 (N = 2d), so the
+d = 256 point is one production paired cell — see `RESOURCE_REPORT.md` and
+`BENCHMARK.json` for the table and the fit:
+
+* paired cell 7.10 s (measured, min 7.05 / max 7.12 over 3 repeats), × 120 = 852 CPU-s;
+* deterministic cell 0.302 s (measured at d = 256), × 15 = 4.53 CPU-s; the 2-D
+  closed-form cell 0.0018 s;
+* reduce 0.0495 s per cell (measured), 7.7 CPU-s over the pilot and final reduces;
+* **total 865 CPU-s (range 858–867)**, i.e. 0.24 wall-hours at one worker, 0.032 at
+  eight, 0.0096 at thirty-two — each **conditional** on that many cores existing at a
+  speed comparable to the benchmark Xeon, which this round does not know;
+* peak memory 183 MB RSS per worker (measured in a fresh subprocess at d = 256);
+* output 10.6 MB of JSON (measured bytes per production cell × the cell count).
+
+`$M estimate-production --protocol $PROTO --out <FIXTURE_ROOT>` writes
+`RESOURCE_ESTIMATE_PRODUCTION.json`, the same measured projection with the
+pilot/confirmation/deterministic split.  Retry headroom: 960 fits under the cap =
+30 paired cells, i.e. about 213 CPU-s if all of it is used.

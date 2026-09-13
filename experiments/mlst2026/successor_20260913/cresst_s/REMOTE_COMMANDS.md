@@ -135,8 +135,15 @@ python -m $PKG reduce   --protocol $PROTO --out <RUN_ROOT>/all --archive-root <A
 python -m $PKG estimate --protocol $PROTO --out <RUN_ROOT>/all --archive-root <ARCHIVE_ROOT>
 ```
 
-Total measured-and-scaled estimate: about **548 CPU-seconds** single-core
-(`RESOURCE_ESTIMATE.json` in this directory is the one produced from the local fixture run).
+Total **measured** estimate: **231 CPU-seconds** single-core (range 209–267), plus 0.9 s
+of reduce.  Every family except the robustness grid was benchmarked at its exact
+production configuration on the real archived inputs; the robustness cells cannot be
+executed here at all (no CRESST raw pulse traces in this container) and were measured on
+a synthetic pulse root written at the production dimensions, labelled
+`measured-on-substitute`.  Peak memory 170 MB RSS per worker, output about 2.0 MB.  See
+`RESOURCE_REPORT.md` for the benchmark tables and `BENCHMARK.json` for the raw timings.
+The protocol's flat `fixture_to_production_scale` gives 584 CPU-s, 2.5× the measurement;
+it survives in `RESOURCE_ESTIMATE.json` only as `cross_check_flat_fixture_scale`.
 
 ## 5. Development fixture (never citable)
 

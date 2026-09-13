@@ -540,10 +540,13 @@ def _confirmation_precheck(argv) -> int | None:
 
 
 def _project_estimate_to_production(argv) -> None:
-    """The common ``estimate`` multiplies the scaled per-cell timings by the matrix
-    of the run root; for a fixture root that is the fixture matrix.  Append the
-    projection onto the FULL production matrix (README: 'measured fixture timings
-    x declared scale x full matrix') without touching the common output."""
+    """A compact restatement of the measured production projection.
+
+    ``cli._estimate`` already prices the PRODUCTION matrix with measured,
+    scaling-aware per-cell seconds from ``BENCHMARK.json``.  This block keeps the
+    ``production_projection`` name ``REMOTE_COMMANDS.md`` refers to, restates the
+    total, and records the per-worker cold population reference that the per-cell
+    figures deliberately exclude."""
     args = cli.build_parser(PACKAGE, DESCRIPTION).parse_args(argv)
     path = Path(args.out) / "RESOURCE_ESTIMATE.json"
     if not path.exists():
@@ -552,27 +555,42 @@ def _project_estimate_to_production(argv) -> None:
     est = json.loads(path.read_text())
     prod = cli._production_only(build_matrix(P, False)).counts()
     proj = {"families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": [], "note":
-            "production matrix counts x production_seconds_per_cell (fixture timing x declared scale); point estimate, no variance; "
-            "single-threaded BLAS as measured; failures/retries add up to retry_allowance; role 'development' is excluded, so the "
-            "total and 'production_counts' cover the same cells"}
+            "production matrix counts x the MEASURED production seconds per cell (BENCHMARK.json: every one "
+            "of the six production N was run at d = 256, single-threaded BLAS). This is not a fixture time "
+            "times a declared constant. Role 'development' is excluded, so the total and 'production_counts' "
+            "cover the same cells; reduce time and the per-worker cold population reference are listed "
+            "separately below."}
     for fam, info in prod["by_family"].items():
         e = est["families"].get(fam)
         if not e or not e.get("measured"):
             proj["unmeasured_families"].append(fam)
             proj["families"][fam] = {"cells": info["cells"], "measured": False}
             continue
-        per = float(e["production_seconds_per_cell"])
-        proj["families"][fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "production_seconds_per_cell": per,
+        per = float(e["seconds_per_cell_median"])
+        proj["families"][fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"],
+                                 "basis": e.get("basis"), "production_seconds_per_cell": per,
+                                 "production_seconds_per_cell_low": float(e["seconds_per_cell_low"]),
+                                 "production_seconds_per_cell_high": float(e["seconds_per_cell_high"]),
                                  "production_cpu_seconds": per * info["cells"]}
         proj["total_cpu_seconds_point"] += per * info["cells"]
     proj["total_cpu_hours_point"] = proj["total_cpu_seconds_point"] / 3600.0
     proj["production_counts"] = prod
+    proj["reduction_seconds"] = est.get("reduction_work", {}).get("total_seconds_projected")
+    proj["wall_time_hours_by_workers"] = est.get("wall_time_hours_by_workers")
+    wa = est.get("work_accounting", {})
+    proj["per_worker_cold_population_reference_seconds"] = wa.get(
+        "per_worker_cold_population_reference_seconds_measured")
+    proj["per_worker_cold_population_reference_note"] = (
+        "measured; a worker pays it once per (process, theta). A one-cell-per-process scheduler pays it on "
+        "every one of the %d fit cells, which would add about %.0f CPU-seconds." % (
+            prod["cells"] - prod["by_family"].get("algebraic", {}).get("cells", 0),
+            (wa.get("per_worker_cold_population_reference_seconds_measured") or 0.0)
+            * (prod["cells"] - prod["by_family"].get("algebraic", {}).get("cells", 0))))
     proj["retry_allowance"] = {"policy": P["budget"].get("retry_policy", "unspecified"),
                                "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - prod["fits"]}
     est["production_projection"] = proj
-    est["estimate_matrix_note"] = ("'families' and 'total_cpu_seconds_point' above refer to the matrix of this run root "
-                                   f"({'fixture' if json.loads((Path(args.out) / 'run_matrix_summary.json').read_text()).get('fixture') else 'production'}); "
-                                   "'production_projection' is the full production matrix")
+    est["estimate_matrix_note"] = ("'families' and the cpu_seconds block above already price the PRODUCTION "
+                                   "matrix; 'production_projection' restates the same total per family")
     write_json_atomic(path, est)
     print(json.dumps({"production_projection": {k: proj[k] for k in ("total_cpu_seconds_point", "total_cpu_hours_point", "retry_allowance", "unmeasured_families")}}, indent=1))
 

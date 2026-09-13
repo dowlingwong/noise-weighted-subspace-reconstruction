@@ -1,0 +1,354 @@
+{
+ "benchmark_wall_seconds": 219.043414085,
+ "families": {
+  "algebraic": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "measured at the production design with the population-reference cache cleared, as the cell itself does",
+   "kernel": "algebraic_cell",
+   "seconds_per_cell": {
+    "high": 3.4707296999999926,
+    "low": 2.217129828999987,
+    "median": 2.280119137999918
+   },
+   "size": 4,
+   "size_symbol": "thetas"
+  },
+  "confirmation": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.056737796729319,
+   "how": "mean over the six production N of the measured per-cell time N=400:1.962s, N=800:3.822s, N=1000:4.816s, N=1250:6.693s, N=1600:8.739s, N=3200:16.937s; each (seed, theta) contributes exactly one cell at each N",
+   "kernel": "fit_cell",
+   "seconds_per_cell": {
+    "high": 7.222336335166726,
+    "low": 7.135355284999946,
+    "median": 7.161454898333356
+   },
+   "size": "N in [400, 800, 1000, 1250, 1600, 3200]",
+   "size_symbol": "N",
+   "theoretical_exponent": 1.0
+  },
+  "pilot": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.056737796729319,
+   "how": "mean over the six production N of the measured per-cell time N=400:1.962s, N=800:3.822s, N=1000:4.816s, N=1250:6.693s, N=1600:8.739s, N=3200:16.937s; each (seed, theta) contributes exactly one cell at each N",
+   "kernel": "fit_cell",
+   "seconds_per_cell": {
+    "high": 7.222336335166726,
+    "low": 7.135355284999946,
+    "median": 7.161454898333356
+   },
+   "size": "N in [400, 800, 1000, 1250, 1600, 3200]",
+   "size_symbol": "N",
+   "theoretical_exponent": 1.0
+  }
+ },
+ "generated_utc": "2026-09-13T09:03:41+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "kernels": {
+  "algebraic_cell": {
+   "kernel": "algebraic_cell",
+   "points": [
+    {
+     "max_s": 3.4707296999999926,
+     "median_s": 2.280119137999918,
+     "min_s": 2.217129828999987,
+     "repeats": 3,
+     "samples_s": [
+      3.4707296999999926,
+      2.217129828999987,
+      2.280119137999918
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.5497957760661762,
+     "warmup": 1
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production size",
+    "seconds_per_call_high": 3.4707296999999926,
+    "seconds_per_call_low": 2.217129828999987,
+    "seconds_per_call_median": 2.280119137999918
+   }
+  },
+  "fit_cell": {
+   "call_path": "t20s.runner.run_fit_cell -> np.linalg.eigh(S) (1 PCA fit) + experiments.synthetic.nfpa_confirmatory.methods.als_fit (R = 4 restarts x 150 sweeps)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": 0.056737796729319,
+    "fitted_exponent": 1.056737796729319,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.003418746471462791,
+    "b": 1.056737796729319,
+    "max_abs_log_residual": 0.04995354230630822,
+    "n_points": 6,
+    "r_squared": 0.9964205163494401,
+    "residual_log_rms": 0.040285299428302154,
+    "sizes": [
+     400.0,
+     800.0,
+     1000.0,
+     1250.0,
+     1600.0,
+     3200.0
+    ],
+    "times_s": [
+     1.96152079400008,
+     3.821578848000172,
+     4.8159425779999765,
+     6.693386327000098,
+     8.73928966099993,
+     16.93701118199988
+    ]
+   },
+   "fixture_size": 40.0,
+   "kernel": "fit_cell",
+   "notes": "d = C.T = 256 is fixed by the design; N is the only production size that varies, and every production N was run",
+   "points": [
+    {
+     "max_s": 1.973693049000076,
+     "median_s": 1.96152079400008,
+     "min_s": 1.9443098899998859,
+     "repeats": 3,
+     "samples_s": [
+      1.973693049000076,
+      1.96152079400008,
+      1.9443098899998859
+     ],
+     "size": 400.0,
+     "spread_fraction": 0.014979784608997045,
+     "warmup": 1
+    },
+    {
+     "max_s": 3.843907855999987,
+     "median_s": 3.821578848000172,
+     "min_s": 3.814361620999989,
+     "repeats": 3,
+     "samples_s": [
+      3.821578848000172,
+      3.814361620999989,
+      3.843907855999987
+     ],
+     "size": 800.0,
+     "spread_fraction": 0.007731421010836788,
+     "warmup": 1
+    },
+    {
+     "max_s": 4.893225826000162,
+     "median_s": 4.8159425779999765,
+     "min_s": 4.76776758799997,
+     "repeats": 3,
+     "samples_s": [
+      4.76776758799997,
+      4.893225826000162,
+      4.8159425779999765
+     ],
+     "size": 1000.0,
+     "spread_fraction": 0.026050609193993733,
+     "warmup": 1
+    },
+    {
+     "max_s": 6.725023514999975,
+     "median_s": 6.693386327000098,
+     "min_s": 6.672189260999858,
+     "repeats": 3,
+     "samples_s": [
+      6.725023514999975,
+      6.672189260999858,
+      6.693386327000098
+     ],
+     "size": 1250.0,
+     "spread_fraction": 0.007893501348785492,
+     "warmup": 1
+    },
+    {
+     "max_s": 8.89373893700008,
+     "median_s": 8.73928966099993,
+     "min_s": 8.71746086600001,
+     "repeats": 3,
+     "samples_s": [
+      8.89373893700008,
+      8.73928966099993,
+      8.71746086600001
+     ],
+     "size": 1600.0,
+     "spread_fraction": 0.020170755042796053,
+     "warmup": 1
+    },
+    {
+     "max_s": 17.004428828000073,
+     "median_s": 16.93701118199988,
+     "memory": {
+      "kernel": "fit",
+      "package": "t20s",
+      "rss_before_bytes": 153214976,
+      "rss_delta_bytes": 0,
+      "rss_high_water_bytes": 153214976,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "size": 3200.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 29016596
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 16.896042483999963,
+     "repeats": 3,
+     "samples_s": [
+      17.004428828000073,
+      16.93701118199988,
+      16.896042483999963
+     ],
+     "size": 3200.0,
+     "spread_fraction": 0.006399378428426568,
+     "warmup": 1
+    }
+   ],
+   "production_size": 3200.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 3200.0,
+    "seconds_per_call_high": 17.004428828000073,
+    "seconds_per_call_low": 16.896042483999963,
+    "seconds_per_call_median": 16.93701118199988,
+    "spans_more_than_one_decade": false,
+    "target_size": 3200.0
+   },
+   "repeats": 3,
+   "size_symbol": "N",
+   "sizes_run": [
+    400.0,
+    800.0,
+    1000.0,
+    1250.0,
+    1600.0,
+    3200.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "als_sweep",
+    "note": "an ALS sweep is O(iter . N . d . k), so linear in N at fixed d, k, iter"
+   },
+   "warmup": 1
+  }
+ },
+ "notes": [
+  "run_fit_cell caches the population reference per (process, theta) with an LRU cache. The measured per-cell times above are WARM-cache times. A worker that runs one cell per process pays the cold reference (0.59 s measured) on every cell; a long-lived worker pays it four times in total (one per theta).",
+  "The dominant cost inside a fit cell is als_fit (4 restarts x up to 150 sweeps), not the closed-form PCA: the PCA is a single eigh of a 256x256 matrix."
+ ],
+ "package": "t20s",
+ "reduce": {
+  "bound": "compute",
+  "bound_note": "reduce reads every cell file once; measured throughput 0.4 MB/s against a warm page cache, so the step is compute-bound here",
+  "cells_read": 18,
+  "fixture_cell_bytes_median": 4236,
+  "fixture_cell_bytes_total": 76278,
+  "input_bytes_read": 93382,
+  "interpreter_and_import_seconds_measured": 0.8399147790000825,
+  "ledger_bytes_fixture": 17104,
+  "ledger_bytes_per_cell": 950.2222222222222,
+  "measured": true,
+  "reduced_output_bytes": 15446,
+  "returncode": 0,
+  "seconds_per_cell": 0.01205713088888337,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 351465.5937403632,
+  "wall_seconds_reduce_work": 0.21702835599990067,
+  "wall_seconds_total_including_interpreter": 1.0569431349999832
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.14675390999946103,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5317739759993856
+  },
+  "transfer": {
+   "archive_bytes": 7407520,
+   "archive_path_measured": "/tmp/hf3/mlst-successor_20260913-handoff-20260913T093439Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few kB (timestamps and the report file)."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.634262579999813,
+   "seconds_min": 3.6129271500003597
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 68.0947735030004,
+   "seconds_min": 67.68266122000023
+  }
+ },
+ "storage": {
+  "algebraic_cell_result_bytes_measured": 1835,
+  "basis": "measured: the production-size result dict serialised with the runner's encoder",
+  "bytes_per_cell_by_family": {
+   "algebraic": {
+    "basis": "measured",
+    "bytes": 1835,
+    "how": "one production algebraic cell result"
+   },
+   "confirmation": {
+    "basis": "measured",
+    "bytes": 1409,
+    "how": "one production fit cell result (N = 1600)"
+   },
+   "pilot": {
+    "basis": "measured",
+    "bytes": 1409,
+    "how": "one production fit cell result (N = 1600)"
+   }
+  },
+  "fit_cell_result_bytes_measured": 1409
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "estimator_calls_per_fit_cell": 5,
+  "per_worker_cold_population_reference_seconds_measured": 0.5938552800000707,
+  "per_worker_warm_population_reference_seconds_measured": 1.7683999885775847e-05,
+  "population_als_inits_per_algebraic_cell": 33,
+  "restarts": {
+   "als_restarts_per_fit_cell": 4,
+   "als_sweeps_per_restart_max": 150,
+   "note": "1 closed-form PCA fit + R = 4 ALS restarts; the restart count is NOT folded into the fit number, it is the fit number minus one"
+  },
+  "simulation_replicates": {
+   "draws_per_fit_cell": 1,
+   "rows_drawn_per_fit_cell": "N (400..3200) rows of d = 256"
+  },
+  "solves_per_algebraic_cell": 35
+ }
+}

@@ -39,7 +39,7 @@ pointer to the design input they correct; the historical files are not edited.
 | result schema | `result_required` dict in the runner + `SCHEMA.md` | every per-cell field named with units and the formula it implements |
 | tests | `tests/test_successor_20260913_<pkg>.py` | see "Required tests" |
 | dependencies | `requirements.txt` (pins actually used locally) | numpy/scipy versions observed in the local run |
-| resource estimate | `estimate` subcommand → `RESOURCE_ESTIMATE.json` | measured fixture timings × declared scale × full matrix; arms, restarts, failures/retries headroom listed |
+| resource estimate | `run_benchmarks.py` → `BENCHMARK.json`; `estimate` subcommand → `RESOURCE_ESTIMATE.json`; `make_resource_report.py` → `RESOURCE_REPORT.md` | **measured, scaling-aware**: the package's own dominant kernel timed at ≥ 4 sizes bracketing or reaching the production dimension, fitted as `t = a n^b` and printed beside the algorithm's exponent, × the production matrix. Estimator calls, restarts, replicates and the reduce step are priced; peak memory, output storage, thread settings, transfer size and setup time are reported separately; wall time is a **range** at 1/8/32 workers, marked conditional because the server is unknown. The old flat fixture × declared-scale product survives only as a labelled cross-check. |
 | commands | `REMOTE_COMMANDS.md` | exact commands for enumerate → run (pilot) → reduce → run (confirmation) → reduce, with resume behaviour; placeholders `<DATA_ROOT>`, `<RUN_ROOT>`, `<WORKERS>` left **unresolved** (never invent hosts, schedulers or hardware) |
 | findings placeholder | `FINDINGS_<PKG>.md` | states what the package will and will not be able to establish; contains no outcome |
 

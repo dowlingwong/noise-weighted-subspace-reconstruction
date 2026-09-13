@@ -257,3 +257,215 @@ def test_count_fit_outside_a_counting_region_is_inert(proto):
         FC.count_fit("b")
         assert FC.observed() == 3 and fc.as_dict()["by_label"] == {"a": 2, "b": 1}
     assert FC.current() is None
+
+
+# =============================================================================
+# the measurement harness (common.benchmark) and the measured resource estimate
+# =============================================================================
+from experiments.mlst2026.successor_20260913.common import benchmark as BM  # noqa: E402
+
+SUCC = REPO / "experiments" / "mlst2026" / "successor_20260913"
+PACKAGES = ("t19s", "t20s", "t21s", "t22s", "cresst_s")
+#: the enumerated production matrix, as `enumerate` prints it (cells, fits, solves)
+PRODUCTION_COUNTS = {"t19s": (136, 3840, 3605), "t20s": (964, 4800, 140), "t21s": (2499, 2496, 2498),
+                     "t22s": (727, 0, 0), "cresst_s": (395, 1056, 0)}
+REQUIRED_ESTIMATE_FIELDS = ("schema", "estimate_basis", "hardware", "thread_settings", "families",
+                            "unmeasured_families", "cpu_seconds", "total_cpu_seconds_point",
+                            "wall_time_hours_by_workers", "parallelism_assumption", "reduction_work",
+                            "work_accounting", "peak_memory", "storage", "transfer", "setup", "unknowns",
+                            "cross_check_flat_fixture_scale", "priced_counts")
+
+
+def test_power_law_fit_recovers_a_quadratic():
+    """A synthetic O(n^2) input must come back with exponent 2."""
+    sizes = [8, 16, 32, 64, 128]
+    times = [3e-6 * n ** 2 for n in sizes]
+    fit = BM.fit_power_law(sizes, times)
+    assert fit.b == pytest.approx(2.0, abs=1e-9)
+    assert fit.a == pytest.approx(3e-6, rel=1e-9)
+    assert fit.residual_log_rms == pytest.approx(0.0, abs=1e-12)
+    assert fit.r_squared == pytest.approx(1.0, abs=1e-12)
+    assert fit.predict(256) == pytest.approx(3e-6 * 256 ** 2, rel=1e-9)
+
+
+def test_power_law_fit_recovers_the_exponent_under_jitter_and_reports_a_residual():
+    rng = np.random.default_rng(7)
+    sizes = [16, 32, 64, 128, 256]
+    times = [1e-9 * n ** 3 * float(np.exp(rng.normal(0, 0.05))) for n in sizes]
+    fit = BM.fit_power_law(sizes, times)
+    assert fit.b == pytest.approx(3.0, abs=0.15)
+    assert fit.residual_log_rms > 0.0                    # the jitter is reported, not smoothed away
+    assert fit.max_abs_log_residual >= fit.residual_log_rms
+
+
+def test_power_law_fit_refuses_degenerate_input():
+    with pytest.raises(ValueError):
+        BM.fit_power_law([4], [1.0])
+    with pytest.raises(ValueError):
+        BM.fit_power_law([4, 4, 4], [1.0, 1.1, 1.2])
+    with pytest.raises(ValueError):
+        BM.fit_power_law([1, 2], [0.0, 1.0])
+
+
+def test_exponent_verdict_names_a_disagreement_instead_of_hiding_it():
+    ok = BM.exponent_verdict(2.95, 3.0)
+    assert ok["agrees"] and "agrees" in ok["note"]
+    low = BM.exponent_verdict(1.4, 3.0)
+    assert not low["agrees"] and low["difference"] == pytest.approx(-1.6)
+    assert "overhead" in low["note"] and "UNDERSTATES" in low["note"]
+    high = BM.exponent_verdict(3.9, 3.0)
+    assert not high["agrees"] and "ABOVE" in high["note"]
+
+
+def test_extrapolation_labels_a_projection_of_more_than_a_decade():
+    same = BM.extrapolation(256, 256)
+    assert same["is_measurement"] and not same["spans_more_than_one_decade"]
+    near = BM.extrapolation(128, 256)
+    assert not near["is_measurement"] and not near["spans_more_than_one_decade"]
+    far = BM.extrapolation(24, 4096)
+    assert far["spans_more_than_one_decade"] and "PROJECTED" in far["label"]
+    assert far["extrapolation_factor_in_size"] == pytest.approx(4096 / 24)
+
+
+def test_timed_discards_the_warmup_and_reports_min_median_max():
+    calls = []
+
+    def fn():
+        calls.append(1)
+    t = BM.timed(fn, size=3, repeats=4, warmup=2)
+    assert len(calls) == 6 and t.repeats == 4 and t.warmup == 2 and len(t.samples_s) == 4
+    assert t.min_s <= t.median_s <= t.max_s and t.size == 3.0
+    assert t.as_dict()["spread_fraction"] >= 0.0
+
+
+def test_peak_memory_reports_both_measures_and_says_which_is_which():
+    m = BM.peak_memory(lambda: np.zeros(2_000_000))
+    assert m["tracemalloc_peak_bytes"] > 8_000_000            # 2e6 float64
+    assert "this call only" in m["tracemalloc_is"]
+    assert m["rss_high_water_bytes"] > 0 and "ru_maxrss" in m["rss_is"]
+
+
+def test_wall_time_range_divides_by_the_worker_count():
+    w = BM.wall_time_range(3600.0, 7200.0, (1, 8, 32))
+    assert w["1"]["hours_low"] == pytest.approx(1.0) and w["1"]["hours_high"] == pytest.approx(2.0)
+    assert w["8"]["hours_low"] == pytest.approx(0.125) and w["32"]["hours_high"] == pytest.approx(2.0 / 32)
+
+
+def test_estimate_without_a_benchmark_says_so_instead_of_guessing(proto, tmp_path):
+    out = tmp_path / "fx"
+    assert _main(["run", "--out", str(out), "--fixture"], proto) == 0
+    assert _main(["estimate", "--out", str(out)], proto) == 0
+    est = json.loads((out / "RESOURCE_ESTIMATE.json").read_text())
+    assert est["measured_projection_available"] is False
+    assert "BENCHMARK.json" in est["why_no_measured_projection"]
+    assert sorted(est["unmeasured_families"]) == ["A", "alg"]   # nothing is invented for them
+    assert est["families"]["A"]["measured"] is False
+    for field in REQUIRED_ESTIMATE_FIELDS:
+        assert field in est, field
+
+
+def test_estimate_with_a_benchmark_is_not_a_flat_multiple_of_the_fixture_time(proto, tmp_path):
+    """The headline must come from the benchmark, not from fixture_seconds x scale."""
+    out = tmp_path / "fx"
+    assert _main(["run", "--out", str(out), "--fixture"], proto) == 0
+    (proto.parent / "BENCHMARK.json").write_text(json.dumps({
+        "schema": "mlst-local-package-benchmark/1", "package": "toy",
+        "hardware": BM.HARDWARE_BLOCK, "thread_settings": BM.THREAD_ENV,
+        "kernels": {"toy_kernel": {"kernel": "toy_kernel", "size_symbol": "n",
+                                   "points": [{"size": n, "median_s": 1e-4 * n ** 2, "min_s": 0.9e-4 * n ** 2,
+                                               "max_s": 1.1e-4 * n ** 2, "repeats": 3}
+                                              for n in (8, 16, 32, 64)],
+                                   "fit": BM.fit_power_law([8, 16, 32, 64],
+                                                           [1e-4 * n ** 2 for n in (8, 16, 32, 64)]).as_dict(),
+                                   "theory": {"key": "eigendecomposition", "exponent": 3.0, "note": "O(d^3)"},
+                                   "projection": {"basis": "measured", "seconds_per_call_median": 0.4096}}},
+        "families": {"A": {"kernel": "toy_kernel", "calls_per_cell": 1, "basis": "measured", "size": 64,
+                           "size_symbol": "n", "fitted_exponent": 2.0, "theoretical_exponent": 3.0,
+                           "extrapolation_factor_in_dimension": 1.0,
+                           "seconds_per_cell": {"median": 0.4096, "low": 0.36864, "high": 0.45056},
+                           "how": "measured at n = 64"},
+                     "alg": {"kernel": "toy_kernel", "calls_per_cell": 1, "basis": "projected", "size": 64,
+                             "size_symbol": "n", "fitted_exponent": 2.0, "theoretical_exponent": 3.0,
+                             "extrapolation_factor_in_dimension": 2.0,
+                             "seconds_per_cell": {"median": 0.01, "low": 0.009, "high": 0.011},
+                             "how": "projected with the fitted exponent"}},
+        "work_accounting": {"estimator_calls_per_cell": 2, "restarts": "none"},
+        "reduce": {"measured": True, "cells_read": 4, "seconds_per_cell": 0.01,
+                   "wall_seconds_reduce_work": 0.04, "ledger_bytes_per_cell": 900.0,
+                   "reduced_output_bytes": 4000, "bound": "compute",
+                   "throughput_bytes_per_second": 1e6},
+        "storage": {"bytes_per_cell_by_family": {"A": {"bytes": 1000, "basis": "measured", "how": "x"},
+                                                 "alg": {"bytes": 500, "basis": "measured", "how": "x"}}},
+        "setup_and_transfer": {"transfer": {"archive_bytes": 7_000_000}},
+        "notes": ["toy"],
+    }) + "\n")
+    assert _main(["estimate", "--out", str(out)], proto) == 0
+    est = json.loads((out / "RESOURCE_ESTIMATE.json").read_text())
+    for field in REQUIRED_ESTIMATE_FIELDS:
+        assert field in est, field
+    assert est["measured_projection_available"] is True and est["unmeasured_families"] == []
+    # 3 pilot cells x 0.4096 s + 1 algebraic cell x 0.01 s
+    assert est["cpu_seconds"]["cell_compute_point"] == pytest.approx(3 * 0.4096 + 0.01)
+    # the headline is NOT the flat fixture x declared-scale product
+    flat = est["cross_check_flat_fixture_scale"]["total_cpu_seconds_point"]
+    assert flat > 0 and est["cpu_seconds"]["cell_compute_point"] != pytest.approx(flat)
+    assert "NOT the estimate" in est["cross_check_flat_fixture_scale"]["what_this_is"]
+    # the projected family names the exponent it used and the factor it spanned
+    assert est["families"]["alg"]["basis"] == "projected"
+    assert est["families"]["alg"]["fitted_exponent"] == 2.0
+    assert est["families"]["alg"]["extrapolation_factor_in_dimension"] == 2.0
+    # ranges, not a point; and the wall time is stated per worker count and marked conditional
+    assert est["cpu_seconds"]["total_low"] < est["cpu_seconds"]["total_point"] < est["cpu_seconds"]["total_high"]
+    assert set(est["wall_time_hours_by_workers"]) == {"1", "8", "32"}
+    for w, row in est["wall_time_hours_by_workers"].items():
+        assert "CONDITIONAL" in row["conditional"] and row["hours_low"] <= row["hours_high"]
+    # reduction, storage, transfer and setup are all present and separated from compute
+    assert est["reduction_work"]["measured"] and est["reduction_work"]["total_seconds_projected"] > 0
+    assert est["storage"]["total_mb"] > 0 and est["transfer"]["separate_from_computation"]
+    assert est["setup"]["separate_from_computation"] and len(est["unknowns"]) >= 5
+
+
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_shipped_resource_estimate_is_measured_and_scaling_aware(pkg):
+    est = json.loads((SUCC / pkg / "RESOURCE_ESTIMATE.json").read_text())
+    for field in REQUIRED_ESTIMATE_FIELDS:
+        assert field in est, field
+    assert est["schema"] == "mlst-local-package-resource-estimate/2"
+    assert est["measured_projection_available"] is True
+    assert est["unmeasured_families"] == []
+    assert "2.10GHz" in est["hardware"] and "OMP_NUM_THREADS=1" in est["hardware"]
+    cells, fits, solves = PRODUCTION_COUNTS[pkg]
+    assert (est["priced_counts"]["cells"], est["priced_counts"]["fits"],
+            est["priced_counts"]["solves"]) == (cells, fits, solves)
+    assert "development" not in est["priced_counts"]["by_role"]
+    # every family is labelled, and a projected one names its exponent
+    for fam, row in est["families"].items():
+        assert row["measured"] is True, fam
+        assert row["basis"] in ("measured", "projected", "measured-on-substitute"), fam
+        if row["basis"] == "projected":
+            assert row["fitted_exponent"] is not None and row["extrapolation_factor_in_dimension"] is not None
+    # the headline is not the flat fixture x declared-scale product
+    flat = est["cross_check_flat_fixture_scale"]["total_cpu_seconds_point"]
+    assert est["cpu_seconds"]["cell_compute_point"] != pytest.approx(flat)
+    assert est["cpu_seconds"]["total_low"] <= est["cpu_seconds"]["total_point"] <= est["cpu_seconds"]["total_high"]
+    assert est["reduction_work"]["measured"] is True
+    assert est["peak_memory"]["measured"] is True and est["storage"]["total_mb"] > 0
+    assert est["transfer"]["archive_bytes"] and est["setup"]["requirements"]["pinned_lines"]
+    assert set(est["wall_time_hours_by_workers"]) == {"1", "8", "32"}
+
+
+@pytest.mark.parametrize("pkg", PACKAGES)
+def test_shipped_benchmark_records_hardware_and_four_or_more_sizes(pkg):
+    b = json.loads((SUCC / pkg / "BENCHMARK.json").read_text())
+    assert b["schema"] == "mlst-local-package-benchmark/1" and b["package"] == pkg
+    assert b["hardware"] == BM.HARDWARE_BLOCK
+    assert b["thread_settings"]["OMP_NUM_THREADS"] == "1"
+    scaled = [k for k in b["kernels"].values() if "fit" in k]
+    assert scaled, "no kernel carries a scaling fit"
+    assert any(len(k["points"]) >= 4 for k in scaled), "no kernel was run at four or more sizes"
+    for k in scaled:
+        assert "theory" in k and "exponent_check" in k
+        assert k["exponent_check"]["theoretical_exponent"] == k["theory"]["exponent"]
+    assert any((r.get("memory") or {}).get("rss_high_water_bytes")
+               for k in b["kernels"].values() for r in k.get("points", []))
+    assert set(b["storage"]["bytes_per_cell_by_family"]) >= set(b["families"])

@@ -663,10 +663,13 @@ def main(argv=None) -> int:
 
 
 def _project_estimate_to_production(argv) -> None:
-    """The common estimate multiplies measured per-cell times by the declared
-    scale and by the cell counts of the matrix *of the run root*; on a fixture
-    root those are fixture counts.  Add the projection onto the production
-    matrix (same family names, production cell counts) to RESOURCE_ESTIMATE.json."""
+    """A compact restatement of the measured production projection.
+
+    ``cli._estimate`` already prices the PRODUCTION matrix with the measured,
+    scaling-aware per-cell seconds from ``BENCHMARK.json``.  This block keeps the
+    ``production_projection`` name that ``REMOTE_COMMANDS.md`` refers to, and adds
+    what a scheduler needs beside it: the retry headroom and the reduce cost that
+    the per-cell figures exclude."""
     args = cli.build_parser(PACKAGE, "estimate").parse_args(argv)
     P = load_protocol(args.protocol)
     path = Path(args.out) / "RESOURCE_ESTIMATE.json"
@@ -682,18 +685,24 @@ def _project_estimate_to_production(argv) -> None:
             unmeasured.append(fam)
             fams[fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": False}
             continue
-        per = float(m["production_seconds_per_cell"])
+        per = float(m["seconds_per_cell_median"])
         fams[fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
-                     "production_seconds_per_cell": per, "production_cpu_seconds": per * info["cells"]}
+                     "basis": m.get("basis"), "production_seconds_per_cell": per,
+                     "production_seconds_per_cell_low": float(m["seconds_per_cell_low"]),
+                     "production_seconds_per_cell_high": float(m["seconds_per_cell_high"]),
+                     "production_cpu_seconds": per * info["cells"]}
         total += per * info["cells"]
     est["production_projection"] = {
         "matrix_sha256": prod.matrix_hash(), "counts": counts, "families": fams, "unmeasured_families": unmeasured,
         "total_cpu_seconds_point": total, "total_cpu_hours_point": total / 3600.0,
-        "wall_seconds_at_W_workers": "total_cpu_seconds_point / <WORKERS> (embarrassingly parallel by cell; ledger appends serialised by flock)",
+        "reduction_seconds": est.get("reduction_work", {}).get("total_seconds_projected"),
+        "wall_time_hours_by_workers": est.get("wall_time_hours_by_workers"),
         "retry_headroom": {"fits_planned": counts["fits"], "cap": P["budget"]["estimator_fits_cap"],
                            "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - counts["fits"],
                            "cpu_seconds_if_all_headroom_used": (total / counts["fits"]) * (P["budget"]["estimator_fits_cap"] - counts["fits"]) if counts["fits"] else None},
-        "note": "per-cell seconds = measured fixture seconds x budget.fixture_to_production_scale (a flop-count ratio; fixture cells are overhead-dominated, so this projection is an upper bound); reduce time is not included (a reduce of the full production root recomputes 104 exact-K spectra and 2 x 416 bootstraps)",
+        "note": ("per-cell seconds are MEASURED at the production dimension (d = 256 with N = 128 and with "
+                 "N = 1024 were both run directly), not a fixture time times a declared scale; the reduce "
+                 "cost is listed separately because the per-cell figures exclude it"),
     }
     write_json_atomic(path, est)
     print(json.dumps({"production_projection": {k: est["production_projection"][k] for k in ("total_cpu_seconds_point", "total_cpu_hours_point", "unmeasured_families", "retry_headroom")}}, indent=1))

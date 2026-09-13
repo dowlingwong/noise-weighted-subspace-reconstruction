@@ -321,18 +321,27 @@ def test_mutation_swapped_observables_is_rejected(tmp_path, monkeypatch):
 # 8. resource estimate from the fixture timings
 # ---------------------------------------------------------------------------
 def test_resource_estimate_from_fixture(fixture_run, P):
-    # the common `estimate` prices the matrix of the run root it is pointed at (the fixture matrix here)
+    # the common `estimate` always prices the PRODUCTION matrix, from the measured benchmarks
     assert _main(["estimate", "--out", str(fixture_run)]) == 0
     est = json.loads((fixture_run / "RESOURCE_ESTIMATE.json").read_text())
+    assert est["schema"] == "mlst-local-package-resource-estimate/2"
     assert est["unmeasured_families"] == [] and est["total_cpu_seconds_point"] > 0
-    assert est["families"]["paired"]["scale"] == P["budget"]["fixture_to_production_scale"]["paired"]
-    # the package-local `estimate-production` prices the PRODUCTION matrix with the fixture timings
+    paired = est["families"]["paired"]
+    assert paired["measured"] and paired["basis"] == "measured" and paired["cells"] == 120
+    # the paired projection is the MEASURED production cell, not a fixture time x a constant
+    flat = est["cross_check_flat_fixture_scale"]
+    assert flat["families"]["paired"]["scale"] == P["budget"]["fixture_to_production_scale"]["paired"]
+    assert paired["cpu_seconds_point"] != pytest.approx(flat["families"]["paired"]["production_cpu_seconds"])
+    # the package-local `estimate-production` restates the same measured projection
     assert _main(["estimate-production", "--out", str(fixture_run)]) == 0
     prod = json.loads((fixture_run / "RESOURCE_ESTIMATE_PRODUCTION.json").read_text())
-    assert prod["unmeasured_families"] == [] and prod["total_cpu_seconds_point"] >= est["total_cpu_seconds_point"]  # common now prices production too
+    assert prod["unmeasured_families"] == []
+    assert prod["total_cpu_seconds_point"] == pytest.approx(est["cpu_seconds"]["cell_compute_point"])
     assert prod["counts"]["fits"] == 3840 and prod["retry_allowance"]["fits_headroom_under_cap"] == 4800 - 3840
     assert prod["stages"] == {"pilot_cells": 20, "confirmation_cells": 100, "deterministic_cells": 16}
-    assert prod["families"]["paired"]["production_cpu_seconds"] == pytest.approx(prod["families"]["paired"]["fixture_seconds_per_cell"] * P["budget"]["fixture_to_production_scale"]["paired"] * 120)
+    assert prod["families"]["paired"]["production_cpu_seconds"] == pytest.approx(
+        prod["families"]["paired"]["production_seconds_per_cell"] * 120)
+    assert set(prod["wall_time_hours_by_workers"]) == {"1", "8", "32"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,1576 @@
+{
+ "benchmark_wall_seconds": 273.4811390740001,
+ "families": {
+  "archive_interval": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9938507417529889,
+   "how": "mean over the ten archived constructions, each run once at the production 10000 replicates: block16_channel_fixed 2.56s, block16_hierarchical 2.66s, block256_channel_fixed 2.49s, block256_hierarchical 2.39s, block64_channel_fixed 2.08s, block64_hierarchical 2.09s, channel_fixed 1.46s, headline 1.42s, ratio_of_means_channel_fixed 1.42s, ratio_of_means_hierarchical 1.40s",
+   "kernel": "archive_interval",
+   "seconds_per_cell": {
+    "high": 2.6610121140001866,
+    "low": 1.396979361999911,
+    "median": 1.9968746451999777
+   },
+   "size": 10000,
+   "size_symbol": "R",
+   "theoretical_exponent": 1.0
+  },
+  "archive_point": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "measured on the real archived inputs",
+   "kernel": "archive_point",
+   "seconds_per_cell": {
+    "high": 0.0002590580002106435,
+    "low": 0.00024214099994424032,
+    "median": 0.0002450209999551589
+   },
+   "size": 1,
+   "size_symbol": "cell"
+  },
+  "calib_confirm": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.997549900856585,
+   "how": "every one of the 12 production confirmation designs was run at its own replicate budget; the family value is their mean",
+   "kernel": "calibration_coverage",
+   "seconds_per_cell": {
+    "high": 3.801546185416631,
+    "low": 3.756061826916645,
+    "median": 3.778804006166638
+   },
+   "size": "mc 400 x boot 400",
+   "size_symbol": "mc.boot.clusters",
+   "theoretical_exponent": 1.0
+  },
+  "calib_control": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "measured at the production configuration (mc 400 x bootstrap 400, two arms)",
+   "kernel": "calibration_control",
+   "seconds_per_cell": {
+    "high": 7.2976824570000645,
+    "low": 7.241062532000342,
+    "median": 7.269372494500203
+   },
+   "size": 1,
+   "size_symbol": "cell"
+  },
+  "calib_pilot": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.997549900856585,
+   "how": "every one of the 12 production pilot designs was run at its own replicate budget; the family value is their mean",
+   "kernel": "calibration_coverage",
+   "seconds_per_cell": {
+    "high": 1.4294660129999859,
+    "low": 1.412910730249943,
+    "median": 1.4211883716249645
+   },
+   "size": "mc 200 x boot 300",
+   "size_symbol": "mc.boot.clusters",
+   "theoretical_exponent": 1.0
+  },
+  "cluster_report": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9591703228823397,
+   "how": "mean over the five reports at the production 10000 replicates: leave_one_channel_out 9.31s, leave_one_run_out 3.41s, per_channel_effects 3.62s, run_stratified 4.84s, variance_decomposition 1.94s",
+   "kernel": "cluster_report",
+   "seconds_per_cell": {
+    "high": 9.310433690000082,
+    "low": 1.9420815739999853,
+    "median": 4.623803209400012
+   },
+   "size": 10000,
+   "size_symbol": "R",
+   "theoretical_exponent": 1.0
+  },
+  "robustness_confirm": {
+   "basis": "measured-on-substitute",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.46307182395894314,
+   "how": "mean over the 315 confirmation grid rows of the measured (time cut, rank) table at the production dimensions on SYNTHETIC pulses",
+   "kernel": "empca_robustness",
+   "seconds_per_cell": {
+    "high": 0.3203350745557145,
+    "low": 0.31320511699995124,
+    "median": 0.31527887688884626
+   },
+   "size": "rank 2..12",
+   "size_symbol": "rank k",
+   "theoretical_exponent": 1.0
+  },
+  "robustness_pilot": {
+   "basis": "measured-on-substitute",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.46307182395894314,
+   "how": "mean over the 35 pilot grid rows of the measured (time cut, rank) table at the production dimensions on SYNTHETIC pulses (no CRESST raw data here)",
+   "kernel": "empca_robustness",
+   "seconds_per_cell": {
+    "high": 0.4740351140000712,
+    "low": 0.46694678660005595,
+    "median": 0.47069350620004113
+   },
+   "size": "rank 2..12",
+   "size_symbol": "rank k",
+   "theoretical_exponent": 1.0
+  },
+  "science_control": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "mean over the four production science controls: block1_equals_iid 0.002s, empca_uniform_weight_limit 0.623s, event_weight_constant 0.039s, zero_effect_identity 1.319s",
+   "kernel": "science_control",
+   "seconds_per_cell": {
+    "high": 1.343093449999742,
+    "low": 0.0019111070000690233,
+    "median": 0.4957801878749706
+   },
+   "size": 1,
+   "size_symbol": "cell"
+  }
+ },
+ "generated_utc": "2026-09-13T09:31:51+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "kernels": {
+  "archive_interval": {
+   "call_path": "cresst_s.archive_recompute.recompute_interval: a cluster bootstrap over the 19335 archived evaluation events in 7 channels",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.006149258247011069,
+    "fitted_exponent": 0.9938507417529889,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.00018822785148102624,
+    "b": 0.9938507417529889,
+    "max_abs_log_residual": 0.027722944513869696,
+    "n_points": 4,
+    "r_squared": 0.9995485037716474,
+    "residual_log_rms": 0.01666005975292603,
+    "sizes": [
+     1200.0,
+     2500.0,
+     5000.0,
+     10000.0
+    ],
+    "times_s": [
+     0.2174364580000656,
+     0.4508950249996815,
+     0.8686964480002644,
+     1.8087498120003147
+    ]
+   },
+   "fixture_size": 1200.0,
+   "kernel": "archive_interval",
+   "notes": "the production replicate count was run directly",
+   "points": [
+    {
+     "max_s": 0.2208765739997034,
+     "median_s": 0.2174364580000656,
+     "min_s": 0.20816177199958474,
+     "repeats": 3,
+     "samples_s": [
+      0.20816177199958474,
+      0.2208765739997034,
+      0.2174364580000656
+     ],
+     "size": 1200.0,
+     "spread_fraction": 0.058475943349458055,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.4667646729999433,
+     "median_s": 0.4508950249996815,
+     "min_s": 0.4469370550000349,
+     "repeats": 3,
+     "samples_s": [
+      0.4469370550000349,
+      0.4508950249996815,
+      0.4667646729999433
+     ],
+     "size": 2500.0,
+     "spread_fraction": 0.043973911665852614,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.8729277879997426,
+     "median_s": 0.8686964480002644,
+     "min_s": 0.8309692809998523,
+     "repeats": 3,
+     "samples_s": [
+      0.8686964480002644,
+      0.8729277879997426,
+      0.8309692809998523
+     ],
+     "size": 5000.0,
+     "spread_fraction": 0.04830053938459003,
+     "warmup": 1
+    },
+    {
+     "max_s": 1.8473987820002549,
+     "median_s": 1.8087498120003147,
+     "memory": {
+      "kernel": "interval",
+      "package": "cresst_s",
+      "rss_before_bytes": 141979648,
+      "rss_delta_bytes": 0,
+      "rss_high_water_bytes": 141979648,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "size": 10000.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 64287506
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 1.7254827040001146,
+     "repeats": 3,
+     "samples_s": [
+      1.8473987820002549,
+      1.7254827040001146,
+      1.8087498120003147
+     ],
+     "size": 10000.0,
+     "spread_fraction": 0.06740350555465272,
+     "warmup": 1
+    }
+   ],
+   "production_size": 10000.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 10000.0,
+    "largest_size_benchmarked": 10000.0,
+    "seconds_per_call_high": 1.8473987820002549,
+    "seconds_per_call_low": 1.7254827040001146,
+    "seconds_per_call_median": 1.8087498120003147,
+    "spans_more_than_one_decade": false,
+    "target_size": 10000.0
+   },
+   "repeats": 3,
+   "size_symbol": "R",
+   "sizes_run": [
+    1200.0,
+    2500.0,
+    5000.0,
+    10000.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "a bootstrap is linear in the number of replicates"
+   },
+   "warmup": 1
+  },
+  "archive_point": {
+   "kernel": "archive_point",
+   "points": [
+    {
+     "max_s": 0.0002590580002106435,
+     "median_s": 0.0002450209999551589,
+     "min_s": 0.00024214099994424032,
+     "repeats": 3,
+     "samples_s": [
+      0.00024214099994424032,
+      0.0002590580002106435,
+      0.0002450209999551589
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.06904306271502915,
+     "warmup": 1
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production size",
+    "seconds_per_call_high": 0.0002590580002106435,
+    "seconds_per_call_low": 0.00024214099994424032,
+    "seconds_per_call_median": 0.0002450209999551589
+   }
+  },
+  "calibration_coverage": {
+   "call_path": "cresst_s.calibration.coverage: mc Monte-Carlo datasets x bootstrap_replicates cluster bootstrap draws each",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.0024500991434149855,
+    "fitted_exponent": 0.997549900856585,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.0023654834409633898,
+    "b": 0.997549900856585,
+    "max_abs_log_residual": 0.003222689037177595,
+    "n_points": 4,
+    "r_squared": 0.9999933699809823,
+    "residual_log_rms": 0.0019905538186688826,
+    "sizes": [
+     50.0,
+     100.0,
+     200.0,
+     400.0
+    ],
+    "times_s": [
+     0.11702906799973789,
+     0.23386767800002417,
+     0.46850232699989647,
+     0.9304392829999415
+    ]
+   },
+   "fixture_size": 120.0,
+   "kernel": "calibration_coverage",
+   "notes": "at the reference design (n_runs 2, channels_per_run 2); the production mc was run directly",
+   "points": [
+    {
+     "max_s": 0.11753970599966124,
+     "median_s": 0.11702906799973789,
+     "min_s": 0.11569897699973808,
+     "repeats": 3,
+     "samples_s": [
+      0.11569897699973808,
+      0.11702906799973789,
+      0.11753970599966124
+     ],
+     "size": 50.0,
+     "spread_fraction": 0.015728818757466997,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.23430107200010752,
+     "median_s": 0.23386767800002417,
+     "min_s": 0.2335612219999348,
+     "repeats": 3,
+     "samples_s": [
+      0.23430107200010752,
+      0.2335612219999348,
+      0.23386767800002417
+     ],
+     "size": 100.0,
+     "spread_fraction": 0.00316354105235808,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.4716351309998572,
+     "median_s": 0.46850232699989647,
+     "min_s": 0.46752655399996,
+     "repeats": 3,
+     "samples_s": [
+      0.46752655399996,
+      0.4716351309998572,
+      0.46850232699989647
+     ],
+     "size": 200.0,
+     "spread_fraction": 0.008769597850680693,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.9330532959997981,
+     "median_s": 0.9304392829999415,
+     "memory": {
+      "rss_before_bytes": 177119232,
+      "rss_delta_bytes": 0,
+      "rss_high_water_bytes": 177119232,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 1544952
+     },
+     "memory_measured_in": "this process",
+     "min_s": 0.9298339750002924,
+     "repeats": 3,
+     "samples_s": [
+      0.9330532959997981,
+      0.9298339750002924,
+      0.9304392829999415
+     ],
+     "size": 400.0,
+     "spread_fraction": 0.003460001161092344,
+     "warmup": 1
+    }
+   ],
+   "production_size": 400.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 400.0,
+    "largest_size_benchmarked": 400.0,
+    "seconds_per_call_high": 0.9330532959997981,
+    "seconds_per_call_low": 0.9298339750002924,
+    "seconds_per_call_median": 0.9304392829999415,
+    "spans_more_than_one_decade": false,
+    "target_size": 400.0
+   },
+   "repeats": 3,
+   "size_symbol": "mc",
+   "sizes_run": [
+    50.0,
+    100.0,
+    200.0,
+    400.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "a bootstrap is linear in the number of replicates"
+   },
+   "warmup": 1
+  },
+  "cluster_report": {
+   "call_path": "cresst_s.runner._cell_cluster_report -> cluster_report.* (cluster bootstrap per report)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.04082967711766028,
+    "fitted_exponent": 0.9591703228823397,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.0005563333618874829,
+    "b": 0.9591703228823397,
+    "max_abs_log_residual": 0.009195129614944952,
+    "n_points": 4,
+    "r_squared": 0.999947120284752,
+    "residual_log_rms": 0.005501511585083781,
+    "sizes": [
+     1200.0,
+     2500.0,
+     5000.0,
+     10000.0
+    ],
+    "times_s": [
+     0.4990888204999919,
+     1.0080558075001136,
+     1.9827627519998714,
+     3.7992098069998974
+    ]
+   },
+   "fixture_size": 1200.0,
+   "kernel": "cluster_report",
+   "notes": "the production replicate count was run directly",
+   "points": [
+    {
+     "max_s": 0.5041776170000958,
+     "median_s": 0.4990888204999919,
+     "min_s": 0.49400002399988807,
+     "repeats": 2,
+     "samples_s": [
+      0.49400002399988807,
+      0.5041776170000958
+     ],
+     "size": 1200.0,
+     "spread_fraction": 0.02039234817965207,
+     "warmup": 1
+    },
+    {
+     "max_s": 1.0457113010002104,
+     "median_s": 1.0080558075001136,
+     "min_s": 0.9704003140000168,
+     "repeats": 2,
+     "samples_s": [
+      1.0457113010002104,
+      0.9704003140000168
+     ],
+     "size": 2500.0,
+     "spread_fraction": 0.07470914451349468,
+     "warmup": 1
+    },
+    {
+     "max_s": 2.036655466999946,
+     "median_s": 1.9827627519998714,
+     "min_s": 1.9288700369997969,
+     "repeats": 2,
+     "samples_s": [
+      2.036655466999946,
+      1.9288700369997969
+     ],
+     "size": 5000.0,
+     "spread_fraction": 0.05436123403641388,
+     "warmup": 1
+    },
+    {
+     "max_s": 3.889536795999902,
+     "median_s": 3.7992098069998974,
+     "memory": {
+      "rss_before_bytes": 169627648,
+      "rss_delta_bytes": 0,
+      "rss_high_water_bytes": 169627648,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 99562288
+     },
+     "memory_measured_in": "this process",
+     "min_s": 3.7088828179998927,
+     "repeats": 2,
+     "samples_s": [
+      3.889536795999902,
+      3.7088828179998927
+     ],
+     "size": 10000.0,
+     "spread_fraction": 0.04755040842102518,
+     "warmup": 1
+    }
+   ],
+   "production_size": 10000.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 10000.0,
+    "largest_size_benchmarked": 10000.0,
+    "seconds_per_call_high": 3.889536795999902,
+    "seconds_per_call_low": 3.7088828179998927,
+    "seconds_per_call_median": 3.7992098069998974,
+    "spans_more_than_one_decade": false,
+    "target_size": 10000.0
+   },
+   "repeats": 2,
+   "size_symbol": "R",
+   "sizes_run": [
+    1200.0,
+    2500.0,
+    5000.0,
+    10000.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "a bootstrap is linear in the number of replicates"
+   },
+   "warmup": 1
+  },
+  "empca_robustness": {
+   "call_path": "cresst_s.robustness_design.fit_and_score -> src.canonical.empca.classic_pca (1 fit) + empca (EMPCA_RESTARTS = 2 fits, niter = 25)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -0.5369281760410569,
+    "fitted_exponent": 0.46307182395894314,
+    "note": "the measured exponent is BELOW the algorithm's by 0.54: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.21279754863628242,
+    "b": 0.46307182395894314,
+    "max_abs_log_residual": 0.09676253389936362,
+    "n_points": 5,
+    "r_squared": 0.947077159984424,
+    "residual_log_rms": 0.06711952832610955,
+    "sizes": [
+     2.0,
+     4.0,
+     6.0,
+     8.0,
+     12.0
+    ],
+    "times_s": [
+     0.3030178760000126,
+     0.41600721899976634,
+     0.442876977999731,
+     0.5275356580000334,
+     0.7365436049999516
+    ]
+   },
+   "fixture_size": 4.0,
+   "kernel": "empca_robustness",
+   "notes": "the real CRESST pulse traces are NOT in this container; the synthetic pulse root written by the package's own write_fixture_data_root is used AT THE PRODUCTION DIMENSIONS (n_events 400, n_samples 128, n_noise 400). The EMPCA cost is set by those dimensions and by the fixed niter, not by the values, but the substitution is a substitution and is labelled here.",
+   "points": [
+    {
+     "max_s": 0.30499794899969856,
+     "median_s": 0.3030178760000126,
+     "min_s": 0.29753206299983503,
+     "repeats": 3,
+     "samples_s": [
+      0.29753206299983503,
+      0.3030178760000126,
+      0.30499794899969856
+     ],
+     "size": 2.0,
+     "spread_fraction": 0.024638434202024502,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.41633498300006977,
+     "median_s": 0.41600721899976634,
+     "min_s": 0.37514483699987977,
+     "repeats": 3,
+     "samples_s": [
+      0.41633498300006977,
+      0.37514483699987977,
+      0.41600721899976634
+     ],
+     "size": 4.0,
+     "spread_fraction": 0.09901305582923822,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.4431675589999031,
+     "median_s": 0.442876977999731,
+     "min_s": 0.4423294889998033,
+     "repeats": 3,
+     "samples_s": [
+      0.442876977999731,
+      0.4423294889998033,
+      0.4431675589999031
+     ],
+     "size": 6.0,
+     "spread_fraction": 0.0018923313735679033,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.5332479270000476,
+     "median_s": 0.5275356580000334,
+     "min_s": 0.5268594449999,
+     "repeats": 3,
+     "samples_s": [
+      0.5332479270000476,
+      0.5268594449999,
+      0.5275356580000334
+     ],
+     "size": 8.0,
+     "spread_fraction": 0.012110047734720575,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.7446025419999387,
+     "median_s": 0.7365436049999516,
+     "memory": {
+      "kernel": "robust",
+      "package": "cresst_s",
+      "rss_before_bytes": 169635840,
+      "rss_delta_bytes": 0,
+      "rss_high_water_bytes": 169635840,
+      "rss_is": "ru_maxrss of the WHOLE process (high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "size": 12.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 3901838
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 0.7351452789998802,
+     "repeats": 3,
+     "samples_s": [
+      0.7446025419999387,
+      0.7365436049999516,
+      0.7351452789998802
+     ],
+     "size": 12.0,
+     "spread_fraction": 0.012840058532663613,
+     "warmup": 1
+    }
+   ],
+   "production_size": 6.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 6.0,
+    "largest_size_benchmarked": 12.0,
+    "seconds_per_call_high": 0.4431675589999031,
+    "seconds_per_call_low": 0.4423294889998033,
+    "seconds_per_call_median": 0.442876977999731,
+    "spans_more_than_one_decade": false,
+    "target_size": 6.0
+   },
+   "repeats": 3,
+   "size_symbol": "rank k",
+   "sizes_run": [
+    2.0,
+    4.0,
+    6.0,
+    8.0,
+    12.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "em_sweep",
+    "note": "a weighted-EM sweep is O(niter . n_train . n_components . k), so linear in the rank k"
+   },
+   "warmup": 1
+  }
+ },
+ "measured_tables": {
+  "calibration_by_design": {
+   "confirmation": {
+    "runs2|cpr2|sd0.0": {
+     "max_s": 0.9466550259999167,
+     "median_s": 0.946194472499883,
+     "min_s": 0.9457339189998493,
+     "n_clusters": 4,
+     "repeats": 2,
+     "samples_s": [
+      0.9466550259999167,
+      0.9457339189998493
+     ],
+     "size": 640000.0,
+     "spread_fraction": 0.0009734859237063833,
+     "warmup": 0
+    },
+    "runs2|cpr2|sd0.3": {
+     "max_s": 0.9335276039996643,
+     "median_s": 0.9297062964997167,
+     "min_s": 0.9258849889997691,
+     "n_clusters": 4,
+     "repeats": 2,
+     "samples_s": [
+      0.9258849889997691,
+      0.9335276039996643
+     ],
+     "size": 640000.0,
+     "spread_fraction": 0.008220461697064013,
+     "warmup": 0
+    },
+    "runs2|cpr5|sd0.0": {
+     "max_s": 2.255641471999752,
+     "median_s": 2.2514824974998646,
+     "min_s": 2.2473235229999773,
+     "n_clusters": 10,
+     "repeats": 2,
+     "samples_s": [
+      2.2473235229999773,
+      2.255641471999752
+     ],
+     "size": 1600000.0,
+     "spread_fraction": 0.003694432006027696,
+     "warmup": 0
+    },
+    "runs2|cpr5|sd0.3": {
+     "max_s": 2.301707833999899,
+     "median_s": 2.28576243349994,
+     "min_s": 2.269817032999981,
+     "n_clusters": 10,
+     "repeats": 2,
+     "samples_s": [
+      2.269817032999981,
+      2.301707833999899
+     ],
+     "size": 1600000.0,
+     "spread_fraction": 0.013951931544822346,
+     "warmup": 0
+    },
+    "runs4|cpr2|sd0.0": {
+     "max_s": 1.8984932490002393,
+     "median_s": 1.8741033300000254,
+     "min_s": 1.8497134109998115,
+     "n_clusters": 8,
+     "repeats": 2,
+     "samples_s": [
+      1.8984932490002393,
+      1.8497134109998115
+     ],
+     "size": 1280000.0,
+     "spread_fraction": 0.026028360987132543,
+     "warmup": 0
+    },
+    "runs4|cpr2|sd0.3": {
+     "max_s": 1.9129690589998063,
+     "median_s": 1.8896711745001085,
+     "min_s": 1.8663732900004106,
+     "n_clusters": 8,
+     "repeats": 2,
+     "samples_s": [
+      1.9129690589998063,
+      1.8663732900004106
+     ],
+     "size": 1280000.0,
+     "spread_fraction": 0.024658136096996904,
+     "warmup": 0
+    },
+    "runs4|cpr5|sd0.0": {
+     "max_s": 4.692407868000373,
+     "median_s": 4.628678226000147,
+     "min_s": 4.5649485839999215,
+     "n_clusters": 20,
+     "repeats": 2,
+     "samples_s": [
+      4.692407868000373,
+      4.5649485839999215
+     ],
+     "size": 3200000.0,
+     "spread_fraction": 0.027536864257378935,
+     "warmup": 0
+    },
+    "runs4|cpr5|sd0.3": {
+     "max_s": 4.61157543499985,
+     "median_s": 4.578645589999951,
+     "min_s": 4.545715745000052,
+     "n_clusters": 20,
+     "repeats": 2,
+     "samples_s": [
+      4.545715745000052,
+      4.61157543499985
+     ],
+     "size": 3200000.0,
+     "spread_fraction": 0.014384098682728164,
+     "warmup": 0
+    },
+    "runs8|cpr2|sd0.0": {
+     "max_s": 3.752725294999891,
+     "median_s": 3.7235189109999283,
+     "min_s": 3.6943125269999655,
+     "n_clusters": 16,
+     "repeats": 2,
+     "samples_s": [
+      3.6943125269999655,
+      3.752725294999891
+     ],
+     "size": 2560000.0,
+     "spread_fraction": 0.015687517479061,
+     "warmup": 0
+    },
+    "runs8|cpr2|sd0.3": {
+     "max_s": 3.6934494189999896,
+     "median_s": 3.6900197429999935,
+     "min_s": 3.6865900669999974,
+     "n_clusters": 16,
+     "repeats": 2,
+     "samples_s": [
+      3.6865900669999974,
+      3.6934494189999896
+     ],
+     "size": 2560000.0,
+     "spread_fraction": 0.0018588930351943176,
+     "warmup": 0
+    },
+    "runs8|cpr5|sd0.0": {
+     "max_s": 9.292537185000128,
+     "median_s": 9.238047537000057,
+     "min_s": 9.183557888999985,
+     "n_clusters": 40,
+     "repeats": 2,
+     "samples_s": [
+      9.292537185000128,
+      9.183557888999985
+     ],
+     "size": 6400000.0,
+     "spread_fraction": 0.011796788830503563,
+     "warmup": 0
+    },
+    "runs8|cpr5|sd0.3": {
+     "max_s": 9.326864779000061,
+     "median_s": 9.30981786250004,
+     "min_s": 9.292770946000019,
+     "n_clusters": 40,
+     "repeats": 2,
+     "samples_s": [
+      9.326864779000061,
+      9.292770946000019
+     ],
+     "size": 6400000.0,
+     "spread_fraction": 0.0036621374879279496,
+     "warmup": 0
+    }
+   },
+   "pilot": {
+    "runs2|cpr2|sd0.0": {
+     "max_s": 0.35809043900007964,
+     "median_s": 0.3568989520001651,
+     "min_s": 0.3557074650002505,
+     "n_clusters": 4,
+     "repeats": 2,
+     "samples_s": [
+      0.35809043900007964,
+      0.3557074650002505
+     ],
+     "size": 240000.0,
+     "spread_fraction": 0.006676887075387144,
+     "warmup": 0
+    },
+    "runs2|cpr2|sd0.3": {
+     "max_s": 0.35657683099998394,
+     "median_s": 0.35625975149991973,
+     "min_s": 0.3559426719998555,
+     "n_clusters": 4,
+     "repeats": 2,
+     "samples_s": [
+      0.35657683099998394,
+      0.3559426719998555
+     ],
+     "size": 240000.0,
+     "spread_fraction": 0.001780046714394464,
+     "warmup": 0
+    },
+    "runs2|cpr5|sd0.0": {
+     "max_s": 0.866923573999884,
+     "median_s": 0.8658978089997618,
+     "min_s": 0.8648720439996396,
+     "n_clusters": 10,
+     "repeats": 2,
+     "samples_s": [
+      0.8648720439996396,
+      0.866923573999884
+     ],
+     "size": 600000.0,
+     "spread_fraction": 0.002369251866584811,
+     "warmup": 0
+    },
+    "runs2|cpr5|sd0.3": {
+     "max_s": 0.8664910130000862,
+     "median_s": 0.8652464100000543,
+     "min_s": 0.8640018070000224,
+     "n_clusters": 10,
+     "repeats": 2,
+     "samples_s": [
+      0.8640018070000224,
+      0.8664910130000862
+     ],
+     "size": 600000.0,
+     "spread_fraction": 0.00287687527078408,
+     "warmup": 0
+    },
+    "runs4|cpr2|sd0.0": {
+     "max_s": 0.6924515330001668,
+     "median_s": 0.6900847495001017,
+     "min_s": 0.6877179660000365,
+     "n_clusters": 8,
+     "repeats": 2,
+     "samples_s": [
+      0.6877179660000365,
+      0.6924515330001668
+     ],
+     "size": 480000.0,
+     "spread_fraction": 0.006859399520941857,
+     "warmup": 0
+    },
+    "runs4|cpr2|sd0.3": {
+     "max_s": 0.7313148469997941,
+     "median_s": 0.7164514359997156,
+     "min_s": 0.7015880249996371,
+     "n_clusters": 8,
+     "repeats": 2,
+     "samples_s": [
+      0.7015880249996371,
+      0.7313148469997941
+     ],
+     "size": 480000.0,
+     "spread_fraction": 0.04149174739063371,
+     "warmup": 0
+    },
+    "runs4|cpr5|sd0.0": {
+     "max_s": 1.7975712119996388,
+     "median_s": 1.7927195674997165,
+     "min_s": 1.7878679229997942,
+     "n_clusters": 20,
+     "repeats": 2,
+     "samples_s": [
+      1.7975712119996388,
+      1.7878679229997942
+     ],
+     "size": 1200000.0,
+     "spread_fraction": 0.005412608405550887,
+     "warmup": 0
+    },
+    "runs4|cpr5|sd0.3": {
+     "max_s": 1.7431626160000633,
+     "median_s": 1.728987308500109,
+     "min_s": 1.7148120010001549,
+     "n_clusters": 20,
+     "repeats": 2,
+     "samples_s": [
+      1.7431626160000633,
+      1.7148120010001549
+     ],
+     "size": 1200000.0,
+     "spread_fraction": 0.016397237192274417,
+     "warmup": 0
+    },
+    "runs8|cpr2|sd0.0": {
+     "max_s": 1.3930243300001166,
+     "median_s": 1.3815272565000214,
+     "min_s": 1.3700301829999262,
+     "n_clusters": 16,
+     "repeats": 2,
+     "samples_s": [
+      1.3930243300001166,
+      1.3700301829999262
+     ],
+     "size": 960000.0,
+     "spread_fraction": 0.01664400531513514,
+     "warmup": 0
+    },
+    "runs8|cpr2|sd0.3": {
+     "max_s": 1.366805611000018,
+     "median_s": 1.3656364850000955,
+     "min_s": 1.364467359000173,
+     "n_clusters": 16,
+     "repeats": 2,
+     "samples_s": [
+      1.366805611000018,
+      1.364467359000173
+     ],
+     "size": 960000.0,
+     "spread_fraction": 0.0017122067442748347,
+     "warmup": 0
+    },
+    "runs8|cpr5|sd0.0": {
+     "max_s": 3.4940566420000323,
+     "median_s": 3.463858971000036,
+     "min_s": 3.4336613000000398,
+     "n_clusters": 40,
+     "repeats": 2,
+     "samples_s": [
+      3.4336613000000398,
+      3.4940566420000323
+     ],
+     "size": 2400000.0,
+     "spread_fraction": 0.01743585478093412,
+     "warmup": 0
+    },
+    "runs8|cpr5|sd0.3": {
+     "max_s": 3.487123507999968,
+     "median_s": 3.470691762999877,
+     "min_s": 3.454260017999786,
+     "n_clusters": 40,
+     "repeats": 2,
+     "samples_s": [
+      3.454260017999786,
+      3.487123507999968
+     ],
+     "size": 2400000.0,
+     "spread_fraction": 0.009468858730276933,
+     "warmup": 0
+    }
+   }
+  },
+  "cluster_report_by_report": {
+   "leave_one_channel_out": {
+    "max_s": 9.310433690000082,
+    "median_s": 9.310433690000082,
+    "min_s": 9.310433690000082,
+    "repeats": 1,
+    "samples_s": [
+     9.310433690000082
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "leave_one_run_out": {
+    "max_s": 3.407752640000126,
+    "median_s": 3.407752640000126,
+    "min_s": 3.407752640000126,
+    "repeats": 1,
+    "samples_s": [
+     3.407752640000126
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "per_channel_effects": {
+    "max_s": 3.622660746999827,
+    "median_s": 3.622660746999827,
+    "min_s": 3.622660746999827,
+    "repeats": 1,
+    "samples_s": [
+     3.622660746999827
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "run_stratified": {
+    "max_s": 4.836087396000039,
+    "median_s": 4.836087396000039,
+    "min_s": 4.836087396000039,
+    "repeats": 1,
+    "samples_s": [
+     4.836087396000039
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "variance_decomposition": {
+    "max_s": 1.9420815739999853,
+    "median_s": 1.9420815739999853,
+    "min_s": 1.9420815739999853,
+    "repeats": 1,
+    "samples_s": [
+     1.9420815739999853
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   }
+  },
+  "interval_by_construction": {
+   "block16_channel_fixed": {
+    "max_s": 2.5643060890001834,
+    "median_s": 2.5643060890001834,
+    "min_s": 2.5643060890001834,
+    "repeats": 1,
+    "samples_s": [
+     2.5643060890001834
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "block16_hierarchical": {
+    "max_s": 2.6610121140001866,
+    "median_s": 2.6610121140001866,
+    "min_s": 2.6610121140001866,
+    "repeats": 1,
+    "samples_s": [
+     2.6610121140001866
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "block256_channel_fixed": {
+    "max_s": 2.48669418999998,
+    "median_s": 2.48669418999998,
+    "min_s": 2.48669418999998,
+    "repeats": 1,
+    "samples_s": [
+     2.48669418999998
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "block256_hierarchical": {
+    "max_s": 2.3913609769997493,
+    "median_s": 2.3913609769997493,
+    "min_s": 2.3913609769997493,
+    "repeats": 1,
+    "samples_s": [
+     2.3913609769997493
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "block64_channel_fixed": {
+    "max_s": 2.0831560619999436,
+    "median_s": 2.0831560619999436,
+    "min_s": 2.0831560619999436,
+    "repeats": 1,
+    "samples_s": [
+     2.0831560619999436
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "block64_hierarchical": {
+    "max_s": 2.091373497999939,
+    "median_s": 2.091373497999939,
+    "min_s": 2.091373497999939,
+    "repeats": 1,
+    "samples_s": [
+     2.091373497999939
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "channel_fixed": {
+    "max_s": 1.4621836510000321,
+    "median_s": 1.4621836510000321,
+    "min_s": 1.4621836510000321,
+    "repeats": 1,
+    "samples_s": [
+     1.4621836510000321
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "headline": {
+    "max_s": 1.4164913390000038,
+    "median_s": 1.4164913390000038,
+    "min_s": 1.4164913390000038,
+    "repeats": 1,
+    "samples_s": [
+     1.4164913390000038
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "ratio_of_means_channel_fixed": {
+    "max_s": 1.4151891699998487,
+    "median_s": 1.4151891699998487,
+    "min_s": 1.4151891699998487,
+    "repeats": 1,
+    "samples_s": [
+     1.4151891699998487
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   },
+   "ratio_of_means_hierarchical": {
+    "max_s": 1.396979361999911,
+    "median_s": 1.396979361999911,
+    "min_s": 1.396979361999911,
+    "repeats": 1,
+    "samples_s": [
+     1.396979361999911
+    ],
+    "size": 10000.0,
+    "spread_fraction": 0.0,
+    "warmup": 0
+   }
+  },
+  "robustness_by_cut_and_rank": {
+   "first_half|12": {
+    "max_s": 0.43916013299985934,
+    "median_s": 0.4294705510001222,
+    "min_s": 0.42939487300009205,
+    "repeats": 3,
+    "samples_s": [
+     0.4294705510001222,
+     0.42939487300009205,
+     0.43916013299985934
+    ],
+    "size": 12.0,
+    "spread_fraction": 0.02273790362814543,
+    "warmup": 1
+   },
+   "first_half|2": {
+    "max_s": 0.15910880499995983,
+    "median_s": 0.1553984769998351,
+    "min_s": 0.15413421399989602,
+    "repeats": 3,
+    "samples_s": [
+     0.15910880499995983,
+     0.1553984769998351,
+     0.15413421399989602
+    ],
+    "size": 2.0,
+    "spread_fraction": 0.032011838829469924,
+    "warmup": 1
+   },
+   "first_half|4": {
+    "max_s": 0.19917125500023758,
+    "median_s": 0.1990890950000903,
+    "min_s": 0.1988442959996064,
+    "repeats": 3,
+    "samples_s": [
+     0.1990890950000903,
+     0.19917125500023758,
+     0.1988442959996064
+    ],
+    "size": 4.0,
+    "spread_fraction": 0.0016422747847190174,
+    "warmup": 1
+   },
+   "first_half|6": {
+    "max_s": 0.25118060800014064,
+    "median_s": 0.24995191099969816,
+    "min_s": 0.2483158380000532,
+    "repeats": 3,
+    "samples_s": [
+     0.2483158380000532,
+     0.25118060800014064,
+     0.24995191099969816
+    ],
+    "size": 6.0,
+    "spread_fraction": 0.011461284647233227,
+    "warmup": 1
+   },
+   "first_half|8": {
+    "max_s": 0.32095447300025626,
+    "median_s": 0.3068315430000439,
+    "min_s": 0.30510158600009163,
+    "repeats": 3,
+    "samples_s": [
+     0.32095447300025626,
+     0.3068315430000439,
+     0.30510158600009163
+    ],
+    "size": 8.0,
+    "spread_fraction": 0.051666418795027085,
+    "warmup": 1
+   },
+   "full|12": {
+    "max_s": 0.7336807609999596,
+    "median_s": 0.7323709890001737,
+    "min_s": 0.7294918000002326,
+    "repeats": 3,
+    "samples_s": [
+     0.7336807609999596,
+     0.7323709890001737,
+     0.7294918000002326
+    ],
+    "size": 12.0,
+    "spread_fraction": 0.005719725470619363,
+    "warmup": 1
+   },
+   "full|2": {
+    "max_s": 0.29609181000023455,
+    "median_s": 0.29533174800008055,
+    "min_s": 0.29091951999998855,
+    "repeats": 3,
+    "samples_s": [
+     0.29609181000023455,
+     0.29533174800008055,
+     0.29091951999998855
+    ],
+    "size": 2.0,
+    "spread_fraction": 0.017513491303497053,
+    "warmup": 1
+   },
+   "full|4": {
+    "max_s": 0.37626609700009794,
+    "median_s": 0.3644501409999066,
+    "min_s": 0.35743462299979,
+    "repeats": 3,
+    "samples_s": [
+     0.37626609700009794,
+     0.3644501409999066,
+     0.35743462299979
+    ],
+    "size": 4.0,
+    "spread_fraction": 0.05167091978244772,
+    "warmup": 1
+   },
+   "full|6": {
+    "max_s": 0.44174050999981773,
+    "median_s": 0.43895535799993013,
+    "min_s": 0.4360507520000283,
+    "repeats": 3,
+    "samples_s": [
+     0.44174050999981773,
+     0.43895535799993013,
+     0.4360507520000283
+    ],
+    "size": 6.0,
+    "spread_fraction": 0.01296204248585648,
+    "warmup": 1
+   },
+   "full|8": {
+    "max_s": 0.5223963920002461,
+    "median_s": 0.5223592950001148,
+    "min_s": 0.5208372380002402,
+    "repeats": 3,
+    "samples_s": [
+     0.5208372380002402,
+     0.5223592950001148,
+     0.5223963920002461
+    ],
+    "size": 8.0,
+    "spread_fraction": 0.002984830584867077,
+    "warmup": 1
+   }
+  },
+  "science_controls": {
+   "block1_equals_iid": {
+    "max_s": 0.0022466440000243892,
+    "median_s": 0.0020788755000467063,
+    "min_s": 0.0019111070000690233,
+    "repeats": 2,
+    "samples_s": [
+     0.0022466440000243892,
+     0.0019111070000690233
+    ],
+    "size": 1.0,
+    "spread_fraction": 0.16140312392340347,
+    "warmup": 0
+   },
+   "empca_uniform_weight_limit": {
+    "max_s": 0.6299030140003197,
+    "median_s": 0.6228557965000618,
+    "min_s": 0.615808578999804,
+    "repeats": 2,
+    "samples_s": [
+     0.6299030140003197,
+     0.615808578999804
+    ],
+    "size": 1.0,
+    "spread_fraction": 0.022628728960563282,
+    "warmup": 0
+   },
+   "event_weight_constant": {
+    "max_s": 0.03956657999970048,
+    "median_s": 0.03890811999985999,
+    "min_s": 0.0382496600000195,
+    "repeats": 2,
+    "samples_s": [
+     0.03956657999970048,
+     0.0382496600000195
+    ],
+    "size": 1.0,
+    "spread_fraction": 0.03384691934962973,
+    "warmup": 0
+   },
+   "zero_effect_identity": {
+    "max_s": 1.343093449999742,
+    "median_s": 1.3192779594999138,
+    "min_s": 1.2954624690000855,
+    "repeats": 2,
+    "samples_s": [
+     1.343093449999742,
+     1.2954624690000855
+    ],
+    "size": 1.0,
+    "spread_fraction": 0.036103825321019904,
+    "warmup": 0
+   }
+  }
+ },
+ "notes": [
+  "Every cresst_s family except the robustness grid was benchmarked at its exact production configuration on the real archived inputs, so those projections are MEASUREMENTS.",
+  "The robustness cells cannot be executed here at all: they need raw CRESST pulse traces that are not in this container. Their cost was measured on a synthetic pulse root written at the production dimensions by the package's own writer. That is a substitute for the data, not for the dimensions; a real channel with a different event count would scale linearly in n_train."
+ ],
+ "package": "cresst_s",
+ "reduce": {
+  "bound": "compute",
+  "bound_note": "reduce reads every cell file once; measured throughput 4.3 MB/s against a warm page cache, so the step is compute-bound here",
+  "cells_read": 29,
+  "fixture_cell_bytes_median": 6048,
+  "fixture_cell_bytes_total": 181107,
+  "input_bytes_read": 208832,
+  "interpreter_and_import_seconds_measured": 0.30098075899968535,
+  "ledger_bytes_fixture": 27725,
+  "ledger_bytes_per_cell": 956.0344827586207,
+  "measured": true,
+  "reduced_output_bytes": 72215,
+  "returncode": 0,
+  "seconds_per_cell": 0.0014607064482835743,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 4275375.776464605,
+  "wall_seconds_reduce_work": 0.04236048700022366,
+  "wall_seconds_total_including_interpreter": 0.343341245999909
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.14675390999946103,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5317739759993856
+  },
+  "transfer": {
+   "archive_bytes": 7407520,
+   "archive_path_measured": "/tmp/hf3/mlst-successor_20260913-handoff-20260913T093439Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few kB (timestamps and the report file)."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.634262579999813,
+   "seconds_min": 3.6129271500003597
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 68.0947735030004,
+   "seconds_min": 67.68266122000023
+  }
+ },
+ "storage": {
+  "archive_interval_result_bytes_measured": 3028,
+  "basis": "measured: a production-configuration result dict serialised with the runner's encoder",
+  "bytes_per_cell_by_family": {
+   "archive_interval": {
+    "basis": "measured",
+    "bytes": 3028,
+    "how": "one production archive-interval cell result (headline construction, 10000 replicates)"
+   },
+   "archive_point": {
+    "basis": "measured",
+    "bytes": 9042,
+    "how": "one production archive-point cell result"
+   },
+   "calib_confirm": {
+    "basis": "measured",
+    "bytes": 1255,
+    "how": "one calibration cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "calib_control": {
+    "basis": "measured",
+    "bytes": 2555,
+    "how": "the calibration control cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "calib_pilot": {
+    "basis": "measured",
+    "bytes": 1255,
+    "how": "one calibration cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "cluster_report": {
+    "basis": "measured",
+    "bytes": 6988,
+    "how": "mean over the five cluster reports, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "robustness_confirm": {
+    "basis": "measured",
+    "bytes": 377,
+    "how": "one robustness cell result at the production dimensions (synthetic pulses)"
+   },
+   "robustness_pilot": {
+    "basis": "measured",
+    "bytes": 377,
+    "how": "one robustness cell result at the production dimensions (synthetic pulses)"
+   },
+   "science_control": {
+    "basis": "measured",
+    "bytes": 675,
+    "how": "mean over the four production science controls"
+   }
+  }
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "empca_iterations": 25,
+  "estimator_calls_production": 1056,
+  "restarts": {
+   "empca_restarts_per_robustness_cell": 2,
+   "fits_per_robustness_cell": 3,
+   "note": "1 classic PCA + 2 EMPCA restarts = 3 estimator invocations per robustness cell; the restart count is reported separately, not folded in"
+  },
+  "simulation_replicates": {
+   "archive_interval_per_cell": 10000,
+   "calibration_confirmation_per_cell": 160000,
+   "calibration_control": 320000,
+   "calibration_pilot_per_cell": 60000,
+   "cluster_report_per_cell": "1x to 14x 10000 depending on the report"
+  },
+  "solves": "0 by construction (protocol solve_definition)"
+ }
+}

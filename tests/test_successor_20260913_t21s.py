@@ -34,7 +34,7 @@ def _P():
 
 
 def _ledger(root: Path) -> L.ExecutionLedger:
-    return L.ExecutionLedger(root / "EXECUTION_LEDGER.jsonl", cap=10 ** 6, package="t21s", protocol_sha256="x")
+    return L.ExecutionLedger(root / "EXECUTION_LEDGER.jsonl", cap=10 ** 6, package="t21s", protocol_sha256=_P()["_sha256"])
 
 
 # ----------------------------------------------------------------------------- shared fixture run

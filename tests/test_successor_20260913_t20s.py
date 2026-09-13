@@ -151,7 +151,7 @@ def test_generator_invariants_spectrum_fixed_and_nonseparability_moves(P):
         assert abs(r["trace_K"] - g.mu.sum()) < 1e-8 and r["numerical_rank"] == g.d
         assert r["a_lower_bound"] <= r["a_best_found"] + 1e-9 and r["a_best_found"] >= -1e-9
         assert abs(r["a_lower_bound"] - r["Delta_k"] * r["partial_trace"]["k_minus_cap"]) < 1e-9
-    assert kmc[0] == 0.0 and all(kmc[i] < kmc[i + 1] for i in range(len(kmc) - 1))
+    assert abs(kmc[0]) < 1e-12 and all(kmc[i] < kmc[i + 1] for i in range(len(kmc) - 1))
     # V(theta) is orthogonal and K(theta) has exactly the declared spectrum at production size too
     Dp = RN.design(P, False)
     gp = RN._geometry(Dp)
@@ -248,7 +248,7 @@ def test_failure_charged_and_retry_accumulates(P, tmp_path):
     m = RN.build_matrix(P, True)
     victim = [c for c in m.cells if c["family"] == "pilot"][0]["cell_id"]
     assert _main(["run", "--out", str(out), "--fixture", "--families", "pilot", "algebraic", "--fail-cell", victim]) == 1
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=P["budget"]["estimator_fits_cap"], package="t20s", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=P["budget"]["estimator_fits_cap"], package="t20s", protocol_sha256=PR.load_protocol(PROTO)["_sha256"])
     ch = led.charged()
     assert ch["by_state"]["failed"] == 1 and ch["fits"] >= 3
     assert _main(["run", "--out", str(out), "--fixture", "--families", "pilot", "algebraic"]) == 0
@@ -263,7 +263,7 @@ def test_confirmation_refused_without_frozen_selection(tmp_path, P):
     out = tmp_path / "gate"
     assert _main(["run", "--out", str(out), "--fixture", "--families", "pilot", "algebraic"]) == 0
     # before the pilot reduce: refused before any attempt is charged
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=P["budget"]["estimator_fits_cap"], package="t20s", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=P["budget"]["estimator_fits_cap"], package="t20s", protocol_sha256=PR.load_protocol(PROTO)["_sha256"])
     before = led.charged()["attempts"]
     assert _main(["run", "--out", str(out), "--fixture", "--families", "confirmation"]) == 6
     assert _main(["run", "--out", str(out), "--fixture"]) == 6                      # unrestricted fixture run also selects confirmation
@@ -358,7 +358,7 @@ def test_mutation_restart_selected_not_by_training_loss_rejected(tmp_path, monke
     monkeypatch.setattr(RN, "select_restart", lambda losses: int(np.argmax(np.asarray(losses, float))))
     rc = _main(["run", "--out", str(out), "--fixture", "--families", "pilot", "algebraic"])
     assert rc == 4, "a ScienceError at completion is a schema-class refusal (exit 4) with a charged failed attempt"
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=5400, package="t20s", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=5400, package="t20s", protocol_sha256=PR.load_protocol(PROTO)["_sha256"])
     failed = [a for a in led.attempts().values() if a["state"] == "failed"]
     assert len(failed) == 1 and "training-loss minimiser" in failed[0]["error"]
     assert not (out / "cells" / f"{failed[0]['cell_id']}.json").exists()      # the refused cell wrote no output

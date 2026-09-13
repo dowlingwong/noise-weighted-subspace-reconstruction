@@ -123,7 +123,7 @@ def test_full_run_reduce_is_deterministic_and_resumable(proto, tmp_path):
     assert _main(["reduce", "--out", str(out)], proto) == 0
     b = json.loads((out / "REDUCED.json").read_text())
     assert a["mean"] == b["mean"] and a["partial"] is False
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256=PR.load_protocol(proto)["_sha256"])
     assert led.charged()["fits"] == 6 and led.charged()["by_state"]["completed"] == 4
 
 
@@ -134,7 +134,7 @@ def test_failure_is_charged_and_retry_accumulates(proto, tmp_path):
     victim = [c for c in m.cells if c["role"] == "pilot"][0]["cell_id"]
     rc = _main(["run", "--out", str(out), "--fail-cell", victim], proto)
     assert rc == 1
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256=PR.load_protocol(proto)["_sha256"])
     ch = led.charged()
     assert ch["by_state"]["failed"] == 1 and ch["fits"] == 2  # the failed attempt stays charged
     # the retry needs 6 more fits but only 4 remain under the cap -> the third pilot cell is refused
@@ -154,7 +154,7 @@ def test_duplicate_completion_refused_and_repeat_flagged(proto, tmp_path):
     alg = [c for c in m.cells if c["role"] == "algebraic"][0]["cell_id"]
     rc = _main(["run", "--out", str(out), "--cells", alg, "--allow-repeat"], proto)
     assert rc == 0
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=6, package="toy", protocol_sha256=PR.load_protocol(proto)["_sha256"])
     assert led.summary()["cells_with_repeat_completion"] == [alg]
     # a duplicated output file (copied by hand) is detected by reduce
     cells = list((out / "cells").glob("*.json"))
@@ -257,3 +257,12 @@ def test_count_fit_outside_a_counting_region_is_inert(proto):
         FC.count_fit("b")
         assert FC.observed() == 3 and fc.as_dict()["by_label"] == {"a": 2, "b": 1}
     assert FC.current() is None
+
+
+def test_ledger_rejects_changed_protocol_before_resume(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    path.write_text(json.dumps({"schema": L.LEDGER_SCHEMA, "package": "toy",
+                                "protocol_sha256": "original"}) + "\n")
+    assert len(L.ExecutionLedger(path, cap=6, package="toy", protocol_sha256="original").records()) == 1
+    with pytest.raises(ValueError, match="protocol hash"):
+        L.ExecutionLedger(path, cap=6, package="toy", protocol_sha256="changed").records()

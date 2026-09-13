@@ -229,7 +229,7 @@ def test_injected_failure_is_charged_and_the_retry_accumulates(tmp_path, fixture
     out = tmp_path / "fail"
     victim = _cell_id(fixture_matrix, analysis="science_control", control="block1_equals_iid", scale="fixture")
     assert main(["run", "--out", str(out), "--fixture", "--cells", victim, "--fail-cell", victim]) == 1
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=1400, package="cresst_s", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=1400, package="cresst_s", protocol_sha256=PR.load_protocol(PROTOCOL)["_sha256"])
     ch = led.charged()
     assert ch["by_state"]["failed"] == 1 and ch["attempts"] == 1
     assert main(["run", "--out", str(out), "--fixture", "--cells", victim]) == 0
@@ -244,7 +244,7 @@ def test_production_robustness_cell_fails_with_input_not_available(tmp_path, P):
     out = tmp_path / "nodata"
     rc = main(["run", "--out", str(out), "--cells", victim["cell_id"]], archive=False)
     assert rc == 1
-    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=1400, package="cresst_s", protocol_sha256="x")
+    led = L.ExecutionLedger(out / "EXECUTION_LEDGER.jsonl", cap=1400, package="cresst_s", protocol_sha256=PR.load_protocol(PROTOCOL)["_sha256"])
     ch = led.charged()
     assert ch["by_state"]["failed"] == 1
     assert ch["fits"] == victim["n_fits"] == RD.FITS_PER_CELL   # the failed attempt stays charged

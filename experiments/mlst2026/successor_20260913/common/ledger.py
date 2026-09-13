@@ -77,6 +77,8 @@ class ExecutionLedger:
                 raise ValueError(f"{self.path}: unexpected ledger schema {r.get('schema')!r}")
             if r.get("package") != self.package:
                 raise ValueError(f"{self.path}: ledger belongs to package {r.get('package')!r}, not {self.package!r}")
+            if r.get("protocol_sha256") != self.protocol_sha256:
+                raise ValueError(f"{self.path}: ledger protocol hash differs from frozen protocol")
             out.append(r)
         return out
 

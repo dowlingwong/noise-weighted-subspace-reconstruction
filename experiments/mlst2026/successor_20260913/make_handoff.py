@@ -440,6 +440,9 @@ Nothing in this archive may be quoted as a result, and no fixture output is cita
 | `results/t22_2026-09-11/`, `results/mlst_2026-09-10/` | **read-only** archived run records the T22-S exposure inventory reads. Do not write here; the runners refuse `<RUN_ROOT>` under `results/` |
 | `packages/<pkg>/` | protocol, commands, schema, findings, requirements, resource estimate, `BENCHMARK.json`, `EXPECTED_CELLS.json` |
 | `provenance/` | branch commit, this round's diff against its merge base, and a git bundle of this round's commits |
+| `experiments/mlst2026/successor_20260913/RESOURCE_REPORT.md` | the measured benchmark tables, fitted vs theoretical scaling exponents, wall-time ranges per worker count, storage, and the list of what remains unknown about the receiving machine |
+| `experiments/mlst2026/successor_20260913/CONDITIONAL_EXPERIMENTS.md` | which experiments were conditional on retaining a stronger claim, what happened to that claim, and whether each was built, not built, or is not buildable |
+| `experiments/mlst2026/successor_20260913/README.md` | the round's binding conventions: layout, seed namespaces, accounting rules, required tests, status vocabulary |
 
 ## First step, before anything is computed
 

@@ -1,0 +1,135 @@
+{
+  "analysis_label": "post_hoc_exploratory_calibration_size_sweep",
+  "anchor_reproduction": {
+    "applicable": false
+  },
+  "calibration": {
+    "n_calibration_events": 128,
+    "regularization": "unchanged from E10/E10b",
+    "rng": "calibration_rng(seed), drawn independently per condition",
+    "scale_correction": "v_hat = sqrt(v_c*v_t) (covariance_estimation_v2)"
+  },
+  "columns": [
+    "config_hash",
+    "seed",
+    "regime",
+    "method",
+    "analysis_label",
+    "whitening",
+    "n_calibration_events",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "archived_oracle_test_raw_mse",
+    "archived_oracle_test_normalized_chi2",
+    "delta_raw_mse_estimated_minus_oracle",
+    "delta_normalized_chi2_estimated_minus_oracle",
+    "control_reproduction_rel_error_raw_mse",
+    "control_reproduction_rel_error_normalized_chi2",
+    "v_c",
+    "v_t",
+    "v_hat",
+    "product_scale_ratio_vs_oracle",
+    "channel_shape_error",
+    "temporal_shape_error",
+    "kronecker_relative_frobenius_error",
+    "oracle_whitening_residual",
+    "channel_min_eigenvalue",
+    "channel_condition_number",
+    "temporal_min_eigenvalue",
+    "temporal_condition_number",
+    "runtime_seconds"
+  ],
+  "condition": "n_cal_128",
+  "config_hash": "36748a75de7112da",
+  "evidence_class": "post_hoc_exploratory_not_confirmatory",
+  "experiment": "E12_calibration_size_sweep",
+  "gate_record": {
+    "validated": false
+  },
+  "is_anchor": false,
+  "methods": [
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "provenance": {
+    "command": [
+      "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+      "-m",
+      "nfpa_confirmatory.run_calibration_sweep",
+      "--smoke",
+      "--sizes",
+      "64",
+      "128",
+      "--out",
+      "/ceph/dwong/e12_runtime_20260823_201812/Round10_smoke/E12"
+    ],
+    "completed_at_utc": "2026-08-23T18:44:39Z",
+    "config": {
+      "C": 6,
+      "N_calibration": 128,
+      "N_test": 80,
+      "N_train": 60,
+      "N_validation": 30,
+      "T": 32,
+      "als_convergence_tol": 1e-10,
+      "bootstrap_resamples": 200,
+      "bootstrap_seed": 20260808,
+      "channel_ar_rho": 0.4,
+      "k_c": 2,
+      "k_t": 3,
+      "n_als_iter": 8,
+      "n_restarts": 2,
+      "n_seeds": 10,
+      "noise_kind": "brownian",
+      "nonseparability_alpha": 0.1,
+      "sampling_frequency": 1.0,
+      "target_snr": 10.0,
+      "white_noise_angle_margin_deg": 0.01,
+      "white_noise_chi2_margin": 0.005
+    },
+    "config_hash": "36748a75de7112da",
+    "dirty_state_note": "source_tree_dirty_at_start is the gate. Result files written by this run are expected output, listed above, and are not source dirtiness.",
+    "evidence_class": "post_hoc_exploratory_not_confirmatory",
+    "execution_content_commit": "75cbc40324293b8e7dfea65c01b0414027908997",
+    "expected_output_changes_at_completion": [
+      "/ceph/dwong/e12_runtime_20260823_201812/Round10_smoke/E12/n_cal_128"
+    ],
+    "freeze_is_ancestor_of_execution": null,
+    "hostname": "deepthought",
+    "implementation_freeze_commit": null,
+    "numpy_version": "2.4.6",
+    "platform": "Linux-4.18.0-553.156.1.el8_10.x86_64-x86_64-with-glibc2.28",
+    "primary_config_hash": "98001a62855cb9a5",
+    "python_executable": "/ceph/dwong/noise-weighted-subspace-reconstruction/.venv/bin/python",
+    "python_version": "3.12.2",
+    "scipy_version": "1.17.1",
+    "source_commit": "75cbc40324293b8e7dfea65c01b0414027908997",
+    "source_tree_dirty_at_start": false,
+    "started_at_utc": "2026-08-23T18:44:36Z",
+    "thread_limits": {
+      "MKL_NUM_THREADS": null,
+      "NUMEXPR_NUM_THREADS": null,
+      "OMP_NUM_THREADS": null,
+      "OPENBLAS_NUM_THREADS": null
+    }
+  },
+  "raw_digest": "d225363eac9acfa7e24983669dc226a12e09f839e58d30747b6c666b5250e63c",
+  "regime": "colored",
+  "run_identity": {
+    "config_hash": "36748a75de7112da",
+    "execution_content_commit": "75cbc40324293b8e7dfea65c01b0414027908997",
+    "implementation_freeze_commit": null
+  },
+  "seeds": [
+    910000,
+    910001
+  ],
+  "shard_digests": {
+    "seed_910000.csv": "9a5c3e2e37bd5585ac80e30bcccd928d155c1c82d9308bd3918ac845455e38aa",
+    "seed_910001.csv": "1487c2498f4547d9396c1332c895a7e423e403c623d6ba8bbe15de775c8a3205"
+  },
+  "shard_registry_digest": "e6246045af19a34bee57a026441e96d49e55270e9860691153abdb0f51f7e317",
+  "smoke": true,
+  "status": "complete",
+  "wall_seconds": 1.114551305770874
+}

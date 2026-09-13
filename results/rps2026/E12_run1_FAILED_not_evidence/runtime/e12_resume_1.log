@@ -1,0 +1,30 @@
+[E12] post_hoc_exploratory_calibration_size_sweep: sizes=[256, 512, 1024, 2048, 8192] seeds=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] smoke=False
+[E12 n_cal_256] seed 0: reusing validated shard
+[E12 n_cal_256] seed 1: reusing validated shard
+[E12 n_cal_256] seed 2: reusing validated shard
+[E12 n_cal_256] seed 3: reusing validated shard
+[E12 n_cal_256] seed 4: reusing validated shard
+[E12 n_cal_256] seed 5: reusing validated shard
+[E12 n_cal_256] seed 6: reusing validated shard
+[E12 n_cal_256] seed 7: reusing validated shard
+[E12 n_cal_256] seed 8: reusing validated shard
+[E12 n_cal_256] seed 9: reusing validated shard
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_calibration_sweep.py", line 273, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_calibration_sweep.py", line 222, in main
+    by_condition[n_cal] = run_condition(
+                          ^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/run_calibration_sweep.py", line 133, in run_condition
+    gate_record = sw.validate_condition_rows(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/r12_sweep.py", line 225, in validate_condition_rows
+    rv._check_common(
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/r10_validation.py", line 168, in _check_common
+    _require(
+  File "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/synthetic/nfpa_confirmatory/r10_validation.py", line 127, in _require
+    raise IntegrityError(message)
+nfpa_confirmatory.r9_common.IntegrityError: E12_calibration_size_sweep[n_cal_256]: seed 0 analysis_label mismatch

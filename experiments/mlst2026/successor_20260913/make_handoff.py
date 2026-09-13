@@ -224,9 +224,9 @@ def _check_measured_estimate(pkg: str, est: dict) -> None:
     if not est.get("measured_projection_available"):
         raise HandoffFactError(f"{pkg}: the resource estimate has no measured projection "
                                f"({est.get('why_no_measured_projection', 'BENCHMARK.json missing')})")
-    missing = [k for k in ("hardware", "cpu_seconds", "wall_time_hours_by_workers", "parallelism_assumption",
-                           "peak_memory", "storage", "transfer", "setup", "unknowns", "reduction_work",
-                           "work_accounting", "families")
+    missing = [k for k in ("hardware", "cpu_seconds", "wall_time_hours_by_workers", "wall_time_model",
+                           "parallelism_assumption", "peak_memory", "storage", "transfer", "setup",
+                           "unknowns", "reduction_work", "harness_work", "work_accounting", "families")
                if k not in est]
     if missing:
         raise HandoffFactError(f"{pkg}: the resource estimate is missing required fields {missing}")
@@ -241,10 +241,26 @@ def _check_measured_estimate(pkg: str, est: dict) -> None:
         if row.get("basis") == "projected" and row.get("fitted_exponent") is None:
             raise HandoffFactError(f"{pkg}: family {fam!r} is projected but names no fitted exponent")
     flat = (est.get("cross_check_flat_fixture_scale") or {}).get("total_cpu_seconds_point")
-    point = (est.get("cpu_seconds") or {}).get("cell_compute_point")
+    cpu = est.get("cpu_seconds") or {}
+    point = cpu.get("cell_compute_point")
     if flat and point and abs(point - flat) < 1e-9:
         raise HandoffFactError(f"{pkg}: the projected total equals the flat fixture x declared-scale product "
                                "exactly; the flat product is a cross-check, not the estimate")
+    # the harness around the kernel is part of what a run costs, so it has to be measured
+    # and it has to be inside the headline total rather than beside it
+    harn = est.get("harness_work") or {}
+    if not harn.get("measured"):
+        raise HandoffFactError(f"{pkg}: the per-cell CLI harness is not measured "
+                               f"({harn.get('why', 'no harness block')}); a total that prices only the "
+                               "kernel is not the cost of a run")
+    parts = (point or 0.0) + (cpu.get("harness") or 0.0) + (cpu.get("reduction") or 0.0)
+    if abs(parts - (cpu.get("total_point") or 0.0)) > 1e-6 * max(1.0, parts):
+        raise HandoffFactError(f"{pkg}: cpu_seconds.total_point is not cell compute + harness + reduction "
+                               f"({cpu.get('total_point')} vs {parts})")
+    model = est.get("wall_time_model") or {}
+    if not model.get("serial_ledger_seconds"):
+        raise HandoffFactError(f"{pkg}: the wall-time model has no measured serial ledger term; the ledger "
+                               "appends serialise under one flock and are a floor no worker count beats")
 
 
 #: Names of module-level constants that hold the run-root file a pilot reduce freezes.
@@ -900,10 +916,13 @@ def build(out_dir: Path, verify: bool, ms_evidence: Path) -> int:
                     f"{mem_s} | {st_s} |")
     rows.append("")
     rows.append("CPU-seconds are measured on the benchmark host recorded in each "
-                "`RESOURCE_ESTIMATE.json` (`hardware`), single-threaded BLAS. The 8-worker column is "
-                "**conditional**: this round does not know the server's core count, per-core speed or BLAS "
-                "policy. See `RESOURCE_REPORT.md` for the per-package benchmark tables and the list of what "
-                "remains unknown.")
+                "`RESOURCE_ESTIMATE.json` (`hardware`), single-threaded BLAS, and cover cell compute **plus** "
+                "the per-cell `common/cli.py` harness (ledger append under `flock`, schema and fit checks, "
+                "atomic result write) **plus** the reduce step. The 8-worker column is **conditional**: this "
+                "round does not know the server's core count, per-core speed or BLAS policy, and it was "
+                "measured with one process running at a time, so it contains no contention between workers. "
+                "See `RESOURCE_REPORT.md` for the per-package benchmark tables and the list of what remains "
+                "unknown.")
     (staging / "HANDOFF.md").write_text(HANDOFF_MD.format(
         date=datetime.now(timezone.utc).strftime("%d %B %Y"),
         branch=branch, commit=commit, tarname=f"{stem}.tar.gz", stem=stem,

@@ -1,11 +1,11 @@
 {
  "benchmark_notes": [
   "The protocol derives its flat scale from the PCA flop count N d min(N, d). That is NOT where the time goes at the production size: compute_predictions (the d x d eigendecomposition of K plus the QR of the direction frame) is comparable to or larger than the SVD, and at the fixture size both are dwarfed by Python overhead.",
-  "Both production sizes (d = 256 with N = 128 and with N = 1024) were run directly, so the t21s projection is a MEASUREMENT."
+  "Both production sizes (d = 256 with N = 128 and with N = 1024) were run directly, in BOTH geometry arms (correlated and orthogonal), so every one of the eight data families is a MEASUREMENT of its own configuration."
  ],
  "benchmark_source": {
-  "benchmark_wall_seconds": 7.063441414999943,
-  "generated_utc": "2026-09-13T08:56:12+00:00",
+  "benchmark_wall_seconds": 10.069522554000287,
+  "generated_utc": "2026-09-13T10:50:14+00:00",
   "path": "experiments/mlst2026/successor_20260913/t21s/BENCHMARK.json",
   "present": true
  },
@@ -108,16 +108,19 @@
   "solves": 2498
  },
  "cpu_seconds": {
-  "cell_compute_high": 79.20381867280548,
-  "cell_compute_low": 76.45458935685406,
-  "cell_compute_point": 76.94490913591926,
-  "excludes": "transfer, environment setup and per-worker interpreter start-up, which are reported separately below",
-  "reduction": 16.222542235345554,
-  "total_high": 95.42636090815104,
-  "total_low": 92.67713159219961,
-  "total_point": 93.16745137126482
+  "cell_compute_high": 69.43217693314728,
+  "cell_compute_low": 68.0450847263528,
+  "cell_compute_point": 68.99211341212867,
+  "excludes": "transfer and environment setup, which are reported separately below.  Per-worker interpreter start-up is NOT in the per-cell figures either: it is measured (0.106 s per worker process) and reported under 'harness_work.per_worker_interpreter_startup_seconds_measured', and it is not added to the total because how often a worker process starts is a property of the scheduler, which is unknown.",
+  "harness": 8.603647058992586,
+  "harness_is": "the per-cell cost of this CLI around the kernel - ledger start/complete under the advisory flock, the schema and fit-accounting checks and the atomic result write (json encode + fsync + sha256) - measured end to end and priced per production cell.  The kernel benchmarks do not see it.",
+  "reduction": 3.626054516849559,
+  "total_high": 81.66187850898942,
+  "total_low": 80.27478630219494,
+  "total_point": 81.22181498797082
  },
  "cross_check_flat_fixture_scale": {
+  "compared_with": "cpu_seconds.total_point, i.e. cell compute + the per-cell CLI harness + the reduction.  The flat product estimated a whole run, so a whole run is what it must be compared with; the ratio against cell compute alone is given separately and is not the correction.",
   "families": {
    "algebraic": {
     "cells": 3,
@@ -219,10 +222,12 @@
     "solves": 104
    }
   },
-  "measured_over_flat_ratio": 0.015731019337817027,
+  "measured_cell_compute_over_flat_ratio": 0.014105108218737457,
+  "measured_over_flat_ratio": 0.016605412321319016,
+  "measured_total_over_flat_ratio": 0.016605412321319016,
   "total_cpu_seconds_point": 4891.285649299622,
   "unmeasured_families": [],
-  "verdict": "the declared flat scale disagrees with the measurement by a factor 63.6; the flat factor is wrong, not the measurement",
+  "verdict": "the declared flat scale disagrees with the measured TOTAL by a factor 60.2; the flat factor is wrong, not the measurement",
   "what_this_is": "NOT the estimate.  One fixture wall time per family multiplied by the constant budget.fixture_to_production_scale, i.e. a flat linear extrapolation of the fixture with no dimension and no algorithmic scaling in it.  Kept so that the size of its error against the measurement is visible."
  },
  "estimate_basis": "measured benchmarks of the package's own kernels at four or more problem sizes that bracket or reach the production dimension, fitted as t = a n^b and reported beside the algorithm's exponent, multiplied by the enumerated production matrix.  NOT a fixture time multiplied by a declared constant; that product is kept separately under 'cross_check_flat_fixture_scale' and is not the estimate.",
@@ -232,19 +237,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 3,
-   "cpu_seconds_high": 0.011989905000064027,
-   "cpu_seconds_low": 0.009614828999701786,
-   "cpu_seconds_point": 0.010224399999970046,
+   "cpu_seconds_high": 0.010410389997559832,
+   "cpu_seconds_low": 0.009547910998662701,
+   "cpu_seconds_point": 0.009993554998800391,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
    "fitted_exponent": null,
-   "how": "the three algebraic cells are two geometry-invariant checks (0.0035 s each) and one predictor sanity check (0.0033 s); the family mean is their average",
+   "how": "the three algebraic cells are two geometry-invariant checks (0.0034 s each) and one predictor sanity check (0.0032 s); the family mean is their average",
    "kernel": "algebraic_cell",
    "measured": true,
    "projection_label": "",
-   "seconds_per_cell_high": 0.003996635000021342,
-   "seconds_per_cell_low": 0.003204942999900595,
-   "seconds_per_cell_median": 0.0034081333333233488,
+   "seconds_per_cell_high": 0.003470129999186611,
+   "seconds_per_cell_low": 0.0031826369995542336,
+   "seconds_per_cell_median": 0.0033311849996001306,
    "size_symbol": "d",
    "solves": 2,
    "theoretical_exponent": null
@@ -254,19 +259,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 520,
-   "cpu_seconds_high": 8.08495375998973,
-   "cpu_seconds_low": 7.931071199982398,
-   "cpu_seconds_point": 7.992046399995161,
+   "cpu_seconds_high": 7.448227800414315,
+   "cpu_seconds_low": 7.317358359650825,
+   "cpu_seconds_point": 7.408266319980612,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 520,
-   "fitted_exponent": 1.086178084204577,
+   "fitted_exponent": 1.066427501126438,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_hi",
+   "kernel": "data_cell_correlated_hi",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.01554798799998025,
-   "seconds_per_cell_low": 0.01525205999996615,
-   "seconds_per_cell_median": 0.015369319999990694,
+   "seconds_per_cell_high": 0.01432351500079676,
+   "seconds_per_cell_low": 0.01407184299932851,
+   "seconds_per_cell_median": 0.014246665999962715,
    "size_symbol": "d",
    "solves": 520,
    "theoretical_exponent": 3.0
@@ -276,19 +281,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 520,
-   "cpu_seconds_high": 24.911641559929194,
-   "cpu_seconds_low": 23.921001519956917,
-   "cpu_seconds_point": 24.06407223997121,
+   "cpu_seconds_high": 21.641688119707396,
+   "cpu_seconds_low": 21.086036920169136,
+   "cpu_seconds_point": 21.512336040395894,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 520,
-   "fitted_exponent": 1.5359347320857193,
+   "fitted_exponent": 1.4732088721612555,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_lo",
+   "kernel": "data_cell_correlated_lo",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.047907002999863835,
-   "seconds_per_cell_low": 0.04600192599991715,
-   "seconds_per_cell_median": 0.046277061999944635,
+   "seconds_per_cell_high": 0.0416186309994373,
+   "seconds_per_cell_low": 0.04055007100032526,
+   "seconds_per_cell_median": 0.041369877000761335,
    "size_symbol": "d",
    "solves": 520,
    "theoretical_exponent": 3.0
@@ -298,19 +303,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 520,
-   "cpu_seconds_high": 8.08495375998973,
-   "cpu_seconds_low": 7.931071199982398,
-   "cpu_seconds_point": 7.992046399995161,
+   "cpu_seconds_high": 7.287940399328363,
+   "cpu_seconds_low": 7.229665039849351,
+   "cpu_seconds_point": 7.244656640687026,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 520,
-   "fitted_exponent": 1.086178084204577,
+   "fitted_exponent": 1.0591956481192006,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_hi",
+   "kernel": "data_cell_orthogonal_hi",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.01554798799998025,
-   "seconds_per_cell_low": 0.01525205999996615,
-   "seconds_per_cell_median": 0.015369319999990694,
+   "seconds_per_cell_high": 0.01401526999870839,
+   "seconds_per_cell_low": 0.01390320199971029,
+   "seconds_per_cell_median": 0.013932032001321204,
    "size_symbol": "d",
    "solves": 520,
    "theoretical_exponent": 3.0
@@ -320,19 +325,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 520,
-   "cpu_seconds_high": 24.911641559929194,
-   "cpu_seconds_low": 23.921001519956917,
-   "cpu_seconds_point": 24.06407223997121,
+   "cpu_seconds_high": 21.473615799841355,
+   "cpu_seconds_low": 21.063220359792467,
+   "cpu_seconds_point": 21.31984087987803,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 520,
-   "fitted_exponent": 1.5359347320857193,
+   "fitted_exponent": 1.4680214266506906,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_lo",
+   "kernel": "data_cell_orthogonal_lo",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.047907002999863835,
-   "seconds_per_cell_low": 0.04600192599991715,
-   "seconds_per_cell_median": 0.046277061999944635,
+   "seconds_per_cell_high": 0.04129541499969491,
+   "seconds_per_cell_low": 0.0405061929996009,
+   "seconds_per_cell_median": 0.04099969399976544,
    "size_symbol": "d",
    "solves": 520,
    "theoretical_exponent": 3.0
@@ -342,19 +347,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 104,
-   "cpu_seconds_high": 1.616990751997946,
-   "cpu_seconds_low": 1.5862142399964796,
-   "cpu_seconds_point": 1.5984092799990322,
+   "cpu_seconds_high": 1.489645560082863,
+   "cpu_seconds_low": 1.463471671930165,
+   "cpu_seconds_point": 1.4816532639961224,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 104,
-   "fitted_exponent": 1.086178084204577,
+   "fitted_exponent": 1.066427501126438,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_hi",
+   "kernel": "data_cell_correlated_hi",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.01554798799998025,
-   "seconds_per_cell_low": 0.01525205999996615,
-   "seconds_per_cell_median": 0.015369319999990694,
+   "seconds_per_cell_high": 0.01432351500079676,
+   "seconds_per_cell_low": 0.01407184299932851,
+   "seconds_per_cell_median": 0.014246665999962715,
    "size_symbol": "d",
    "solves": 104,
    "theoretical_exponent": 3.0
@@ -364,19 +369,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 104,
-   "cpu_seconds_high": 4.982328311985839,
-   "cpu_seconds_low": 4.784200303991383,
-   "cpu_seconds_point": 4.812814447994242,
+   "cpu_seconds_high": 4.328337623941479,
+   "cpu_seconds_low": 4.217207384033827,
+   "cpu_seconds_point": 4.302467208079179,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 104,
-   "fitted_exponent": 1.5359347320857193,
+   "fitted_exponent": 1.4732088721612555,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_lo",
+   "kernel": "data_cell_correlated_lo",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.047907002999863835,
-   "seconds_per_cell_low": 0.04600192599991715,
-   "seconds_per_cell_median": 0.046277061999944635,
+   "seconds_per_cell_high": 0.0416186309994373,
+   "seconds_per_cell_low": 0.04055007100032526,
+   "seconds_per_cell_median": 0.041369877000761335,
    "size_symbol": "d",
    "solves": 104,
    "theoretical_exponent": 3.0
@@ -386,19 +391,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 104,
-   "cpu_seconds_high": 1.616990751997946,
-   "cpu_seconds_low": 1.5862142399964796,
-   "cpu_seconds_point": 1.5984092799990322,
+   "cpu_seconds_high": 1.4575880798656726,
+   "cpu_seconds_low": 1.4459330079698702,
+   "cpu_seconds_point": 1.4489313281374052,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 104,
-   "fitted_exponent": 1.086178084204577,
+   "fitted_exponent": 1.0591956481192006,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_hi",
+   "kernel": "data_cell_orthogonal_hi",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.01554798799998025,
-   "seconds_per_cell_low": 0.01525205999996615,
-   "seconds_per_cell_median": 0.015369319999990694,
+   "seconds_per_cell_high": 0.01401526999870839,
+   "seconds_per_cell_low": 0.01390320199971029,
+   "seconds_per_cell_median": 0.013932032001321204,
    "size_symbol": "d",
    "solves": 104,
    "theoretical_exponent": 3.0
@@ -408,19 +413,19 @@
    "benchmark_size": 256,
    "calls_per_cell": 1,
    "cells": 104,
-   "cpu_seconds_high": 4.982328311985839,
-   "cpu_seconds_low": 4.784200303991383,
-   "cpu_seconds_point": 4.812814447994242,
+   "cpu_seconds_high": 4.294723159968271,
+   "cpu_seconds_low": 4.212644071958493,
+   "cpu_seconds_point": 4.263968175975606,
    "extrapolation_factor_in_dimension": 1.0,
    "fits": 104,
-   "fitted_exponent": 1.5359347320857193,
+   "fitted_exponent": 1.4680214266506906,
    "how": "the production size was run directly; the range is the measured min/max over repeats",
-   "kernel": "data_cell_lo",
+   "kernel": "data_cell_orthogonal_lo",
    "measured": true,
    "projection_label": "measured at the production size",
-   "seconds_per_cell_high": 0.047907002999863835,
-   "seconds_per_cell_low": 0.04600192599991715,
-   "seconds_per_cell_median": 0.046277061999944635,
+   "seconds_per_cell_high": 0.04129541499969491,
+   "seconds_per_cell_low": 0.0405061929996009,
+   "seconds_per_cell_median": 0.04099969399976544,
    "size_symbol": "d",
    "solves": 104,
    "theoretical_exponent": 3.0
@@ -498,6 +503,61 @@
   "solves": 418
  },
  "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "harness_work": {
+  "basis": "measured end to end through this CLI, priced per production cell",
+  "components": {
+   "ledger_at_fixture_length": {
+    "complete_seconds_median": 0.00022152400015329476,
+    "existing_records": 419,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006146420000732178,
+    "seconds_per_cell_median": 0.00046659399959025905,
+    "start_seconds_median": 0.0002450699994369643
+   },
+   "ledger_at_production_length": {
+    "complete_seconds_median": 0.00023609799973201007,
+    "existing_records": 2499,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006793760003347415,
+    "seconds_per_cell_median": 0.0004826719996344764,
+    "start_seconds_median": 0.0002465739999024663
+   },
+   "note": "the ledger figure is start+complete for one cell under the advisory flock; the write figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256",
+   "production_bytes_per_cell_weighted": 2533,
+   "write_and_schema_at_fixture_payload": {
+    "padding_note": "",
+    "payload_bytes": 4675,
+    "samples": 15,
+    "schema_check_seconds_median": 4.086999979335815e-06,
+    "seconds_per_cell_median": 0.0008669289982208284,
+    "target_bytes": 4635,
+    "write_seconds_median": 0.0008628419982414925
+   },
+   "write_and_schema_at_production_payload": {
+    "padding_note": "",
+    "payload_bytes": 4675,
+    "samples": 15,
+    "schema_check_seconds_median": 4.104998879483901e-06,
+    "seconds_per_cell_median": 0.000839162999909604,
+    "target_bytes": 2533,
+    "write_seconds_median": 0.0008350580010301201
+   }
+  },
+  "end_to_end_how": "a real `run --fixture` of this package through common.cli, on a copy of the fixture run root with cells/ and the ledger removed; harness = wall - interpreter start-up - the summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)",
+  "end_to_end_includes_once_per_run_costs": "the matrix write, protocol snapshot, code provenance and the interrupted sweep happen once per run and are amortised over 419 fixture cells here, so this per-cell figure OVERSTATES the production one",
+  "end_to_end_seconds_per_cell_on_the_fixture": 0.003454523956247233,
+  "floored_at_components": false,
+  "how": "end-to-end harness seconds per cell measured on the fixture, with the scale-dependent components (ledger length, result-file bytes) swapped from the fixture scale to the production scale: 0.0034545 - 0.0013335 + 0.0013218 = 0.0034428",
+  "measured": true,
+  "measured_end_to_end_on_cells": 419,
+  "per_worker_interpreter_startup_note": "the interpreter start-up and package import above is paid once per worker PROCESS, not once per cell; a scheduler that starts a fresh process per cell pays it on every cell instead, which would add 0.106 s x 2499 cells = 265 CPU-s",
+  "per_worker_interpreter_startup_seconds_measured": 0.10604276300000492,
+  "seconds_per_cell": 0.003442835957980226,
+  "serial_note": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_seconds_per_cell": 0.0004826719996344764,
+  "serial_total_seconds_projected": 1.2061973270865565,
+  "total_seconds_projected": 8.603647058992586
+ },
  "kernels": {
   "algebraic_cell": {
    "call_path": "",
@@ -505,20 +565,20 @@
    "notes": "",
    "points": [
     {
-     "max_s": 0.003996635000021342,
-     "median_s": 0.003465907999952833,
+     "max_s": 0.003470129999186611,
+     "median_s": 0.003378974999577622,
      "memory_measured_in": null,
-     "min_s": 0.0033379829999375943,
+     "min_s": 0.0032965829996101093,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 256.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.003355666000061319,
-     "median_s": 0.0032925840000643802,
+     "max_s": 0.0034503829992900137,
+     "median_s": 0.0032356049996451475,
      "memory_measured_in": null,
-     "min_s": 0.003204942999900595,
+     "min_s": 0.0031826369995542336,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 256.0,
@@ -528,72 +588,72 @@
    "projection": {
     "basis": "measured",
     "label": "measured at the production size",
-    "seconds_per_call_high": 0.003996635000021342,
-    "seconds_per_call_low": 0.003204942999900595,
-    "seconds_per_call_median": 0.0034081333333233488
+    "seconds_per_call_high": 0.003470129999186611,
+    "seconds_per_call_low": 0.0031826369995542336,
+    "seconds_per_call_median": 0.0033311849996001306
    },
    "size_symbol": null
   },
-  "data_cell_hi": {
+  "data_cell_correlated_hi": {
    "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
    "exponent_check": {
     "agrees": false,
     "agrees_within": 0.35,
-    "difference": -1.913821915795423,
-    "fitted_exponent": 1.086178084204577,
-    "note": "the measured exponent is BELOW the algorithm's by 1.91: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "difference": -1.933572498873562,
+    "fitted_exponent": 1.066427501126438,
+    "note": "the measured exponent is BELOW the algorithm's by 1.93: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
     "theoretical_exponent": 3.0
    },
    "fit": {
-    "a": 2.9017777206394593e-05,
-    "b": 1.086178084204577,
-    "max_abs_log_residual": 0.3292169505502196,
+    "a": 2.9988913094900147e-05,
+    "b": 1.066427501126438,
+    "max_abs_log_residual": 0.24992071813540573,
     "n_points": 4,
-    "r_squared": 0.934499789843195,
-    "residual_log_rms": 0.2516197056250013
+    "r_squared": 0.9455502565155143,
+    "residual_log_rms": 0.22392305895488146
    },
-   "kernel": "data_cell_hi",
-   "notes": "N is held at the production aspect ratio for the hi arm (gamma = d/N fixed), so the d = 256 point IS a production hi-arm cell",
+   "kernel": "data_cell_correlated_hi",
+   "notes": "the correlated geometry arm; N is held at the production aspect ratio for the hi arm (gamma = d/N fixed), so the d = 256 point IS a production correlated/hi cell",
    "points": [
     {
-     "max_s": 0.001216636999970433,
-     "median_s": 0.0011636709998583683,
+     "max_s": 0.001291456999751972,
+     "median_s": 0.0010817200000019511,
      "memory_measured_in": null,
-     "min_s": 0.001076337000085914,
+     "min_s": 0.0010586000007606344,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 24.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.0020333479999408155,
-     "median_s": 0.00191214200003742,
+     "max_s": 0.0022987189986451995,
+     "median_s": 0.0020218849986122223,
      "memory_measured_in": null,
-     "min_s": 0.0018777390000650485,
+     "min_s": 0.0018416670009173686,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 64.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.005095191000009436,
-     "median_s": 0.004810859000144774,
+     "max_s": 0.004549043998849811,
+     "median_s": 0.004243396000674693,
      "memory_measured_in": null,
-     "min_s": 0.0046727850001389015,
+     "min_s": 0.004145527998844045,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 128.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.01554798799998025,
-     "median_s": 0.015369319999990694,
+     "max_s": 0.01432351500079676,
+     "median_s": 0.014246665999962715,
      "memory_measured_in": "subprocess",
-     "min_s": 0.01525205999996615,
+     "min_s": 0.01407184299932851,
      "repeats": 5,
-     "rss_high_water_bytes": 47910912,
+     "rss_high_water_bytes": 49553408,
      "size": 256.0,
-     "tracemalloc_peak_bytes": 2357947
+     "tracemalloc_peak_bytes": 2356624
     }
    ],
    "projection": {
@@ -604,9 +664,10 @@
     "is_measurement": true,
     "label": "measured at the production size",
     "largest_measured_size": 256.0,
-    "seconds_per_call_high": 0.01554798799998025,
-    "seconds_per_call_low": 0.01525205999996615,
-    "seconds_per_call_median": 0.015369319999990694,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.01432351500079676,
+    "seconds_per_call_low": 0.01407184299932851,
+    "seconds_per_call_median": 0.014246665999962715,
     "spans_more_than_one_decade": false,
     "target_size": 256.0
    },
@@ -614,66 +675,66 @@
    "theoretical_exponent": 3.0,
    "theory_note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
   },
-  "data_cell_lo": {
+  "data_cell_correlated_lo": {
    "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
    "exponent_check": {
     "agrees": false,
     "agrees_within": 0.35,
-    "difference": -1.4640652679142807,
-    "fitted_exponent": 1.5359347320857193,
-    "note": "the measured exponent is BELOW the algorithm's by 1.46: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "difference": -1.5267911278387445,
+    "fitted_exponent": 1.4732088721612555,
+    "note": "the measured exponent is BELOW the algorithm's by 1.53: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
     "theoretical_exponent": 3.0
    },
    "fit": {
-    "a": 7.447522989417475e-06,
-    "b": 1.5359347320857193,
-    "max_abs_log_residual": 0.3372923507931711,
+    "a": 9.363087203476528e-06,
+    "b": 1.4732088721612555,
+    "max_abs_log_residual": 0.2901533657552733,
     "n_points": 4,
-    "r_squared": 0.9696782289205244,
-    "residual_log_rms": 0.23765562200240894
+    "r_squared": 0.9705673533330954,
+    "residual_log_rms": 0.22448018728876593
    },
-   "kernel": "data_cell_lo",
-   "notes": "N is held at the production aspect ratio for the lo arm (gamma = d/N fixed), so the d = 256 point IS a production lo-arm cell",
+   "kernel": "data_cell_correlated_lo",
+   "notes": "the correlated geometry arm; N is held at the production aspect ratio for the lo arm (gamma = d/N fixed), so the d = 256 point IS a production correlated/lo cell",
    "points": [
     {
-     "max_s": 0.001256123999837655,
-     "median_s": 0.0012350720000995352,
+     "max_s": 0.0013146500004950212,
+     "median_s": 0.001251057999979821,
      "memory_measured_in": null,
-     "min_s": 0.0011948989999837067,
+     "min_s": 0.001175411000076565,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 24.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.0032981460001337837,
-     "median_s": 0.00316010999995342,
+     "max_s": 0.0033036559998436132,
+     "median_s": 0.003208392001397442,
      "memory_measured_in": null,
-     "min_s": 0.003082952000113437,
+     "min_s": 0.0031196740001178114,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 64.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.011556832999986,
-     "median_s": 0.011503036000021893,
+     "max_s": 0.01041367700054252,
+     "median_s": 0.010276562999933958,
      "memory_measured_in": null,
-     "min_s": 0.011356340000020282,
+     "min_s": 0.01018159599880164,
      "repeats": 5,
      "rss_high_water_bytes": null,
      "size": 128.0,
      "tracemalloc_peak_bytes": null
     },
     {
-     "max_s": 0.047907002999863835,
-     "median_s": 0.046277061999944635,
+     "max_s": 0.0416186309994373,
+     "median_s": 0.041369877000761335,
      "memory_measured_in": "subprocess",
-     "min_s": 0.04600192599991715,
+     "min_s": 0.04055007100032526,
      "repeats": 5,
-     "rss_high_water_bytes": 58884096,
+     "rss_high_water_bytes": 60461056,
      "size": 256.0,
-     "tracemalloc_peak_bytes": 7566398
+     "tracemalloc_peak_bytes": 7567546
     }
    ],
    "projection": {
@@ -684,9 +745,172 @@
     "is_measurement": true,
     "label": "measured at the production size",
     "largest_measured_size": 256.0,
-    "seconds_per_call_high": 0.047907002999863835,
-    "seconds_per_call_low": 0.04600192599991715,
-    "seconds_per_call_median": 0.046277061999944635,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.0416186309994373,
+    "seconds_per_call_low": 0.04055007100032526,
+    "seconds_per_call_median": 0.041369877000761335,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0,
+   "theory_note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+  },
+  "data_cell_orthogonal_hi": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.9408043518807994,
+    "fitted_exponent": 1.0591956481192006,
+    "note": "the measured exponent is BELOW the algorithm's by 1.94: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 3.033345173687337e-05,
+    "b": 1.0591956481192006,
+    "max_abs_log_residual": 0.2700360419442065,
+    "n_points": 4,
+    "r_squared": 0.9378307153665258,
+    "residual_log_rms": 0.23862380581521034
+   },
+   "kernel": "data_cell_orthogonal_hi",
+   "notes": "the orthogonal geometry arm; N is held at the production aspect ratio for the hi arm (gamma = d/N fixed), so the d = 256 point IS a production orthogonal/hi cell",
+   "points": [
+    {
+     "max_s": 0.0014816230013821041,
+     "median_s": 0.001092647999030305,
+     "memory_measured_in": null,
+     "min_s": 0.0010179109995078761,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 24.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.002032817999861436,
+     "median_s": 0.0018955909999931464,
+     "memory_measured_in": null,
+     "min_s": 0.0018521359997976106,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 64.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.004348184000264155,
+     "median_s": 0.0042189520008832915,
+     "memory_measured_in": null,
+     "min_s": 0.004097557000932284,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 128.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.01401526999870839,
+     "median_s": 0.013932032001321204,
+     "memory_measured_in": "subprocess",
+     "min_s": 0.01390320199971029,
+     "repeats": 5,
+     "rss_high_water_bytes": 49483776,
+     "size": 256.0,
+     "tracemalloc_peak_bytes": 2356035
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.01401526999870839,
+    "seconds_per_call_low": 0.01390320199971029,
+    "seconds_per_call_median": 0.013932032001321204,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0,
+   "theory_note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+  },
+  "data_cell_orthogonal_lo": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.5319785733493094,
+    "fitted_exponent": 1.4680214266506906,
+    "note": "the measured exponent is BELOW the algorithm's by 1.53: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 9.55452632322662e-06,
+    "b": 1.4680214266506906,
+    "max_abs_log_residual": 0.29537299662719807,
+    "n_points": 4,
+    "r_squared": 0.9699926023229115,
+    "residual_log_rms": 0.22593016616390224
+   },
+   "kernel": "data_cell_orthogonal_lo",
+   "notes": "the orthogonal geometry arm; N is held at the production aspect ratio for the lo arm (gamma = d/N fixed), so the d = 256 point IS a production orthogonal/lo cell",
+   "points": [
+    {
+     "max_s": 0.0012980659994354937,
+     "median_s": 0.0012582389990711818,
+     "memory_measured_in": null,
+     "min_s": 0.0012022649989376077,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 24.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.0034723579992714804,
+     "median_s": 0.0031874340002104873,
+     "memory_measured_in": null,
+     "min_s": 0.0031224689992086496,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 64.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.010334304999560118,
+     "median_s": 0.01026406799974211,
+     "memory_measured_in": null,
+     "min_s": 0.010228717999780201,
+     "repeats": 5,
+     "rss_high_water_bytes": null,
+     "size": 128.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.04129541499969491,
+     "median_s": 0.04099969399976544,
+     "memory_measured_in": "subprocess",
+     "min_s": 0.0405061929996009,
+     "repeats": 5,
+     "rss_high_water_bytes": 60469248,
+     "size": 256.0,
+     "tracemalloc_peak_bytes": 7566760
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.04129541499969491,
+    "seconds_per_call_low": 0.0405061929996009,
+    "seconds_per_call_median": 0.04099969399976544,
     "spans_more_than_one_decade": false,
     "target_size": 256.0
    },
@@ -697,35 +921,54 @@
  },
  "measured_projection_available": true,
  "package": "t21s",
- "parallelism_assumption": "cells are independent processes that share only the append-only ledger (advisory flock), so the cell compute is taken as perfectly parallel over W workers; the reduction is a single process and is added serially.  wall = cell_compute / W + reduction.",
+ "parallelism_assumption": "Cells are independent processes, so the cell compute and the parallel part of the per-cell harness are taken as perfectly parallel over W workers.  Two terms are NOT parallel and are added whole: the ledger appends, which every worker serialises through one advisory flock, and the reduction, which is a single process.  wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction.  The serial ledger term is a floor no worker count beats.",
  "peak_memory": {
   "all_points": [
    {
-    "kernel": "data_cell_hi",
+    "kernel": "data_cell_correlated_hi",
     "measured_in": "subprocess",
-    "rss_high_water_bytes": 47910912,
+    "rss_high_water_bytes": 49553408,
+    "ru_maxrss_bytes": 49553408,
     "size": 256.0,
-    "tracemalloc_peak_bytes": 2357947
+    "tracemalloc_peak_bytes": 2356624
    },
    {
-    "kernel": "data_cell_lo",
+    "kernel": "data_cell_correlated_lo",
     "measured_in": "subprocess",
-    "rss_high_water_bytes": 58884096,
+    "rss_high_water_bytes": 60461056,
+    "ru_maxrss_bytes": 60461056,
     "size": 256.0,
-    "tracemalloc_peak_bytes": 7566398
+    "tracemalloc_peak_bytes": 7567546
+   },
+   {
+    "kernel": "data_cell_orthogonal_hi",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 49483776,
+    "ru_maxrss_bytes": 49483776,
+    "size": 256.0,
+    "tracemalloc_peak_bytes": 2356035
+   },
+   {
+    "kernel": "data_cell_orthogonal_lo",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 60469248,
+    "ru_maxrss_bytes": 60469248,
+    "size": 256.0,
+    "tracemalloc_peak_bytes": 7566760
    }
   ],
   "measured": true,
   "per_cell_peak": {
-   "kernel": "data_cell_lo",
+   "kernel": "data_cell_orthogonal_lo",
    "measured_in": "subprocess",
-   "rss_high_water_bytes": 58884096,
+   "rss_high_water_bytes": 60469248,
+   "ru_maxrss_bytes": 60469248,
    "size": 256.0,
-   "tracemalloc_peak_bytes": 7566398
+   "tracemalloc_peak_bytes": 7566760
   },
   "per_cell_peak_chosen_by": "the largest fresh-subprocess RSS measurement among the kernels, because only a fresh process attributes the high-water mark to one cell; in-process points are listed in all_points and are upper bounds on the whole benchmark process, not on one cell",
   "per_worker_note": "one worker holds one cell, so W workers need about W x the RSS figure above; this machine has 7 GiB, the server's memory is UNKNOWN",
-  "rss_is": "ru_maxrss of the process running the cell, including the interpreter and numpy; measured in a fresh subprocess where 'measured_in' says 'subprocess', which is the only way the high-water mark belongs to one problem size",
+  "rss_is": "VmHWM (resident high-water mark) of the process running the cell, including the interpreter and numpy; measured in a fresh subprocess where 'measured_in' says 'subprocess', which is the only way the high-water mark belongs to one problem size.  VmHWM and not ru_maxrss: Linux inherits ru_maxrss across fork, so a probe spawned by a benchmark driver reports the driver's peak, not the child's",
   "tracemalloc_is": "peak Python-allocator bytes attributable to the call"
  },
  "per_cell_central_statistic": "seconds_per_cell_median is the measured median over repeats where the family's cells are identical, and the mean over the family's own cells of their measured medians where they are not (t20s N grid, cresst_s constructions / reports / ranks / designs, t22s n_files census).  The low/high bounds are the corresponding measured minima and maxima; they are measurements, not margins.",
@@ -835,6 +1078,8 @@
   "pilot"
  ],
  "production_projection": {
+  "cell_compute_cpu_hours_point": 0.01916447594781352,
+  "cell_compute_cpu_seconds_point": 68.99211341212867,
   "counts": {
    "by_family": {
     "algebraic": {
@@ -939,10 +1184,10 @@
     "cells": 3,
     "fits": 0,
     "measured": true,
-    "production_cpu_seconds": 0.010224399999970046,
-    "production_seconds_per_cell": 0.0034081333333233488,
-    "production_seconds_per_cell_high": 0.003996635000021342,
-    "production_seconds_per_cell_low": 0.003204942999900595,
+    "production_cpu_seconds": 0.009993554998800391,
+    "production_seconds_per_cell": 0.0033311849996001306,
+    "production_seconds_per_cell_high": 0.003470129999186611,
+    "production_seconds_per_cell_low": 0.0031826369995542336,
     "solves": 2
    },
    "confirmation-correlated-hi": {
@@ -950,10 +1195,10 @@
     "cells": 520,
     "fits": 520,
     "measured": true,
-    "production_cpu_seconds": 7.992046399995161,
-    "production_seconds_per_cell": 0.015369319999990694,
-    "production_seconds_per_cell_high": 0.01554798799998025,
-    "production_seconds_per_cell_low": 0.01525205999996615,
+    "production_cpu_seconds": 7.408266319980612,
+    "production_seconds_per_cell": 0.014246665999962715,
+    "production_seconds_per_cell_high": 0.01432351500079676,
+    "production_seconds_per_cell_low": 0.01407184299932851,
     "solves": 520
    },
    "confirmation-correlated-lo": {
@@ -961,10 +1206,10 @@
     "cells": 520,
     "fits": 520,
     "measured": true,
-    "production_cpu_seconds": 24.06407223997121,
-    "production_seconds_per_cell": 0.046277061999944635,
-    "production_seconds_per_cell_high": 0.047907002999863835,
-    "production_seconds_per_cell_low": 0.04600192599991715,
+    "production_cpu_seconds": 21.512336040395894,
+    "production_seconds_per_cell": 0.041369877000761335,
+    "production_seconds_per_cell_high": 0.0416186309994373,
+    "production_seconds_per_cell_low": 0.04055007100032526,
     "solves": 520
    },
    "confirmation-orthogonal-hi": {
@@ -972,10 +1217,10 @@
     "cells": 520,
     "fits": 520,
     "measured": true,
-    "production_cpu_seconds": 7.992046399995161,
-    "production_seconds_per_cell": 0.015369319999990694,
-    "production_seconds_per_cell_high": 0.01554798799998025,
-    "production_seconds_per_cell_low": 0.01525205999996615,
+    "production_cpu_seconds": 7.244656640687026,
+    "production_seconds_per_cell": 0.013932032001321204,
+    "production_seconds_per_cell_high": 0.01401526999870839,
+    "production_seconds_per_cell_low": 0.01390320199971029,
     "solves": 520
    },
    "confirmation-orthogonal-lo": {
@@ -983,10 +1228,10 @@
     "cells": 520,
     "fits": 520,
     "measured": true,
-    "production_cpu_seconds": 24.06407223997121,
-    "production_seconds_per_cell": 0.046277061999944635,
-    "production_seconds_per_cell_high": 0.047907002999863835,
-    "production_seconds_per_cell_low": 0.04600192599991715,
+    "production_cpu_seconds": 21.31984087987803,
+    "production_seconds_per_cell": 0.04099969399976544,
+    "production_seconds_per_cell_high": 0.04129541499969491,
+    "production_seconds_per_cell_low": 0.0405061929996009,
     "solves": 520
    },
    "pilot-correlated-hi": {
@@ -994,10 +1239,10 @@
     "cells": 104,
     "fits": 104,
     "measured": true,
-    "production_cpu_seconds": 1.5984092799990322,
-    "production_seconds_per_cell": 0.015369319999990694,
-    "production_seconds_per_cell_high": 0.01554798799998025,
-    "production_seconds_per_cell_low": 0.01525205999996615,
+    "production_cpu_seconds": 1.4816532639961224,
+    "production_seconds_per_cell": 0.014246665999962715,
+    "production_seconds_per_cell_high": 0.01432351500079676,
+    "production_seconds_per_cell_low": 0.01407184299932851,
     "solves": 104
    },
    "pilot-correlated-lo": {
@@ -1005,10 +1250,10 @@
     "cells": 104,
     "fits": 104,
     "measured": true,
-    "production_cpu_seconds": 4.812814447994242,
-    "production_seconds_per_cell": 0.046277061999944635,
-    "production_seconds_per_cell_high": 0.047907002999863835,
-    "production_seconds_per_cell_low": 0.04600192599991715,
+    "production_cpu_seconds": 4.302467208079179,
+    "production_seconds_per_cell": 0.041369877000761335,
+    "production_seconds_per_cell_high": 0.0416186309994373,
+    "production_seconds_per_cell_low": 0.04055007100032526,
     "solves": 104
    },
    "pilot-orthogonal-hi": {
@@ -1016,10 +1261,10 @@
     "cells": 104,
     "fits": 104,
     "measured": true,
-    "production_cpu_seconds": 1.5984092799990322,
-    "production_seconds_per_cell": 0.015369319999990694,
-    "production_seconds_per_cell_high": 0.01554798799998025,
-    "production_seconds_per_cell_low": 0.01525205999996615,
+    "production_cpu_seconds": 1.4489313281374052,
+    "production_seconds_per_cell": 0.013932032001321204,
+    "production_seconds_per_cell_high": 0.01401526999870839,
+    "production_seconds_per_cell_low": 0.01390320199971029,
     "solves": 104
    },
    "pilot-orthogonal-lo": {
@@ -1027,73 +1272,89 @@
     "cells": 104,
     "fits": 104,
     "measured": true,
-    "production_cpu_seconds": 4.812814447994242,
-    "production_seconds_per_cell": 0.046277061999944635,
-    "production_seconds_per_cell_high": 0.047907002999863835,
-    "production_seconds_per_cell_low": 0.04600192599991715,
+    "production_cpu_seconds": 4.263968175975606,
+    "production_seconds_per_cell": 0.04099969399976544,
+    "production_seconds_per_cell_high": 0.04129541499969491,
+    "production_seconds_per_cell_low": 0.0405061929996009,
     "solves": 104
    }
   },
+  "harness_seconds": 8.603647058992586,
+  "key_name_note": "this block prices CELL COMPUTE only; the file's top-level 'total_cpu_seconds_point' is cell compute + harness + reduction.  The two are deliberately named differently so they cannot be read as the same number.",
   "matrix_sha256": "8070cdf4023f49e5a8eb82100c023cc0f1bff9a597333c7e43a173733af43f71",
   "note": "per-cell seconds are MEASURED at the production dimension (d = 256 with N = 128 and with N = 1024 were both run directly), not a fixture time times a declared scale; the reduce cost is listed separately because the per-cell figures exclude it",
-  "reduction_seconds": 16.222542235345554,
+  "reduction_seconds": 3.626054516849559,
   "retry_headroom": {
    "cap": 2750,
-   "cpu_seconds_if_all_headroom_used": 7.830130977773835,
+   "cpu_seconds_if_all_headroom_used": 7.020832053958607,
    "fits_headroom_under_cap": 254,
    "fits_planned": 2496
   },
-  "total_cpu_hours_point": 0.021373585871088684,
-  "total_cpu_seconds_point": 76.94490913591926,
+  "total_cpu_seconds_point_including_harness_and_reduction": 81.22181498797082,
   "unmeasured_families": [],
   "wall_time_hours_by_workers": {
    "1": {
     "conditional": "CONDITIONAL on the server having 1 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 1 cores exist.",
-    "hours_high": 0.0265073224744864,
-    "hours_low": 0.025743647664499894,
-    "hours_point": 0.025879847603129117,
+    "dominated_by_the_serial_floor": false,
+    "hours_high": 0.02268385514138595,
+    "hours_low": 0.022298551750609706,
+    "hours_point": 0.02256161527443634,
+    "serial_floor_fraction_of_point": 0.059494507044096284,
     "workers": 1
    },
    "32": {
     "conditional": "CONDITIONAL on the server having 32 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 32 cores exist.",
-    "hours_high": 0.005193794880241868,
-    "hours_low": 0.005169930042429789,
-    "hours_point": 0.005174186290511953,
+    "dominated_by_the_serial_floor": true,
+    "hours_high": 0.0020092160214497307,
+    "hours_low": 0.001997175290487973,
+    "hours_point": 0.0020053960256075556,
+    "serial_floor_fraction_of_point": 0.6693402010031818,
     "workers": 32
    },
    "8": {
     "conditional": "CONDITIONAL on the server having 8 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 8 cores exist.",
-    "hours_high": 0.007256394324846177,
-    "hours_low": 0.007160934973597864,
-    "hours_point": 0.007177959965926517,
+    "dominated_by_the_serial_floor": false,
+    "hours_high": 0.0040099875491854935,
+    "hours_low": 0.003961824625338463,
+    "hours_point": 0.003994707565816792,
+    "serial_floor_fraction_of_point": 0.3360176325189117,
     "workers": 8
    }
   }
  },
  "reduction_work": {
+  "at_production_scale": {
+   "bound_at_production": "compute",
+   "implied_read_rate_bytes_per_second": 1746111.9160174741,
+   "known": true,
+   "note": "At the production scale reduce reads 6 MB in 3.63 s, i.e. 1.7 MB/s, still far below the 50 MB/s at which I/O would take over, so the compute-bound classification measured on the fixture also holds at production for this package.",
+   "production_input_bytes": 6331497,
+   "seconds_at_the_measured_per_cell_rate": 3.626054516849559,
+   "threshold_bytes_per_second": 50000000.0
+  },
   "basis": "projected from a measured per-cell rate",
   "bound": "compute",
-  "bound_note": "reduce reads every cell file once; measured throughput 0.8 MB/s against a warm page cache, so the step is compute-bound here",
+  "bound_note": "reduce reads every cell file once; measured throughput 3.7 MB/s over 419 cells (2.33 MB of input) against a warm page cache, so the step is compute-bound AT THAT SIZE.  This is not a claim about the production scale; see reduction_work.at_production_scale in RESOURCE_ESTIMATE.json",
   "how": "measured seconds per cell on the fixture run root (419 cells) x the production cell count; linear because reduce reads each cell file exactly once",
-  "interpreter_and_import_seconds": 0.11005021899995882,
+  "interpreter_and_import_seconds": 0.10762078299921995,
   "measured": true,
   "measured_on_cells": 419,
-  "measured_seconds_of_reduce_work": 2.331816533999927,
+  "measured_seconds_of_reduce_work": 0.521206463999988,
   "reduces_priced": [
    {
     "cells": 416,
-    "seconds": 2.315120950224271,
+    "seconds": 0.5174746754749285,
     "what": "pilot reduce"
    },
    {
     "cells": 2499,
-    "seconds": 13.907421285121282,
+    "seconds": 3.1085798413746306,
     "what": "final reduce over the whole run root"
    }
   ],
-  "seconds_per_cell_measured": 0.005565194591885267,
-  "throughput_bytes_per_second_measured": 830171.6587794212,
-  "total_seconds_projected": 16.222542235345554
+  "seconds_per_cell_measured": 0.0012439295083531935,
+  "throughput_bytes_per_second_measured": 3714090.5451242533,
+  "total_seconds_projected": 3.626054516849559
  },
  "retry_allowance": {
   "cpu_seconds_per_retried_cell": "the family's seconds_per_cell above; a retry costs a whole cell and is charged at start",
@@ -1104,7 +1365,7 @@
  "setup": {
   "requirements": {
    "already_satisfied_here": true,
-   "import_check_seconds_measured": 0.14675390999946103,
+   "import_check_seconds_measured": 0.13878245200066885,
    "pinned_lines": [
     "h5py==3.16.0",
     "numpy==2.4.4",
@@ -1113,7 +1374,7 @@
    ],
    "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
    "pip_dry_run_returncode": 0,
-   "pip_dry_run_seconds_measured": 0.5317739759993856
+   "pip_dry_run_seconds_measured": 0.5100607690001198
   },
   "separate_from_computation": true,
   "verify_handoff": {
@@ -1121,20 +1382,20 @@
    "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
    "returncode": 0,
    "runs": 2,
-   "seconds_max": 3.634262579999813,
-   "seconds_min": 3.6129271500003597
+   "seconds_max": 3.6389819430005446,
+   "seconds_min": 3.593306031998509
   },
   "verify_handoff_tests": {
    "measured": true,
    "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
    "returncode": 0,
    "runs": 2,
-   "seconds_max": 68.0947735030004,
-   "seconds_min": 67.68266122000023
+   "seconds_max": 58.53125182700023,
+   "seconds_min": 57.33935914700123
   }
  },
  "storage": {
-  "cell_files_bytes_total": 6370185,
+  "cell_files_bytes_total": 6331497,
   "cells": {
    "algebraic": {
     "basis": "measured",
@@ -1148,56 +1409,56 @@
     "bytes_per_cell": 2583,
     "bytes_total": 1343160,
     "cells": 520,
-    "how": "one production data cell result (d = 256, N = 128)"
+    "how": "one production correlated data cell result (d = 256, N = 128)"
    },
    "confirmation-correlated-lo": {
     "basis": "measured",
     "bytes_per_cell": 2519,
     "bytes_total": 1309880,
     "cells": 520,
-    "how": "one production data cell result (d = 256, N = 1024)"
+    "how": "one production correlated data cell result (d = 256, N = 1024)"
    },
    "confirmation-orthogonal-hi": {
     "basis": "measured",
-    "bytes_per_cell": 2583,
-    "bytes_total": 1343160,
+    "bytes_per_cell": 2544,
+    "bytes_total": 1322880,
     "cells": 520,
-    "how": "one production data cell result (d = 256, N = 128)"
+    "how": "one production orthogonal data cell result (d = 256, N = 128)"
    },
    "confirmation-orthogonal-lo": {
     "basis": "measured",
-    "bytes_per_cell": 2519,
-    "bytes_total": 1309880,
+    "bytes_per_cell": 2496,
+    "bytes_total": 1297920,
     "cells": 520,
-    "how": "one production data cell result (d = 256, N = 1024)"
+    "how": "one production orthogonal data cell result (d = 256, N = 1024)"
    },
    "pilot-correlated-hi": {
     "basis": "measured",
     "bytes_per_cell": 2583,
     "bytes_total": 268632,
     "cells": 104,
-    "how": "one production data cell result (d = 256, N = 128)"
+    "how": "one production correlated data cell result (d = 256, N = 128)"
    },
    "pilot-correlated-lo": {
     "basis": "measured",
     "bytes_per_cell": 2519,
     "bytes_total": 261976,
     "cells": 104,
-    "how": "one production data cell result (d = 256, N = 1024)"
+    "how": "one production correlated data cell result (d = 256, N = 1024)"
    },
    "pilot-orthogonal-hi": {
     "basis": "measured",
-    "bytes_per_cell": 2583,
-    "bytes_total": 268632,
+    "bytes_per_cell": 2544,
+    "bytes_total": 264576,
     "cells": 104,
-    "how": "one production data cell result (d = 256, N = 128)"
+    "how": "one production orthogonal data cell result (d = 256, N = 128)"
    },
    "pilot-orthogonal-lo": {
     "basis": "measured",
-    "bytes_per_cell": 2519,
-    "bytes_total": 261976,
+    "bytes_per_cell": 2496,
+    "bytes_total": 259584,
     "cells": 104,
-    "how": "one production data cell result (d = 256, N = 1024)"
+    "how": "one production orthogonal data cell result (d = 256, N = 1024)"
    }
   },
   "ledger_basis": "measured 951 bytes per completed cell on the fixture ledger, x 2 because every attempt writes a start line and a completion line",
@@ -1205,8 +1466,8 @@
   "note": "cell-file bytes are MEASURED on a production-configuration result object per family; the multiplication by the cell count and the ledger/reduced lines are projections",
   "reduced_basis": "projected linearly from the measured fixture REDUCED.json (780241 bytes over 419 cells)",
   "reduced_output_bytes_projected": 4653513.744630072,
-  "total_bytes": 15777083.026252985,
-  "total_mb": 15.777083026252985
+  "total_bytes": 15738395.026252985,
+  "total_mb": 15.738395026252984
  },
  "thread_settings": {
   "MKL_NUM_THREADS": "1",
@@ -1216,12 +1477,12 @@
   "VECLIB_MAXIMUM_THREADS": "1"
  },
  "timing_source_matrix": "fixture",
- "total_cpu_hours_point": 0.025879847603129117,
- "total_cpu_seconds_point": 93.16745137126482,
+ "total_cpu_hours_point": 0.02256161527443634,
+ "total_cpu_seconds_point": 81.22181498797082,
  "transfer": {
-  "archive_bytes": 7407520,
-  "archive_path_measured": "/tmp/hf3/mlst-successor_20260913-handoff-20260913T093439Z.tar.gz",
-  "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few kB (timestamps and the report file).",
+  "archive_bytes": 7764484,
+  "archive_path_measured": "/tmp/hf5/mlst-successor_20260913-handoff-20260913T111611Z.tar.gz",
+  "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few tens of kB (timestamps, this report and the estimate files) - two builds of the same tree measured here were 7 702 123 and 7 764 484 bytes.",
   "separate_from_computation": true
  },
  "unknowns": [
@@ -1231,31 +1492,48 @@
   "server filesystem speed and whether advisory flock on the ledger works there (a network filesystem falls back to serial ledger appends, which caps useful parallelism)",
   "link bandwidth for the transfer (only the archive size is known)",
   "whether the pinned requirements are already installed on the server",
-  "server memory per worker (the per-cell RSS figures above are measured; the budget is not known)"
+  "server memory per worker (the per-cell RSS figures above are measured; the budget is not known)",
+  "contention between concurrent workers: every per-cell time here was measured on a 2-vCPU container running ONE process at a time, so the numbers contain no cache, memory-bandwidth or disk contention. W concurrent workers share last-level cache, memory bandwidth and one disk queue, which makes each cell slower by an amount this benchmark cannot see and which grows with W.  The wall-time rows at 8 and 32 workers are therefore optimistic by an unmeasured factor."
  ],
  "unmeasured_families": [],
  "wall_time_hours_by_workers": {
   "1": {
    "conditional": "CONDITIONAL on the server having 1 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 1 cores exist.",
-   "hours_high": 0.0265073224744864,
-   "hours_low": 0.025743647664499894,
-   "hours_point": 0.025879847603129117,
+   "dominated_by_the_serial_floor": false,
+   "hours_high": 0.02268385514138595,
+   "hours_low": 0.022298551750609706,
+   "hours_point": 0.02256161527443634,
+   "serial_floor_fraction_of_point": 0.059494507044096284,
    "workers": 1
   },
   "32": {
    "conditional": "CONDITIONAL on the server having 32 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 32 cores exist.",
-   "hours_high": 0.005193794880241868,
-   "hours_low": 0.005169930042429789,
-   "hours_point": 0.005174186290511953,
+   "dominated_by_the_serial_floor": true,
+   "hours_high": 0.0020092160214497307,
+   "hours_low": 0.001997175290487973,
+   "hours_point": 0.0020053960256075556,
+   "serial_floor_fraction_of_point": 0.6693402010031818,
    "workers": 32
   },
   "8": {
    "conditional": "CONDITIONAL on the server having 8 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 8 cores exist.",
-   "hours_high": 0.007256394324846177,
-   "hours_low": 0.007160934973597864,
-   "hours_point": 0.007177959965926517,
+   "dominated_by_the_serial_floor": false,
+   "hours_high": 0.0040099875491854935,
+   "hours_low": 0.003961824625338463,
+   "hours_point": 0.003994707565816792,
+   "serial_floor_fraction_of_point": 0.3360176325189117,
    "workers": 8
   }
+ },
+ "wall_time_model": {
+  "cell_compute_seconds_point": 68.99211341212867,
+  "formula": "wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction",
+  "parallel_harness_seconds": 7.397449731906029,
+  "reduction_seconds": 3.626054516849559,
+  "serial_floor_hours": 0.001342292178871143,
+  "serial_floor_seconds": 4.832251843936115,
+  "serial_ledger_is": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_ledger_seconds": 1.2061973270865565
  },
  "work_accounting": {
   "bootstrap_replicates_in_reduce": 1000,

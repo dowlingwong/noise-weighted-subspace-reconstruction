@@ -530,22 +530,39 @@ def production_estimate(P: dict, fixture_root: Path) -> dict:
                      "confirmation_cells": counts["by_role"].get("confirmation", {}).get("cells"),
                      "deterministic_cells": sum(counts["by_role"].get(r, {}).get("cells", 0)
                                                 for r in ("algebraic", "control"))}
-    red = (bench or {}).get("reduce") or {}
-    est["reduction_work"] = {"seconds_per_cell_measured": red.get("seconds_per_cell"),
-                             "cells_measured_on": red.get("cells_read"), "bound": red.get("bound"),
-                             "total_seconds_projected": (float(red.get("seconds_per_cell") or 0.0)
-                                                         * counts["cells"])}
+    # the reduce and harness projections come from the same helpers cli._estimate uses,
+    # so this file and RESOURCE_ESTIMATE.json cannot disagree about the same package
+    pilot_cells = int(counts["by_role"].get("pilot", {}).get("cells", 0))
+    est["reduction_work"] = cli._reduce_projection(bench, counts, pilot_cells)
+    est["harness_work"] = cli._harness_projection(bench, counts)
     est["retry_allowance"] = {"policy": P["budget"].get("retry_policy", "unspecified"),
                               "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - counts["fits"],
                               "cpu_seconds_headroom_at_25_percent": 0.25 * est["total_cpu_seconds_point"]}
     est["peak_memory"] = ((bench or {}).get("kernels", {}).get("paired_cell", {}) or {})
     est["peak_memory"] = next((r.get("memory") for r in est["peak_memory"].get("points", []) if r.get("memory")),
                               {"measured": False})
+    reduce_s = float(est["reduction_work"].get("total_seconds_projected") or 0.0)
+    harness_s = float(est["harness_work"].get("total_seconds_projected") or 0.0)
+    serial_s = float(est["harness_work"].get("serial_total_seconds_projected") or 0.0)
+    parallel_harness_s = max(0.0, harness_s - serial_s)
+    est["harness_seconds"] = harness_s
+    est["reduction_seconds"] = reduce_s
+    est["total_with_harness_and_reduction_cpu_seconds_point"] = (est["total_cpu_seconds_point"]
+                                                                 + harness_s + reduce_s)
+    est["total_cpu_seconds_note"] = ("'total_cpu_seconds_*' above is CELL COMPUTE only.  The harness and the "
+                                     "reduction are the two other terms and are listed beside it; their sum "
+                                     "is 'total_with_harness_and_reduction_cpu_seconds_point', which is what "
+                                     "RESOURCE_ESTIMATE.json calls cpu_seconds.total_point.")
     cpu_lo, cpu_hi = est["total_cpu_seconds_low"], est["total_cpu_seconds_high"]
-    est["wall_time_hours_by_workers"] = BM.wall_time_range(cpu_lo, cpu_hi, (1, 8, 32))
-    est["parallelism"] = ("cells are independent; one ledger per run root (advisory flock; serial fallback on "
-                          "network filesystems). The worker counts above are CONDITIONAL: the server "
-                          "specification is not known.")
+    est["wall_time_hours_by_workers"] = BM.wall_time_range(
+        cpu_lo + parallel_harness_s, cpu_hi + parallel_harness_s, (1, 8, 32),
+        serial_seconds=serial_s, reduction_seconds=reduce_s)
+    est["parallelism"] = ("cells are independent processes, so the cell compute and the parallel part of the "
+                          "per-cell harness divide by the worker count; the ledger appends (one advisory "
+                          "flock for all workers) and the single-process reduction do not and are added "
+                          "whole.  wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction, "
+                          "the same model RESOURCE_ESTIMATE.json uses.  The worker counts are CONDITIONAL: "
+                          "the server specification is not known.")
     return est
 
 

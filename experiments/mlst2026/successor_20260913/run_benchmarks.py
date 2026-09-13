@@ -32,6 +32,7 @@ import copy
 import json
 import os
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -133,7 +134,7 @@ def bench_t19s(args) -> dict:
     det = B.scaling_benchmark(
         "deterministic_cell", _t19s_det_call, [32, 64, 128, 256], theory_key="eigendecomposition",
         size_symbol="d", production_size=d_prod, fixture_size=int(P["design"]["fixture"]["d"]),
-        repeats=3, warmup=1, memory_sizes=[d_prod],
+        repeats=3, warmup=1, memory_sizes=[d_prod], memory_probe=_mem_probe("t19s", "det"),
         call_path="t19s.runner.run_deterministic_cell on the G1 population operator (8 eps points, one eigen "
                   "solve each)",
         notes="every d = 256 deterministic/control family runs this same code path with a different direction")
@@ -356,20 +357,27 @@ def bench_t21s(args) -> dict:
     sizes = [d_fx, 64, 128, d_prod]
     out_kernels = {}
     fams = {}
-    for arm, n_prod in sorted(P["design"]["n_train"].items()):
-        _log(f"t21s data cell, gamma arm {arm} (N = {n_prod} at d = 256), d = {sizes}")
-        k = B.scaling_benchmark(
-            f"data_cell_{arm}", (lambda a: (lambda d: _t21s_data_call(d, a)))(arm), sizes,
-            theory_key="svd", size_symbol="d", production_size=d_prod, fixture_size=d_fx,
-            repeats=5, warmup=2, memory_sizes=[d_prod], memory_probe=_mem_probe("t21s", f"data_{arm}"),
-            call_path="t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one "
-                      "solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
-            notes=f"N is held at the production aspect ratio for the {arm} arm (gamma = d/N fixed), so the "
-                  f"d = 256 point IS a production {arm}-arm cell")
-        out_kernels[f"data_cell_{arm}"] = k
-        for phase in ("pilot", "confirmation"):
-            for geom in P["design"]["geometry"]["arms"]:
-                fams[f"{phase}-{geom}-{arm}"] = _family_from(k, f"data_cell_{arm}", 1, d_prod, "d")
+    # Both geometry arms are timed.  They were not, once: one kernel result was
+    # assigned to both arms, so half the cells carried a "measured" label for a
+    # configuration that had never been run.  The two arms differ by a Cholesky
+    # factor in the direction frame and the difference turns out to be small, but
+    # a label that says "measured" has to mean the thing was measured.
+    for geom in P["design"]["geometry"]["arms"]:
+        for arm, n_prod in sorted(P["design"]["n_train"].items()):
+            name = f"data_cell_{geom}_{arm}"
+            _log(f"t21s data cell, {geom} geometry, gamma arm {arm} (N = {n_prod} at d = 256), d = {sizes}")
+            k = B.scaling_benchmark(
+                name, (lambda a, g: (lambda d: _t21s_data_call(d, a, g)))(arm, geom), sizes,
+                theory_key="svd", size_symbol="d", production_size=d_prod, fixture_size=d_fx,
+                repeats=5, warmup=2, memory_sizes=[d_prod],
+                memory_probe=_mem_probe("t21s", f"data_{geom}_{arm}"),
+                call_path="t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, "
+                          "one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+                notes=f"the {geom} geometry arm; N is held at the production aspect ratio for the {arm} arm "
+                      f"(gamma = d/N fixed), so the d = 256 point IS a production {geom}/{arm} cell")
+            out_kernels[name] = k
+            for phase in ("pilot", "confirmation"):
+                fams[f"{phase}-{geom}-{arm}"] = _family_from(k, name, 1, d_prod, "d")
     _log("t21s algebraic cells")
     alg_g = B.timed(_t21s_alg_call("geometry_invariants"), size=d_prod, repeats=5, warmup=2)
     alg_p = B.timed(_t21s_alg_call("predictor_sanity"), size=d_prod, repeats=5, warmup=2)
@@ -411,8 +419,9 @@ def bench_t21s(args) -> dict:
             "time goes at the production size: compute_predictions (the d x d eigendecomposition of K plus the "
             "QR of the direction frame) is comparable to or larger than the SVD, and at the fixture size both "
             "are dwarfed by Python overhead.",
-            "Both production sizes (d = 256 with N = 128 and with N = 1024) were run directly, so the t21s "
-            "projection is a MEASUREMENT.",
+            "Both production sizes (d = 256 with N = 128 and with N = 1024) were run directly, in BOTH "
+            "geometry arms (correlated and orthogonal), so every one of the eight data families is a "
+            "MEASUREMENT of its own configuration.",
         ],
     }
 
@@ -468,6 +477,42 @@ def bench_t22s(args) -> dict:
                                                   hier_replicates=arch["hier"], curve_replicates=arch["curve"]),
                     size=sc.n_files, repeats=3, warmup=1)
         by_files[sc.n_files] = t.as_dict()
+    # `pipeline_replicate` at R_file = 2000 and `replicate_by_n_files` at n_files = 4
+    # are the SAME call: same scenario, same seed, same three replicate counts.  They
+    # were reported as two independent numbers 2.6% apart, which is about three times
+    # the min/max spread quoted for either - i.e. the quoted spread was within-run
+    # jitter and understated the real between-run variability.  The two sets of repeats
+    # are pooled here, and both rows carry the pooled figures, so the document cannot
+    # print two different times for one call and the range covers what was actually seen.
+    prod_pt = next(r for r in rep["points"] if abs(r["size"] - arch["file"]) < 1e-9)
+    same_call = {
+        "what": ("pipeline_replicate at R_file = %d and replicate_by_n_files at n_files = %d are one call: "
+                 "run_replicate(1234, %s, file=%d, hier=%d, curve=%d)"
+                 % (arch["file"], 4, base, arch["file"], arch["hier"], arch["curve"])),
+        "pipeline_replicate_at_R_file_%d" % arch["file"]: {k: prod_pt[k] for k in
+                                                           ("median_s", "min_s", "max_s", "samples_s")},
+        "replicate_by_n_files_at_4": {k: by_files[4][k] for k in ("median_s", "min_s", "max_s", "samples_s")},
+        "difference_fraction_of_median": abs(prod_pt["median_s"] - by_files[4]["median_s"]) / prod_pt["median_s"],
+    }
+    pooled = sorted(list(prod_pt["samples_s"]) + list(by_files[4]["samples_s"]))
+    pooled_row = {"median_s": float(statistics.median(pooled)), "min_s": float(min(pooled)),
+                  "max_s": float(max(pooled)), "samples_s": pooled, "repeats": len(pooled),
+                  "pooled_note": ("the repeats of the two timings of this identical call, pooled; the "
+                                  "min/max is therefore BETWEEN-run variability of the same call, not the "
+                                  "within-run jitter of one timing")}
+    same_call["pooled"] = {k: pooled_row[k] for k in ("median_s", "min_s", "max_s", "repeats")}
+    same_call["pooled_spread_fraction"] = (pooled_row["max_s"] - pooled_row["min_s"]) / pooled_row["median_s"]
+    prod_pt.update(pooled_row)
+    by_files[4] = {**by_files[4], **pooled_row}
+    rep["projection"].update({"seconds_per_call_median": pooled_row["median_s"],
+                              "seconds_per_call_low": pooled_row["min_s"],
+                              "seconds_per_call_high": pooled_row["max_s"],
+                              "how": ("the production size was run directly, twice, under two names; the "
+                                      "repeats of both are pooled and the range is their min/max")})
+    rep["fit"] = B.fit_power_law([r["size"] for r in rep["points"]],
+                                 [r["median_s"] for r in rep["points"]]).as_dict()
+    rep["exponent_check"] = B.exponent_verdict(rep["fit"]["b"], rep["theory"]["exponent"])
+    rep["same_call_reconciliation"] = same_call
     files_fit = B.fit_power_law(sorted(by_files), [by_files[k]["median_s"] for k in sorted(by_files)])
     # shape variations at fixed n_files, to bound the scenario-to-scenario spread
     shape = {}
@@ -483,10 +528,6 @@ def bench_t22s(args) -> dict:
     t_red = B.timed(lambda: pl.run_replicate(1234, sc4, file_replicates=red["file"], hier_replicates=red["hier"],
                                              curve_replicates=red["curve"]), size=red["file"], repeats=3, warmup=1)
 
-    def per_replicate(n_files: int, key: str) -> dict:
-        row = by_files[n_files]
-        return {"median": row["median_s"], "low": row["min_s"], "high": row["max_s"]}
-
     # census of the production catalogue by n_files
     conf = list(sim.confirmation_scenarios())
     pil = list(sim.pilot_scenarios())
@@ -499,7 +540,7 @@ def bench_t22s(args) -> dict:
     n_conf_chunks = M["mc_replicates_per_scenario"] // mc
     n_pil_chunks = M["pilot_mc_per_scenario"] // mc
 
-    def weighted(census, ratio_reduced=0.0):
+    def weighted(census):
         tot = sum(census.values())
         med = sum(by_files[n]["median_s"] * c for n, c in census.items()) / tot
         lo = sum(by_files[n]["min_s"] * c for n, c in census.items()) / tot
@@ -538,7 +579,9 @@ def bench_t22s(args) -> dict:
                                 "time (%s) at the ARCHIVED replicate setting; census of the 69 confirmation "
                                 "scenarios by n_files = %s"
                                 % (mc, ", ".join("n=%d:%.3fs" % (n, by_files[n]["median_s"]) for n in sorted(by_files)),
-                                   conf_census))},
+                                   conf_census)
+                               + "; the n_files = 4 figure pools the repeats of the two timings of that "
+                                 "identical call, so its low/high is between-run variability")},
         "sim_pilot": {"kernel": "pipeline_replicate", "calls_per_cell": mc, "basis": "measured",
                       "size": arch["file"], "size_symbol": "R_file",
                       "extrapolation_factor_in_dimension": 1.0,
@@ -583,6 +626,9 @@ def bench_t22s(args) -> dict:
                 "block_curve_draws": "mc x n_dev x (4 x %d + %d) x R_curve"
                                      % (len(pl.BLOCKS_EVAL), len(pl.BLOCKS_CAL))},
             "replicate_settings_production": {"archived": arch, "reduced": red},
+            "archived_setting_seconds_per_replicate_measured": by_files[4]["median_s"],
+            "reduced_setting_seconds_per_replicate_measured": t_red.median_s,
+            "reduced_over_archived_ratio_measured": ratio_red,
             "frozen_setting_unknown": "the confirmation setting is frozen by the pilot; the archived setting is "
                                       "the more expensive of the two and is what is priced here, so the "
                                       "confirmation total is an UPPER bound (measured ratio reduced/archived "
@@ -601,6 +647,11 @@ def bench_t22s(args) -> dict:
             "arithmetic." % mc,
             "The dominant cost is te.joint_bootstrap, which runs once per evaluation file: the replicate time "
             "is close to linear in n_files, and the confirmation catalogue is 1/3 at n_files = 16.",
+            "pipeline_replicate at R_file = 2000 and replicate_by_n_files at n_files = 4 are the same call. "
+            "They are timed twice (once in each series) and the two sets of repeats are POOLED, so both "
+            "tables print one number for it and the quoted min/max is the real between-run spread rather "
+            "than the jitter of a single timing; kernels.pipeline_replicate.same_call_reconciliation holds "
+            "the two separate measurements and their difference.",
         ],
     }
 
@@ -683,6 +734,7 @@ def bench_cresst_s(args) -> dict:
                            "archive_seed": AR.ARCHIVE_SEED, "scale": "production"}}))),
         [reps_fx, 2500, 5000, reps_prod], theory_key="bootstrap", size_symbol="R", production_size=reps_prod,
         fixture_size=reps_fx, repeats=2, warmup=1, memory_sizes=[reps_prod],
+        memory_probe=_mem_probe("cresst_s", "cluster_report"),
         call_path="cresst_s.runner._cell_cluster_report -> cluster_report.* (cluster bootstrap per report)",
         notes="the production replicate count was run directly")
     per_report = {}
@@ -748,7 +800,7 @@ def bench_cresst_s(args) -> dict:
     calib_scale = B.scaling_benchmark(
         "calibration_coverage", _calib_at, [50, 100, 200, ref.mc_replicates], theory_key="bootstrap",
         size_symbol="mc", production_size=ref.mc_replicates, fixture_size=120, repeats=3, warmup=1,
-        memory_sizes=[ref.mc_replicates],
+        memory_sizes=[ref.mc_replicates], memory_probe=_mem_probe("cresst_s", "calibration"),
         call_path="cresst_s.calibration.coverage: mc Monte-Carlo datasets x bootstrap_replicates cluster "
                   "bootstrap draws each",
         notes="at the reference design (n_runs %d, channels_per_run %d); the production mc was run directly"
@@ -849,7 +901,24 @@ def bench_cresst_s(args) -> dict:
                     "archive_point": {"kernel": "archive_point", "points": [ap.as_dict()],
                                       "projection": {"basis": "measured", "seconds_per_call_median": ap.median_s,
                                                      "seconds_per_call_low": ap.min_s, "seconds_per_call_high": ap.max_s,
-                                                     "label": "measured at the production size"}}},
+                                                     "label": "measured at the production size"}},
+                    # the two families whose timings used to live only in measured_tables:
+                    # a priced family must have its measurement in the kernel table, or the
+                    # report never shows the reader what it was measured from
+                    "science_control": {"kernel": "science_control",
+                                        "points": [dict(v, what=k, size=1) for k, v in sorted(sci.items())],
+                                        "projection": {"basis": "measured",
+                                                       "seconds_per_call_median": sci_med,
+                                                       "seconds_per_call_low": min(v["min_s"] for v in sci.values()),
+                                                       "seconds_per_call_high": max(v["max_s"] for v in sci.values()),
+                                                       "label": "measured at the production configuration"}},
+                    "calibration_control": {"kernel": "calibration_control",
+                                            "points": [dict(calib_ctrl.as_dict(), what="null_dependence")],
+                                            "projection": {"basis": "measured",
+                                                           "seconds_per_call_median": calib_ctrl.median_s,
+                                                           "seconds_per_call_low": calib_ctrl.min_s,
+                                                           "seconds_per_call_high": calib_ctrl.max_s,
+                                                           "label": "measured at the production configuration"}}},
         "families": fams,
         "measured_tables": {"interval_by_construction": per_constr, "cluster_report_by_report": per_report,
                             "robustness_by_cut_and_rank": robust_by, "science_controls": sci,
@@ -953,15 +1022,17 @@ def storage_t21s(args, _bench):
     P = protocol("t21s")
     d = int(P["design"]["d"])
     out = {}
-    for arm, n in sorted(P["design"]["n_train"].items()):
-        with fitcount.counting():
-            res = R.run_data_cell(P, {"role": "pilot", "seed": 5000, "cell_id": "b", "n_fits": 1, "n_solves": 1,
-                                      "params": {"geometry": "correlated", "gamma_arm": arm, "d": d,
-                                                 "n_train": int(n), "k": 4, "kind": "grid",
-                                                 "varied_direction": 1, "ratio": 1.0, "phase": "pilot"}})
-        for phase in ("pilot", "confirmation"):
-            for geom in P["design"]["geometry"]["arms"]:
-                out[f"{phase}-{geom}-{arm}"] = _bytes(res, f"one production data cell result (d = {d}, N = {n})")
+    for geom in P["design"]["geometry"]["arms"]:
+        for arm, n in sorted(P["design"]["n_train"].items()):
+            with fitcount.counting():
+                res = R.run_data_cell(P, {"role": "pilot", "seed": 5000, "cell_id": "b", "n_fits": 1,
+                                          "n_solves": 1,
+                                          "params": {"geometry": geom, "gamma_arm": arm, "d": d,
+                                                     "n_train": int(n), "k": 4, "kind": "grid",
+                                                     "varied_direction": 1, "ratio": 1.0, "phase": "pilot"}})
+            for phase in ("pilot", "confirmation"):
+                out[f"{phase}-{geom}-{arm}"] = _bytes(
+                    res, f"one production {geom} data cell result (d = {d}, N = {n})")
     out["algebraic"] = _bytes(_t21s_alg_call("geometry_invariants")(), "one geometry-invariant algebraic cell")
     return out
 
@@ -1109,14 +1180,248 @@ def measure_reduce_and_storage(pkg: str, run_root: Path, args) -> dict:
         "bound": None,
     }
     if out["throughput_bytes_per_second"]:
-        # 200 MB/s is a conservative floor for a warm page cache on any modern host;
-        # anything far below it is compute, not I/O.
+        # 50 MB/s is a conservative floor for a warm page cache on any modern host;
+        # anything far below it is compute, not I/O.  This classifies the step AT THE
+        # SIZE IT WAS MEASURED AT and nowhere else: the fixture roots here hold 12-419
+        # small cells, and a production root of the same package can be three orders of
+        # magnitude larger in bytes.  cli._reduce_projection re-states the same
+        # arithmetic at the production input size and says where the answer changes.
         out["bound"] = ("io" if out["throughput_bytes_per_second"] > 5e7 else "compute")
-        out["bound_note"] = ("reduce reads every cell file once; measured throughput %.1f MB/s against a warm "
-                             "page cache, so the step is %s-bound here"
-                             % (out["throughput_bytes_per_second"] / 1e6, out["bound"]))
+        out["bound_threshold_bytes_per_second"] = 5e7
+        out["bound_measured_on_input_bytes"] = out["input_bytes_read"]
+        out["bound_measured_on_cells"] = len(cells)
+        out["bound_note"] = ("reduce reads every cell file once; measured throughput %.1f MB/s over %d cells "
+                             "(%.2f MB of input) against a warm page cache, so the step is %s-bound AT THAT "
+                             "SIZE.  This is not a claim about the production scale; see "
+                             "reduction_work.at_production_scale in RESOURCE_ESTIMATE.json"
+                             % (out["throughput_bytes_per_second"] / 1e6, len(cells),
+                                out["input_bytes_read"] / 1e6, out["bound"]))
     shutil.rmtree(tmp, ignore_errors=True)
     return out
+
+
+#: extra arguments a package's ``run`` needs, beyond --protocol/--out.
+RUN_ARGS = {"cresst_s": ["--archive-root", "{ms}", "--fixture-data-root", "{root}/fixture_data"]}
+
+
+def _production_counts(pkg: str) -> dict:
+    """The cells a production run executes (the enumerated matrix minus the
+    development role), which is the set every priced total covers."""
+    import importlib
+
+    from experiments.mlst2026.successor_20260913.common.matrix import ROLES
+    mod = importlib.import_module(f"experiments.mlst2026.successor_20260913.{pkg}.runner")
+    m = mod.build_matrix(protocol(pkg), False)
+    return m.subset(roles=[r for r in ROLES if r != "development"]).counts()
+
+
+def _result_required(pkg: str):
+    import importlib
+    mod = importlib.import_module(f"experiments.mlst2026.successor_20260913.{pkg}.runner")
+    return getattr(mod, "RESULT_REQUIRED", None) or getattr(mod, "result_required", None) or {}
+
+
+def _padded(base: dict, target_bytes: int) -> dict:
+    """``base`` grown with filler until it serialises to about ``target_bytes``.
+    Only the byte count matters here: what is being timed is the atomic write
+    (json encode, fsync, sha256), whose cost is set by the size of the payload."""
+    obj = json.loads(json.dumps(base, sort_keys=True, default=str))
+    cur = B.json_bytes(obj)
+    if target_bytes > cur + 32:
+        obj["_pad_for_the_write_benchmark"] = "x" * (target_bytes - cur - 32)
+    return obj
+
+
+def _time_ledger_at_length(pkg: str, n_existing: int, *, samples: int = 25) -> dict:
+    """``ledger.start`` + ``ledger.complete`` for one cell, on a ledger that already
+    holds ``n_existing`` completed attempts.  This is the part of the per-cell
+    harness that is serialised under the advisory flock, so it is also the serial
+    term in the wall-time model."""
+    from experiments.mlst2026.successor_20260913.common.ledger import ExecutionLedger
+    from experiments.mlst2026.successor_20260913.common.results import write_json_atomic
+    tmp = Path(tempfile.mkdtemp(prefix=f"ledger_{pkg}_"))
+    led = ExecutionLedger(tmp / "EXECUTION_LEDGER.jsonl", cap=10 ** 12, package=pkg, protocol_sha256="0" * 64)
+    out = tmp / "x.json"
+    write_json_atomic(out, {"x": 1})
+
+    def one(i):
+        cell = {"cell_id": "bench%07d" % i, "role": "confirmation", "n_fits": 1, "n_solves": 1}
+        t0 = time.perf_counter()
+        u = led.start(cell)
+        t1 = time.perf_counter()
+        led.complete(u, cell, fits_used=1, solves_used=1, output_path=out, output_sha256="d" * 64, wall_s=0.0)
+        return t1 - t0, time.perf_counter() - t1
+
+    for i in range(int(n_existing)):
+        one(i)
+    rows = [one(10 ** 9 + i) for i in range(samples)]
+    shutil.rmtree(tmp, ignore_errors=True)
+    starts = sorted(r[0] for r in rows)
+    comps = sorted(r[1] for r in rows)
+    mid = len(rows) // 2
+    return {"existing_records": int(n_existing), "samples": samples,
+            "start_seconds_median": starts[mid], "complete_seconds_median": comps[mid],
+            "seconds_per_cell_median": starts[mid] + comps[mid],
+            "seconds_per_cell_max": max(starts) + max(comps)}
+
+
+def _time_write_and_schema(pkg: str, payload: dict, target_bytes: int, *, samples: int = 15) -> dict:
+    """The atomic result write (encode + fsync + sha256) and the schema check, on a
+    payload of the size named in the row."""
+    from experiments.mlst2026.successor_20260913.common.results import check_cell_schema, write_json_atomic
+    req = _result_required(pkg)
+    tmp = Path(tempfile.mkdtemp(prefix=f"write_{pkg}_"))
+    wr, sc = [], []
+    for i in range(samples):
+        t0 = time.perf_counter()
+        write_json_atomic(tmp / f"c{i}.json", payload)
+        wr.append(time.perf_counter() - t0)
+        t0 = time.perf_counter()
+        try:
+            check_cell_schema(payload, req, where="bench")
+        except Exception:
+            pass
+        sc.append(time.perf_counter() - t0)
+    shutil.rmtree(tmp, ignore_errors=True)
+    wr.sort()
+    sc.sort()
+    got = B.json_bytes(payload)
+    return {"payload_bytes": got, "target_bytes": int(target_bytes), "samples": samples,
+            "padding_note": ("" if got >= target_bytes else
+                             "the example cell is already larger than the target, so no padding was added "
+                             "and this row is the example's own size"),
+            "write_seconds_median": wr[len(wr) // 2], "schema_check_seconds_median": sc[len(sc) // 2],
+            "seconds_per_cell_median": wr[len(wr) // 2] + sc[len(sc) // 2]}
+
+
+def measure_harness(pkg: str, run_root: Path, args, data: dict) -> dict:
+    """The per-cell cost of the CLI harness, which the kernel benchmarks do not see.
+
+    Production does not call the kernel; it calls ``common.cli`` on a whole cell:
+    protocol load, ledger ``start`` under flock, the kernel, the schema and
+    fit-accounting checks, the atomic result write (json encode + fsync + sha256)
+    and ledger ``complete``.  The headline here is an end-to-end measurement: a real
+    ``run`` of the package's fixture cells through the CLI, total wall minus the
+    interpreter start-up and minus the summed per-cell kernel time the run itself
+    records, divided by the cells.
+
+    Two of the components depend on scale rather than on the kernel: the ledger
+    (on how many records the ledger already holds) and the result write (on how
+    many bytes a production cell file is).  Both are measured at the fixture scale
+    the end-to-end run was made at AND at the production scale, and the priced
+    per-cell figure swaps the one for the other:
+
+        harness/cell = end-to-end/cell - (ledger + write) at fixture scale
+                                       + (ledger + write) at production scale
+
+    The end-to-end figure also carries the once-per-run costs (matrix write, code
+    provenance, the interrupted sweep) amortised over the fixture's few cells, so
+    it OVERSTATES the per-cell figure at production cell counts.  That is left in.
+    """
+    if not (run_root / "run_matrix_summary.json").exists():
+        return {"measured": False, "why": f"no fixture run root at {run_root}"}
+    env = dict(os.environ)
+    env.update(B.THREAD_ENV)
+    times, kernels, ncells, byts = [], None, None, None
+    for _ in range(2):
+        tmp = Path(tempfile.mkdtemp(prefix=f"harness_{pkg}_"))
+        dst = tmp / "root"
+        shutil.copytree(run_root, dst)
+        shutil.rmtree(dst / "cells", ignore_errors=True)
+        for stale in ("EXECUTION_LEDGER.jsonl", "EXECUTION_LEDGER.jsonl.lock", "LEDGER_SUMMARY.json",
+                      "REDUCED.json", "RESOURCE_ESTIMATE.json"):
+            (dst / stale).unlink(missing_ok=True)
+        extra = [a.format(ms=args.ms_evidence or "", root=str(dst)) for a in RUN_ARGS.get(pkg, [])]
+        cmd = [sys.executable, "-m", f"experiments.mlst2026.successor_20260913.{pkg}", "run",
+               "--protocol", str(HERE / pkg / PROTOCOLS[pkg]), "--out", str(dst), "--fixture"] + extra
+        t0 = time.perf_counter()
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), env=env)
+        wall = time.perf_counter() - t0
+        if proc.returncode != 0:
+            shutil.rmtree(tmp, ignore_errors=True)
+            return {"measured": False, "why": f"the fixture run exited {proc.returncode}",
+                    "stderr_tail": proc.stderr[-400:]}
+        cells = sorted((dst / "cells").glob("*.json"))
+        js = [json.loads(c.read_text()) for c in cells]
+        times.append(wall)
+        kernels = sum(float(j.get("wall_s") or 0.0) for j in js)
+        ncells = len(cells)
+        byts = sorted(c.stat().st_size for c in cells)
+        example = js[0]
+        shutil.rmtree(tmp, ignore_errors=True)
+    startup = _interpreter_startup(pkg, env)
+    wall = min(times)
+    harness_total = max(0.0, wall - startup - kernels)
+    e2e_per_cell = harness_total / ncells if ncells else None
+
+    counts = _production_counts(pkg)
+    by_fam = ((data.get("storage") or {}).get("bytes_per_cell_by_family") or {})
+    tot_bytes = sum(int((by_fam.get(f) or {}).get("bytes", 0)) * int(i["cells"])
+                    for f, i in counts["by_family"].items())
+    prod_bytes = int(tot_bytes / counts["cells"]) if counts["cells"] else 0
+    fixture_bytes = byts[len(byts) // 2] if byts else 0
+
+    led_fx = _time_ledger_at_length(pkg, ncells)
+    led_prod = _time_ledger_at_length(pkg, counts["cells"])
+    w_fx = _time_write_and_schema(pkg, _padded(example, fixture_bytes), fixture_bytes)
+    w_prod = _time_write_and_schema(pkg, _padded(example, prod_bytes), prod_bytes)
+
+    fx_comp = led_fx["seconds_per_cell_median"] + w_fx["seconds_per_cell_median"]
+    prod_comp = led_prod["seconds_per_cell_median"] + w_prod["seconds_per_cell_median"]
+    swapped = e2e_per_cell - fx_comp + prod_comp
+    # The end-to-end figure is a difference of two larger numbers (the run's wall time
+    # and the summed kernel time), so on a package whose fixture cells are dominated by
+    # the kernel it can come out below the cost of the components that were timed
+    # directly.  When it does, the directly-timed components are the honest number and
+    # the difference is measurement noise; the total is floored at them and said so.
+    priced = max(swapped, prod_comp)
+    return {
+        "measured": True,
+        "end_to_end": {
+            "cells": ncells, "runs": len(times),
+            "wall_seconds_total": wall,
+            "interpreter_and_import_seconds": startup,
+            "kernel_seconds_total_from_cell_files": kernels,
+            "harness_seconds_total": harness_total,
+            "harness_seconds_per_cell": e2e_per_cell,
+            "fixture_cell_bytes_median": fixture_bytes,
+            "how": ("a real `run --fixture` of this package through common.cli, on a copy of the fixture run "
+                    "root with cells/ and the ledger removed; harness = wall - interpreter start-up - the "
+                    "summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)"),
+            "includes_once_per_run_costs": ("the matrix write, protocol snapshot, code provenance and the "
+                                            "interrupted sweep happen once per run and are amortised over "
+                                            "%d fixture cells here, so this per-cell figure OVERSTATES the "
+                                            "production one" % (ncells or 0)),
+        },
+        "components": {
+            "ledger_at_fixture_length": led_fx,
+            "ledger_at_production_length": led_prod,
+            "write_and_schema_at_fixture_payload": w_fx,
+            "write_and_schema_at_production_payload": w_prod,
+            "production_bytes_per_cell_weighted": prod_bytes,
+            "note": ("the ledger figure is start+complete for one cell under the advisory flock; the write "
+                     "figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256"),
+        },
+        "harness_seconds_per_cell": priced,
+        "harness_seconds_per_cell_swapped_to_production_scale": swapped,
+        "components_seconds_per_cell_at_production_scale": prod_comp,
+        "floored_at_components": bool(priced > swapped),
+        "how": ("end-to-end harness seconds per cell measured on the fixture, with the scale-dependent "
+                "components (ledger length, result-file bytes) swapped from the fixture scale to the "
+                "production scale: %.5g - %.5g + %.5g = %.5g%s"
+                % (e2e_per_cell, fx_comp, prod_comp, swapped,
+                   ("; that is below the %.5g s of components timed directly at the production scale "
+                    "(the end-to-end figure is a difference of two larger numbers), so the directly-timed "
+                    "components are used instead" % prod_comp) if priced > swapped else "")),
+        "serial_seconds_per_cell": led_prod["seconds_per_cell_median"],
+        "serial_note": ("ledger start+complete run under an advisory flock on one lock file, so they do not "
+                        "parallelise: this is a floor on the wall time that no worker count beats"),
+        "per_worker_interpreter_startup_seconds_measured": startup,
+        "per_worker_note": ("the interpreter start-up and package import above is paid once per worker "
+                            "PROCESS, not once per cell; a scheduler that starts a fresh process per cell "
+                            "pays it on every cell instead, which would add %.4g s x %d cells = %.4g CPU-s"
+                            % (startup, counts["cells"], startup * counts["cells"])),
+    }
 
 
 def _interpreter_startup(pkg: str, env: dict) -> float:
@@ -1133,8 +1438,10 @@ def measure_setup(args) -> dict:
     """Transfer size and the receiving side's first two steps, measured."""
     out = {"transfer": {"archive_bytes": None, "note": "the wall time of the transfer depends on the link, which is "
                                                        "UNKNOWN; only the size is a fact. Measured on a build of "
-                                                       "this handoff; successive builds differ by a few kB "
-                                                       "(timestamps and the report file)."}}
+                                                       "this handoff; successive builds differ by a few tens "
+                                                       "of kB (timestamps, this report and the estimate "
+                                                       "files) - two builds of the same tree measured here "
+                                                       "were 7 702 123 and 7 764 484 bytes."}}
     tars = sorted(Path("/tmp").glob("hf*/*.tar.gz")) + sorted(Path("/tmp").glob("*.tar.gz"))
     if args.handoff_tar:
         tars = [Path(args.handoff_tar)] + tars
@@ -1200,8 +1507,10 @@ PROBES = {
     ("t19s", "paired"): lambda s: _t19s_paired_call(int(s)),
     ("t19s", "det"): lambda s: _t19s_det_call(int(s)),
     ("t20s", "fit"): lambda s: _t20s_fit_call(int(s)),
-    ("t21s", "data_hi"): lambda s: _t21s_data_call(int(s), "hi"),
-    ("t21s", "data_lo"): lambda s: _t21s_data_call(int(s), "lo"),
+    ("t21s", "data_correlated_hi"): lambda s: _t21s_data_call(int(s), "hi", "correlated"),
+    ("t21s", "data_correlated_lo"): lambda s: _t21s_data_call(int(s), "lo", "correlated"),
+    ("t21s", "data_orthogonal_hi"): lambda s: _t21s_data_call(int(s), "hi", "orthogonal"),
+    ("t21s", "data_orthogonal_lo"): lambda s: _t21s_data_call(int(s), "lo", "orthogonal"),
     ("t22s", "replicate"): lambda s: _t22s_replicate_call(int(s), scenario="null-complete-n4-phi0.6-tau0.01"),
     ("cresst_s", "robust"): lambda s: _cresst_robust_call(int(s)),
 }
@@ -1214,11 +1523,61 @@ def run_probe(pkg: str, kernel: str, size: str, args) -> int:
         A = RU._archive()
         fn = lambda: AR.recompute_interval("headline", A["clusters"], replicates=int(float(size)),
                                            seed=AR.ARCHIVE_SEED)
+    elif (pkg, kernel) == ("cresst_s", "cluster_report"):
+        from experiments.mlst2026.successor_20260913.cresst_s import archive_recompute as AR, runner as RU
+        RU.set_roots(archive_root=args.ms_evidence)
+        P = protocol("cresst_s")
+        fn = lambda: RU._cell_cluster_report(
+            P, {"cell_id": "b", "role": "control", "seed": None,
+                "params": {"analysis": "cluster_report", "report": "per_channel_effects",
+                           "replicates": int(float(size)), "archive_seed": AR.ARCHIVE_SEED,
+                           "scale": "production"}})
+    elif (pkg, kernel) == ("cresst_s", "calibration"):
+        import dataclasses
+        from experiments.mlst2026.successor_20260913.cresst_s import calibration as CB, runner as RU
+        RU.set_roots(archive_root=args.ms_evidence)
+        P = protocol("cresst_s")
+        ref = RU._calibration_designs(P, "confirmation", "production")[0]
+        d = dataclasses.replace(ref, mc_replicates=int(float(size)))
+        fn = lambda: CB.coverage(d, seed=1)
     else:
         fn = PROBES[(pkg, kernel)](float(size))
     m = B.peak_memory(fn)
     print(json.dumps({"package": pkg, "kernel": kernel, "size": float(size), **m}))
     return 0
+
+
+#: kernel name -> the (pkg, kernel) key of the subprocess probe that measures it
+MEMORY_PROBE_FOR = {
+    "t19s": {"paired_cell": "paired", "deterministic_cell": "det"},
+    "t20s": {"fit_cell": "fit"},
+    "t21s": {"data_cell_correlated_hi": "data_correlated_hi", "data_cell_correlated_lo": "data_correlated_lo",
+             "data_cell_orthogonal_hi": "data_orthogonal_hi", "data_cell_orthogonal_lo": "data_orthogonal_lo"},
+    "t22s": {"pipeline_replicate": "replicate"},
+    "cresst_s": {"empca_robustness": "robust", "archive_interval": "interval",
+                 "cluster_report": "cluster_report", "calibration_coverage": "calibration"},
+}
+
+
+def remeasure_memory(pkg: str, doc: dict, args) -> None:
+    """Re-run every peak-memory point of ``pkg`` in a fresh subprocess and patch it in.
+
+    Exists because the numbers it replaces were wrong in a way that only showed up
+    when the driver got bigger: ``ru_maxrss`` is inherited across ``fork``, so a probe
+    spawned after the driver had already run two packages reported the driver's
+    high-water mark, identically, for every kernel.  ``common.benchmark.peak_memory``
+    now reads ``VmHWM``, which ``execve`` resets."""
+    for kname, k in (doc.get("kernels") or {}).items():
+        key = (MEMORY_PROBE_FOR.get(pkg) or {}).get(kname)
+        for row in k.get("points", []):
+            if not row.get("memory"):
+                continue
+            if key is None:
+                _log(f"{pkg}.{kname}: no subprocess probe; leaving the in-process point alone")
+                continue
+            _log(f"{pkg}.{kname} at {row['size']:g}: re-probing peak memory in a fresh process")
+            row["memory"] = _mem_probe(pkg, key)(row["size"])
+            row["memory_measured_in"] = "subprocess"
 
 
 BENCH = {"t19s": bench_t19s, "t20s": bench_t20s, "t21s": bench_t21s, "t22s": bench_t22s,
@@ -1238,13 +1597,28 @@ def main(argv=None) -> int:
                     help="re-measure only the per-family production cell-file bytes and patch them in")
     ap.add_argument("--setup-only", action="store_true",
                     help="re-measure transfer/setup and patch it into the existing BENCHMARK.json files")
+    ap.add_argument("--harness-only", action="store_true",
+                    help="re-measure only the per-cell CLI harness cost and patch it in")
+    ap.add_argument("--memory-only", action="store_true",
+                    help="re-measure only the per-size peak-memory probes and patch them in")
+    ap.add_argument("--reuse-setup", action="store_true",
+                    help="carry setup_and_transfer over from the existing BENCHMARK.json instead of "
+                         "re-timing verify_handoff (the setup measurement does not depend on the package)")
     args = ap.parse_args(argv)
     global _ARGS
     _ARGS = args
     if args.probe:
         return run_probe(args.probe[0], args.probe[1], args.probe[2], args)
-    setup = measure_setup(args)
-    if args.setup_only or args.storage_only:
+    patch_only = args.setup_only or args.storage_only or args.harness_only or args.memory_only
+    # measure_setup is slow (it times verify_handoff twice); skip it for the patch
+    # modes that do not consume it
+    if args.reuse_setup and not patch_only:
+        first = HERE / [q.strip() for q in args.packages.split(",") if q.strip()][0] / "BENCHMARK.json"
+        setup = json.loads(first.read_text())["setup_and_transfer"]
+        _log(f"reusing the setup/transfer measurement already in {first}")
+    else:
+        setup = measure_setup(args) if (args.setup_only or not patch_only) else None
+    if patch_only:
         for pkg in [p.strip() for p in args.packages.split(",") if p.strip()]:
             p = HERE / pkg / "BENCHMARK.json"
             doc = json.loads(p.read_text())
@@ -1252,6 +1626,10 @@ def main(argv=None) -> int:
                 doc["setup_and_transfer"] = setup
             if args.storage_only:
                 doc["storage"]["bytes_per_cell_by_family"] = STORAGE_PROBES[pkg](args, doc)
+            if args.harness_only:
+                doc["harness"] = measure_harness(pkg, Path(args.fixture_roots) / pkg, args, doc)
+            if args.memory_only:
+                remeasure_memory(pkg, doc, args)
             p.write_text(json.dumps(doc, indent=1, sort_keys=True, default=str) + "\n")
             _log(f"{pkg}: patched {p}")
         return 0
@@ -1264,6 +1642,8 @@ def main(argv=None) -> int:
         data["reduce"] = measure_reduce_and_storage(pkg, root, args)
         _log(f"{pkg}: measuring production cell-file bytes by family")
         data["storage"]["bytes_per_cell_by_family"] = STORAGE_PROBES[pkg](args, data)
+        _log(f"{pkg}: measuring the per-cell CLI harness (protocol load, ledger, write, schema)")
+        data["harness"] = measure_harness(pkg, root, args, data)
         doc = {"schema": "mlst-local-package-benchmark/1", "package": pkg,
                "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "hardware": B.HARDWARE_BLOCK, "thread_settings": B.thread_settings_observed(),

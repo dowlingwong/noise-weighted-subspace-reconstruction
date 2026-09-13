@@ -85,7 +85,13 @@ def test_estimate_from_fixture_timings(full_fixture_root):
     est = json.loads((full_fixture_root / "RESOURCE_ESTIMATE.json").read_text())
     assert est["unmeasured_families"] == []
     proj = est["production_projection"]
-    assert proj["counts"]["fits"] == 2496 and proj["unmeasured_families"] == [] and proj["total_cpu_seconds_point"] > 0
+    # m8: cell compute only, under a name that cannot be confused with the file's
+    # top-level total (which is cell compute + harness + reduction)
+    assert "total_cpu_seconds_point" not in proj and "total_cpu_hours_point" not in proj
+    assert proj["counts"]["fits"] == 2496 and proj["unmeasured_families"] == []
+    assert proj["cell_compute_cpu_seconds_point"] > 0
+    assert proj["total_cpu_seconds_point_including_harness_and_reduction"] == pytest.approx(
+        proj["cell_compute_cpu_seconds_point"] + proj["harness_seconds"] + proj["reduction_seconds"])
     assert proj["retry_headroom"]["fits_headroom_under_cap"] == 254
 
 

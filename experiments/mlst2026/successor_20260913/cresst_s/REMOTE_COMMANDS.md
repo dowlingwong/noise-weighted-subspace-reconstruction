@@ -51,9 +51,13 @@ still runs.  A root covering every enumerated cell reduces without it (section 4
 
 This executes the 1 algebraic and 20 control cells: the point-estimate recomputation, the
 ten interval constructions at the archived 10 000 replicates, the five cluster reports and
-the six controls.  Scaled from the fixture timings this is about **45 CPU-seconds** for the
-archive families plus about 11 for the calibration control; the same 21 cells were actually
-run locally in **53 s wall** on one core.  It fits nothing except the 6 fits of the
+the six controls.  **Measured** at these exact production configurations on the real
+archived inputs (`BENCHMARK.json`, and `RESOURCE_REPORT.md` for the tables): archive point
+0.0003 s, the ten intervals 10 x 2.02 = **20.2 CPU-s**, the five cluster reports
+5 x 4.76 = **23.8 CPU-s**, the four science controls 4 x 0.498 = **2.0 CPU-s**, the
+calibration control **7.3 CPU-s** — **53.3 CPU-seconds** of cell compute for the 21 cells,
+plus about 0.1 s of per-cell CLI harness.  These are measurements of the production cells,
+not a fixture time scaled by a declared factor.  It fits nothing except the 6 fits of the
 estimator control.
 
 Acceptance: `REDUCED.json` must show
@@ -86,8 +90,9 @@ pilot first is still the recommended order, because a pilot failure is cheaper.
 `--allow-partial` is required here only because these commands deliberately run a subset
 of the matrix; a full `<RUN_ROOT>` covering every enumerated cell reduces without it.
 
-Cost scaled from the fixture timings: pilot about **25 CPU-seconds**, confirmation about
-**64 CPU-seconds**, control about **11 CPU-seconds**.  Zero fits.
+Cost, **measured** at the production replicate budgets (all 24 designs were run):
+pilot 12 x 1.41 = **16.9 CPU-seconds**, confirmation 12 x 3.69 = **44.3 CPU-seconds**,
+control **7.3 CPU-seconds**.  Zero fits.
 
 ## 3. Robustness grid (part C) — needs data that does not exist here
 
@@ -116,10 +121,19 @@ python -m $PKG reduce --protocol $PROTO --out <RUN_ROOT>/robustness \
     --archive-root <ARCHIVE_ROOT> --allow-partial
 ```
 
-350 cells, 1050 fits, about **405 CPU-seconds** at the declared production dimensions
-(400 events x 128 samples per channel).  That estimate is a *scaling* of synthetic-fixture
-timings by the declared per-family factor; it is not a measurement on real CRESST pulses
-and will have to be re-measured on the first channel that runs.
+350 cells, 1050 fits, **118 CPU-seconds** at the declared production dimensions
+(400 events x 128 samples per channel): 315 confirmation cells x 0.322 s = 101.4 CPU-s and
+35 pilot cells x 0.481 s = 16.8 CPU-s.  Those are **measurements of the real
+`fit_and_score` at the production dimensions**, made on a synthetic pulse root written by
+the package's own `write_fixture_data_root` because the raw CRESST traces are not in this
+container; they are labelled `measured-on-substitute` throughout, and section 4 says the
+same thing.  EMPCA runs a fixed `niter = 25`, so the cost is set by the dimensions and the
+iteration count rather than by the values, and it would move roughly linearly in `n_train`
+if a real channel carries a different event count — which is worth re-checking on the
+first channel that runs, though it is a check on a measurement, not a replacement for a
+guess.  (The superseded flat estimate for this grid was about 405 CPU-seconds; the
+protocol's `fixture_to_production_scale` survives only as `cross_check_flat_fixture_scale`
+in `RESOURCE_ESTIMATE.json`.)
 
 The grid is **not part of the current claim**.  Executing it produces paired
 rank/shrinkage/time-cut contrasts within each (channel, time cut) group; it does not
@@ -135,15 +149,21 @@ python -m $PKG reduce   --protocol $PROTO --out <RUN_ROOT>/all --archive-root <A
 python -m $PKG estimate --protocol $PROTO --out <RUN_ROOT>/all --archive-root <ARCHIVE_ROOT>
 ```
 
-Total **measured** estimate: **231 CPU-seconds** single-core (range 209–267), plus 0.9 s
-of reduce.  Every family except the robustness grid was benchmarked at its exact
-production configuration on the real archived inputs; the robustness cells cannot be
-executed here at all (no CRESST raw pulse traces in this container) and were measured on
-a synthetic pulse root written at the production dimensions, labelled
-`measured-on-substitute`.  Peak memory 170 MB RSS per worker, output about 2.0 MB.  See
+Total **measured** estimate: **235 CPU-seconds** single-core (range 211–273).  That total
+already contains everything: 232.7 s of cell compute, 1.8 s of `common/cli.py` harness
+(ledger append under `flock`, schema and fit checks, atomic result write) and 0.61 s of
+reduce — the three are not to be added to it again.  Every family except the robustness
+grid was benchmarked at its exact production configuration on the real archived inputs;
+the robustness cells cannot be executed here at all (no CRESST raw pulse traces in this
+container) and were measured on a synthetic pulse root written at the production
+dimensions, labelled `measured-on-substitute`.  Peak memory 202 MB RSS per worker
+(measured in a fresh subprocess, `cluster_report` at 10 000 replicates), output about
+2.0 MB.  Wall time 0.065 h at one worker, 0.0083 h at eight, 0.0022 h at thirty-two, each
+**conditional** on that many cores existing; 0.75 s of that is a serial floor (ledger
+appends plus the single-process reduce) that no worker count goes below.  See
 `RESOURCE_REPORT.md` for the benchmark tables and `BENCHMARK.json` for the raw timings.
-The protocol's flat `fixture_to_production_scale` gives 584 CPU-s, 2.5× the measurement;
-it survives in `RESOURCE_ESTIMATE.json` only as `cross_check_flat_fixture_scale`.
+The protocol's flat `fixture_to_production_scale` gives 584 CPU-s, 2.5× the measured
+total; it survives in `RESOURCE_ESTIMATE.json` only as `cross_check_flat_fixture_scale`.
 
 ## 5. Development fixture (never citable)
 

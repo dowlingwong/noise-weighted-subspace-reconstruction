@@ -11,9 +11,22 @@ call sites** rather than restated from the same constant that produced the
 declaration.  This module is that observation.  A cell run is wrapped in a
 :func:`counting` region by ``common.cli``; the packages call :func:`count_fit`
 (or use the :func:`counted` decorator) where an estimator is actually invoked,
-and report :func:`observed` as the cell's fit count.  ``common.cli`` then
-compares three numbers that no longer share a source: the count declared in the
-matrix, the count the cell reports, and the count this module instrumented.
+and report the cell's fit count.  ``common.cli`` then compares three numbers:
+the count declared in the matrix, the count the cell reports, and the count this
+module instrumented.
+
+Only two of those three are independent, and the load-bearing comparison is the
+one against the **matrix declaration**.  Packages differ in how they produce the
+reported count: ``t19s``, ``t21s`` and ``t22s`` build it from their own per-cell
+bookkeeping, so all three numbers have separate sources there; ``t20s`` and
+``cresst_s`` return :func:`observed` itself as the reported count, which makes
+the reported-versus-instrumented half of the check a tautology in those two
+packages.  What still bites in every package is that the instrumented count must
+equal the number the matrix declared before the cell ran — that is the number a
+scientific claim is priced and capped against, and it comes from a different
+source in all five packages.  Do not weaken the reported-versus-instrumented
+check on the strength of that: it is what catches a package that starts
+restating a constant.
 
 Counting is per-thread and re-entrant.  Outside a :func:`counting` region
 :func:`count_fit` is a no-op, so an instrumented estimator called from a test,

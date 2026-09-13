@@ -88,17 +88,25 @@ Measured with the package's own code at d = 32, 64, 128 and 256 (N = 2d), so the
 d = 256 point is one production paired cell — see `RESOURCE_REPORT.md` and
 `BENCHMARK.json` for the table and the fit:
 
-* paired cell 7.10 s (measured, min 7.05 / max 7.12 over 3 repeats), × 120 = 852 CPU-s;
-* deterministic cell 0.302 s (measured at d = 256), × 15 = 4.53 CPU-s; the 2-D
+* paired cell 6.93 s (measured, min 6.88 / max 6.96 over 3 repeats), × 120 = 831 CPU-s;
+* deterministic cell 0.305 s (measured at d = 256), × 15 = 4.57 CPU-s; the 2-D
   closed-form cell 0.0018 s;
-* reduce 0.0495 s per cell (measured), 7.7 CPU-s over the pilot and final reduces;
-* **total 865 CPU-s (range 858–867)**, i.e. 0.24 wall-hours at one worker, 0.032 at
-  eight, 0.0096 at thirty-two — each **conditional** on that many cores existing at a
-  speed comparable to the benchmark Xeon, which this round does not know;
-* peak memory 183 MB RSS per worker (measured in a fresh subprocess at d = 256);
+* per-cell `common/cli.py` harness 4.85 ms (measured end to end through the CLI:
+  ledger append under `flock`, schema and fit checks, atomic result write with fsync and
+  sha256), × 136 = 0.66 CPU-s;
+* reduce 0.0477 s per cell (measured), 7.44 CPU-s over the pilot and final reduces;
+* **total 844 CPU-s (range 839–847)**, i.e. 0.234 wall-hours at one worker, 0.031 at
+  eight, 0.0093 at thirty-two — each **conditional** on that many cores existing at a
+  speed comparable to the benchmark Xeon, which this round does not know.  The wall model
+  is `wall = (cell_compute + parallel_harness)/W + serial_ledger + reduction`; the serial
+  floor here is 7.5 s (0.002 h), which is 22% of the 32-worker figure;
+* peak memory 183 MB RSS per worker (VmHWM, measured in a fresh subprocess at d = 256);
 * output 10.6 MB of JSON (measured bytes per production cell × the cell count).
 
 `$M estimate-production --protocol $PROTO --out <FIXTURE_ROOT>` writes
 `RESOURCE_ESTIMATE_PRODUCTION.json`, the same measured projection with the
-pilot/confirmation/deterministic split.  Retry headroom: 960 fits under the cap =
-30 paired cells, i.e. about 213 CPU-s if all of it is used.
+pilot/confirmation/deterministic split; it uses the same reduce, harness and wall-time
+helpers as `estimate`, so the two files cannot disagree about this package.  Its
+`total_cpu_seconds_*` keys are **cell compute only** and it names the combined figure
+`total_with_harness_and_reduction_cpu_seconds_point`.  Retry headroom: 960 fits under the
+cap = 30 paired cells, i.e. about 208 CPU-s if all of it is used.

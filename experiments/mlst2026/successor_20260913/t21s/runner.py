@@ -694,8 +694,15 @@ def _project_estimate_to_production(argv) -> None:
         total += per * info["cells"]
     est["production_projection"] = {
         "matrix_sha256": prod.matrix_hash(), "counts": counts, "families": fams, "unmeasured_families": unmeasured,
-        "total_cpu_seconds_point": total, "total_cpu_hours_point": total / 3600.0,
+        # NOT the same quantity as the file's top-level total_cpu_seconds_point /
+        # total_cpu_hours_point, which add the harness and the reduction to this
+        "cell_compute_cpu_seconds_point": total, "cell_compute_cpu_hours_point": total / 3600.0,
+        "key_name_note": ("this block prices CELL COMPUTE only; the file's top-level "
+                          "'total_cpu_seconds_point' is cell compute + harness + reduction.  The two are "
+                          "deliberately named differently so they cannot be read as the same number."),
+        "harness_seconds": est.get("harness_work", {}).get("total_seconds_projected"),
         "reduction_seconds": est.get("reduction_work", {}).get("total_seconds_projected"),
+        "total_cpu_seconds_point_including_harness_and_reduction": est.get("total_cpu_seconds_point"),
         "wall_time_hours_by_workers": est.get("wall_time_hours_by_workers"),
         "retry_headroom": {"fits_planned": counts["fits"], "cap": P["budget"]["estimator_fits_cap"],
                            "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - counts["fits"],
@@ -705,7 +712,7 @@ def _project_estimate_to_production(argv) -> None:
                  "cost is listed separately because the per-cell figures exclude it"),
     }
     write_json_atomic(path, est)
-    print(json.dumps({"production_projection": {k: est["production_projection"][k] for k in ("total_cpu_seconds_point", "total_cpu_hours_point", "unmeasured_families", "retry_headroom")}}, indent=1))
+    print(json.dumps({"production_projection": {k: est["production_projection"][k] for k in ("cell_compute_cpu_seconds_point", "cell_compute_cpu_hours_point", "harness_seconds", "reduction_seconds", "total_cpu_seconds_point_including_harness_and_reduction", "unmeasured_families", "retry_headroom")}}, indent=1))
 
 
 if __name__ == "__main__":

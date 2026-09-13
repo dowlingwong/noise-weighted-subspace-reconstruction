@@ -60,8 +60,11 @@ python -m experiments.mlst2026.successor_20260913.t22s run --protocol $PROTO --o
 ```
 
 Refused (exit 6) if `FROZEN_CALIBRATION.json` is absent; each cell records the
-freeze's digest.  Resume behaviour as in step 1.  690 cells; the resource
-estimate (below) gives the expected CPU time.
+freeze's digest.  Resume behaviour as in step 1.  690 cells.  The expected CPU time is in
+`RESOURCE_ESTIMATE.json` and in `RESOURCE_REPORT.md`, not in this file: measured, the 690
+confirmation cells are 327 000 CPU-seconds at the archived replicate setting, which is an
+upper bound because the pilot may freeze the cheaper setting (measured ratio
+reduced/archived 0.47).
 
 ## 4. Final reduce and estimate
 
@@ -91,6 +94,12 @@ one run root over several workers; the historical T22 runs were serial and that
 fallback is the mode this document prescribes.  If more throughput is needed,
 use separate run roots per worker only with a separate protocol amendment that
 declares how their ledgers are merged; this document does not authorise it.
+
+At one worker the ledger's serialisation costs nothing extra, and it is small in any
+case: the measured ledger append is 0.39 ms per cell, 0.29 CPU-seconds over the 727 cells,
+against 337 533 CPU-seconds of cell compute.  The whole per-cell harness (ledger, schema
+and fit checks, and the ~1 MB atomic result write) is 23.1 ms per cell, 16.8 CPU-seconds.
+Neither changes the shape of this package's cost; the 723 MB of output does.
 
 ## What is NOT run remotely under this protocol
 

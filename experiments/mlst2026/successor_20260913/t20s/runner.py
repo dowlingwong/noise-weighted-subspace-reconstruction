@@ -554,7 +554,7 @@ def _project_estimate_to_production(argv) -> None:
     P = load_protocol(args.protocol)
     est = json.loads(path.read_text())
     prod = cli._production_only(build_matrix(P, False)).counts()
-    proj = {"families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": [], "note":
+    proj = {"families": {}, "cell_compute_cpu_seconds_point": 0.0, "unmeasured_families": [], "note":
             "production matrix counts x the MEASURED production seconds per cell (BENCHMARK.json: every one "
             "of the six production N was run at d = 256, single-threaded BLAS). This is not a fixture time "
             "times a declared constant. Role 'development' is excluded, so the total and 'production_counts' "
@@ -572,10 +572,17 @@ def _project_estimate_to_production(argv) -> None:
                                  "production_seconds_per_cell_low": float(e["seconds_per_cell_low"]),
                                  "production_seconds_per_cell_high": float(e["seconds_per_cell_high"]),
                                  "production_cpu_seconds": per * info["cells"]}
-        proj["total_cpu_seconds_point"] += per * info["cells"]
-    proj["total_cpu_hours_point"] = proj["total_cpu_seconds_point"] / 3600.0
+        proj["cell_compute_cpu_seconds_point"] += per * info["cells"]
+    # NOT the same quantity as the file's top-level total_cpu_seconds_point /
+    # total_cpu_hours_point, which add the harness and the reduction to this
+    proj["cell_compute_cpu_hours_point"] = proj["cell_compute_cpu_seconds_point"] / 3600.0
+    proj["key_name_note"] = ("this block prices CELL COMPUTE only; the file's top-level "
+                             "'total_cpu_seconds_point' is cell compute + harness + reduction.  The two are "
+                             "deliberately named differently so they cannot be read as the same number.")
     proj["production_counts"] = prod
+    proj["harness_seconds"] = est.get("harness_work", {}).get("total_seconds_projected")
     proj["reduction_seconds"] = est.get("reduction_work", {}).get("total_seconds_projected")
+    proj["total_cpu_seconds_point_including_harness_and_reduction"] = est.get("total_cpu_seconds_point")
     proj["wall_time_hours_by_workers"] = est.get("wall_time_hours_by_workers")
     wa = est.get("work_accounting", {})
     proj["per_worker_cold_population_reference_seconds"] = wa.get(
@@ -592,7 +599,7 @@ def _project_estimate_to_production(argv) -> None:
     est["estimate_matrix_note"] = ("'families' and the cpu_seconds block above already price the PRODUCTION "
                                    "matrix; 'production_projection' restates the same total per family")
     write_json_atomic(path, est)
-    print(json.dumps({"production_projection": {k: proj[k] for k in ("total_cpu_seconds_point", "total_cpu_hours_point", "retry_allowance", "unmeasured_families")}}, indent=1))
+    print(json.dumps({"production_projection": {k: proj[k] for k in ("cell_compute_cpu_seconds_point", "cell_compute_cpu_hours_point", "harness_seconds", "reduction_seconds", "total_cpu_seconds_point_including_harness_and_reduction", "retry_allowance", "unmeasured_families")}}, indent=1))
 
 
 def main(argv=None) -> int:

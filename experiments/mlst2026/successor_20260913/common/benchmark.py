@@ -125,6 +125,23 @@ def timed(fn: Callable[[], object], *, size: float, repeats: int = 3, warmup: in
 # ---------------------------------------------------------------------------
 # memory
 # ---------------------------------------------------------------------------
+def _vm_hwm_bytes() -> int:
+    """This process's resident high-water mark, in bytes.
+
+    ``/proc/self/status: VmHWM`` is per address space and is reset by ``execve``,
+    unlike ``ru_maxrss``, which Linux inherits across ``fork`` and therefore
+    reports the parent's peak in a freshly spawned child.  Falls back to
+    ``ru_maxrss`` where ``/proc`` is not readable, and says so by returning the
+    same number the caller would otherwise have had."""
+    try:
+        for line in open("/proc/self/status"):
+            if line.startswith("VmHWM:"):
+                return int(line.split()[1]) * 1024
+    except OSError:
+        pass
+    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024
+
+
 def peak_memory(fn: Callable[[], object]) -> dict:
     """Peak memory of one call, by two independent measures.
 
@@ -134,27 +151,41 @@ def peak_memory(fn: Callable[[], object]) -> dict:
         library takes with plain ``malloc`` (some BLAS workspaces) is not.
 
     ``rss_high_water_bytes``
-        ``ru_maxrss`` of the whole process after the call.  It is a high-water
-        mark that never decreases, so inside a long-lived process it reports the
-        largest thing that process ever did, not this call.  Use
-        :func:`probe_peak_memory_subprocess` when the number has to be about one
-        size only.
+        this process's resident high-water mark after the call, read from
+        ``/proc/self/status: VmHWM``.  It never decreases, so inside a long-lived
+        process it reports the largest thing that process ever did, not this call.
+        Use :func:`probe_peak_memory_subprocess` when the number has to be about
+        one size only.
+
+    ``VmHWM`` and not ``ru_maxrss``: on Linux ``ru_maxrss`` is **inherited across
+    ``fork``**, so a child spawned by a benchmark driver that is already holding
+    300 MB reports at least 300 MB however small the child is.  That silently
+    turned every subprocess memory probe here into a measurement of the driver.
+    ``VmHWM`` belongs to the address space ``execve`` created and is therefore the
+    number a per-size probe needs.  ``ru_maxrss`` is still reported, beside it,
+    labelled for what it is.
     """
     tracemalloc.start()
-    rss_before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+    rss_before = _vm_hwm_bytes()
     try:
         fn()
         _, peak = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
-    rss_after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
+    rss_after = _vm_hwm_bytes()
+    ru = int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * 1024
     return {"tracemalloc_peak_bytes": int(peak),
             "tracemalloc_is": "peak Python-allocator bytes for this call only",
             "rss_high_water_bytes": int(rss_after),
             "rss_before_bytes": int(rss_before),
             "rss_delta_bytes": int(rss_after - rss_before),
-            "rss_is": ("ru_maxrss of the WHOLE process (high-water mark, never decreases); "
-                       "meaningful per size only when measured in a fresh subprocess")}
+            "ru_maxrss_bytes": ru,
+            "ru_maxrss_is": ("getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a "
+                             "process spawned by a benchmark driver it is at least the driver's own "
+                             "high-water mark and says nothing about this call.  Kept for the record; "
+                             "rss_high_water_bytes is the one to read"),
+            "rss_is": ("VmHWM of THIS process (resident high-water mark, never decreases); meaningful "
+                       "per size only when measured in a fresh subprocess")}
 
 
 def probe_peak_memory_subprocess(argv: Sequence[str], *, env: dict | None = None,
@@ -336,27 +367,30 @@ def scaling_benchmark(name: str, make_call: Callable[[float], Callable[[], objec
 # small helpers used by the drivers and by cli._estimate
 # ---------------------------------------------------------------------------
 def wall_time_range(cpu_seconds_low: float, cpu_seconds_high: float, workers: Iterable[int],
-                    *, efficiency: float = 1.0) -> dict:
-    """Perfectly-parallel wall time at each worker count.  The assumption is
-    stated in the output, not buried: the cells of every package are independent
-    processes that share nothing but the ledger, so the only modelled loss is
-    ``efficiency`` (1.0 = none) and the serial ledger append."""
+                    *, efficiency: float = 1.0, serial_seconds: float = 0.0,
+                    reduction_seconds: float = 0.0) -> dict:
+    """Wall time at each worker count:
+
+        wall = parallel_cpu_seconds / (W * efficiency) + serial_seconds + reduction_seconds
+
+    ``cpu_seconds_low/high`` are the part that parallelises over cells.
+    ``serial_seconds`` is the part that does not: every worker appends to one
+    execution ledger under one advisory ``flock``, so those appends are serialised
+    however many workers there are, and they are a floor on the wall time.
+    ``reduction_seconds`` is the single-process reduce.  Both default to 0, which
+    makes the result the perfectly-parallel bound and says so by omission - a
+    caller that has measured them should pass them, and ``common.cli._estimate``
+    does.  ``efficiency`` (1.0 = none) is the only other modelled loss.
+    """
     out = {}
     for w in workers:
         w = int(w)
+        floor = float(serial_seconds) + float(reduction_seconds)
         out[str(w)] = {"workers": w,
-                       "hours_low": float(cpu_seconds_low / (w * efficiency) / 3600.0),
-                       "hours_high": float(cpu_seconds_high / (w * efficiency) / 3600.0)}
+                       "hours_low": float(cpu_seconds_low / (w * efficiency) / 3600.0 + floor / 3600.0),
+                       "hours_high": float(cpu_seconds_high / (w * efficiency) / 3600.0 + floor / 3600.0),
+                       "serial_floor_hours": float(floor / 3600.0)}
     return out
-
-
-def dir_bytes(path) -> int:
-    from pathlib import Path
-    total = 0
-    for p in Path(path).rglob("*"):
-        if p.is_file():
-            total += p.stat().st_size
-    return total
 
 
 def json_bytes(obj) -> int:

@@ -222,6 +222,17 @@ class NoiseGenerator:
                     item["integrated_power_after_global_scaling"] = (
                         item["integrated_power"] * factor
                     )
+            else:
+                # Absolute composite: the component scales carry the physical
+                # units; ``psd_scale`` is the single multiplier on that density
+                # (1.0 by default). ``noise_power`` is not consulted here --
+                # NoiseConfig rejects non-unity values in this mode.
+                if self.psd_scale != 1.0:
+                    density = density * self.psd_scale
+                    for item in component_metadata:
+                        item["integrated_power_after_global_scaling"] = (
+                            item["integrated_power"] * self.psd_scale
+                        )
         else:
             if self.psd_exponent is None:
                 shape = np.asarray(self.spectrum(frequencies), dtype=float)
@@ -244,6 +255,8 @@ class NoiseGenerator:
             "noise_type": self.noise_type,
             "requested_noise_power": self.psd_area,
             "noise_power": self.psd_area,  # compatibility alias
+            "level_knob": self.config_model.level_knob,
+            "psd_scale": self.psd_scale,
             "power_definition": self.power_definition,
             "custom_psd_scaling": (
                 self.custom_psd_scaling if self.noise_type == "custom" else None

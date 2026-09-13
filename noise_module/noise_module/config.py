@@ -106,6 +106,30 @@ class NoiseConfig(ConfigModel):
     components: list[dict[str, Any]] = field(default_factory=list)
     composite_psd_scaling: str = "normalize"
 
+    @property
+    def level_knob(self) -> str:
+        """Name of the config field that sets the overall noise level.
+
+        ``noise_power`` for normalized analytic/composite/custom shapes;
+        ``psd_scale`` for absolute composite spectra and for custom PSDs in
+        ``scale`` mode. Wrappers that vary the level (piecewise stationarity,
+        evolutionary synthesis) must scale this field, not ``noise_power``
+        unconditionally.
+        """
+        is_composite = (
+            not isinstance(self.noise_type, str)
+            or str(self.noise_type).lower() == "composite"
+        )
+        if is_composite:
+            return "psd_scale" if self.composite_psd_scaling == "absolute" else "noise_power"
+        analytic = {"white", "blue", "violet", "brownian", "pink"}
+        if str(self.noise_type).lower() in analytic:
+            return "noise_power"
+        # custom PSD file
+        if self.custom_psd_scaling == "normalize":
+            return "noise_power"
+        return "psd_scale"
+
     def __post_init__(self) -> None:
         self.sampling_frequency = _finite("sampling_frequency", self.sampling_frequency)
         self.noise_power = _finite("noise_power", self.noise_power)
@@ -136,6 +160,24 @@ class NoiseConfig(ConfigModel):
             raise ValueError("custom_interpolation must be 'linear' or 'loglog'.")
         if self.composite_psd_scaling not in {"absolute", "normalize"}:
             raise ValueError("composite_psd_scaling must be 'absolute' or 'normalize'.")
+        # Under absolute composite scaling the density is fixed by the component
+        # scales and ``psd_scale``; ``noise_power`` is not consulted. A
+        # non-unity ``noise_power`` would therefore be a silent no-op that the
+        # metadata still reports -- make it loud instead.
+        is_composite = (
+            not isinstance(self.noise_type, str)
+            or str(self.noise_type).lower() == "composite"
+        )
+        if (
+            is_composite
+            and self.composite_psd_scaling == "absolute"
+            and self.noise_power != 1.0
+        ):
+            raise ValueError(
+                "noise_power has no effect when composite_psd_scaling='absolute'; "
+                "keep noise_power=1.0 and use psd_scale (a multiplier on the absolute "
+                "density) or composite_psd_scaling='normalize' to set the level."
+            )
         if self.psd_exponent is not None:
             self.psd_exponent = _finite("psd_exponent", self.psd_exponent)
         nyquist = self.sampling_frequency / 2.0

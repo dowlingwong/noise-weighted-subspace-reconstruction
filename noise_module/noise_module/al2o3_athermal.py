@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import warnings
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -202,7 +203,43 @@ class OptimalFilter:
 
     @property
     def normalization(self) -> float:
+        """``sum |S_k|^2 / P_k`` over the one-sided grid (estimator denominator).
+
+        This is *not* a resolution: ``P_k`` is a density (units^2/Hz) while
+        ``S_k`` is an unnormalised rFFT coefficient. Use
+        ``amplitude_resolution`` for the baseline sigma of ``estimate_amplitude``.
+        """
         return float(np.sum(np.abs(self.template_fft) ** 2 / self.psd))
+
+    @property
+    def rfft_power(self) -> np.ndarray:
+        """Expected noise rFFT-bin power ``E|X_k|^2`` on this grid."""
+        from .NoiseGenerator import NoiseGenerator
+
+        psd = np.where(np.isfinite(self.psd), self.psd, 0.0)
+        power = NoiseGenerator.psd_density_to_rfft_power(
+            psd, self.sampling_frequency, self.template.size
+        )
+        power[~np.isfinite(self.psd)] = np.inf
+        return power
+
+    @property
+    def amplitude_resolution(self) -> float:
+        """Baseline 1-sigma of the amplitude estimator, in template-amplitude units.
+
+        For the Gaussian-ML estimator on a real record,
+        ``sigma_A^-2 = sum_{all N bins} |S_k|^2 / E|X_k|^2``; on the one-sided
+        grid interior bins are counted twice. Verified empirically by
+        ``test_optimal_filter_resolution_matches_empirical_scatter``.
+        """
+        power = self.rfft_power
+        weight = np.abs(self.template_fft) ** 2 / power
+        n = self.template.size
+        upper = n // 2 + 1 - (n + 1) % 2
+        information = float(weight[0] + 2.0 * np.sum(weight[1:upper]) + np.sum(weight[upper:]))
+        if information <= 0.0:
+            return float("inf")
+        return 1.0 / np.sqrt(information)
 
     def estimate_amplitude(self, trace: np.ndarray) -> float:
         trace = np.asarray(trace, dtype=float)
@@ -222,9 +259,14 @@ def build_optimal_filter(
 ) -> OptimalFilter:
     """Build matching PSD and pulse grids for Phase 6.
 
-    The checked-in Phase 2 artifact is used automatically on the default
-    1 MHz/131072 grid. Other grids use the analytic model unless ``psd_file``
-    is supplied explicitly.
+    The Phase 2 artifact (``al2o3_athermal_total_psd.npy``) is used
+    automatically on the default 1 MHz/131072 grid *when it exists on disk*.
+    If it is absent (it is a generated file, produced by
+    ``python -m noise_module.fit_al2o3_athermal``), the analytic Phase 1
+    composite is used instead and a warning is emitted; the two agree to
+    interpolation precision in band, so results are equivalent for
+    practical purposes. Other grids use the analytic model unless
+    ``psd_file`` is supplied explicitly.
     """
     if not 0.0 <= pretrigger_fraction < 1.0:
         raise ValueError("pretrigger_fraction must lie in [0, 1).")
@@ -237,7 +279,18 @@ def build_optimal_filter(
         and n_samples == DEFAULT_SAMPLES
         and sampling_frequency == DEFAULT_SAMPLING_FREQUENCY
     ):
-        selected_psd = PSD_FILE
+        if Path(PSD_FILE).is_file():
+            selected_psd = PSD_FILE
+        else:
+            warnings.warn(
+                f"Phase 2 PSD artifact {PSD_FILE.name} is not present; falling back "
+                "to the analytic Phase 1 composite. Regenerate it with "
+                "`python -m noise_module.fit_al2o3_athermal`.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+    elif selected_psd is not None and not Path(selected_psd).is_file():
+        raise FileNotFoundError(f"psd_file {selected_psd} does not exist.")
     _, psd = noise_generator(
         sampling_frequency=sampling_frequency,
         fit_file=fit_file,

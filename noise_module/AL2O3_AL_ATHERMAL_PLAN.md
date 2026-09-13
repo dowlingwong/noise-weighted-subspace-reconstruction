@@ -116,18 +116,23 @@ sub-steps, in order:
    ```python
    from noise_module import psd_resampling as pr
 
-   # Preferred default: the source data extends to 3e7 Hz while a typical
-   # phonon-detector DAQ Nyquist is far lower (tens of kHz), so noise above
-   # the target Nyquist folds back in unless a hardware anti-alias filter is
-   # known to remove it first.
-   target_f, target_psd, meta = pr.alias_fold_psd_density(
+   # Default since 0.3.1: in-band interpolation, i.e. a readout that is
+   # band-limited before sampling (FLL SQUID of a few MHz + digitizer
+   # decimation filter, or an analogue anti-alias filter as in ECHo). The
+   # readout bandwidth can be stated explicitly with anti_alias_cutoff_hz.
+   target_f, target_psd, meta = pr.inband_resample_psd_density(
        freq, psd_total_native,
        target_sampling_frequency=fs, target_samples=n_samples,
+       allow_extrapolation=True,
    )
 
-   # Only use this instead if an anti-alias filter before digitization is
-   # confirmed, since it silently drops everything above the target Nyquist:
-   # target_f, target_psd, meta = pr.inband_resample_psd_density(...)
+   # Alias folding is opt-in. With no bandwidth limit it folds ~60 copies of
+   # the white SQUID+Johnson floor (30 MHz / 0.5 MHz) into the band: in-band
+   # PSD x60, optimal-filter baseline sigma x5.7 on the default grid. Use it
+   # only when the readout really has no bandwidth limit below 30 MHz, or
+   # with anti_alias_cutoff_hz set to the real readout bandwidth:
+   # target_f, target_psd, meta = pr.alias_fold_psd_density(
+   #     ..., anti_alias_cutoff_hz=readout_bandwidth_hz)
 
    pr.save_psd_density("al2o3_athermal_total_psd.npy", target_f, target_psd)
    ```

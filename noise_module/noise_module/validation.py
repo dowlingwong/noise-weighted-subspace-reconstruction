@@ -158,11 +158,18 @@ def validate_stationary_gaussian(generator, N: int, config: ValidationConfig | N
         [(interior.real / sigma[None, :]).ravel(),
          (interior.imag / sigma[None, :]).ravel()]
     )
-    whitened = coeff / np.sqrt(
-        np.maximum(
-            generator.psd_density_to_rfft_power(target, generator.sampling_frequency, N),
-            1e-30,
-        )
+    # Whiten only on the supported bins. Bins with zero expected power (the DC
+    # bin under power_definition='variance', any cut-off band) carry nothing
+    # but floating-point round-off; dividing that by a 1e-30 floor produced a
+    # huge spurious constant that dominated the whitened series and made the
+    # lag-1 gate fail for any spectrum with a large absolute scale.
+    full_power = generator.psd_density_to_rfft_power(
+        target, generator.sampling_frequency, N
+    )
+    supported_bins = full_power > 0.0
+    whitened = np.zeros_like(coeff)
+    whitened[:, supported_bins] = coeff[:, supported_bins] / np.sqrt(
+        full_power[supported_bins]
     )
     white_time = np.fft.irfft(whitened, n=N, axis=1)
     lag1 = float(np.mean(white_time[:, :-1] * white_time[:, 1:]) / np.var(white_time))

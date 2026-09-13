@@ -253,6 +253,8 @@ class TemporalNoiseWrapper:
                     max(start // hop, 0), len(parameter_schedule) - 1
                 )
                 cfg.update(parameter_schedule[schedule_index])
+            level_scale = cfg.pop("_level_scale", 1.0)
+            level_knob = cfg.pop("_level_knob", "noise_power")
             segment = NoiseGenerator(cfg, rng=spawn_rng(self.rng)).generate_noise(window_samples)
             destination_start = max(start, 0)
             destination_end = min(start + window_samples, N)
@@ -268,6 +270,8 @@ class TemporalNoiseWrapper:
                 "start": start,
                 "end": start + window_samples,
                 "config": cfg,
+                "level_scale": float(level_scale),
+                "level_knob": level_knob,
                 "is_boundary_window": start < 0 or start + window_samples > N,
             }
             if start < 0:
@@ -320,7 +324,11 @@ class TemporalNoiseWrapper:
             )
             metadata = {
                 "segments": [
-                    {"start": start, "end": end, **schedule[i]}
+                    {
+                        "start": start,
+                        "end": end,
+                        **{k.lstrip("_"): v for k, v in schedule[i].items()},
+                    }
                     for i, (start, end) in enumerate(segments)
                 ],
                 "crossfade_len": window//2,
@@ -404,6 +412,8 @@ class TemporalNoiseWrapper:
             seg_len = end - start
             effective_len = seg_len + (crossfade_len if idx > 0 else 0)
             local_cfg = self._sample_local_config(self._extract_base_config(base_generator))
+            level_scale = local_cfg.pop("_level_scale", 1.0)
+            level_knob = local_cfg.pop("_level_knob", "noise_power")
             local_output = self._generate_local_segment(
                 base_generator=base_generator,
                 local_config=local_cfg,
@@ -414,7 +424,14 @@ class TemporalNoiseWrapper:
                 {
                     "start": start,
                     "end": end,
+                    # ``level_scale`` is the power ratio actually applied to the
+                    # segment, through ``level_knob``. ``noise_power`` is kept
+                    # for compatibility and equals the base value whenever the
+                    # level is carried by ``psd_scale``.
+                    "level_scale": float(level_scale),
+                    "level_knob": level_knob,
                     "noise_power": float(local_cfg["noise_power"]),
+                    "psd_scale": float(local_cfg.get("psd_scale", 1.0)),
                     "noise_type": local_cfg["noise_type"],
                     "psd_exponent": local_cfg.get("psd_exponent"),
                 }
@@ -527,14 +544,44 @@ class TemporalNoiseWrapper:
         ends = np.minimum(starts + segment_length, N)
         return [(int(start), int(end)) for start, end in zip(starts, ends) if end > start]
 
+    @staticmethod
+    def _level_knob(base_config: dict[str, Any]) -> str:
+        """Return which field sets the level for this base configuration."""
+        try:
+            from .config import NoiseConfig
+        except ImportError:  # pragma: no cover - script execution fallback
+            from noise_module.noise_module.config import NoiseConfig
+        try:
+            return NoiseConfig.from_mapping(base_config, strict=False).level_knob
+        except Exception:  # non-NoiseConfig base generators (e.g. QP simulator)
+            return "noise_power"
+
     def _sample_local_config(self, base_config: dict[str, Any]) -> dict[str, Any]:
         local_config = deepcopy(base_config)
         if self.config.get("vary_noise_power", True):
-            scale = sample_range(
-                self.rng,
-                self.config.get("noise_power_scale_range", [0.8, 1.2]),
+            scale = float(
+                sample_range(
+                    self.rng,
+                    self.config.get("noise_power_scale_range", [0.8, 1.2]),
+                )
             )
-            local_config["noise_power"] = float(base_config["noise_power"]) * float(scale)
+            knob = self._level_knob(base_config)
+            # ``noise_power_scale_range`` is a *power* (variance) ratio whichever
+            # field carries it: psd_scale multiplies a density, so it takes the
+            # same factor.
+            if knob == "psd_scale":
+                local_config["psd_scale"] = float(base_config.get("psd_scale", 1.0)) * scale
+                if (
+                    isinstance(base_config.get("noise_type"), str)
+                    and str(base_config.get("noise_type")).lower() != "composite"
+                    and base_config.get("custom_psd_scaling", "absolute") == "absolute"
+                ):
+                    # custom PSD files only honour psd_scale in 'scale' mode
+                    local_config["custom_psd_scaling"] = "scale"
+            else:
+                local_config["noise_power"] = float(base_config["noise_power"]) * scale
+            local_config["_level_scale"] = scale
+            local_config["_level_knob"] = knob
         if self.config.get("vary_psd_slope", False):
             noise_type = str(base_config.get("noise_type", "")).lower()
             if noise_type not in self.COLOR_EXPONENTS and base_config.get("psd_exponent") is None:

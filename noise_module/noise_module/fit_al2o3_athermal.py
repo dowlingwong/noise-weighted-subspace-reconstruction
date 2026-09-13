@@ -10,7 +10,10 @@ quadrature-sum check used in the original reference notebook
 Phase 2: sum the fitted (or raw) component PSDs on the dataset's native log
 grid, resample onto a uniform rFFT grid for a target sampling frequency and
 record length, and save the result as the two-row ``.npy`` PSD-density
-artifact consumed by ``NoiseGenerator`` and by an optimal filter.
+artifact consumed by ``NoiseGenerator`` and by an optimal filter. The
+resampling assumes a band-limited readout (in-band interpolation) unless
+``--alias-fold`` is given; see ``build_psd_artifact`` for why that choice
+changes the simulated resolution by a large factor.
 
 See ``../AL2O3_AL_ATHERMAL_PLAN.md`` for background and rationale.
 """
@@ -232,25 +235,60 @@ def build_psd_artifact(
     sampling_frequency: float,
     n_samples: int,
     out_path: Path,
-    alias_fold: bool = True,
+    alias_fold: bool = False,
+    anti_alias_cutoff_hz: float | None = None,
+    anti_alias_transition_hz: float = 0.0,
 ) -> dict[str, Any]:
     """Resample the native-grid PSD onto a uniform rFFT grid and save it.
 
-    ``alias_fold`` defaults to True: the reference data extends to 3e7 Hz,
-    far above a typical phonon-detector DAQ Nyquist, so noise above the
-    target Nyquist should be folded back in unless a hardware anti-alias
-    filter is known to remove it first (see AL2O3_AL_ATHERMAL_PLAN.md,
-    Phase 2).
+    The reference budget extends to 3e7 Hz with a *white* SQUID+Johnson floor
+    (about 0.093 uPhi0^2/Hz), while the target Nyquist is typically 0.5 MHz.
+    The two ways of bringing that budget onto the DAQ grid differ by a large
+    factor and encode a physical assumption about the readout chain:
+
+    * ``alias_fold=False`` (default): in-band interpolation, optionally
+      multiplied by a cosine anti-alias power response
+      (``anti_alias_cutoff_hz``). This models a readout whose bandwidth is
+      limited before sampling -- a flux-locked-loop SQUID (few MHz) followed
+      by a fast digitizer with a decimation filter, or an analogue anti-alias
+      filter (ECHo: ~100 kHz). It is the correct choice for MMC DAQs of the
+      DELight/ECHo type.
+    * ``alias_fold=True``: fold every alias of the 30 MHz budget into the
+      target band. With no bandwidth limit that folds ~60 copies of the white
+      floor into the band, raising the in-band floor ~60x in PSD and the
+      optimal-filter baseline sigma ~5.7x on the default grid. Use only when
+      the readout really has no bandwidth limit below the source's 30 MHz,
+      or pass ``anti_alias_cutoff_hz`` to fold only the part that survives
+      the filter.
+
+    ``anti_alias_cutoff_hz`` is applied in both modes so the same readout
+    assumption can be expressed either way.
     """
     if alias_fold:
         target_f, target_psd, meta = pr.alias_fold_psd_density(
-            freq, native_psd, sampling_frequency, n_samples
+            freq,
+            native_psd,
+            sampling_frequency,
+            n_samples,
+            anti_alias_cutoff_hz=anti_alias_cutoff_hz,
+            anti_alias_transition_hz=anti_alias_transition_hz,
         )
     else:
         target_f, target_psd, meta = pr.inband_resample_psd_density(
-            freq, native_psd, sampling_frequency, n_samples, allow_extrapolation=True
+            freq,
+            native_psd,
+            sampling_frequency,
+            n_samples,
+            anti_alias_cutoff_hz=anti_alias_cutoff_hz,
+            anti_alias_transition_hz=anti_alias_transition_hz,
+            allow_extrapolation=True,
         )
     pr.save_psd_density(out_path, target_f, target_psd)
+    meta["readout_bandwidth_assumption"] = (
+        "no bandwidth limit below source maximum (all aliases folded)"
+        if alias_fold and anti_alias_cutoff_hz is None
+        else "band-limited before sampling (in-band or filtered fold)"
+    )
     return meta
 
 
@@ -265,7 +303,27 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=DATA_DIR, help="Where to write fit/artifact outputs.")
     parser.add_argument("--sampling-frequency", type=float, default=1_000_000.0, help="Target DAQ fs in Hz.")
     parser.add_argument("--samples", type=int, default=131_072, help="Target record length in samples.")
-    parser.add_argument("--no-alias-fold", action="store_true", help="Use in-band interpolation instead of alias folding.")
+    parser.add_argument(
+        "--alias-fold",
+        action="store_true",
+        help=(
+            "Fold all aliases of the 30 MHz budget into the target band (assumes a "
+            "readout with no bandwidth limit before sampling). Default: in-band "
+            "interpolation, i.e. a band-limited readout/DAQ."
+        ),
+    )
+    parser.add_argument(
+        "--anti-alias-cutoff-hz",
+        type=float,
+        default=None,
+        help="Cosine anti-alias power cutoff applied to the source budget before resampling (readout/decimation bandwidth).",
+    )
+    parser.add_argument(
+        "--anti-alias-transition-hz",
+        type=float,
+        default=0.0,
+        help="Width of the cosine anti-alias transition band.",
+    )
     parser.add_argument("--max-frac-dev", type=float, default=0.01, help="Acceptance threshold for the quadrature-sum check.")
     parser.add_argument("--rms-frac-dev", type=float, default=0.01, help="Acceptance threshold for the quadrature-sum check.")
     args = parser.parse_args()
@@ -320,7 +378,9 @@ def main() -> None:
         sampling_frequency=args.sampling_frequency,
         n_samples=args.samples,
         out_path=artifact_path,
-        alias_fold=not args.no_alias_fold,
+        alias_fold=args.alias_fold,
+        anti_alias_cutoff_hz=args.anti_alias_cutoff_hz,
+        anti_alias_transition_hz=args.anti_alias_transition_hz,
     )
     print(f"Wrote PSD artifact: {artifact_path} ({meta})")
 

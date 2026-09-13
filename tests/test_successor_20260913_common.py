@@ -266,3 +266,23 @@ def test_ledger_rejects_changed_protocol_before_resume(tmp_path):
     assert len(L.ExecutionLedger(path, cap=6, package="toy", protocol_sha256="original").records()) == 1
     with pytest.raises(ValueError, match="protocol hash"):
         L.ExecutionLedger(path, cap=6, package="toy", protocol_sha256="changed").records()
+
+
+def test_fit_limit_refuses_before_extra_estimator_body():
+    calls = []
+    @FC.counted("tracked")
+    def estimator():
+        calls.append(1)
+    with FC.counting(limit=1) as observed:
+        estimator()
+        with pytest.raises(R.SchemaError, match="before invocation"):
+            estimator()
+    assert len(calls) == observed.total == 1
+
+
+def test_failed_observed_overrun_is_never_undercharged(tmp_path):
+    led = L.ExecutionLedger(tmp_path / "ledger.jsonl", cap=10, package="toy", protocol_sha256="hash")
+    cell = {"cell_id": "test", "role": "pilot", "n_fits": 2}
+    attempt = led.start(cell)
+    led.fail(attempt, cell, reason="legacy overrun", wall_s=0.0, fits_observed=3)
+    assert led.charged()["fits"] == 3

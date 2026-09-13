@@ -230,16 +230,16 @@ def fit_and_score(pulses, times, noise, *, rank: int, shrinkage: float, time_cut
     # EM restart below.  ``fits`` is the cell's own tally and ``common.fitcount`` is the
     # shared instrumentation the CLI cross-checks against the matrix declaration.
     fits = 0
-    m_pca = canonical_empca.classic_pca(x_train, nvec=k)
     fits += fitcount.count_fit("classic_pca")
+    m_pca = canonical_empca.classic_pca(x_train, nvec=k)
     m_pca.set_data(x_eval, w_eval)
     r_pca = float(m_pca.chi2()) / float(x_eval.shape[0])
 
     best, best_train = None, np.inf
     for r in range(int(restarts)):
+        fits += fitcount.count_fit("empca_restart")
         m = canonical_empca.empca(x_train, weights=w_train, niter=int(niter), nvec=k,
                                   randseed=int(seed) * 100 + r, silent=True)
-        fits += fitcount.count_fit("empca_restart")
         c = float(m.chi2())
         if c < best_train:
             best, best_train = m, c

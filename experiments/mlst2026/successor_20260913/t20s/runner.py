@@ -168,8 +168,8 @@ def run_fit_cell(P: dict, cell: dict, D: dict, ctx: dict) -> tuple[dict, int]:
     Zc = Z - Z.mean(axis=0, keepdims=True)
     # learner U: top-k PCA of the centred sample second moment (closed form; 1 fit)
     S = Zc.T @ Zc / N
-    w, U = np.linalg.eigh(S)
-    fitcount.count_fit("pca")                 # one estimator invocation on drawn data
+    fitcount.count_fit("pca")
+    w, U = np.linalg.eigh(S)                 # one estimator invocation on drawn data
     order = np.argsort(w)[::-1]
     B_U = U[:, order[:k]]
     pca_train_residual = float(np.trace(S) - np.sum(w[order[:k]]))
@@ -179,7 +179,7 @@ def run_fit_cell(P: dict, cell: dict, D: dict, ctx: dict) -> tuple[dict, int]:
                   tol=float(p["als_tol"]), collect_restarts=True)
     # ``als_fit`` is an audited historical module and is not edited; the restarts it
     # actually performed are counted from what it returned, one fit per restart.
-    fitcount.count_fit("als_restart", n=len(out["restarts"]))
+    fitcount.count_completed("als_restart", n=len(out["restarts"]))
     losses = [float(r["loss"]) for r in out["restarts"]]
     risks = [float(GEN.risk(K, GEN.kron_basis(r["U_c"], r["U_t"]))) for r in out["restarts"]]
     sel = select_restart(losses)

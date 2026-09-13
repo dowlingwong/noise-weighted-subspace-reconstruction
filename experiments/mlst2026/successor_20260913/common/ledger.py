@@ -105,7 +105,7 @@ class ExecutionLedger:
                 tot["fits"] += int(a.get("fits_used", a["fits_planned"]))
                 tot["solves"] += int(a.get("solves_used", a.get("solves_planned", 0)))
             else:
-                tot["fits"] += int(a["fits_planned"])
+                tot["fits"] += max(int(a["fits_planned"]), int(a.get("fits_observed", 0)))
                 tot["solves"] += int(a.get("solves_planned", 0))
         return tot
 
@@ -154,9 +154,9 @@ class ExecutionLedger:
                       "fits_planned": int(cell["n_fits"]), "fits_used": int(fits_used), "solves_used": int(solves_used),
                       "finished_utc": utc_now(), "output": str(output_path), "output_sha256": output_sha256, "wall_s": float(wall_s)})
 
-    def fail(self, attempt_uuid: str, cell: dict, *, reason: str, wall_s: float) -> None:
+    def fail(self, attempt_uuid: str, cell: dict, *, reason: str, wall_s: float, fits_observed: int = 0) -> None:
         self._append({"attempt_uuid": attempt_uuid, "cell_id": cell["cell_id"], "role": cell["role"], "state": "failed",
-                      "fits_planned": int(cell["n_fits"]), "finished_utc": utc_now(), "error": reason[:2000], "wall_s": float(wall_s)})
+                      "fits_planned": int(cell["n_fits"]), "fits_observed": int(fits_observed), "finished_utc": utc_now(), "error": reason[:2000], "wall_s": float(wall_s)})
 
     def sweep_interrupted(self, *, is_alive=None) -> int:
         """Mark ``running`` attempts whose process is gone as ``interrupted``

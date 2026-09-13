@@ -192,13 +192,14 @@ def _run(args, P, matrix, out, package, run_cell, result_required, source_files,
             break
         u = ledger.start(cell, allow_repeat=args.allow_repeat)
         t0 = time.time()
+        observed_fits = None
         try:
             if args.fail_cell and cell["cell_id"] == args.fail_cell:
                 raise RuntimeError("injected failure (--fail-cell)")
             # Estimator invocations are instrumented at the call sites (common.fitcount),
             # so the count the cell reports is observed rather than restated from the
             # constant that produced the matrix declaration.
-            with fitcount.counting() as observed_fits:
+            with fitcount.counting(limit=int(cell["n_fits"])) as observed_fits:
                 result, fits_used, solves_used = run_cell(P, cell, fixture, ctx)
             js = {"cell_id": cell["cell_id"], "attempt_uuid": u, "role": cell["role"], "seed": cell["seed"], "family": cell["family"],
                   "params": cell["params"], "fits_used": int(fits_used), "solves_used": int(solves_used), "result": result,
@@ -221,13 +222,13 @@ def _run(args, P, matrix, out, package, run_cell, result_required, source_files,
             n_run += 1
             print(f"done {cell['cell_id']} ({cell['role']}, {cell['family']}) fits={fits_used} {time.time()-t0:.2f}s", flush=True)
         except (KeyboardInterrupt, SystemExit):
-            ledger.fail(u, cell, reason="interrupted by signal", wall_s=time.time() - t0)
+            ledger.fail(u, cell, fits_observed=observed_fits.total if observed_fits else 0, reason="interrupted by signal", wall_s=time.time() - t0)
             raise
         except SchemaError:
-            ledger.fail(u, cell, reason="schema/accounting error: " + traceback.format_exc(limit=1), wall_s=time.time() - t0)
+            ledger.fail(u, cell, fits_observed=observed_fits.total if observed_fits else 0, reason="schema/accounting error: " + traceback.format_exc(limit=1), wall_s=time.time() - t0)
             raise
         except Exception:
-            ledger.fail(u, cell, reason=traceback.format_exc(limit=3), wall_s=time.time() - t0)
+            ledger.fail(u, cell, fits_observed=observed_fits.total if observed_fits else 0, reason=traceback.format_exc(limit=3), wall_s=time.time() - t0)
             print(f"FAILED {cell['cell_id']}: see ledger", file=sys.stderr, flush=True)
             return 1
     write_json_atomic(out / "LEDGER_SUMMARY.json", ledger.summary())

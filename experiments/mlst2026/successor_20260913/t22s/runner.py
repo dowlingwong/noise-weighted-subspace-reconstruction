@@ -424,7 +424,7 @@ def _run_matched_cell(P: dict, cell: dict, fixture: bool, ctx: dict) -> dict:
     out = ms.matched_scores(st, k_inj=k, B=int(cfg["B"]), w=cfg["w"], N_bins=N, exposure_status="synthetic-fixture")
     cal = te.fit_transfer(st["cal_read"][:, k], st["cal_ref"][:, k], float(N[k]))
     est_b1, diag1 = tb.compute_band_estimates(st["eval_read"], st["fit_read"], k, 1, cfg["w"], N, cal)
-    fitcount.count_fit("b1-identity-estimator", n=len(est_b1))
+    fitcount.count_completed("b1-identity-estimator", n=len(est_b1))
     ident = tb.assert_single_bin_identity(diag1, "B=1 fixture", tb.IDENTITY_RTOL)
     pr = out["per_representation"]
     checks = {

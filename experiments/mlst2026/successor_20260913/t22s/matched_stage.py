@@ -324,9 +324,9 @@ def matched_scores(stretch: dict, *, k_inj: int, B: int, w: int, N_bins: np.ndar
     t_eval = cal.g * stretch["eval_ref"][:, k]
     eval_index = np.arange(stretch["eval_read"].shape[0])
     est_ww, diag_ww = te.compute_estimates(stretch["eval_read"], stretch["fit_read"], k, w, N_bins, cal)
-    fitcount.count_fit("whole-window-estimator", n=len(est_ww))
+    fitcount.count_completed("whole-window-estimator", n=len(est_ww))
     est_b, diag_b = tb.compute_band_estimates(stretch["eval_read"], stretch["fit_read"], k, B, w, N_bins, cal)
-    fitcount.count_fit("band-estimator", n=len(est_b))
+    fitcount.count_completed("band-estimator", n=len(est_b))
     reps = {"whole-window": est_ww, "band": est_b}
     e2 = {rep: {m: te.squared_errors(q, t_eval, w) for m, q in est.items()} for rep, est in reps.items()}
     within = {}

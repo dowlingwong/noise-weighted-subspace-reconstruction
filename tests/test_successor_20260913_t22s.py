@@ -395,6 +395,8 @@ def test_fit_accounting_guard_can_fail(tmp_path, monkeypatch):
                 "--cells", target["cell_id"]) == 4
     recs = _ledger_records(out)
     assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert recs[-1]["fits_observed"] == target["n_fits"]
+    assert recs[-1]["fits_planned"] == target["n_fits"] + 1
     assert not list((out / "cells").glob("*.json"))
 
 
@@ -427,3 +429,4 @@ def test_guard_fires_when_a_representation_runs_an_unaccounted_estimator(tmp_pat
                 "--cells", target["cell_id"]) == 4
     recs = _ledger_records(out)
     assert recs[-1]["state"] == "failed" and "accounting mismatch" in recs[-1]["error"]
+    assert recs[-1]["fits_observed"] > target["n_fits"]

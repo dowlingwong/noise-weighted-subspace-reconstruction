@@ -27,6 +27,7 @@ from __future__ import annotations
 import functools
 import threading
 from contextlib import contextmanager
+from .results import SchemaError
 
 _state = threading.local()
 
@@ -34,9 +35,10 @@ _state = threading.local()
 class FitCount:
     """The estimator invocations observed inside one :func:`counting` region."""
 
-    __slots__ = ("total", "by_label")
+    __slots__ = ("total", "by_label", "limit")
 
-    def __init__(self) -> None:
+    def __init__(self, limit: int | None = None) -> None:
+        self.limit = limit
         self.total = 0
         self.by_label: dict[str, int] = {}
 
@@ -44,6 +46,8 @@ class FitCount:
         n = int(n)
         if n < 0:
             raise ValueError(f"an estimator invocation count must be non-negative, got {n}")
+        if self.limit is not None and self.total + n > self.limit:
+            raise SchemaError(f"estimator fit limit exceeded before invocation: {self.total} + {n} > {self.limit}")
         self.total += n
         self.by_label[label] = self.by_label.get(label, 0) + n
 
@@ -60,10 +64,10 @@ def current() -> FitCount | None:
 
 
 @contextmanager
-def counting():
+def counting(limit: int | None = None):
     """Open a counting region; yields the :class:`FitCount` it fills."""
     prev = current()
-    cur = FitCount()
+    cur = FitCount(limit=limit)
     _state.current = cur
     try:
         yield cur
@@ -77,6 +81,24 @@ def count_fit(label: str = "fit", n: int = 1) -> int:
     if c is not None:
         c.add(label, n)
     return int(n)
+
+
+def count_completed(label: str, n: int) -> int:
+    """Record a legacy batch AFTER it returns, retaining actual overruns.
+
+    Unlike count_fit this cannot prevent work already done inside the batch.
+    Refuse further work and preserve the full count for failed-attempt charging.
+    """
+    c = current()
+    n = int(n)
+    if n < 0:
+        raise ValueError("negative completed count")
+    if c is not None:
+        c.total += n
+        c.by_label[label] = c.by_label.get(label, 0) + n
+        if c.limit is not None and c.total > c.limit:
+            raise SchemaError(f"accounting mismatch: completed legacy batch used {c.total} fits, limit {c.limit}")
+    return n
 
 
 def require() -> FitCount:

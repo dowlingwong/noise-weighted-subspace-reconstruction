@@ -1,0 +1,178 @@
+{
+  "schema": "mlst-local-package/1",
+  "package": "t20s",
+  "version": "2026-09-13-v2",
+  "title": "T20-S v2: geometry knob with a fixed spectrum, valid optimality-gap intervals, paired learner contrasts on a fixed N grid with simultaneous inference, and pilot-frozen scaling-model selection",
+  "status": "configured (local build; not executed evidence)",
+
+  "provenance": {
+    "design_input": "experiments/mlst2026/successor_20260912/t20s/PROTOCOL_T20S.json (schema mlst-successor-protocol/1, frozen 2026-09-12T00:35:00Z; immutable design input, not launch-ready)",
+    "governing_documents": [
+      "MS/plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md (Specific problems found; L2)",
+      "MS/reviews/2026-09-12-mlst-paper-review.md (finding S6)"
+    ],
+    "archived_code_reused_by_import_unchanged": [
+      "experiments/paper1/t20_population_accounting.py: als_population (population ALS with HOSVD + random restarts), risk (R_K(P) = tr K - tr(B^T K B))",
+      "experiments/synthetic/nfpa_confirmatory/methods.py: als_fit (data ALS, training-loss restart selection, collect_restarts)",
+      "experiments/synthetic/nfpa_confirmatory/generator.py: kron_basis (Fortran vec index c + C t)"
+    ],
+    "corrected_relative_to_design_input": [
+      "grid: 'inside 800-1600' replaced by a fixed, fully enumerated grid theta x N x seed (see design.grid); anchors 400 and 3200 are declared now",
+      "seed allocation: seeds no longer stand for fits; every cell is enumerated with its fit count (1 PCA + R ALS restarts) and solve count; pilot and confirmation seed namespaces are disjoint and declared",
+      "replication and simultaneous inference: independent unit, per-theta max-|t| bootstrap over seeds across the N grid with a Bonferroni-t fallback, sign profile and adjacent brackets are declared before sampling",
+      "scaling-model selection: a concrete pilot-only algorithm (two-fold out-of-sample comparison on deterministic seed halves) writes FROZEN_SELECTION.json before any confirmation cell exists; the confirmation runner refuses to draw confirmation cells without it",
+      "generator: an analytic K(theta) with a specified spectrum replaces the Monte-Carlo pulse-family covariance proxy; its invariants are verified and recorded before fitting",
+      "risk accounting vocabulary: a is reported as an interval [lower bound, best-found]; x_F is reference-relative (may be negative); 'excess risk' replaces 'estimation excess'; restart agreement is never a certificate",
+      "budget: the expired 400-fit mission allocation is not carried over; the cap is computed from the enumerated matrix and measured timings",
+      "stopping rule: fixed allocation (all enumerated cells), no outcome-dependent stop"
+    ],
+    "historical_verdicts_that_stand": [
+      "registered c/N law for x_U refuted on the archived pulse-family proxy (T20 stage B)",
+      "N* ~ 960 is a log-linear interpolation of stage-B means, exploratory only",
+      "sign reversal of d between N = 800 and N = 1600 on fresh seeds (T20 stage C) for the archived pulse-family proxy and the implemented learners",
+      "the analytic generator of this package does NOT certify the archived Monte-Carlo proxy; it is a new synthetic family"
+    ]
+  },
+
+  "question": "On an analytic Gaussian family whose whitened clean-signal second moment K(theta) has a FIXED spectrum and a geometry knob theta that moves the top-k eigenspace off the product class: how does the paired class contrast d(N) = R_K(P_F_hat) - R_K(P_U_hat) behave over a fixed N grid, how large is the valid optimality-gap interval for the approximation cost a, and does any declared scaling model, selected on pilot seeds only, predict fresh-seed confirmation cells?",
+
+  "hypotheses": [
+    "H1 (control, exact): at theta = 0 the top-k eigenspace is a product subspace by construction, so the partial-trace lower bound is 0 and the best-found population a is 0 to 1e-8.",
+    "H2 (invariants, exact): for every theta in the grid the eigenvalues of K(theta) equal mu to 1e-10, and trace, rank, SNR and Delta_k are unchanged, while k - cap(theta) and the interval [Delta_k (k - cap), a_best] change with theta.",
+    "H3 (descriptive, scored by simultaneous CI on confirmation seeds): the sign profile of d(N) over the grid within each theta > 0; the design predicts, from population quantities and first-order theory only, a profile with a bracket above the core grid for theta_1, inside the core grid for theta_2 and below it for theta_3. The profile is reported as observed, nonmonotone if so; no crossing is interpolated.",
+    "H4 (scaling, pilot-frozen): at most one of {none, c/N, c/N^alpha, c/N + d/N^2} is selected for x_U(N) and at most one for d(N) - a_ref(theta) on pilot seeds; its frozen per-theta predictions are scored against the confirmation simultaneous band at every grid N. If the frozen choice is 'none', confirmation reports only the bracket/profile."
+  ],
+
+  "independent_unit": "one replicate seed. A seed indexes one replicate across all (theta, N) cells of its phase; within a seed, the datasets of different (theta, N) cells are independent draws from disjoint substreams, and within a cell BOTH learners see the same z_i (paired). Inference resamples seeds, jointly across the N grid within each theta.",
+
+  "estimands": {
+    "R_K(P)": "tr K - tr(P K), the exact population risk of a rank-k orthogonal projector under K(theta) (units: whitened variance).",
+    "R_U_star": "R_K(P*_U), P*_U = top-k eigenprojector of K (closed form).",
+    "a_lower": "Delta_k (k - cap(theta)), cap = min{k, sum_{i<=k_c} lambda_i(M_c), sum_{i<=k_t} lambda_i(M_t)} with M_c, M_t the partial traces of P*_U (MLST Prop 3.6 lower bound; valid for EVERY product projector).",
+    "a_best": "R_K(P_F^best) - R_U_star with P_F^best the best of (R_pop + 1) population-ALS restarts on K (HOSVD + R_pop random); an UPPER bound on a = R_K(P*_F) - R_U_star. a is reported as the interval [a_lower, a_best]; restart agreement is not a certificate.",
+    "x_U": "R_K(P_U_hat) - R_U_star, excess risk of top-k PCA of the centred sample second moment; exact and >= 0.",
+    "x_F_ref": "R_K(P_F_hat) - R_K(P_F^best), reference-relative excess risk of the training-loss-selected separable ALS fit; contains estimation AND optimization error; may be negative because the reference is best-found, not certified.",
+    "d": "R_K(P_F_hat) - R_K(P_U_hat), the paired class contrast. Identity: d = a_best + x_F_ref - x_U exactly (residual recorded).",
+    "restart_spread_risk": "max - min over the R restarts of R_K of the restart's product projector; when >= |d| in a cell, that cell is flagged as unresolved between sampling and optimization error.",
+    "selection_matches_population_best": "whether the training-loss-selected restart is also the restart with the smallest population risk (diagnostic; selection is never by population risk)."
+  },
+
+  "controls": [
+    "theta0_a_zero: theta = 0 cells; a_lower must be exactly 0 and a_best <= 1e-8 (H1); d(N) at theta = 0 is reported (expected <= 0 in mean, not asserted)",
+    "spectrum_fixed: every algebraic cell records max |eig(K(theta)) - mu| and requires <= 1e-10",
+    "nonseparability_moves: k - cap(theta) pairwise distinct across the theta grid (tolerance 1e-6); a theta that fails any invariant is recorded as excluded and dropped from inference, never re-tuned on outcomes",
+    "bound_order: a_lower <= a_best in every theta (a violation is a code defect and is rejected)",
+    "identity: |d - (a_best + x_F_ref - x_U)| <= 1e-9 in every fit cell",
+    "x_U_nonnegative: x_U >= -1e-9 in every fit cell",
+    "training_loss_selection: the selected restart equals argmin of the recorded restart training losses in every fit cell",
+    "reference_consistency: the reference quantities recorded in a fit cell equal those of the algebraic cell of the same theta to 1e-9"
+  ],
+
+  "design": {
+    "family": "analytic Gaussian: z = s + n, s ~ N(0, K(theta)), n ~ N(0, I) in whitened coordinates; K(theta) = V(theta) diag(mu) V(theta)^T, V(theta) = V_sep expm(theta A). NEW family, distinct from the historical pulse-family population (T14/T20).",
+    "production": {
+      "C": 8, "T": 32, "d": 256, "k_c": 2, "k_t": 3, "k": 6,
+      "spectrum": {"top": [12.0, 11.0, 10.0, 9.0, 8.0, 7.0], "gap": 4.0, "tail_min": 0.02,
+                   "note": "mu_1..mu_6 as listed; Delta_6 = 4; geometric tail from 3.0 to 0.02 over 250 entries; tr K = 206.604 (snr_per_coordinate = tr K / d = 0.807; noise covariance I)"},
+      "geometry_seed": 20260913,
+      "thetas": [0.0, 0.12, 0.25, 0.40],
+      "theta_choice": "chosen before sampling from POPULATION quantities only: the interval [a_lower, a_best] at each theta and the first-order PCA constant c_U = sum_{i<=k, j>k} (mu_i+1)(mu_j+1)/(mu_i - mu_j) = 3010 give predicted upper bounds c_U / a_best on the crossing of ~5600 (theta = 0.12), ~1300 (0.25) and ~520 (0.40), i.e. above, inside and below the core grid. Development-namespace probes (3 seeds at theta = 0.15 with R = 8; 1 seed at theta = 0.25 with R = 4) were run for timing and confirmed the first-order c_U (x_U(800) = 3.6-3.9 vs 3.76); development draws are never citable and no pilot or confirmation seed was drawn.",
+      "population_intervals_recorded_at_design": {"0.0": [0.0, 0.0], "0.12": [0.227, 0.538], "0.25": [0.972, 2.307], "0.40": [2.425, 5.757],
+                                                  "k_minus_cap": {"0.0": 0.0, "0.12": 0.0567, "0.25": 0.2430, "0.40": 0.6063},
+                                                  "note": "3-decimal record of the algebraic quantities (solves, no data) the algebraic cells recompute and check"},
+      "N_core": [800, 1000, 1250, 1600],
+      "N_anchor": [400, 3200],
+      "R": 4,
+      "R_pop": 32,
+      "als_n_iter": 150,
+      "als_tol": 1e-10,
+      "pop_als_n_iter": 400,
+      "pop_als_tol": 1e-13,
+      "pilot_seeds": [3000, 3015],
+      "confirmation_seeds": [4000, 4023]
+    },
+    "grid": {
+      "theta": [0.0, 0.12, 0.25, 0.40],
+      "N": [400, 800, 1000, 1250, 1600, 3200],
+      "fixed_before_sampling": true,
+      "cells_per_seed_and_phase": 24,
+      "fits_per_cell": "1 (PCA, closed form) + R (ALS restarts) = 5"
+    },
+    "restart_selection": "training loss only (als_fit); every restart's training loss and population risk are recorded"
+  },
+
+  "fixture": {
+    "C": 3, "T": 4, "d": 12, "k_c": 2, "k_t": 2, "k": 4,
+    "spectrum": {"top": [6.0, 5.0, 4.0, 3.0], "gap": 1.5, "tail_min": 0.05},
+    "geometry_seed": 20260913,
+    "thetas": [0.0, 0.3],
+    "N_core": [40, 80],
+    "N_anchor": [],
+    "R": 2,
+    "R_pop": 4,
+    "als_n_iter": 60,
+    "als_tol": 1e-10,
+    "pop_als_n_iter": 200,
+    "pop_als_tol": 1e-13,
+    "pilot_seeds": [900000, 900001],
+    "confirmation_seeds": [900100, 900101],
+    "note": "development namespace only; outputs are development_only and never citable"
+  },
+
+  "seed_namespaces": {
+    "development": [900000, 900999],
+    "pilot": [3000, 3199],
+    "confirmation": [4000, 4399]
+  },
+
+  "inference": {
+    "rule": "per theta, max-|t| (studentized) bootstrap over seeds jointly across the N grid, 2000 replicates, fixed seed; simultaneous 95% band m_N +/- q SE_N; a Bonferroni-t band (alpha / (2 n_N), n - 1 df) is computed alongside and becomes the reported band only when fewer than half of the bootstrap replicates are valid (documented fallback)",
+    "bootstrap_seed": 20260913,
+    "replicates": 2000,
+    "alpha": 0.05,
+    "min_seeds_for_max_t_bootstrap": 8,
+    "min_seeds_note": "below 8 seeds per theta the studentized bootstrap is degenerate (with n = 2 the only non-degenerate resample is the sample itself and q = 0); the Bonferroni-t band is then the reported band; production has 16 pilot and 24 confirmation seeds, the fixture always uses the fallback",
+    "profile": "per-N sign decided by the simultaneous band (+, -, 0 undetermined); adjacent brackets are pairs of adjacent grid N with decided opposite signs; nonmonotone profiles are reported as such; an interpolated crossing is never a measurement",
+    "scaling_selection": {
+      "candidates": ["none", "c_over_N", "c_over_N_alpha", "c_over_N_d_over_N2"],
+      "targets": {"x_U": "x_U(N)", "d_minus_a_ref": "d(N) - a_best(theta) (equivalently x_F_ref - x_U)"},
+      "algorithm": "pilot seeds sorted; first half = fitting seeds, second half = holdout (deterministic); each candidate is fitted by least squares to the per-N means of the fitting half and scored by mean squared prediction error on the per-seed values of the holdout half; the two folds (A->B, B->A) are summed over all theta; the parametric candidate with the smallest error is selected only if it beats 'none' strictly; at most one model per target",
+      "freeze": "the pilot reducer writes FROZEN_SELECTION.json (selection, parameters refitted on all pilot seeds per theta, predictions at the grid, pilot cell digest, protocol sha) into the run root before any confirmation cell exists; the confirmation runner refuses to draw confirmation cells unless the file exists in the same run root; the confirmation reducer refuses if the file is missing or the pilot digest changed",
+      "scoring": "frozen predictions are scored inside/outside the confirmation simultaneous band at every grid N per theta; 'supported at the grid' iff inside at every N; if the frozen choice is 'none', confirmation reports only the bracket/profile"
+    },
+    "sampling_vs_optimization": "a fit cell with restart_spread_risk >= |d| is flagged; a (theta, N) cell with more than half of its seeds flagged is reported as unresolved between sampling and optimization error"
+  },
+
+  "stopping_rule": "fixed allocation: all enumerated cells of the pilot phase, then the pilot reduce (freeze), then all enumerated cells of the confirmation phase, then the confirmation reduce; no early stop, no outcome-dependent extension",
+
+  "failure_interpretation": {
+    "theta_invariant_failure": "the theta is recorded as excluded in the algebraic cell and dropped from selection, scoring and profiles; the remaining thetas stand; the generator is not re-tuned",
+    "frozen_none": "no scaling model is tested; confirmation reports brackets and profiles only; this is a reportable outcome",
+    "prediction_outside_band": "the frozen model is not supported at the grid for that theta; a partial pattern (inside at some N) is reported as such, not as partial support",
+    "unresolved_cells": "where restart spread is of the order of the contrast the package cannot separate sampling from optimization error; such cells are flagged and excluded from any mechanism statement",
+    "no_decided_signs": "if the simultaneous band contains 0 at every N for a theta, the profile is undetermined and no bracket is claimed",
+    "failed_or_retried_cells": "charged in the ledger and never refunded; a cell missing at reduce refuses the reduce (exit 3) unless --allow-partial, which labels the output partial"
+  },
+
+  "budget": {
+    "estimator_fits_cap": 5400,
+    "planned_fits": 4800,
+    "planned_solves": 140,
+    "fits_per_cell": 5,
+    "fits_note": "one fit = one estimator invocation on drawn data: 1 closed-form PCA + R = 4 ALS restarts per fit cell; population references (eigendecomposition, R_pop + 1 population-ALS solves, bound) are solves charged to the algebraic cell of each theta and recomputed deterministically (cached per process) where a fit cell needs them",
+    "retry_policy": "600 fits of headroom under the cap = 120 whole-cell retries (12.5%); failures and interrupts are charged at start and never refunded; a retry is a new attempt",
+    "fixture_to_production_scale": {
+      "pilot": 450.0, "confirmation": 450.0, "algebraic": 450.0, "default": 450.0,
+      "derivation": "measured locally on one development seed with the package's own run_fit_cell (single BLAS thread, R = 4): 2.24, 4.20, 4.85, 7.04, 8.55, 17.82 s at N = 400, 800, 1000, 1250, 1600, 3200 (mean 7.45 s per fit cell over the grid; linear in N); the fixture fit cell (d = 12, N in {40, 80}, R = 2) measures 0.0165 s, ratio 450. One production algebraic cell (all four thetas, cold cache) measures 2.3 s against 0.005 s for the fixture, ratio ~450. Point estimates without variance; the estimate subcommand multiplies the fixture timings observed in a run root by these factors. Production point estimate: 960 fit cells x 7.45 s + 4 x 2.3 s = ~7200 CPU-seconds (~2.0 CPU-hours) single-threaded; embarrassingly parallel over cells with one worker per ledger (see REMOTE_COMMANDS.md)."
+    }
+  },
+
+  "explicitly_not_claimed": [
+    "a certified restricted population optimum P*_F (best-found values are upper bounds only)",
+    "an exact crossover location N*",
+    "universality of any scaling law beyond this analytic family and these learners",
+    "anything about the archived Monte-Carlo pulse-family proxy: the historical c/N refutation, the 960 interpolation and the 800/1600 sign reversal stand and are neither confirmed nor revised here",
+    "separation of sampling from optimization error in cells where restart spread is of the order of the contrast",
+    "any scientific result from fixture (development namespace) runs"
+  ]
+}

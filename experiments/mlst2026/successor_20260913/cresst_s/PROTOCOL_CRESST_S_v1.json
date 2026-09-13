@@ -1,0 +1,295 @@
+{
+ "schema": "mlst-local-package/1",
+ "package": "cresst_s",
+ "version": "v1",
+ "date": "2026-09-13",
+ "title": "CRESST-S (L5): cluster-aware reporting of the archived CRESST channel analysis, with a prepared robustness design and a calibration of the archive's hierarchical construction",
+ "question": "What can seven run/channel clusters from two CRESST runs support, and what would have to be executed and calibrated before any of it could be read as generalization to a new run or a new detector?",
+ "supersedes": null,
+ "design_inputs": {
+  "amendment": "MS plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md section L5",
+  "review_finding": "MS reviews/2026-09-12-mlst-paper-review.md finding S5 (CRESST uncertainty and chronology need stronger limits)",
+  "round_conventions": "EXP experiments/mlst2026/successor_20260913/README.md"
+ },
+ "hypotheses": [
+  "H1 (reproduction). Every point estimate and every interval endpoint of the archived channel-robustness analysis can be recomputed from the archived event residuals. Point estimates must agree exactly (1e-12); interval endpoints must agree within the declared Monte-Carlo tolerance. A deviation beyond tolerance is a FAILURE of this package, not a new result.",
+  "H2 (cluster structure). The seven run/channel clusters are unbalanced across two runs (2 and 5 channels). Run-stratified, leave-one-run-out and leave-one-channel-out reporting will show how much of the archived equal-channel mean is carried by which clusters. This is descriptive sensitivity of the archive.",
+  "H3 (non-identifiability). A between-run variance component is not identifiable from two runs. The package must report the within-channel and between-channel components and must refuse to report a between-run component as identified.",
+  "H4 (procedure calibration). The coverage of the archive's own hierarchical construction for a population mean depends on the number of runs. Under a declared between-run variance the construction is expected to undercover, and coverage is expected to rise with the number of runs. This is a property of the procedure, not evidence about CRESST.",
+  "H5 (robustness feasibility). The rank / shrinkage / time-cut robustness grid can be enumerated, seeded, paired and costed now, but cannot be executed without raw CRESST pulse traces, which are absent from this environment."
+ ],
+ "independent_unit": "There is no independent unit in the archive. The nominal cluster is the run/channel pair, of which there are seven, but they come from only two runs and channels within a run share cryostat, readout and live-time conditions. For the calibration simulation the independent unit is one simulated run; for the robustness grid the dependence unit is the run/channel cluster and every contrast is paired within (channel, time cut).",
+ "estimands": {
+  "fraction_c": "1 - mean(R_EMPCA, c) / mean(R_PCA, c) over the evaluation events of run/channel cluster c (the archive's per-channel fractional residual reduction).",
+  "theta": "(1/C) sum_c fraction_c with C = 7: the equal-channel mean of the per-channel fractions (the archive's headline estimand).",
+  "theta_ratio": "1 - mean_c mean(R_EMPCA, c) / mean_c mean(R_PCA, c): the ratio of channel means, a baseline-scale-weighted sensitivity in which the larger channels' PCA scale dominates the denominator.",
+  "within_channel_variance": "mean over channels of the variance of fraction_c under the paired event bootstrap with the channel held fixed.",
+  "between_channel_variance": "max(0, Var_c(fraction_c) - mean_c within_channel_variance_c): a one-way random-effects moment estimator of the dispersion of true channel fractions.",
+  "between_run_variance": "NOT AN ESTIMAND OF THIS PACKAGE. With two runs the between-run mean square carries one degree of freedom; the package reports the arithmetic and refuses to report it as an identified component.",
+  "coverage": "the Monte-Carlo probability that the archive's hierarchical 95% percentile interval contains the declared population mean theta of the calibration generator, reported with a Wilson interval.",
+  "robustness_contrast": "PLANNED, NOT EXECUTED. fraction_c(setting) - fraction_c(reference setting) within a (channel, time cut) group."
+ },
+ "controls": [
+  "block1_equals_iid: the circular block bootstrap at block length 1 must reproduce the iid bootstrap index array exactly, and block length 64 must differ from it.",
+  "zero_effect_identity: with R_EMPCA set equal to R_PCA every fraction is exactly zero and the hierarchical percentile interval is degenerate at zero.",
+  "event_weight_constant: the archived event_weight is constant (the mean-of-fractions estimand is only a plain mean under that condition), and a perturbed copy is detected.",
+  "empca_uniform_weight_limit: at shrinkage 1.0 the shrunk PSD is flat, the weights are uniform, and weighted EMPCA must reproduce classic PCA's held-out weighted residual to within 1e-3 relative; the shrinkage-0.0 arm must not be degenerate.",
+  "calibration_null_dependence: with sd_run = 0 the archive's construction must cover within [0.85, 0.99] of nominal, and with sd_run = 0.3 it must cover strictly less.",
+  "cluster_layer_adds_variance (cross-cell): for each of the five (estimand, block length) pairs the hierarchical bootstrap sd must be at least 2.0 times the channel-fixed bootstrap sd.",
+  "channel_layer_matches_its_label (per cell): the mean number of distinct channels a replicate touches must equal C for a channels-fixed construction and C(1-(1-1/C)^C) for a hierarchical one.",
+  "leave_one_run_out_equals_run_stratified (cross-cell): with two runs, dropping one run must give exactly the run-stratified estimate of the other.",
+  "between_run_component_not_reported_as_identified (cross-cell): the variance decomposition must not claim an identified between-run component from fewer than 4 runs."
+ ],
+ "seed_namespaces": {
+  "development": [900000, 900999],
+  "pilot": [9000, 9099],
+  "confirmation": [9500, 9599]
+ },
+ "seed_allocation": {
+  "robustness_pilot": "9000 + channel index (7 seeds, 9000-9006); all settings of one (channel, time cut) group share the seed so that a paired contrast sees the same event partition.",
+  "robustness_confirmation": "9500 + 7*time_cut_index + channel_index (21 seeds, 9500-9520), same pairing rule.",
+  "calibration_pilot": "9050 + grid index (12 seeds, 9050-9061).",
+  "calibration_confirmation": "9550 + grid index (12 seeds, 9550-9561).",
+  "development": "900000-900003 robustness fixture cells; 900100 calibration pilot fixture; 900110-900112 calibration confirmation fixture.",
+  "seedless": "Every archive-recomputation, cluster-report and control cell carries seed = null and draws from the archive's own frozen SeedSequence(20260713) substreams, or from a fixed internal stream declared in the protocol. A control or algebraic cell may never use a development seed."
+ },
+ "archive": {
+  "seed": 20260713,
+  "replicates": 10000,
+  "alpha": 0.05,
+  "source": "The archived post-freeze sensitivity analysis (13 July 2026) and its 10 September 2026 re-run. Both live in the MANUSCRIPT repository (MS), not in EXP, and are addressed here by relative path plus SHA-256; the runner takes their location as --archive-root with no default.",
+  "constructions": [
+   "headline",
+   "channel_fixed",
+   "ratio_of_means_hierarchical",
+   "ratio_of_means_channel_fixed",
+   "block16_hierarchical",
+   "block16_channel_fixed",
+   "block64_hierarchical",
+   "block64_channel_fixed",
+   "block256_hierarchical",
+   "block256_channel_fixed"
+  ],
+  "stream_order": [
+   "headline_hierarchical",
+   "channel_fixed",
+   "ratio_of_means_hierarchical",
+   "ratio_of_means_channel_fixed",
+   "block_hier_64",
+   "block_hier_16",
+   "block_hier_256",
+   "block_channel_fixed_64",
+   "block_channel_fixed_16",
+   "block_channel_fixed_256",
+   "per_channel_effects",
+   "leave_one_channel_out",
+   "leave_one_run_out",
+   "run_stratified",
+   "variance_decomposition",
+   "science_control",
+   "calibration_control",
+   "calibration_design"
+  ],
+  "stream_order_note": "The first thirteen names are the archived runner's frozen STREAM_ORDER, unchanged. numpy SeedSequence spawning is incremental, so spawning eighteen children leaves the first thirteen byte-identical and bit-identical reproduction of the archived constructions is preserved. The last five are added by this package."
+ },
+ "cluster_reporting": {
+  "reports": [
+   "per_channel_effects",
+   "leave_one_channel_out",
+   "leave_one_run_out",
+   "run_stratified",
+   "variance_decomposition"
+  ],
+  "min_runs_for_between_run_variance": 4,
+  "min_runs_justification": "A variance component estimated from G runs has G-1 degrees of freedom. At G = 2 the exact chi-square 95% interval for the component spans a factor of about 5.1e3 and the moment estimator can be negative; at G = 4 it spans about 43, which is already poor but is the least this package will call a reported component. Two runs also confound the between-run component completely with any channel-level heterogeneity aligned with the run split.",
+  "labelling": "Every output of this family is labelled 'descriptive sensitivity of the archive'. None of it may be labelled population inference."
+ },
+ "robustness": {
+  "status": "PREPARED, NOT EXECUTED",
+  "channels": ["33_36.0", "33_37.0", "35_26.0", "35_27.0", "35_56.0", "35_57.0", "35_58.0"],
+  "primary_setting": {
+   "rank": 6,
+   "covariance_model": "stationary_psd",
+   "shrinkage": 0.1,
+   "time_cut": "full"
+  },
+  "empca_restarts": 2,
+  "empca_iterations": 25,
+  "production_dimensions": {"n_events": 400, "n_samples": 128, "n_noise": 400},
+  "arms": {
+   "pilot": {"ranks": [2, 4, 6, 8, 12], "shrinkages": [0.1], "time_cuts": ["full"]},
+   "confirmation": {"ranks": [4, 6, 8], "shrinkages": [0.0, 0.05, 0.1, 0.2, 0.4], "time_cuts": ["full", "first_half", "second_half"]}
+  },
+  "pairing": "Contrast group = (channel, time cut). Within a group every setting is paired against the group's reference (rank 6, shrinkage 0.1) on the same events of the same channel. Time-cut contrasts are formed at the reference setting against the 'full' cut of the same channel.",
+  "within_run_dependence": "Run 33 contributes 2 of the 7 clusters and run 35 contributes 5. Channels of one run share cryostat, readout and live-time conditions; a within-channel paired contrast differences that out, but any aggregate over channels inherits it, and two runs cannot calibrate a new-run interval.",
+  "input_requirement": "<CRESST_DATA_ROOT>: raw CRESST pulse traces in the cresst-s-pulse-root/1 interface documented in SCHEMA.md. NO CRESST RAW DATA IS PRESENT IN THIS ENVIRONMENT and none may be sought here. An adapter from the CRESST release layout to that interface is part of the remote work and has deliberately not been written, because there is no raw data here to test it against.",
+  "failure_mode_here": "Every production robustness cell raises 'input not available: raw CRESST pulse data root (<CRESST_DATA_ROOT>) ...', which is charged in the ledger as a failed attempt and exits non-zero. validate and enumerate still succeed."
+ },
+ "calibration": {
+  "purpose": "Calibrate the archive's own hierarchical construction as a PROCEDURE under a stated dependence model, before any hierarchical interval could be used for generalization. This is not evidence about CRESST.",
+  "alpha": 0.05,
+  "generator": {
+   "model": "fraction_{g,c} = theta + u_g + v_{g,c}, u_g ~ N(0, sd_run^2), v_{g,c} ~ N(0, sd_channel^2); each channel carries n_events paired log-normal (PCA, EMPCA) residuals so that 1 - mean(e)/mean(p) concentrates on fraction_{g,c}",
+   "theta": 0.22,
+   "sd_channel": 0.10,
+   "sigma_p": 0.7,
+   "sigma_e": 0.5,
+   "theta_note": "0.22 is chosen to sit near the archived equal-channel mean so that the simulated scale is recognisable; the calibration result is a property of the procedure and does not depend on that choice being the CRESST value."
+  },
+  "null_arm_coverage_band": [0.85, 0.99],
+  "reference_arm": "channels_per_run = 2, sd_run = 0.3: the arm in which the number of clusters is smallest at 2 runs (4 clusters) and the run layer is strongest, so the dependence of coverage on the number of runs is clearest.",
+  "grid": {
+   "pilot": {
+    "production": {"n_runs": [2, 4, 8], "channels_per_run": [2, 5], "sd_run": [0.0, 0.3], "n_events": 200, "mc_replicates": 200, "bootstrap_replicates": 300},
+    "fixture": {"n_runs": [4], "channels_per_run": [2], "sd_run": [0.3], "n_events": 80, "mc_replicates": 120, "bootstrap_replicates": 200}
+   },
+   "confirmation": {
+    "production": {"n_runs": [2, 4, 8], "channels_per_run": [2, 5], "sd_run": [0.0, 0.3], "n_events": 200, "mc_replicates": 400, "bootstrap_replicates": 400},
+    "fixture": {"n_runs": [2, 4, 8], "channels_per_run": [2], "sd_run": [0.3], "n_events": 80, "mc_replicates": 250, "bootstrap_replicates": 200}
+   }
+  },
+  "expected_direction": "Coverage of the population mean rises with the number of runs and stays below nominal whenever sd_run > 0. The pilot arm carries no selection authority (see inference.pilot_selection); it is the same grid at a smaller Monte-Carlo size and is reported, never scored."
+ },
+ "tolerances": {
+  "point_estimate_absolute": 1e-12,
+  "point_estimate_justification": "The point estimates are deterministic float64 arithmetic on the same archived residual arrays; the archive stores full repr. Bit-identical agreement is expected and 1e-12 only allows for summation-order differences.",
+  "interval_endpoint_mc_standard_errors": 4.0,
+  "interval_endpoint_shape_inflation": 2.0,
+  "interval_endpoint_justification": "A bootstrap percentile endpoint from R draws has Monte-Carlo standard error sqrt(p(1-p)/R)/f(q_p); with the normal reference f(q_p) = phi(z_p)/sd this is 2.672*sd/sqrt(R) at p = 0.025. Two independent runs are combined in quadrature; the allowance is 4 such standard errors, doubled to cover the bootstrap distribution being more skewed than the normal reference. At R = 10000 in both runs this is 0.302*sd; at the fixture's R = 1200 against the archive's 10000 it is 0.653*sd. The constants are frozen here and are not fitted to observed deviations. When the replicate count matches the archive AND the seed and stream order match, the reproduction is expected to be bit-identical and the reduced output reports how many constructions were.",
+  "min_hierarchical_to_channel_fixed_sd_ratio": 2.0,
+  "min_ratio_justification": "In the archive the hierarchical bootstrap sd is 0.0713-0.0748 against 0.0228-0.0337 channel-fixed, a ratio of 2.9-3.1 across all five pairs. A ratio below 2.0 means the cluster layer contributed nothing, i.e. a construction labelled hierarchical resampled only events."
+ },
+ "inference": {
+  "primary_report": "Deviation of the recomputation against the archive, per estimand and per interval endpoint. There is no hypothesis test on CRESST in this package.",
+  "multiplicity": "No selective inference is performed on the archive: every construction the archive reports is recomputed and reported, none is chosen after seeing the deviations. For the calibration the reported quantity is coverage with its Wilson interval at every grid point; no grid point is selected.",
+  "pilot_selection": "NONE. Every design constant - the interval constructions, the tolerances, the calibration generator, the grids, the replicate counts, the primary robustness setting, the pairing rule and the acceptance rules - is fixed in this protocol before any cell is drawn. There is therefore no pilot-selected choice to freeze, and no frozen-selection file is written. The pilot arms exist to report the design at a smaller Monte-Carlo size and carry no selection authority; the confirmation arms are scored against the rules in this file.",
+  "acceptance": {
+   "reproduction": "every point estimate within 1e-12 of both archived sources AND every interval endpoint within its declared Monte-Carlo tolerance",
+   "controls": "every named control passes",
+   "calibration": "coverage reported with Wilson uncertainty at every grid point; the reference arm must show coverage at 2 runs below coverage at 8 runs, and the null-dependence arm must sit in [0.85, 0.99]",
+   "robustness": "enumerated, seeded, paired and costed; not executed"
+  },
+  "dependence_assumptions": "The archive's construction assumes the observed channel occurrences are exchangeable draws from the population of channels. That assumption is not testable from two runs and is exactly what the calibration measures the consequence of."
+ },
+ "stopping_rule": "Fixed allocation. Every cell of the enumerated matrix is executed exactly once: 395 production cells (1 algebraic, 20 control, 47 pilot, 327 confirmation) charging 1056 estimator fits. Replicate counts, Monte-Carlo sizes and grid points are fixed in this file and do not depend on any outcome. There is no early stop and no outcome-dependent extension; a failed cell is retried at most twice under the retry policy and every attempt stays charged.",
+ "failure_interpretation": {
+  "reproduction_deviation": "A deviation beyond tolerance is a failure of THIS PACKAGE (a wiring, environment or version fault), not a new scientific result, and no recomputed number may be reported until it is resolved.",
+  "control_failure": "A failed control invalidates every cell of the same run root; the reducer refuses.",
+  "robustness_cells": "Failing with 'input not available' is the CORRECT and expected behaviour in this environment. It is recorded as a charged failed attempt and is not evidence of anything scientific.",
+  "calibration_undercoverage": "Undercoverage is a reportable property of the procedure. It is not a defect of CRESST and it is not evidence that the archived effects are absent.",
+  "null_outcome": "If the calibration shows the construction cannot be repaired at two runs, the correct output is that a new-run claim needs new runs, not a re-labelled archive interval."
+ },
+ "budget": {
+  "estimator_fits_cap": 1400,
+  "fits_planned_production": 1056,
+  "fits_planned_fixture_run": 18,
+  "fit_definition": "one estimator invocation on drawn data. classic PCA counts once; each EMPCA random restart counts once. Only the robustness cells (3 fits each: 1 PCA + 2 EM restarts) and the empca_uniform_weight_limit control (6 fits: two PSD arms) fit anything. Bootstrap and Monte-Carlo draws are reported as replicates and are never counted as fits.",
+  "solve_definition": "no cell of this package performs an eigen or least-squares solve on engineered or analytic matrices, so every cell reports 0 solves. The archive-recomputation cells reduce and resample already-computed residuals; that is arithmetic, not a solve.",
+  "retry_policy": "At most two retries per cell. Every attempt - running, failed, interrupted or completed - stays charged in the ledger and is never refunded. Headroom under the cap is 344 fits (32.6% of the plan), which covers two retries of every robustness cell of one time cut plus the estimator control.",
+  "fixture_to_production_scale": {
+      "archive_point": 1.0,
+      "archive_interval": 5.994,
+      "cluster_report": 7.861,
+      "science_control": 7.883,
+      "calib_control": 8.0,
+      "robustness_pilot": 27.73,
+      "robustness_confirm": 17.33,
+      "calib_pilot": 12.76,
+      "calib_confirm": 14.0
+   },
+  "scale_derivation": "Each factor is (mean production seconds per cell) / (mean fixture seconds per cell) for that family, computed mechanically by runner.declared_scales from a per-family cost proxy with constants measured in this container (9.2e-9 s per bootstrap event draw; 2.1e-7 s per (train event x component x rank x iteration) per EM fit; 0.10 s to load and reduce the archived residual table). build_matrix refuses to run if the protocol's numbers differ from the derived ones."
+ },
+ "matrix": {
+  "production": {
+   "archive_replicates": 10000,
+   "controls": {
+    "block1_equals_iid": {"n": 4096, "k": 32},
+    "zero_effect_identity": {"replicates": 10000},
+    "event_weight_constant": {},
+    "empca_uniform_weight_limit": {"n_events": 400, "n_samples": 128, "rank": 6, "niter": 25, "tolerance": 0.001},
+    "calibration_null_dependence": {"n_runs": 8, "channels_per_run": 2, "n_events": 200, "sd_run_alt": 0.3, "mc_replicates": 400, "bootstrap_replicates": 400, "control_seed": 424242}
+   }
+  },
+  "fixture": {
+   "archive_replicates": 1200,
+   "empca_iterations": 10,
+   "robustness_ranks": [4, 6],
+   "robustness_dimensions": {"n_events": 120, "n_noise": 160, "n_samples": 48},
+   "controls": {
+    "block1_equals_iid": {"n": 4096, "k": 32},
+    "zero_effect_identity": {"replicates": 1200},
+    "event_weight_constant": {},
+    "empca_uniform_weight_limit": {"n_events": 120, "n_samples": 48, "rank": 4, "niter": 25, "tolerance": 0.001},
+    "calibration_null_dependence": {"n_runs": 8, "channels_per_run": 2, "n_events": 80, "sd_run_alt": 0.3, "mc_replicates": 250, "bootstrap_replicates": 200, "control_seed": 424242}
+   }
+  }
+ },
+ "provenance": {
+  "archive_location": "The archived inputs live in the MANUSCRIPT repository (MS), not in EXP. This package never writes into MS and never assumes a location for it: --archive-root has no default and must name the MS evidence/data directory. Each input below is addressed by its path relative to that root and by SHA-256, verified at run time by every archive cell.",
+  "no_cresst_raw_data_present": "NO CRESST RAW DATA IS PRESENT IN THIS ENVIRONMENT. Only the archived, already-computed event residuals are available. No new detector data exists here and none may be sought. Every cell that would need raw pulses is enumerated and marked not executable here.",
+  "archived_inputs": {
+   "event_residuals_lossless": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/event_residuals_lossless.npz",
+    "sha256": "0f2cd048e029d7beb04bf754de50a50ee232eec957e11d1cebba7f7fd733ebd5",
+    "bytes": 2800671,
+    "role": "the input the package recomputes from: 19335 evaluation events over 7 run/channel clusters"
+   },
+   "event_residuals_metadata": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/event_residuals_metadata.json",
+    "sha256": "e949be9b075f027f33d5a49a0caa0cb48506ad5b36d145456f4ba037ec858eed",
+    "bytes": 1011,
+    "role": "column dictionary and lossless-format statement for the NPZ"
+   },
+   "channel_summary": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/channel_summary.csv",
+    "sha256": "8549866cb2183a557a4600ee7e4255eeb220ce908009e0a54ca1bba6d98d04d6",
+    "bytes": 1895,
+    "role": "second archived source for the per-channel estimand (column pca_minus_empca_fraction)"
+   },
+   "estimand_summary": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/estimand_summary.csv",
+    "sha256": "2eba7315c23af56ab24271031b5ec4c3ee85477212b303c73e991d32ed38cd00",
+    "bytes": 942,
+    "role": "archived equal-channel means and hierarchical intervals of the difference estimands"
+   },
+   "archive_summary": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/summary.json",
+    "sha256": "18a78c8a0a46e977075045c7615a605d1ff4d07468d040650a0c31f8005a0729",
+    "bytes": 7594,
+    "role": "archive-level summary, channel list and the archive's own cluster caution"
+   },
+   "analysis_config": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/analysis_config.yaml",
+    "sha256": "922cbb027d3de36fc18c3b0749f6028b8986e1ddb484f3ed7c1b5bd25b82368d",
+    "bytes": 1101,
+    "role": "the frozen constants this package reuses: seed 20260713, 10000 replicates, 19335 expected evaluation pulses, 7 expected channels"
+   },
+   "analysis_script": {
+    "relative_path": "cresst/sensitivity/20260713_channel_robustness_v1/analysis_script.py",
+    "sha256": "65cd719f7743d98da89d761d4b6ecb6cc33424b5c2fd663b8a5ac794921d2f32",
+    "bytes": 24384,
+    "role": "the archived analysis script, kept for provenance; not imported"
+   },
+   "t13a_results": {
+    "relative_path": "paper1/mlst_2026-09-10/T13a_cresst_channel_bootstrap_v1/t13a_results.json",
+    "sha256": "2c62a033662c6d8808ae5944699a120e53da5857875c51123b090847c6615a00",
+    "bytes": 25055,
+    "role": "the 10 September 2026 re-run this package reproduces: point_estimates, channels, ten intervals, per_channel_effects, leave_one_channel_out, leave_one_run_out"
+   }
+  },
+  "code_inputs": {
+   "archived_runner": "EXP experiments/mlst2026/t13a_cresst_channel_bootstrap.py (immutable; its estimator, resampling, block-bootstrap and percentile functions are imported, not reimplemented)",
+   "canonical_estimator": "EXP src/canonical/empca.py (classic_pca and weighted EMPCA; used only by the robustness cells and the estimator control)"
+  }
+ },
+ "explicitly_not_claimed": [
+  "NOT a replication. Seven channels from two runs are seven correlated clusters, not seven independent detectors.",
+  "NOT coverage for a new run. Nothing in this package establishes that any interval would cover a new-run or new-detector effect; the calibration measures the opposite for the archive's own design point.",
+  "NOT an identified between-run variance. Two runs give one between-run degree of freedom, and the package refuses to report a component from it.",
+  "NOT executed robustness. The rank / shrinkage / time-cut grid is enumerated and costed only; no robustness cell has been run, here or elsewhere.",
+  "NOT evidence about CRESST from the calibration. The calibration simulates a declared generator; it is a property of the procedure.",
+  "NOT new data. No CRESST raw data is present in this environment, no new detector data exists here, and none was sought.",
+  "NOT a change to the archived numbers. Where this package disagrees with the archive beyond tolerance, the package is wrong until shown otherwise."
+ ],
+ "status": "configured"
+}

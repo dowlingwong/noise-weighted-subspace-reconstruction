@@ -1,0 +1,22 @@
+# CRESST-S (L5) -- pins actually used in the local fixture run and test file
+# (Python 3.11.15, Linux x86_64, 2 cores).
+#
+# numpy provides the RNG (PCG64 via SeedSequence) whose spawning order the
+# archived reproduction depends on; a different bit generator or a different
+# SeedSequence spawning rule would break the bit-identical reproduction of the
+# archived interval endpoints (the package would then report a Monte-Carlo
+# deviation instead, which is still accepted within the declared tolerance).
+# scipy is used only for the exact chi-square width factor reported beside the
+# non-identifiable between-run variance component; a hard-coded table is used
+# if it is unavailable.
+numpy==2.4.4
+scipy==1.17.1
+pytest==9.1.1
+
+# The archived 10 September 2026 re-run this package reproduces was produced
+# under numpy 2.4.6 / scipy 1.17.1 / Python 3.12.2 (recorded in
+# t13a_results.json provenance.environment).  The reproduction is bit-identical
+# across that numpy difference in this container; if a future environment
+# changes the bit generator, the endpoints must still agree within the declared
+# Monte-Carlo tolerance and the reduced output reports how many constructions
+# were bit-identical.

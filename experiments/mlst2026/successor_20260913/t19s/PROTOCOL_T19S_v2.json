@@ -1,0 +1,174 @@
+{
+  "schema": "mlst-local-package/1",
+  "package": "t19s",
+  "version": "v2 2026-09-13",
+  "title": "T19-S v2: covariance-error observables, theorem-domain check and residual orders on G1",
+  "status": "configured",
+  "provenance": {
+    "supersedes": "../successor_20260912/t19s/PROTOCOL_T19S.json (schema mlst-successor-protocol/1, frozen 2026-09-12T00:20:00Z) together with PROTOCOL_T19S_AMENDMENT_2026-09-12.md; those files are immutable design inputs and are not edited",
+    "design_inputs": [
+      "../successor_20260912/t19s/PROTOCOL_T19S.json",
+      "../successor_20260912/t19s/PROTOCOL_T19S_AMENDMENT_2026-09-12.md",
+      "../successor_20260912/t19s/FINDINGS_T19S.md",
+      "../successor_20260912/t19s/t19s_observables.py",
+      "experiments/paper1/t19_coupling.py (archived T19 runner, v2 after the 11 Sep audit)",
+      "experiments/paper1/g1.py (frozen generator G1: d = 256, rank 2, N = 512)",
+      "MS plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md sections 'Specific problems found in those inputs' and 'L1'",
+      "MS reviews/2026-09-12-mlst-paper-review.md findings S1 and S4"
+    ],
+    "what_is_corrected": [
+      "the deterministic part now implements the covariance model A(I+E)^{-1} (the paper's and the archive's); the additive model A + eps G is kept only as a labelled CONTROL and is never reported as the paper's model",
+      "'stop when acceptance decided' is replaced by a fixed confirmation allocation scored once; the pilot only freezes the eps and m values used for scoring",
+      "fit counts are derived from an enumerated run matrix (every estimator invocation on drawn data is a fit; engineered/analytic subspace solves are counted separately as solves), not from seeds x arms in prose",
+      "residual slopes are estimated ALONG A FIXED PERTURBATION DIRECTION per path (paired points), not from independently drawn directions at each eps",
+      "first-order agreement ratios have a predeclared ABSOLUTE-error branch when the first-order prediction is zero (block-diagonal and zero families): the ratio is recorded as null, never divided through, and the absolute residual is compared with the bound",
+      "the theorem-domain check is the absolute remainder bound ||P_hat - P - delta P||_op <= 44 eta^2 for eta <= 1/10 (MLST Prop 3.4); the factor-of-two first-order band on the projector Frobenius norm is a separate DESCRIPTIVE estimand and is not treated as the theorem",
+      "observables are compared like with like: the archived T19 residual is the GRAPH residual ||T - T1||_F; graph, projector-matrix (operator and Frobenius), projector-norm and principal-angle residuals each have their own predeclared order per family",
+      "the independently estimated covariance arm classifies every fit by the REALIZED eta computed from the sample spectrum; the m allocation is predeclared, every attempt is reported, and no draw is rejected to populate a domain",
+      "sample versus population coordinates are recorded explicitly for every eta, gap and basis",
+      "the expired 2026-09-12 mission allocation (120 fits) is not carried over; the budget below is computed from the enumerated matrix and measured fixture timings"
+    ]
+  },
+  "question": "On the frozen generator G1 (d = 256, rank 2, N = 512): (1) do the four displacement observables of the covariance-error model A(I+E)^{-1} have the predeclared leading residual orders along fixed perturbation directions, for pure-coupling and generic errors, and do the block-diagonal and zero controls leave the subspace exactly unchanged; (2) on paired synthetic fits with engineered errors (sample eigenbasis), independently estimated covariances (full sample covariance and Toeplitz, population-basis error) and training-sample error, does every fit realised inside the theorem domain (eta <= 0.1) satisfy the absolute remainder bound 44 eta^2, how well does the first-order projector norm agree descriptively, and what residual orders are measured along fixed directions?",
+  "model": {
+    "paper": "Sigma_hat = Sigma^{1/2}(I+E)Sigma^{1/2}; the estimator fitted with Sigma_hat returns the top-k invariant subspace of A(I+E)^{-1} in true-whitened coordinates (NOT the additive A+E)",
+    "first_order_graph": "X1_ji = -lambda_j E_ji / (lambda_i - lambda_j), i retained, j discarded (E in the eigenbasis of A)",
+    "first_order_projector": "delta P has off-diagonal blocks X1 and X1^T and zero diagonal blocks",
+    "proposition": "MLST Prop 3.4: if eta = eps lambda_1 / delta <= 1/10 (eps = ||E||_op, delta = lambda_k - lambda_{k+1}) then ||P_hat - P - delta P||_op <= 44 eta^2",
+    "exact_identity": "||P(X) - P(0)||_F^2 = 2 tr[S (I+S)^{-1}], S = X^T X",
+    "additive_control": "A + eps G with first order G_ji/(lambda_i - lambda_j); a CONTROL, not the paper's model",
+    "model_identity_check": "for every covariance-error fit the fitted subspace is compared with the deterministic top-k invariant subspace of A_hat(I+E)^{-1} (one solve); sin(theta) must be < 1e-6 (unless a floor was applied)"
+  },
+  "hypotheses": [
+    "H1 (deterministic, covariance model): along a fixed direction the residual orders are generic = (graph 2, projector_matrix 2, projector_norm 2, angle 2) and pure_coupling = (3, 2, 3, 3); block-diagonal and zero E leave the subspace exactly unchanged; the 2-D example A = diag(2,1), E = eps[[0,1],[1,0]], k = 1 has graph coordinate t = -2 eps/(1 + sqrt(1 + 8 eps^2)) and ||P_hat - P - delta P||_F / eps^2 -> sqrt(2)",
+    "H2 (theorem-domain check): every confirmation fit realised at eta <= 0.1 with lambda_min(I+E) > 0 satisfies ||P_hat - P - delta P||_op <= 44 eta^2 (a necessary consistency check of Prop 3.4 on G1; passing does not prove the proposition)",
+    "H3 (descriptive): the projector Frobenius-norm displacement agrees with its first-order value sqrt(2)||X1||_F within a factor of two on in-domain fits; the stress range eta in [0.2, 1.3] is reported as outside the theorem",
+    "H4 (stress test): the residual orders of families C (pure coupling) and F (generic) measured on paired fits along fixed sample-basis directions agree with H1 within 0.3; the archived registered T19 slope prediction (one order for every observable) remains NOT MET and is not re-scored here"
+  ],
+  "independent_unit": "one training draw = one seed (all arms of a paired cell share the draw; the calibration pool and the direction are seed-indexed); deterministic cells have no statistical replication and are reported per direction",
+  "observables": {
+    "graph": "||X - X1||_F with X = C_disc C_ret^{-1}, C = Q^T V (archived T19 observable, t19_coupling.displacement)",
+    "projector_matrix": "||dP - delta P||_op (the theorem's quantity) and ||dP - delta P||_F, dP = C C^T - P0",
+    "projector_norm": "| ||dP||_F - sqrt(2) ||X1||_F |",
+    "angle": "|| sin Theta - sigma(X1) ||_2, sin Theta = singular values of Q_disc^T V",
+    "also_recorded": ["pairwise gaps and delta (sample and population)", "lambda_min(I+eps E0)", "eta (sample and population; which one classifies is recorded)", "eta_D", "eigensolver residual max_i ||M v_i - mu_i v_i||", "bound violation max(0, ||R||_op - 44 eta^2) with in-domain flag", "ratio measured/first-order per observable, null in the absolute branch", "exact projector identity error", "sin(theta) to oracle and to planted", "floor applied"]
+  },
+  "predeclared_orders": {
+    "covariance_model": {
+      "generic": {"graph": 2, "projector_matrix": 2, "projector_norm": 2, "angle": 2},
+      "pure_coupling": {"graph": 3, "projector_matrix": 2, "projector_norm": 3, "angle": 3},
+      "two_d_example": {"graph": 3, "projector_matrix": 2, "projector_norm": 3, "angle": 3},
+      "block_diagonal": "exact: absolute branch, displacement must be < 1e-9 at every eps; ratio null",
+      "zero": "exact: absolute branch, displacement must be < 1e-12; ratio null"
+    },
+    "additive_control": {
+      "generic": {"graph": 2, "projector_matrix": 2, "projector_norm": 2, "angle": 2},
+      "pure_coupling": {"graph": 3, "projector_matrix": 2, "projector_norm": 3, "angle": 3}
+    },
+    "slope_tolerance_deterministic": 0.25,
+    "slope_tolerance_paired": 0.3,
+    "slope_window": "points with eta <= 0.1 (in-domain) along one fixed direction, at least 3 points, residual above the 1e-13 numerical floor; the window is recorded per path",
+    "deterministic_slopes_are_assertions": "a deterministic slope outside tolerance, a control displacement above threshold, a 2-D closed-form mismatch or an identity error above 1e-10 is a scientific-check failure: reduce exits 4 and the run is not reducible",
+    "paired_slopes_are_outcomes": "paired-fit slopes outside tolerance are reported as outcomes (H4 not met), never as a failure of the package"
+  },
+  "design": {
+    "production": {
+      "d": 256, "k": 2, "n_train": 512, "generator": "g1_d256 (experiments/paper1/g1.py; recorded cond 32.0, lambda_1 19.44, Delta_lambda 5.20 re-checked at run time)",
+      "deterministic": {
+        "operator": "G1 population whitened operator A_pop (d = 256)",
+        "eps_grid": [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2],
+        "families": {"pure_coupling": 3, "generic": 3, "block_diagonal": 2, "zero": 1, "two_d_example": 1},
+        "additive_control_families": {"pure_coupling": 3, "generic": 3},
+        "direction_seeds": "20260913 + index; a direction is a design constant, not a replicate",
+        "two_d_example_eps_grid": [0.02, 0.01, 0.005, 0.0025, 0.00125],
+        "two_d_reference": {"0.01": 1.414143, "0.005": 1.414196, "0.0025": 1.414209}
+      },
+      "paired": {
+        "pilot_seeds": [1000, 1019], "confirmation_seeds": [2000, 2099],
+        "eps_grid": [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3],
+        "m_over_d_grid": [2, 8, 32, 128, 512, 2048],
+        "n_train_ratio_grid": [0.25, 1, 4, 16],
+        "rng_offsets": {"train": 1000000, "calibration": 3000000, "direction": 4000000},
+        "arms": "per seed: oracle (Sigma, N) ; C and F at every eps of eps_grid with ONE direction per (seed, family) built in the sample eigenbasis ; S_full and S_toeplitz at every m ; D at every N of the ratio grid except the oracle N",
+        "joint_arm": "not retained: joint E x D sensitivity is not an estimand of this package; the engineered and estimated arms are paired against the oracle on the same draw (D held fixed), the D arm has E = 0"
+      }
+    },
+    "fixture": {
+      "d": 32, "k": 2, "n_train": 96, "generator": "g1_like_d32 (same PSD shape with f_knee = 4/d, rank, SNR, basis seed; NOT G1)",
+      "deterministic": {
+        "operator": "analytic operator: lambda = (20, 6, 1 x 30) in a random orthogonal basis (seed 20260913); lambda_1/delta = 4, close to G1's 3.74",
+        "eps_grid": [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2],
+        "families": {"pure_coupling": 2, "generic": 2, "block_diagonal": 1, "zero": 1, "two_d_example": 1},
+        "additive_control_families": {"pure_coupling": 1, "generic": 1},
+        "direction_seeds": "20260913 + index",
+        "two_d_example_eps_grid": [0.02, 0.01, 0.005, 0.0025, 0.00125],
+        "two_d_reference": {"0.01": 1.414143, "0.005": 1.414196, "0.0025": 1.414209}
+      },
+      "paired": {
+        "development_seeds": [900000, 900002],
+        "eps_grid": [0.005, 0.01, 0.02, 0.1],
+        "m_over_d_grid": [8, 128],
+        "n_train_ratio_grid": [0.25, 1, 4],
+        "rng_offsets": {"train": 1000000, "calibration": 3000000, "direction": 4000000}
+      }
+    }
+  },
+  "classification": {
+    "eta_definition": "eta = ||E||_op * lambda_1 / (lambda_k - lambda_{k+1}) computed from the SAMPLE spectrum of A_hat for engineered and estimated arms (the fit diagonalises A_hat, so A_hat is the operator the proposition is applied to); eta_D uses the population spectrum for the training-sample arm",
+    "classes": {"in_domain": "eta <= 0.1 and lambda_min(I+E) > 0", "intermediate": "0.1 < eta < 0.2", "stress": "0.2 <= eta <= 1.3 (the range the archived T19 tested; OUTSIDE the theorem)", "beyond": "eta > 1.3", "indefinite": "lambda_min(I+E) <= 0"},
+    "rule": "classification is by the REALIZED eta of each fit; every attempt is reported with its class; nothing is redrawn or dropped to populate a class"
+  },
+  "pilot_selection_rule": {
+    "written_by": "the pilot reducer (reduce --allow-partial after the pilot cells) into <RUN_ROOT>/PILOT_SELECTION.json; a confirmation cell refuses to start unless that file exists and records its sha256; the confirmation reducer refuses if any confirmation cell saw a different selection",
+    "engineered": "eps_in_domain = the three largest eps of eps_grid whose median realised eta_sample over pilot seeds is <= 0.1; eps_stress = the smallest and the largest eps whose median eta_sample lies in [0.2, 1.3]",
+    "estimated": "per estimator (S_full, S_toeplitz): m_in_domain = every m whose median realised eta_sample is <= 0.1 (may be empty; then the theorem-domain estimand is reported as undefined for that estimator with the median eta at the largest m); m_stress = every m whose median eta_sample lies in [0.2, 1.3]",
+    "scored_fits": "estimand (a) uses confirmation fits in selected in-domain arms that are ALSO realised in-domain; selected-arm fits that fell outside the domain are counted and listed, not dropped silently; estimands (b) and (c) are reported for every class with the class label",
+    "confirmation_allocation": "confirmation cells run the SAME fixed grid as the pilot (every eps, m and N); selection only decides which arms are scored; every arm is reported"
+  },
+  "estimands": {
+    "a_theorem_domain_check": "fraction of realised in-domain confirmation fits (engineered C, F; estimated S_full, S_toeplitz) with bound violation == 0, per source and pooled; per-seed fractions bootstrapped across seeds (2000 replicates, fixed seed)",
+    "b_first_order_agreement_norm": "fraction of fits whose ratio ||dP||_F / (sqrt(2)||X1||_F) lies in [0.5, 2], per source and class; descriptive; not the theorem",
+    "c_residual_orders": "per family C and F, per observable: per-seed log-log slope along the fixed sample-basis direction over the selected in-domain eps (>= 3 points, else over the full path and labelled), mean across seeds with bootstrap CI, compared with the predeclared order within 0.3; an outcome, not an assertion",
+    "d_training_sample_arm": "descriptive: graph/projector/norm/angle first-order agreement and eta_D by N (additive perturbation; the 44 eta^2 bound is not asserted for D)"
+  },
+  "controls": [
+    "zero perturbation: exact identity (displacement < 1e-12), absolute branch",
+    "block-diagonal E: subspace unchanged (displacement < 1e-9), absolute branch",
+    "2-D closed-form example: graph t = -2 eps/(1 + sqrt(1 + 8 eps^2)) to 1e-12; ||P_hat - P - delta P||_F/eps^2 = 1.414143, 1.414196, 1.414209 at eps = 0.01, 0.005, 0.0025 to 1e-5",
+    "exact projector identity ||dP||_F^2 = 2 tr[S(I+S)^{-1}] to 1e-10 at every point",
+    "additive model A + eps G: labelled control, orders reported separately, never the paper's model",
+    "model identity: fitted subspace equals the invariant subspace of A_hat(I+E)^{-1} to sin(theta) < 1e-6",
+    "oracle fit: zero graph displacement in the sample eigenbasis (< 1e-8)"
+  ],
+  "seed_namespaces": {"development": [900000, 900999], "pilot": [1000, 1099], "confirmation": [2000, 2199]},
+  "inference": {
+    "unit": "seed", "bootstrap": {"replicates": 2000, "seed": 20260913, "alpha": 0.05, "type": "percentile bootstrap of the mean across seeds"},
+    "multiplicity": "orders are predeclared per (family, observable); estimands (a)-(d) are reported jointly with no selection among observables after seeing outcomes",
+    "development_outputs": "never citable; the fixture reducer runs the same code on development cells and labels everything development_only"
+  },
+  "stopping_rule": "fixed allocation: 20 pilot cells (seeds 1000-1019) then 100 confirmation cells (seeds 2000-2099), every arm of the fixed grid in every cell (32 fits per cell), plus 16 deterministic cells; scored once after all confirmation cells are complete; no outcome-dependent stopping, no extension, no early stop",
+  "failure_interpretation": {
+    "H1_fails": "a deterministic check failure is a code or derivation defect: reduce exits 4; nothing is reported as an outcome until it is fixed in a new protocol version",
+    "H2_fails": "report the violating fits by (source, family, eps or m, eta, lambda_min, remainder/eta^2); do not adjust eps, m or the classification to recover; a violation inside eta <= 0.1 is evidence against the stated constant on G1 and is reported as such",
+    "H3_fails": "descriptive; report the ratio distribution by class",
+    "H4_fails": "report the measured slopes with CIs; the registered T19 prediction stays NOT MET regardless",
+    "estimated_arm_never_in_domain": "if no m reaches eta <= 0.1 for an estimator, report the realised eta by m and state that the theorem domain is not reachable at the allocated m for that estimator; this is a finding, not a reason to enlarge m after the fact"
+  },
+  "budget": {
+    "estimator_fits_cap": 4800,
+    "fits_planned_from_matrix": 3840,
+    "solves_planned_from_matrix": "reported by enumerate (deterministic points + sample-operator and model-identity solves)",
+    "fixture_to_production_scale": {"paired": 200.0, "default": 100.0},
+    "scale_basis": "measured locally on 2 cores (13 Sep 2026, numpy 2.4.4): one paired cell at d = 256, N = 512, m <= 2048 d took 6.5-7.8 s warm (one cold outlier 15.8 s; 32 fits; the m = 2048 d calibration stream of 134M normals dominates) against 0.036-0.048 s for one fixture paired cell (d = 32, N = 96, 15 fits): ratio 140-200, declared 200; one deterministic cell on the d = 256 G1 operator took 0.5-0.7 s against 0.007-0.017 s at d = 32: ratio 40-100, declared 100; peak memory per worker about 0.3 GB because the calibration pool is streamed in 8192-row chunks; the production point estimate is therefore about 120 x 8 s + 16 x 1 s = 17 CPU-minutes before retries",
+    "retry_policy": "a failed cell may be retried at most twice; each attempt is charged at start; charged + planned above the cap refuses the attempt (exit 2); the 960-fit headroom covers 30 paired-cell retries",
+    "replicates": "bootstrap replicates are reported separately and are not fits"
+  },
+  "explicitly_not_claimed": [
+    "a finite-perturbation theorem or any extension of the 44 eta^2 bound beyond eta <= 0.1",
+    "that the stress range eta in [0.2, 1.3] validates or extends the proposition",
+    "that passing the theorem-domain check proves Prop 3.4 (it is a necessary consistency check on one generator)",
+    "that a deployment surrogate for E (which needs the true covariance) has been validated: the engineered arms demonstrate a mechanism under a known reference covariance (review finding S4)",
+    "that the archived registered T19 slope prediction is met: it remains NOT MET; this package explains why one order per observable was a category error and does not re-score it",
+    "anything about a real instrument"
+  ]
+}

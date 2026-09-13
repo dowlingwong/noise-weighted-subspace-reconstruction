@@ -1,0 +1,231 @@
+{
+ "counts": {
+  "by_family": {
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "solves": 0
+   },
+   "sim_confirm": {
+    "cells": 690,
+    "fits": 0,
+    "solves": 0
+   },
+   "sim_pilot": {
+    "cells": 32,
+    "fits": 0,
+    "solves": 0
+   }
+  },
+  "by_role": {
+   "confirmation": {
+    "cells": 690,
+    "fits": 0,
+    "seeds": [
+     8000,
+     8001,
+     8002,
+     8003,
+     8004,
+     8005,
+     8006,
+     8007,
+     8008,
+     8009
+    ],
+    "solves": 0
+   },
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "seeds": [],
+    "solves": 0
+   },
+   "pilot": {
+    "cells": 32,
+    "fits": 0,
+    "seeds": [
+     7000,
+     7001
+    ],
+    "solves": 0
+   }
+  },
+  "cells": 727,
+  "fits": 0,
+  "solves": 0
+ },
+ "families": {
+  "control": {
+   "cells": 5,
+   "fits": 0,
+   "fixture_seconds_per_cell": 0.06745610237121583,
+   "measured": true,
+   "production_cpu_seconds": 6.748983042240145,
+   "production_seconds_per_cell": 1.3497966084480288,
+   "scale": 20.01,
+   "solves": 0
+  },
+  "sim_confirm": {
+   "cells": 690,
+   "fits": 0,
+   "fixture_seconds_per_cell": 0.2890632748603821,
+   "measured": true,
+   "production_cpu_seconds": 367393.6410820484,
+   "production_seconds_per_cell": 532.4545522928238,
+   "scale": 1842.0,
+   "solves": 0
+  },
+  "sim_pilot": {
+   "cells": 32,
+   "fits": 0,
+   "fixture_seconds_per_cell": 0.524080216884613,
+   "measured": true,
+   "production_cpu_seconds": 11422.433143043518,
+   "production_seconds_per_cell": 356.9510357201099,
+   "scale": 681.1,
+   "solves": 0
+  }
+ },
+ "fixture_counts": {
+  "by_family": {
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "solves": 0
+   },
+   "matched_fixture": {
+    "cells": 1,
+    "fits": 24,
+    "solves": 0
+   },
+   "sim_confirm": {
+    "cells": 694,
+    "fits": 0,
+    "solves": 0
+   },
+   "sim_pilot": {
+    "cells": 36,
+    "fits": 0,
+    "solves": 0
+   }
+  },
+  "by_role": {
+   "confirmation": {
+    "cells": 690,
+    "fits": 0,
+    "seeds": [
+     8000,
+     8001,
+     8002,
+     8003,
+     8004,
+     8005,
+     8006,
+     8007,
+     8008,
+     8009
+    ],
+    "solves": 0
+   },
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "seeds": [],
+    "solves": 0
+   },
+   "development": {
+    "cells": 9,
+    "fits": 24,
+    "seeds": [
+     900000,
+     900100,
+     900500
+    ],
+    "solves": 0
+   },
+   "pilot": {
+    "cells": 32,
+    "fits": 0,
+    "seeds": [
+     7000,
+     7001
+    ],
+    "solves": 0
+   }
+  },
+  "cells": 736,
+  "fits": 24,
+  "solves": 0
+ },
+ "priced_cells_note": "the total covers exactly the cells in 'priced_counts': the production matrix with role 'development' (fixture-only work, never transferred) excluded",
+ "priced_counts": {
+  "by_family": {
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "solves": 0
+   },
+   "sim_confirm": {
+    "cells": 690,
+    "fits": 0,
+    "solves": 0
+   },
+   "sim_pilot": {
+    "cells": 32,
+    "fits": 0,
+    "solves": 0
+   }
+  },
+  "by_role": {
+   "confirmation": {
+    "cells": 690,
+    "fits": 0,
+    "seeds": [
+     8000,
+     8001,
+     8002,
+     8003,
+     8004,
+     8005,
+     8006,
+     8007,
+     8008,
+     8009
+    ],
+    "solves": 0
+   },
+   "control": {
+    "cells": 5,
+    "fits": 0,
+    "seeds": [],
+    "solves": 0
+   },
+   "pilot": {
+    "cells": 32,
+    "fits": 0,
+    "seeds": [
+     7000,
+     7001
+    ],
+    "solves": 0
+   }
+  },
+  "cells": 727,
+  "fits": 0,
+  "solves": 0
+ },
+ "priced_matrix": "production",
+ "priced_roles": [
+  "confirmation",
+  "control",
+  "pilot"
+ ],
+ "retry_allowance": {
+  "fits_headroom_under_cap": 64,
+  "policy": "every attempt is charged at start; failed and interrupted attempts are never refunded; at most two retries per cell; simulation cells charge 0 fits so the cap constrains only the matched fixture cell (24 of 64)"
+ },
+ "timing_source_matrix": "fixture",
+ "total_cpu_seconds_point": 378822.8232081342,
+ "unmeasured_families": []
+}

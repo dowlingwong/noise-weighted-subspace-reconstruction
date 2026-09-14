@@ -1,0 +1,422 @@
+{
+ "benchmark_wall_seconds": 215.04789817900019,
+ "families": {
+  "algebraic": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "measured at the production design with the population-reference cache cleared, as the cell itself does",
+   "kernel": "algebraic_cell",
+   "seconds_per_cell": {
+    "high": 2.2437425650005025,
+    "low": 2.2022088970006735,
+    "median": 2.2099029920009343
+   },
+   "size": 4,
+   "size_symbol": "thetas"
+  },
+  "confirmation": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9746981551902949,
+   "how": "mean over the six production N of the measured per-cell time N=400:1.977s, N=800:3.788s, N=1000:4.795s, N=1250:5.836s, N=1600:7.449s, N=3200:15.033s; each (seed, theta) contributes exactly one cell at each N",
+   "kernel": "fit_cell",
+   "seconds_per_cell": {
+    "high": 6.506367187833196,
+    "low": 6.440541400166846,
+    "median": 6.479586976499983
+   },
+   "size": "N in [400, 800, 1000, 1250, 1600, 3200]",
+   "size_symbol": "N",
+   "theoretical_exponent": 1.0
+  },
+  "pilot": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9746981551902949,
+   "how": "mean over the six production N of the measured per-cell time N=400:1.977s, N=800:3.788s, N=1000:4.795s, N=1250:5.836s, N=1600:7.449s, N=3200:15.033s; each (seed, theta) contributes exactly one cell at each N",
+   "kernel": "fit_cell",
+   "seconds_per_cell": {
+    "high": 6.506367187833196,
+    "low": 6.440541400166846,
+    "median": 6.479586976499983
+   },
+   "size": "N in [400, 800, 1000, 1250, 1600, 3200]",
+   "size_symbol": "N",
+   "theoretical_exponent": 1.0
+  }
+ },
+ "generated_utc": "2026-09-13T10:50:04+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "harness": {
+  "components": {
+   "ledger_at_fixture_length": {
+    "complete_seconds_median": 0.00021473800006788224,
+    "existing_records": 18,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006681340000795899,
+    "seconds_per_cell_median": 0.0004426870018505724,
+    "start_seconds_median": 0.00022794900178269017
+   },
+   "ledger_at_production_length": {
+    "complete_seconds_median": 0.0002545490006014006,
+    "existing_records": 964,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0010259169994242257,
+    "seconds_per_cell_median": 0.0005431920017144876,
+    "start_seconds_median": 0.00028864300111308694
+   },
+   "note": "the ledger figure is start+complete for one cell under the advisory flock; the write figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256",
+   "production_bytes_per_cell_weighted": 1410,
+   "write_and_schema_at_fixture_payload": {
+    "padding_note": "",
+    "payload_bytes": 4241,
+    "samples": 15,
+    "schema_check_seconds_median": 1.7845000911620446e-05,
+    "seconds_per_cell_median": 0.0007301490022655344,
+    "target_bytes": 4236,
+    "write_seconds_median": 0.0007123040013539139
+   },
+   "write_and_schema_at_production_payload": {
+    "padding_note": "",
+    "payload_bytes": 4190,
+    "samples": 15,
+    "schema_check_seconds_median": 1.5531000826740637e-05,
+    "seconds_per_cell_median": 0.0006567940017703222,
+    "target_bytes": 1410,
+    "write_seconds_median": 0.0006412630009435816
+   }
+  },
+  "components_seconds_per_cell_at_production_scale": 0.0011999860034848098,
+  "end_to_end": {
+   "cells": 18,
+   "fixture_cell_bytes_median": 4236,
+   "harness_seconds_per_cell": 0.004131830137036256,
+   "harness_seconds_total": 0.0743729424666526,
+   "how": "a real `run --fixture` of this package through common.cli, on a copy of the fixture run root with cells/ and the ledger removed; harness = wall - interpreter start-up - the summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)",
+   "includes_once_per_run_costs": "the matrix write, protocol snapshot, code provenance and the interrupted sweep happen once per run and are amortised over 18 fixture cells here, so this per-cell figure OVERSTATES the production one",
+   "interpreter_and_import_seconds": 0.8498803849997785,
+   "kernel_seconds_total_from_cell_files": 0.26802897453308105,
+   "runs": 2,
+   "wall_seconds_total": 1.1922823019995121
+  },
+  "floored_at_components": false,
+  "harness_seconds_per_cell": 0.004158980136404959,
+  "harness_seconds_per_cell_swapped_to_production_scale": 0.004158980136404959,
+  "how": "end-to-end harness seconds per cell measured on the fixture, with the scale-dependent components (ledger length, result-file bytes) swapped from the fixture scale to the production scale: 0.0041318 - 0.0011728 + 0.0012 = 0.004159",
+  "measured": true,
+  "per_worker_interpreter_startup_seconds_measured": 0.8498803849997785,
+  "per_worker_note": "the interpreter start-up and package import above is paid once per worker PROCESS, not once per cell; a scheduler that starts a fresh process per cell pays it on every cell instead, which would add 0.8499 s x 964 cells = 819.3 CPU-s",
+  "serial_note": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_seconds_per_cell": 0.0005431920017144876
+ },
+ "kernels": {
+  "algebraic_cell": {
+   "kernel": "algebraic_cell",
+   "points": [
+    {
+     "max_s": 2.2437425650005025,
+     "median_s": 2.2099029920009343,
+     "min_s": 2.2022088970006735,
+     "repeats": 3,
+     "samples_s": [
+      2.2437425650005025,
+      2.2022088970006735,
+      2.2099029920009343
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.018794339910016958,
+     "warmup": 1
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production size",
+    "seconds_per_call_high": 2.2437425650005025,
+    "seconds_per_call_low": 2.2022088970006735,
+    "seconds_per_call_median": 2.2099029920009343
+   }
+  },
+  "fit_cell": {
+   "call_path": "t20s.runner.run_fit_cell -> np.linalg.eigh(S) (1 PCA fit) + experiments.synthetic.nfpa_confirmatory.methods.als_fit (R = 4 restarts x 150 sweeps)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.0253018448097051,
+    "fitted_exponent": 0.9746981551902949,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.005671883439066706,
+    "b": 0.9746981551902949,
+    "max_abs_log_residual": 0.01580338929627967,
+    "n_points": 6,
+    "r_squared": 0.9995931234676683,
+    "residual_log_rms": 0.012507782730689691,
+    "sizes": [
+     400.0,
+     800.0,
+     1000.0,
+     1250.0,
+     1600.0,
+     3200.0
+    ],
+    "times_s": [
+     1.9768144849995224,
+     3.787710034000156,
+     4.795035428000119,
+     5.8360300500007725,
+     7.448648638999657,
+     15.033283222999671
+    ]
+   },
+   "fixture_size": 40.0,
+   "kernel": "fit_cell",
+   "notes": "d = C.T = 256 is fixed by the design; N is the only production size that varies, and every production N was run",
+   "points": [
+    {
+     "max_s": 1.979757038000571,
+     "median_s": 1.9768144849995224,
+     "min_s": 1.9642481500004578,
+     "repeats": 3,
+     "samples_s": [
+      1.9642481500004578,
+      1.979757038000571,
+      1.9768144849995224
+     ],
+     "size": 400.0,
+     "spread_fraction": 0.00784539374726244,
+     "warmup": 1
+    },
+    {
+     "max_s": 3.8077116219992604,
+     "median_s": 3.787710034000156,
+     "min_s": 3.761637449999398,
+     "repeats": 3,
+     "samples_s": [
+      3.8077116219992604,
+      3.787710034000156,
+      3.761637449999398
+     ],
+     "size": 800.0,
+     "spread_fraction": 0.012164123332113653,
+     "warmup": 1
+    },
+    {
+     "max_s": 4.829830210999717,
+     "median_s": 4.795035428000119,
+     "min_s": 4.7492779809999774,
+     "repeats": 3,
+     "samples_s": [
+      4.829830210999717,
+      4.795035428000119,
+      4.7492779809999774
+     ],
+     "size": 1000.0,
+     "spread_fraction": 0.01679908964370997,
+     "warmup": 1
+    },
+    {
+     "max_s": 5.8661058399993635,
+     "median_s": 5.8360300500007725,
+     "min_s": 5.79592831500122,
+     "repeats": 3,
+     "samples_s": [
+      5.8661058399993635,
+      5.8360300500007725,
+      5.79592831500122
+     ],
+     "size": 1250.0,
+     "spread_fraction": 0.01202487382636669,
+     "warmup": 1
+    },
+    {
+     "max_s": 7.449456614000155,
+     "median_s": 7.448648638999657,
+     "min_s": 7.435957329998928,
+     "repeats": 3,
+     "samples_s": [
+      7.449456614000155,
+      7.448648638999657,
+      7.435957329998928
+     ],
+     "size": 1600.0,
+     "spread_fraction": 0.0018123131665182541,
+     "warmup": 1
+    },
+    {
+     "max_s": 15.105341802000112,
+     "median_s": 15.033283222999671,
+     "memory": {
+      "kernel": "fit",
+      "package": "t20s",
+      "rss_before_bytes": 113676288,
+      "rss_delta_bytes": 40128512,
+      "rss_high_water_bytes": 153804800,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 153804800,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 3200.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 29018413
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 14.936199175001093,
+     "repeats": 3,
+     "samples_s": [
+      14.936199175001093,
+      15.033283222999671,
+      15.105341802000112
+     ],
+     "size": 3200.0,
+     "spread_fraction": 0.0112512100311025,
+     "warmup": 1
+    }
+   ],
+   "production_size": 3200.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 3200.0,
+    "largest_size_benchmarked": 3200.0,
+    "seconds_per_call_high": 15.105341802000112,
+    "seconds_per_call_low": 14.936199175001093,
+    "seconds_per_call_median": 15.033283222999671,
+    "spans_more_than_one_decade": false,
+    "target_size": 3200.0
+   },
+   "repeats": 3,
+   "size_symbol": "N",
+   "sizes_run": [
+    400.0,
+    800.0,
+    1000.0,
+    1250.0,
+    1600.0,
+    3200.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "als_sweep",
+    "note": "an ALS sweep is O(iter . N . d . k), so linear in N at fixed d, k, iter"
+   },
+   "warmup": 1
+  }
+ },
+ "notes": [
+  "run_fit_cell caches the population reference per (process, theta) with an LRU cache. The measured per-cell times above are WARM-cache times. A worker that runs one cell per process pays the cold reference (0.57 s measured) on every cell; a long-lived worker pays it four times in total (one per theta).",
+  "The dominant cost inside a fit cell is als_fit (4 restarts x up to 150 sweeps), not the closed-form PCA: the PCA is a single eigh of a 256x256 matrix."
+ ],
+ "package": "t20s",
+ "reduce": {
+  "bound": "compute",
+  "bound_measured_on_cells": 18,
+  "bound_measured_on_input_bytes": 93382,
+  "bound_note": "reduce reads every cell file once; measured throughput 0.3 MB/s over 18 cells (0.09 MB of input) against a warm page cache, so the step is compute-bound AT THAT SIZE.  This is not a claim about the production scale; see reduction_work.at_production_scale in RESOURCE_ESTIMATE.json",
+  "bound_threshold_bytes_per_second": 50000000.0,
+  "cells_read": 18,
+  "fixture_cell_bytes_median": 4236,
+  "fixture_cell_bytes_total": 76278,
+  "input_bytes_read": 93382,
+  "interpreter_and_import_seconds_measured": 0.8316371589990013,
+  "ledger_bytes_fixture": 17104,
+  "ledger_bytes_per_cell": 950.2222222222222,
+  "measured": true,
+  "reduced_output_bytes": 15446,
+  "returncode": 0,
+  "seconds_per_cell": 0.013474276444564262,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 314500.4990881131,
+  "wall_seconds_reduce_work": 0.24253697600215673,
+  "wall_seconds_total_including_interpreter": 1.074174135001158
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.13878245200066885,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5100607690001198
+  },
+  "transfer": {
+   "archive_bytes": 7764484,
+   "archive_path_measured": "/tmp/hf5/mlst-successor_20260913-handoff-20260913T111611Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few tens of kB (timestamps, this report and the estimate files) - two builds of the same tree measured here were 7 702 123 and 7 764 484 bytes."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.6389819430005446,
+   "seconds_min": 3.593306031998509
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 58.53125182700023,
+   "seconds_min": 57.33935914700123
+  }
+ },
+ "storage": {
+  "algebraic_cell_result_bytes_measured": 1835,
+  "basis": "measured: the production-size result dict serialised with the runner's encoder",
+  "bytes_per_cell_by_family": {
+   "algebraic": {
+    "basis": "measured",
+    "bytes": 1835,
+    "how": "one production algebraic cell result"
+   },
+   "confirmation": {
+    "basis": "measured",
+    "bytes": 1409,
+    "how": "one production fit cell result (N = 1600)"
+   },
+   "pilot": {
+    "basis": "measured",
+    "bytes": 1409,
+    "how": "one production fit cell result (N = 1600)"
+   }
+  },
+  "fit_cell_result_bytes_measured": 1409
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "estimator_calls_per_fit_cell": 5,
+  "per_worker_cold_population_reference_seconds_measured": 0.5672021919999679,
+  "per_worker_warm_population_reference_seconds_measured": 1.9421999240876175e-05,
+  "population_als_inits_per_algebraic_cell": 33,
+  "restarts": {
+   "als_restarts_per_fit_cell": 4,
+   "als_sweeps_per_restart_max": 150,
+   "note": "1 closed-form PCA fit + R = 4 ALS restarts; the restart count is NOT folded into the fit number, it is the fit number minus one"
+  },
+  "simulation_replicates": {
+   "draws_per_fit_cell": 1,
+   "rows_drawn_per_fit_cell": "N (400..3200) rows of d = 256"
+  },
+  "solves_per_algebraic_cell": 35
+ }
+}

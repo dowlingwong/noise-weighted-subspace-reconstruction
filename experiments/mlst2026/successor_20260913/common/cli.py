@@ -272,7 +272,7 @@ def _reduce(args, P, matrix, out, package, reduce_run, result_required) -> int:
 
 
 def _ledger_digest(ledger: ExecutionLedger, attempt_uuid: str) -> str | None:
-    a = ledger.attempts().get(attempt_uuid)
+    a = ledger.attempt(attempt_uuid)
     return a.get("output_sha256") if a else None
 
 
@@ -286,40 +286,471 @@ def _production_only(matrix: RunMatrix) -> RunMatrix:
     return matrix.subset(roles=[r for r in ROLES if r != "development"])
 
 
-def _estimate(P, matrix, out, *, fixture_matrix=None) -> int:
-    """Resource estimate: measured per-cell wall time by family from whatever
-    cells exist under --out (a fixture run), scaled by the declared
-    ``budget.fixture_to_production_scale`` per family, times the PRODUCTION
-    matrix (``matrix``).  Nothing here is a guess: absent timings are reported
-    as absent, and the root's own (fixture) counts are recorded beside the
-    production counts so the two are never confused.
+def _flat_cross_check(P, matrix, out) -> dict:
+    """The OLD estimate, kept only as a cross-check.
 
-    The priced set is the production matrix with ``role == development``
-    removed.  Development cells are fixture work and are never transferred, so
-    pricing them would make the projected total cover a different set of cells
-    from the counts printed beside it.  ``priced_counts`` below is the set the
-    total covers, and it is what the handoff prints."""
-    matrix = _production_only(matrix)
+    It is one *fixture* per-cell wall time multiplied by the constant
+    ``budget.fixture_to_production_scale`` declared in the protocol.  That is a
+    linear extrapolation of a tiny fixture with no account of the production
+    dimension or of the algorithmic scaling of the kernel, which is exactly what
+    the governing brief forbids as an estimate.  It is retained because a large
+    disagreement between it and the measurement is itself informative: it says
+    how wrong the declared scale factor was.
+    """
     observed = read_cells(out)
     timings: dict[str, list[float]] = {}
     for files in observed.values():
         for _, js in files:
             timings.setdefault(js["family"] or "-", []).append(float(js.get("wall_s", 0.0)))
     scale = P["budget"].get("fixture_to_production_scale", {})
-    est = {"families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": []}
+    fams: dict[str, dict] = {}
+    total = 0.0
+    unmeasured = []
     for fam, info in matrix.counts()["by_family"].items():
         t = timings.get(fam)
         if not t:
-            est["unmeasured_families"].append(fam)
-            est["families"][fam] = {"cells": info["cells"], "measured": False}
+            unmeasured.append(fam)
+            fams[fam] = {"cells": info["cells"], "measured": False}
             continue
-        per = float(sum(t) / len(t)) * float(scale.get(fam, scale.get("default", 1.0)))
-        est["families"][fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
-                                "fixture_seconds_per_cell": float(sum(t) / len(t)), "scale": float(scale.get(fam, scale.get("default", 1.0))),
-                                "production_seconds_per_cell": per, "production_cpu_seconds": per * info["cells"]}
-        est["total_cpu_seconds_point"] += per * info["cells"]
-    est["counts"] = matrix.counts()
-    est["priced_counts"] = matrix.counts()
+        sc = float(scale.get(fam, scale.get("default", 1.0)))
+        per = float(sum(t) / len(t)) * sc
+        fams[fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
+                     "fixture_seconds_per_cell": float(sum(t) / len(t)), "fixture_cells_timed": len(t),
+                     "scale": sc, "production_seconds_per_cell": per,
+                     "production_cpu_seconds": per * info["cells"]}
+        total += per * info["cells"]
+    return {"what_this_is": ("NOT the estimate.  One fixture wall time per family multiplied by the constant "
+                            "budget.fixture_to_production_scale, i.e. a flat linear extrapolation of the "
+                            "fixture with no dimension and no algorithmic scaling in it.  Kept so that the "
+                            "size of its error against the measurement is visible."),
+            "families": fams, "total_cpu_seconds_point": total, "unmeasured_families": unmeasured}
+
+
+def _load_benchmark(P) -> tuple[dict | None, str]:
+    """The measured benchmark that lives beside the protocol.  Absent is reported,
+    never silently replaced by a guess."""
+    path = Path(P["_path"]).resolve().parent / "BENCHMARK.json"
+    try:
+        shown = str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        shown = str(path)
+    if not path.exists():
+        return None, shown
+    return json.loads(path.read_text()), shown
+
+
+def _kernel_summary(k: dict) -> dict:
+    """The part of a kernel benchmark that belongs in the estimate: the measured
+    points, the fitted exponent beside the theoretical one, and how the production
+    number was obtained."""
+    out = {"kernel": k.get("kernel"), "call_path": k.get("call_path", ""),
+           "size_symbol": k.get("size_symbol"), "notes": k.get("notes", ""),
+           "points": [{"size": r.get("size"), "median_s": r.get("median_s"), "min_s": r.get("min_s"),
+                       "max_s": r.get("max_s"), "repeats": r.get("repeats"),
+                       "tracemalloc_peak_bytes": (r.get("memory") or {}).get("tracemalloc_peak_bytes"),
+                       "rss_high_water_bytes": (r.get("memory") or {}).get("rss_high_water_bytes"),
+                       "memory_measured_in": r.get("memory_measured_in")}
+                      for r in k.get("points", [])]}
+    if "fit" in k:
+        out["fit"] = {kk: k["fit"][kk] for kk in ("a", "b", "residual_log_rms", "max_abs_log_residual",
+                                                  "r_squared", "n_points") if kk in k["fit"]}
+    if "theory" in k:
+        out["theoretical_exponent"] = k["theory"]["exponent"]
+        out["theory_note"] = k["theory"]["note"]
+    if "exponent_check" in k:
+        out["exponent_check"] = k["exponent_check"]
+    if "projection" in k:
+        out["projection"] = k["projection"]
+    return out
+
+
+def _reduce_bound_at_production(bench: dict, counts: dict, total_seconds: float) -> dict:
+    """Re-state the compute-vs-I/O classification at the PRODUCTION input size.
+
+    ``run_benchmarks`` classifies ``reduce`` on the fixture run root, which holds
+    between 12 and 419 small cells.  The classification is a measurement of that
+    size and of nothing else.  At production the same step reads the production
+    cell files, which for one package is three orders of magnitude more bytes, and
+    the rate it would have to sustain is arithmetic anyone can check."""
+    r = (bench or {}).get("reduce") or {}
+    by_fam = ((bench or {}).get("storage") or {}).get("bytes_per_cell_by_family") or {}
+    thresh = float(r.get("bound_threshold_bytes_per_second") or 5e7)
+    cell_bytes = sum(int((by_fam.get(f) or {}).get("bytes", 0)) * int(i["cells"])
+                     for f, i in counts["by_family"].items())
+    if not cell_bytes or total_seconds <= 0:
+        return {"known": False, "why": "no measured per-family cell bytes, or no reduce time"}
+    # the final reduce reads the whole run root once; the pilot reduce reads its share
+    rate = cell_bytes / total_seconds
+    io = rate > thresh
+    return {"known": True,
+            "production_input_bytes": cell_bytes,
+            "seconds_at_the_measured_per_cell_rate": total_seconds,
+            "implied_read_rate_bytes_per_second": rate,
+            "threshold_bytes_per_second": thresh,
+            "bound_at_production": "io" if io else "compute",
+            "note": (("At the production scale reduce must read %.0f MB in the %.3g s the measured per-cell "
+                      "rate allows, i.e. %.0f MB/s.  That is above the %.0f MB/s at which a warm page cache "
+                      "stops being free, so at production this step is expected to be I/O-DOMINATED and the "
+                      "reduce figure above is a LOWER bound: the compute-bound classification measured on the "
+                      "fixture does not carry to this scale."
+                      % (cell_bytes / 1e6, total_seconds, rate / 1e6, thresh / 1e6))
+                     if io else
+                     ("At the production scale reduce reads %.0f MB in %.3g s, i.e. %.1f MB/s, still far "
+                      "below the %.0f MB/s at which I/O would take over, so the compute-bound classification "
+                      "measured on the fixture also holds at production for this package."
+                      % (cell_bytes / 1e6, total_seconds, rate / 1e6, thresh / 1e6)))}
+
+
+def _reduce_projection(bench: dict, counts: dict, pilot_cells: int) -> dict:
+    """Reduction work.  ``reduce`` reads every cell file of the run root, so its
+    cost is priced per cell at the measured rate, and the number of times it runs
+    is the number of reduces the protocol's flow performs."""
+    r = (bench or {}).get("reduce") or {}
+    if not r.get("measured"):
+        return {"measured": False, "why": r.get("why", "no fixture run root was available to time reduce")}
+    per = float(r.get("seconds_per_cell") or 0.0)
+    n_all = int(counts["cells"])
+    runs = [("pilot reduce", pilot_cells)] if pilot_cells else []
+    runs.append(("final reduce over the whole run root", n_all))
+    total = sum(per * n for _, n in runs)
+    return {"measured": True,
+            "at_production_scale": _reduce_bound_at_production(bench, counts, total),
+            "measured_on_cells": r.get("cells_read"),
+            "measured_seconds_of_reduce_work": r.get("wall_seconds_reduce_work"),
+            "interpreter_and_import_seconds": r.get("interpreter_and_import_seconds_measured"),
+            "seconds_per_cell_measured": per,
+            "throughput_bytes_per_second_measured": r.get("throughput_bytes_per_second"),
+            "bound": r.get("bound"), "bound_note": r.get("bound_note", ""),
+            "reduces_priced": [{"what": w, "cells": n, "seconds": per * n} for w, n in runs],
+            "total_seconds_projected": total,
+            "how": ("measured seconds per cell on the fixture run root (%s cells) x the production cell count; "
+                    "linear because reduce reads each cell file exactly once"
+                    % r.get("cells_read")),
+            "basis": "projected from a measured per-cell rate"}
+
+
+def _harness_projection(bench: dict, counts: dict) -> dict:
+    """The per-cell cost of the CLI harness around the kernel.
+
+    Production does not run a kernel; it runs a whole cell through this module:
+    ledger ``start`` under an advisory flock, the kernel, the schema and fit
+    checks, the atomic result write (json encode + fsync + sha256) and ledger
+    ``complete``.  The kernel benchmarks measure none of that, so it is measured
+    end to end (a real ``run`` of the fixture cells through this CLI) and priced
+    per production cell here.
+
+    ``serial_seconds`` is the part that runs under the ledger's lock and therefore
+    does NOT parallelise: it is a floor on the wall time at any worker count.
+    """
+    h = (bench or {}).get("harness") or {}
+    if not h.get("measured"):
+        return {"measured": False, "why": h.get("why", "no fixture run root was available to time the harness")}
+    per = float(h.get("harness_seconds_per_cell") or 0.0)
+    serial_per = float(h.get("serial_seconds_per_cell") or 0.0)
+    n = int(counts["cells"])
+    e2e = h.get("end_to_end") or {}
+    comp = h.get("components") or {}
+    return {"measured": True,
+            "seconds_per_cell": per,
+            "total_seconds_projected": per * n,
+            "serial_seconds_per_cell": serial_per,
+            "serial_total_seconds_projected": serial_per * n,
+            "serial_note": h.get("serial_note", ""),
+            "measured_end_to_end_on_cells": e2e.get("cells"),
+            "end_to_end_seconds_per_cell_on_the_fixture": e2e.get("harness_seconds_per_cell"),
+            "end_to_end_how": e2e.get("how", ""),
+            "end_to_end_includes_once_per_run_costs": e2e.get("includes_once_per_run_costs", ""),
+            "components": comp,
+            "floored_at_components": h.get("floored_at_components"),
+            "how": h.get("how", ""),
+            "per_worker_interpreter_startup_seconds_measured": h.get(
+                "per_worker_interpreter_startup_seconds_measured"),
+            "per_worker_interpreter_startup_note": h.get("per_worker_note", ""),
+            "basis": "measured end to end through this CLI, priced per production cell"}
+
+
+def _storage_projection(bench: dict, matrix, counts: dict) -> dict:
+    by_fam = ((bench or {}).get("storage") or {}).get("bytes_per_cell_by_family") or {}
+    r = (bench or {}).get("reduce") or {}
+    rows = {}
+    total = 0
+    for fam, info in counts["by_family"].items():
+        e = by_fam.get(fam)
+        if not e:
+            rows[fam] = {"cells": info["cells"], "bytes_per_cell": None, "basis": "unmeasured"}
+            continue
+        b = int(e["bytes"]) * int(info["cells"])
+        total += b
+        rows[fam] = {"cells": info["cells"], "bytes_per_cell": int(e["bytes"]), "bytes_total": b,
+                     "basis": e.get("basis", "measured"), "how": e.get("how", "")}
+    ledger_per_cell = float(r.get("ledger_bytes_per_cell") or 0.0)
+    ledger = ledger_per_cell * counts["cells"] * 2   # one start line and one completion line per attempt
+    fx_cells = int(r.get("cells_read") or 0)
+    fx_reduced = float(r.get("reduced_output_bytes") or 0.0)
+    reduced = (fx_reduced / fx_cells * counts["cells"]) if fx_cells else None
+    grand = total + ledger + (reduced or 0.0)
+    return {"cells": rows,
+            "cell_files_bytes_total": total,
+            "ledger_bytes_projected": ledger,
+            "ledger_basis": ("measured %.0f bytes per completed cell on the fixture ledger, x 2 because every "
+                             "attempt writes a start line and a completion line" % ledger_per_cell),
+            "reduced_output_bytes_projected": reduced,
+            "reduced_basis": ("projected linearly from the measured fixture REDUCED.json (%.0f bytes over %d "
+                              "cells)" % (fx_reduced, fx_cells)) if fx_cells else "unmeasured",
+            "total_bytes": grand, "total_mb": grand / 1e6,
+            "note": "cell-file bytes are MEASURED on a production-configuration result object per family; the "
+                    "multiplication by the cell count and the ledger/reduced lines are projections"}
+
+
+def _peak_memory(bench: dict) -> dict:
+    """Peak memory per cell at the production dimension, from the benchmark."""
+    best = None
+    rows = []
+    for name, k in ((bench or {}).get("kernels") or {}).items():
+        for r in k.get("points", []):
+            m = r.get("memory")
+            if not m:
+                continue
+            row = {"kernel": name, "size": r.get("size"),
+                   "measured_in": r.get("memory_measured_in", "this process"),
+                   "tracemalloc_peak_bytes": m.get("tracemalloc_peak_bytes"),
+                   "rss_high_water_bytes": m.get("rss_high_water_bytes"),
+                   "ru_maxrss_bytes": m.get("ru_maxrss_bytes")}
+            rows.append(row)
+            # a fresh-subprocess measurement is the only one that belongs to a single
+            # cell, so it is preferred over an in-process high-water mark even when the
+            # in-process number is larger (that number includes everything the
+            # benchmark process did before it)
+            key = (row["measured_in"] == "subprocess", row["rss_high_water_bytes"] or 0)
+            if best is None or key > (best["measured_in"] == "subprocess", best["rss_high_water_bytes"] or 0):
+                best = row
+    if best is None:
+        return {"measured": False, "why": "no memory point in BENCHMARK.json"}
+    return {"measured": True, "per_cell_peak": best, "all_points": rows,
+            "per_cell_peak_chosen_by": ("the largest fresh-subprocess RSS measurement among the kernels, "
+                                        "because only a fresh process attributes the high-water mark to one "
+                                        "cell; in-process points are listed in all_points and are upper "
+                                        "bounds on the whole benchmark process, not on one cell"),
+            "tracemalloc_is": "peak Python-allocator bytes attributable to the call",
+            "rss_is": ("VmHWM (resident high-water mark) of the process running the cell, including the "
+                       "interpreter and numpy; measured in a fresh subprocess where 'measured_in' says "
+                       "'subprocess', which is the only way the high-water mark belongs to one problem "
+                       "size.  VmHWM and not ru_maxrss: Linux inherits ru_maxrss across fork, so a probe "
+                       "spawned by a benchmark driver reports the driver's peak, not the child's"),
+            "per_worker_note": "one worker holds one cell, so W workers need about W x the RSS figure above; "
+                               "this machine has 7 GiB, the server's memory is UNKNOWN"}
+
+
+def _estimate(P, matrix, out, *, fixture_matrix=None) -> int:
+    """Resource estimate for the PRODUCTION matrix, from measured, scaling-aware
+    benchmarks of the package's own kernels.
+
+    The headline is ``cpu_seconds`` / ``wall_time_hours_by_workers``: per family,
+    the number of production cells times the seconds per cell that
+    ``BENCHMARK.json`` measured at (or projected to, with a fitted exponent) the
+    production dimension.  Every family says whether its number is ``measured``
+    or ``projected``, and a projected one carries the fitted exponent and the
+    extrapolation factor in the dimension it used.
+
+    The old flat product (one fixture time x a constant declared in the protocol)
+    is still computed, but only under ``cross_check_flat_fixture_scale`` and
+    labelled as not being the estimate.
+
+    The priced set is the production matrix with ``role == development`` removed.
+    Development cells are fixture work and are never transferred, so pricing them
+    would make the projected total cover a different set of cells from the counts
+    printed beside it.  ``priced_counts`` is the set the total covers, and it is
+    what the handoff prints.
+    """
+    matrix = _production_only(matrix)
+    counts = matrix.counts()
+    bench, bench_path = _load_benchmark(P)
+    flat = _flat_cross_check(P, matrix, out)
+
+    est: dict = {
+        "schema": "mlst-local-package-resource-estimate/2",
+        "package": P["package"],
+        "estimate_basis": (
+            "measured benchmarks of the package's own kernels at four or more problem sizes that bracket or "
+            "reach the production dimension, fitted as t = a n^b and reported beside the algorithm's "
+            "exponent, multiplied by the enumerated production matrix.  NOT a fixture time multiplied by a "
+            "declared constant; that product is kept separately under "
+            "'cross_check_flat_fixture_scale' and is not the estimate."),
+        "hardware": (bench or {}).get("hardware", "UNKNOWN: BENCHMARK.json is absent"),
+        "thread_settings": (bench or {}).get("thread_settings"),
+        "benchmark_source": {"path": bench_path, "present": bench is not None,
+                             "generated_utc": (bench or {}).get("generated_utc"),
+                             "benchmark_wall_seconds": (bench or {}).get("benchmark_wall_seconds")},
+    }
+    if bench is None:
+        est["measured_projection_available"] = False
+        est["why_no_measured_projection"] = (
+            f"no BENCHMARK.json beside the protocol at {bench_path}; run "
+            "experiments/mlst2026/successor_20260913/run_benchmarks.py to produce one.  Only the flat "
+            "cross-check is available, and a flat cross-check is not an estimate.")
+    else:
+        est["measured_projection_available"] = True
+
+    bfam = ((bench or {}).get("families") or {})
+    fams: dict[str, dict] = {}
+    unmeasured: list[str] = []
+    lo = mid = hi = 0.0
+    for fam, info in counts["by_family"].items():
+        e = bfam.get(fam)
+        if not e:
+            unmeasured.append(fam)
+            fams[fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"],
+                         "measured": False,
+                         "why": "no benchmark for this family in BENCHMARK.json"}
+            continue
+        s = e["seconds_per_cell"]
+        row = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
+               "basis": e.get("basis"), "kernel": e.get("kernel"),
+               "calls_per_cell": e.get("calls_per_cell"),
+               "benchmark_size": e.get("size"), "size_symbol": e.get("size_symbol"),
+               "fitted_exponent": e.get("fitted_exponent"),
+               "theoretical_exponent": e.get("theoretical_exponent"),
+               "extrapolation_factor_in_dimension": e.get("extrapolation_factor_in_dimension"),
+               "seconds_per_cell_median": s["median"], "seconds_per_cell_low": s["low"],
+               "seconds_per_cell_high": s["high"],
+               "cpu_seconds_point": s["median"] * info["cells"],
+               "cpu_seconds_low": s["low"] * info["cells"],
+               "cpu_seconds_high": s["high"] * info["cells"],
+               "how": e.get("how", ""), "projection_label": e.get("projection_label", "")}
+        fams[fam] = row
+        lo += row["cpu_seconds_low"]
+        mid += row["cpu_seconds_point"]
+        hi += row["cpu_seconds_high"]
+    est["families"] = fams
+    est["unmeasured_families"] = unmeasured
+    est["per_cell_central_statistic"] = (
+        "seconds_per_cell_median is the measured median over repeats where the family's cells are identical, "
+        "and the mean over the family's own cells of their measured medians where they are not (t20s N grid, "
+        "cresst_s constructions / reports / ranks / designs, t22s n_files census).  The low/high bounds are "
+        "the corresponding measured minima and maxima; they are measurements, not margins.")
+
+    pilot_cells = int(counts["by_role"].get("pilot", {}).get("cells", 0))
+    red = _reduce_projection(bench, counts, pilot_cells)
+    est["reduction_work"] = red
+    reduce_s = float(red.get("total_seconds_projected") or 0.0)
+    harn = _harness_projection(bench, counts)
+    est["harness_work"] = harn
+    harness_s = float(harn.get("total_seconds_projected") or 0.0)
+    serial_s = float(harn.get("serial_total_seconds_projected") or 0.0)
+    # the harness minus its serialised part is what a worker can overlap with others
+    parallel_harness_s = max(0.0, harness_s - serial_s)
+    startup_s = harn.get("per_worker_interpreter_startup_seconds_measured")
+
+    est["cpu_seconds"] = {
+        "cell_compute_low": lo, "cell_compute_point": mid, "cell_compute_high": hi,
+        "harness": harness_s,
+        "harness_is": ("the per-cell cost of this CLI around the kernel - ledger start/complete under the "
+                       "advisory flock, the schema and fit-accounting checks and the atomic result write "
+                       "(json encode + fsync + sha256) - measured end to end and priced per production "
+                       "cell.  The kernel benchmarks do not see it."),
+        "reduction": reduce_s,
+        "total_low": lo + harness_s + reduce_s, "total_point": mid + harness_s + reduce_s,
+        "total_high": hi + harness_s + reduce_s,
+        "excludes": ("transfer and environment setup, which are reported separately below.  Per-worker "
+                     "interpreter start-up is NOT in the per-cell figures either: it is measured "
+                     + ("(%.4g s per worker process) and reported under 'harness_work."
+                        "per_worker_interpreter_startup_seconds_measured'" % startup_s
+                        if startup_s else "nowhere in this pass and is UNQUANTIFIED")
+                     + ", and it is not added to the total because how often a worker process starts is a "
+                       "property of the scheduler, which is unknown."),
+    }
+    est["total_cpu_seconds_point"] = mid + harness_s + reduce_s
+    est["total_cpu_hours_point"] = (mid + harness_s + reduce_s) / 3600.0
+
+    workers = (1, 8, 32)
+    est["parallelism_assumption"] = (
+        "Cells are independent processes, so the cell compute and the parallel part of the per-cell harness "
+        "are taken as perfectly parallel over W workers.  Two terms are NOT parallel and are added whole: "
+        "the ledger appends, which every worker serialises through one advisory flock, and the reduction, "
+        "which is a single process.  wall = (cell_compute + parallel_harness) / W + serial_ledger + "
+        "reduction.  The serial ledger term is a floor no worker count beats.")
+    est["wall_time_model"] = {
+        "formula": "wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction",
+        "cell_compute_seconds_point": mid,
+        "parallel_harness_seconds": parallel_harness_s,
+        "serial_ledger_seconds": serial_s,
+        "serial_ledger_is": harn.get("serial_note", ""),
+        "reduction_seconds": reduce_s,
+        "serial_floor_seconds": serial_s + reduce_s,
+        "serial_floor_hours": (serial_s + reduce_s) / 3600.0,
+    }
+    est["wall_time_hours_by_workers"] = {
+        str(w): {"workers": w,
+                 "hours_low": ((lo + parallel_harness_s) / w + serial_s + reduce_s) / 3600.0,
+                 "hours_high": ((hi + parallel_harness_s) / w + serial_s + reduce_s) / 3600.0,
+                 "hours_point": ((mid + parallel_harness_s) / w + serial_s + reduce_s) / 3600.0,
+                 "serial_floor_fraction_of_point": (
+                     (serial_s + reduce_s) / max(1e-12, (mid + parallel_harness_s) / w + serial_s + reduce_s)),
+                 "dominated_by_the_serial_floor": bool(
+                     (serial_s + reduce_s) > (mid + parallel_harness_s) / w),
+                 "conditional": ("CONDITIONAL on the server having %d usable cores at a per-core speed "
+                                 "comparable to the benchmark Xeon.  The server specification is NOT known; "
+                                 "this is not a claim that %d cores exist." % (w, w))}
+        for w in workers}
+
+    wa = dict((bench or {}).get("work_accounting") or {})
+    wa.update({
+        "priced_cells": counts["cells"],
+        "estimator_fits_planned_from_matrix": counts["fits"],
+        "solves_planned_from_matrix": counts["solves"],
+        "cells_by_role": {r: v["cells"] for r, v in counts["by_role"].items()},
+        "cells_by_family": {f: v["cells"] for f, v in counts["by_family"].items()},
+    })
+    est["work_accounting"] = wa
+    est["peak_memory"] = _peak_memory(bench)
+    est["storage"] = _storage_projection(bench, matrix, counts)
+
+    setup = ((bench or {}).get("setup_and_transfer") or {})
+    est["transfer"] = dict(setup.get("transfer") or {"archive_bytes": None})
+    est["transfer"]["separate_from_computation"] = True
+    est["setup"] = {k: v for k, v in setup.items() if k != "transfer"}
+    est["setup"]["separate_from_computation"] = True
+
+    est["unknowns"] = [
+        "server core count (the wall-time rows are conditional on 1, 8 and 32; none of them is asserted)",
+        "server per-core speed relative to the benchmark Intel Xeon @ 2.10GHz",
+        "server BLAS threading policy (these numbers are single-threaded; a multithreaded BLAS changes the "
+        "per-cell time and the useful worker count in opposite directions)",
+        "server filesystem speed and whether advisory flock on the ledger works there (a network filesystem "
+        "falls back to serial ledger appends, which caps useful parallelism)",
+        "link bandwidth for the transfer (only the archive size is known)",
+        "whether the pinned requirements are already installed on the server",
+        "server memory per worker (the per-cell RSS figures above are measured; the budget is not known)",
+        "contention between concurrent workers: every per-cell time here was measured on a 2-vCPU container "
+        "running ONE process at a time, so the numbers contain no cache, memory-bandwidth or disk contention. "
+        "W concurrent workers share last-level cache, memory bandwidth and one disk queue, which makes each "
+        "cell slower by an amount this benchmark cannot see and which grows with W.  The wall-time rows at "
+        "8 and 32 workers are therefore optimistic by an unmeasured factor.",
+    ]
+
+    est["cross_check_flat_fixture_scale"] = flat
+    total_point = mid + harness_s + reduce_s
+    if flat["total_cpu_seconds_point"] > 0 and total_point > 0:
+        f = flat["total_cpu_seconds_point"]
+        # LIKE FOR LIKE: the flat product was an estimate of what a whole production run
+        # of the package costs, so it is compared with the whole measured total (cell
+        # compute + harness + reduction), not with the kernel time alone.  Comparing it
+        # with cell compute flatters the correction by leaving out two real terms.
+        est["cross_check_flat_fixture_scale"]["compared_with"] = (
+            "cpu_seconds.total_point, i.e. cell compute + the per-cell CLI harness + the reduction.  The "
+            "flat product estimated a whole run, so a whole run is what it must be compared with; the "
+            "ratio against cell compute alone is given separately and is not the correction.")
+        est["cross_check_flat_fixture_scale"]["measured_total_over_flat_ratio"] = total_point / f
+        est["cross_check_flat_fixture_scale"]["measured_over_flat_ratio"] = total_point / f
+        est["cross_check_flat_fixture_scale"]["measured_cell_compute_over_flat_ratio"] = mid / f
+        est["cross_check_flat_fixture_scale"]["verdict"] = (
+            "the declared flat scale is within a factor 2 of the measured total"
+            if 0.5 <= total_point / f <= 2.0 else
+            "the declared flat scale disagrees with the measured TOTAL by a factor %.3g; the flat factor is "
+            "wrong, not the measurement" % (max(total_point, f) / max(1e-12, min(total_point, f))))
+
+    est["counts"] = counts
+    est["priced_counts"] = counts
     est["priced_matrix"] = "production"
     est["priced_roles"] = sorted({c["role"] for c in matrix.cells})
     est["priced_cells_note"] = ("the total covers exactly the cells in 'priced_counts': the production matrix "
@@ -328,7 +759,14 @@ def _estimate(P, matrix, out, *, fixture_matrix=None) -> int:
     if fixture_matrix is not None:
         est["fixture_counts"] = fixture_matrix.counts()
     est["retry_allowance"] = {"policy": P["budget"].get("retry_policy", "unspecified"),
-                              "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - matrix.counts()["fits"]}
+                              "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - counts["fits"],
+                              "cpu_seconds_per_retried_cell": ("the family's seconds_per_cell above; a retry "
+                                                               "costs a whole cell and is charged at start")}
+    if bench is not None:
+        est["kernels"] = {k: _kernel_summary(v) for k, v in (bench.get("kernels") or {}).items()}
+        est["benchmark_notes"] = bench.get("notes", [])
     write_json_atomic(out / "RESOURCE_ESTIMATE.json", est)
-    print(json.dumps(est, indent=1))
+    print(json.dumps({k: est[k] for k in ("package", "estimate_basis", "cpu_seconds",
+                                          "wall_time_hours_by_workers", "unmeasured_families")
+                      if k in est}, indent=1))
     return 0

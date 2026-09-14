@@ -1,4 +1,14 @@
 {
+ "benchmark_notes": [
+  "Every cresst_s family except the robustness grid was benchmarked at its exact production configuration on the real archived inputs, so those projections are MEASUREMENTS.",
+  "The robustness cells cannot be executed here at all: they need raw CRESST pulse traces that are not in this container. Their cost was measured on a synthetic pulse root written at the production dimensions by the package's own writer. That is a substitute for the data, not for the dimensions; a real channel with a different event count would scale linearly in n_train."
+ ],
+ "benchmark_source": {
+  "benchmark_wall_seconds": 294.0160189879989,
+  "generated_utc": "2026-09-13T11:09:05+00:00",
+  "path": "experiments/mlst2026/successor_20260913/cresst_s/BENCHMARK.json",
+  "present": true
+ },
  "counts": {
   "by_family": {
    "archive_interval": {
@@ -131,96 +141,328 @@
   "fits": 1056,
   "solves": 0
  },
+ "cpu_seconds": {
+  "cell_compute_high": 270.36876686398136,
+  "cell_compute_low": 208.39322241396803,
+  "cell_compute_point": 232.6777953355204,
+  "excludes": "transfer and environment setup, which are reported separately below.  Per-worker interpreter start-up is NOT in the per-cell figures either: it is measured (0.2951 s per worker process) and reported under 'harness_work.per_worker_interpreter_startup_seconds_measured', and it is not added to the total because how often a worker process starts is a property of the scheduler, which is unknown.",
+  "harness": 1.8042032640676489,
+  "harness_is": "the per-cell cost of this CLI around the kernel - ledger start/complete under the advisory flock, the schema and fit-accounting checks and the atomic result write (json encode + fsync + sha256) - measured end to end and priced per production cell.  The kernel benchmarks do not see it.",
+  "reduction": 0.6112470430415324,
+  "total_high": 272.7842171710906,
+  "total_low": 210.80867272107722,
+  "total_point": 235.09324564262957
+ },
+ "cross_check_flat_fixture_scale": {
+  "compared_with": "cpu_seconds.total_point, i.e. cell compute + the per-cell CLI harness + the reduction.  The flat product estimated a whole run, so a whole run is what it must be compared with; the ratio against cell compute alone is given separately and is not the correction.",
+  "families": {
+   "archive_interval": {
+    "cells": 10,
+    "fits": 0,
+    "fixture_cells_timed": 10,
+    "fixture_seconds_per_cell": 0.27443456649780273,
+    "measured": true,
+    "production_cpu_seconds": 16.449607915878296,
+    "production_seconds_per_cell": 1.6449607915878295,
+    "scale": 5.994,
+    "solves": 0
+   },
+   "archive_point": {
+    "cells": 1,
+    "fits": 0,
+    "fixture_cells_timed": 1,
+    "fixture_seconds_per_cell": 0.0004420280456542969,
+    "measured": true,
+    "production_cpu_seconds": 0.0004420280456542969,
+    "production_seconds_per_cell": 0.0004420280456542969,
+    "scale": 1.0,
+    "solves": 0
+   },
+   "calib_confirm": {
+    "cells": 12,
+    "fits": 0,
+    "fixture_cells_timed": 3,
+    "fixture_seconds_per_cell": 0.38935653368632,
+    "measured": true,
+    "production_cpu_seconds": 65.41189765930176,
+    "production_seconds_per_cell": 5.45099147160848,
+    "scale": 14.0,
+    "solves": 0
+   },
+   "calib_control": {
+    "cells": 1,
+    "fits": 0,
+    "fixture_cells_timed": 1,
+    "fixture_seconds_per_cell": 1.3296566009521484,
+    "measured": true,
+    "production_cpu_seconds": 10.637252807617188,
+    "production_seconds_per_cell": 10.637252807617188,
+    "scale": 8.0,
+    "solves": 0
+   },
+   "calib_pilot": {
+    "cells": 12,
+    "fits": 0,
+    "fixture_cells_timed": 1,
+    "fixture_seconds_per_cell": 0.16782236099243164,
+    "measured": true,
+    "production_cpu_seconds": 25.696959915161134,
+    "production_seconds_per_cell": 2.141413326263428,
+    "scale": 12.76,
+    "solves": 0
+   },
+   "cluster_report": {
+    "cells": 5,
+    "fits": 0,
+    "fixture_cells_timed": 5,
+    "fixture_seconds_per_cell": 0.6711276054382325,
+    "measured": true,
+    "production_cpu_seconds": 26.378670531749727,
+    "production_seconds_per_cell": 5.275734106349946,
+    "scale": 7.861,
+    "solves": 0
+   },
+   "robustness_confirm": {
+    "cells": 315,
+    "fits": 945,
+    "fixture_cells_timed": 2,
+    "fixture_seconds_per_cell": 0.06951332092285156,
+    "measured": true,
+    "production_cpu_seconds": 379.46974325180054,
+    "production_seconds_per_cell": 1.2046658515930175,
+    "scale": 17.33,
+    "solves": 0
+   },
+   "robustness_pilot": {
+    "cells": 35,
+    "fits": 105,
+    "fixture_cells_timed": 2,
+    "fixture_seconds_per_cell": 0.058750152587890625,
+    "measured": true,
+    "production_cpu_seconds": 57.01996059417724,
+    "production_seconds_per_cell": 1.629141731262207,
+    "scale": 27.73,
+    "solves": 0
+   },
+   "science_control": {
+    "cells": 4,
+    "fits": 6,
+    "fixture_cells_timed": 4,
+    "fixture_seconds_per_cell": 0.09223675727844238,
+    "measured": true,
+    "production_cpu_seconds": 2.9084094305038453,
+    "production_seconds_per_cell": 0.7271023576259613,
+    "scale": 7.883,
+    "solves": 0
+   }
+  },
+  "measured_cell_compute_over_flat_ratio": 0.39843934153571964,
+  "measured_over_flat_ratio": 0.4025755782079343,
+  "measured_total_over_flat_ratio": 0.4025755782079343,
+  "total_cpu_seconds_point": 583.9729441342355,
+  "unmeasured_families": [],
+  "verdict": "the declared flat scale disagrees with the measured TOTAL by a factor 2.48; the flat factor is wrong, not the measurement",
+  "what_this_is": "NOT the estimate.  One fixture wall time per family multiplied by the constant budget.fixture_to_production_scale, i.e. a flat linear extrapolation of the fixture with no dimension and no algorithmic scaling in it.  Kept so that the size of its error against the measurement is visible."
+ },
+ "estimate_basis": "measured benchmarks of the package's own kernels at four or more problem sizes that bracket or reach the production dimension, fitted as t = a n^b and reported beside the algorithm's exponent, multiplied by the enumerated production matrix.  NOT a fixture time multiplied by a declared constant; that product is kept separately under 'cross_check_flat_fixture_scale' and is not the estimate.",
  "families": {
   "archive_interval": {
+   "basis": "measured",
+   "benchmark_size": 10000,
+   "calls_per_cell": 1,
    "cells": 10,
+   "cpu_seconds_high": 26.008763299996644,
+   "cpu_seconds_low": 13.864919260013266,
+   "cpu_seconds_point": 20.210687208003947,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.27443456649780273,
+   "fitted_exponent": 0.9969849509032757,
+   "how": "mean over the ten archived constructions, each run once at the production 10000 replicates: block16_channel_fixed 2.59s, block16_hierarchical 2.56s, block256_channel_fixed 2.59s, block256_hierarchical 2.60s, block64_channel_fixed 2.15s, block64_hierarchical 2.07s, channel_fixed 1.41s, headline 1.44s, ratio_of_means_channel_fixed 1.41s, ratio_of_means_hierarchical 1.39s",
+   "kernel": "archive_interval",
    "measured": true,
-   "production_cpu_seconds": 16.449607915878296,
-   "production_seconds_per_cell": 1.6449607915878295,
-   "scale": 5.994,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 2.6008763299996644,
+   "seconds_per_cell_low": 1.3864919260013266,
+   "seconds_per_cell_median": 2.0210687208003946,
+   "size_symbol": "R",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "archive_point": {
+   "basis": "measured",
+   "benchmark_size": 1,
+   "calls_per_cell": 1,
    "cells": 1,
+   "cpu_seconds_high": 0.0002832730006048223,
+   "cpu_seconds_low": 0.00024444300106551964,
+   "cpu_seconds_point": 0.0002766739999060519,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.0004420280456542969,
+   "fitted_exponent": null,
+   "how": "measured on the real archived inputs",
+   "kernel": "archive_point",
    "measured": true,
-   "production_cpu_seconds": 0.0004420280456542969,
-   "production_seconds_per_cell": 0.0004420280456542969,
-   "scale": 1.0,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 0.0002832730006048223,
+   "seconds_per_cell_low": 0.00024444300106551964,
+   "seconds_per_cell_median": 0.0002766739999060519,
+   "size_symbol": "cell",
+   "solves": 0,
+   "theoretical_exponent": null
   },
   "calib_confirm": {
+   "basis": "measured",
+   "benchmark_size": "mc 400 x boot 400",
+   "calls_per_cell": 1,
    "cells": 12,
+   "cpu_seconds_high": 44.4233858890002,
+   "cpu_seconds_low": 44.13963841400255,
+   "cpu_seconds_point": 44.281512151501374,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.38935653368632,
+   "fitted_exponent": 0.9812614968472833,
+   "how": "every one of the 12 production confirmation designs was run at its own replicate budget; the family value is their mean",
+   "kernel": "calibration_coverage",
    "measured": true,
-   "production_cpu_seconds": 65.41189765930176,
-   "production_seconds_per_cell": 5.45099147160848,
-   "scale": 14.0,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 3.7019488240833502,
+   "seconds_per_cell_low": 3.678303201166879,
+   "seconds_per_cell_median": 3.6901260126251145,
+   "size_symbol": "mc.boot.clusters",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "calib_control": {
+   "basis": "measured",
+   "benchmark_size": 1,
+   "calls_per_cell": 1,
    "cells": 1,
+   "cpu_seconds_high": 7.424053642000217,
+   "cpu_seconds_low": 7.204739384000277,
+   "cpu_seconds_point": 7.314396513000247,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 1.3296566009521484,
+   "fitted_exponent": null,
+   "how": "measured at the production configuration (mc 400 x bootstrap 400, two arms)",
+   "kernel": "calibration_control",
    "measured": true,
-   "production_cpu_seconds": 10.637252807617188,
-   "production_seconds_per_cell": 10.637252807617188,
-   "scale": 8.0,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 7.424053642000217,
+   "seconds_per_cell_low": 7.204739384000277,
+   "seconds_per_cell_median": 7.314396513000247,
+   "size_symbol": "cell",
+   "solves": 0,
+   "theoretical_exponent": null
   },
   "calib_pilot": {
+   "basis": "measured",
+   "benchmark_size": "mc 200 x boot 300",
+   "calls_per_cell": 1,
    "cells": 12,
+   "cpu_seconds_high": 16.989507562002473,
+   "cpu_seconds_low": 16.756381826000506,
+   "cpu_seconds_point": 16.87294469400149,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.16782236099243164,
+   "fitted_exponent": 0.9812614968472833,
+   "how": "every one of the 12 production pilot designs was run at its own replicate budget; the family value is their mean",
+   "kernel": "calibration_coverage",
    "measured": true,
-   "production_cpu_seconds": 25.696959915161134,
-   "production_seconds_per_cell": 2.141413326263428,
-   "scale": 12.76,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 1.4157922968335395,
+   "seconds_per_cell_low": 1.3963651521667089,
+   "seconds_per_cell_median": 1.406078724500124,
+   "size_symbol": "mc.boot.clusters",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "cluster_report": {
+   "basis": "measured",
+   "benchmark_size": 10000,
+   "calls_per_cell": 1,
    "cells": 5,
+   "cpu_seconds_high": 47.905906570003935,
+   "cpu_seconds_low": 9.269887729997208,
+   "cpu_seconds_point": 23.775586169000235,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 0,
-   "fixture_seconds_per_cell": 0.6711276054382325,
+   "fitted_exponent": 1.0468096263777769,
+   "how": "mean over the five reports at the production 10000 replicates: leave_one_channel_out 9.58s, leave_one_run_out 3.53s, per_channel_effects 4.13s, run_stratified 4.68s, variance_decomposition 1.85s",
+   "kernel": "cluster_report",
    "measured": true,
-   "production_cpu_seconds": 26.378670531749727,
-   "production_seconds_per_cell": 5.275734106349946,
-   "scale": 7.861,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 9.581181314000787,
+   "seconds_per_cell_low": 1.8539775459994416,
+   "seconds_per_cell_median": 4.755117233800047,
+   "size_symbol": "R",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "robustness_confirm": {
+   "basis": "measured-on-substitute",
+   "benchmark_size": "rank 2..12",
+   "calls_per_cell": 1,
    "cells": 315,
+   "cpu_seconds_high": 104.95620687996961,
+   "cpu_seconds_low": 100.48300975994607,
+   "cpu_seconds_point": 101.38369990003412,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 945,
-   "fixture_seconds_per_cell": 0.06951332092285156,
+   "fitted_exponent": 0.49258577139656395,
+   "how": "mean over the 315 confirmation grid rows of the measured (time cut, rank) table at the production dimensions on SYNTHETIC pulses",
+   "kernel": "empca_robustness",
    "measured": true,
-   "production_cpu_seconds": 379.46974325180054,
-   "production_seconds_per_cell": 1.2046658515930175,
-   "scale": 17.33,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 0.3331943075554591,
+   "seconds_per_cell_low": 0.31899368177760656,
+   "seconds_per_cell_median": 0.32185301555566387,
+   "size_symbol": "rank k",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "robustness_pilot": {
+   "basis": "measured-on-substitute",
+   "benchmark_size": "rank 2..12",
+   "calls_per_cell": 1,
    "cells": 35,
+   "cpu_seconds_high": 17.219703760007178,
+   "cpu_seconds_low": 16.666066725007113,
+   "cpu_seconds_point": 16.845216079978854,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 105,
-   "fixture_seconds_per_cell": 0.058750152587890625,
+   "fitted_exponent": 0.49258577139656395,
+   "how": "mean over the 35 pilot grid rows of the measured (time cut, rank) table at the production dimensions on SYNTHETIC pulses (no CRESST raw data here)",
+   "kernel": "empca_robustness",
    "measured": true,
-   "production_cpu_seconds": 57.01996059417724,
-   "production_seconds_per_cell": 1.629141731262207,
-   "scale": 27.73,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 0.49199153600020507,
+   "seconds_per_cell_low": 0.4761733350002032,
+   "seconds_per_cell_median": 0.4812918879993958,
+   "size_symbol": "rank k",
+   "solves": 0,
+   "theoretical_exponent": 1.0
   },
   "science_control": {
+   "basis": "measured",
+   "benchmark_size": 1,
+   "calls_per_cell": 1,
    "cells": 4,
+   "cpu_seconds_high": 5.440955988000496,
+   "cpu_seconds_low": 0.008334871999977622,
+   "cpu_seconds_point": 1.993475946000217,
+   "extrapolation_factor_in_dimension": 1.0,
    "fits": 6,
-   "fixture_seconds_per_cell": 0.09223675727844238,
+   "fitted_exponent": null,
+   "how": "mean over the four production science controls: block1_equals_iid 0.002s, empca_uniform_weight_limit 0.620s, event_weight_constant 0.036s, zero_effect_identity 1.335s",
+   "kernel": "science_control",
    "measured": true,
-   "production_cpu_seconds": 2.9084094305038453,
-   "production_seconds_per_cell": 0.7271023576259613,
-   "scale": 7.883,
-   "solves": 0
+   "projection_label": "",
+   "seconds_per_cell_high": 1.360238997000124,
+   "seconds_per_cell_low": 0.0020837179999944055,
+   "seconds_per_cell_median": 0.49836898650005423,
+   "size_symbol": "cell",
+   "solves": 0,
+   "theoretical_exponent": null
   }
  },
  "fixture_counts": {
@@ -370,6 +612,556 @@
   "fits": 1068,
   "solves": 0
  },
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "harness_work": {
+  "basis": "measured end to end through this CLI, priced per production cell",
+  "components": {
+   "ledger_at_fixture_length": {
+    "complete_seconds_median": 0.00017873599972517695,
+    "existing_records": 29,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006227550002222415,
+    "seconds_per_cell_median": 0.00036192399966239464,
+    "start_seconds_median": 0.00018318799993721768
+   },
+   "ledger_at_production_length": {
+    "complete_seconds_median": 0.0001729829982650699,
+    "existing_records": 395,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006876920015201904,
+    "seconds_per_cell_median": 0.00035276599737699144,
+    "start_seconds_median": 0.00017978299911192153
+   },
+   "note": "the ledger figure is start+complete for one cell under the advisory flock; the write figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256",
+   "production_bytes_per_cell_weighted": 611,
+   "write_and_schema_at_fixture_payload": {
+    "padding_note": "",
+    "payload_bytes": 6053,
+    "samples": 15,
+    "schema_check_seconds_median": 3.890998414135538e-06,
+    "seconds_per_cell_median": 0.0006184249996294966,
+    "target_bytes": 6048,
+    "write_seconds_median": 0.0006145340012153611
+   },
+   "write_and_schema_at_production_payload": {
+    "padding_note": "",
+    "payload_bytes": 5601,
+    "samples": 15,
+    "schema_check_seconds_median": 3.858000127365813e-06,
+    "seconds_per_cell_median": 0.0006327219998638611,
+    "target_bytes": 611,
+    "write_seconds_median": 0.0006288639997364953
+   }
+  },
+  "end_to_end_how": "a real `run --fixture` of this package through common.cli, on a copy of the fixture run root with cells/ and the ledger removed; harness = wall - interpreter start-up - the summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)",
+  "end_to_end_includes_once_per_run_costs": "the matrix write, protocol snapshot, code provenance and the interrupted sweep happen once per run and are amortised over 29 fixture cells here, so this per-cell figure OVERSTATES the production one",
+  "end_to_end_seconds_per_cell_on_the_fixture": 0.004562464202222302,
+  "floored_at_components": false,
+  "how": "end-to-end harness seconds per cell measured on the fixture, with the scale-dependent components (ledger length, result-file bytes) swapped from the fixture scale to the production scale: 0.0045625 - 0.00098035 + 0.00098549 = 0.0045676",
+  "measured": true,
+  "measured_end_to_end_on_cells": 29,
+  "per_worker_interpreter_startup_note": "the interpreter start-up and package import above is paid once per worker PROCESS, not once per cell; a scheduler that starts a fresh process per cell pays it on every cell instead, which would add 0.2951 s x 395 cells = 116.6 CPU-s",
+  "per_worker_interpreter_startup_seconds_measured": 0.2951339339997503,
+  "seconds_per_cell": 0.004567603200171263,
+  "serial_note": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_seconds_per_cell": 0.00035276599737699144,
+  "serial_total_seconds_projected": 0.13934256896391162,
+  "total_seconds_projected": 1.8042032640676489
+ },
+ "kernels": {
+  "archive_interval": {
+   "call_path": "cresst_s.archive_recompute.recompute_interval: a cluster bootstrap over the 19335 archived evaluation events in 7 channels",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.0030150490967243426,
+    "fitted_exponent": 0.9969849509032757,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.00016901197031213335,
+    "b": 0.9969849509032757,
+    "max_abs_log_residual": 0.00960900584655075,
+    "n_points": 4,
+    "r_squared": 0.9999400769871282,
+    "residual_log_rms": 0.00608735595732744
+   },
+   "kernel": "archive_interval",
+   "notes": "the production replicate count was run directly",
+   "points": [
+    {
+     "max_s": 0.20495897100045113,
+     "median_s": 0.1992082399992796,
+     "memory_measured_in": null,
+     "min_s": 0.1897199700015335,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 1200.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.46618899799977953,
+     "median_s": 0.4124928569999611,
+     "memory_measured_in": null,
+     "min_s": 0.40043818699996336,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 2500.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.871770933001244,
+     "median_s": 0.8157587759997114,
+     "memory_measured_in": null,
+     "min_s": 0.8050268520000827,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 5000.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 1.662599676001264,
+     "median_s": 1.6547562159994413,
+     "memory_measured_in": "subprocess",
+     "min_s": 1.646181145999435,
+     "repeats": 3,
+     "rss_high_water_bytes": 141070336,
+     "size": 10000.0,
+     "tracemalloc_peak_bytes": 64289069
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 10000.0,
+    "largest_size_benchmarked": 10000.0,
+    "seconds_per_call_high": 1.662599676001264,
+    "seconds_per_call_low": 1.646181145999435,
+    "seconds_per_call_median": 1.6547562159994413,
+    "spans_more_than_one_decade": false,
+    "target_size": 10000.0
+   },
+   "size_symbol": "R",
+   "theoretical_exponent": 1.0,
+   "theory_note": "a bootstrap is linear in the number of replicates"
+  },
+  "archive_point": {
+   "call_path": "",
+   "kernel": "archive_point",
+   "notes": "",
+   "points": [
+    {
+     "max_s": 0.0002832730006048223,
+     "median_s": 0.0002766739999060519,
+     "memory_measured_in": null,
+     "min_s": 0.00024444300106551964,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 1.0,
+     "tracemalloc_peak_bytes": null
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production size",
+    "seconds_per_call_high": 0.0002832730006048223,
+    "seconds_per_call_low": 0.00024444300106551964,
+    "seconds_per_call_median": 0.0002766739999060519
+   },
+   "size_symbol": null
+  },
+  "calibration_control": {
+   "call_path": "",
+   "kernel": "calibration_control",
+   "notes": "",
+   "points": [
+    {
+     "max_s": 7.424053642000217,
+     "median_s": 7.314396513000247,
+     "memory_measured_in": null,
+     "min_s": 7.204739384000277,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1.0,
+     "tracemalloc_peak_bytes": null
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production configuration",
+    "seconds_per_call_high": 7.424053642000217,
+    "seconds_per_call_low": 7.204739384000277,
+    "seconds_per_call_median": 7.314396513000247
+   },
+   "size_symbol": null
+  },
+  "calibration_coverage": {
+   "call_path": "cresst_s.calibration.coverage: mc Monte-Carlo datasets x bootstrap_replicates cluster bootstrap draws each",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.018738503152716746,
+    "fitted_exponent": 0.9812614968472833,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.002565456031743792,
+    "b": 0.9812614968472833,
+    "max_abs_log_residual": 0.011149666995304508,
+    "n_points": 4,
+    "r_squared": 0.9998147665638891,
+    "residual_log_rms": 0.010350590903285245
+   },
+   "kernel": "calibration_coverage",
+   "notes": "at the reference design (n_runs 2, channels_per_run 2); the production mc was run directly",
+   "points": [
+    {
+     "max_s": 0.12280942300094466,
+     "median_s": 0.12041139000029943,
+     "memory_measured_in": null,
+     "min_s": 0.11487672999828646,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 50.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.23851707600078953,
+     "median_s": 0.23310681600014505,
+     "memory_measured_in": null,
+     "min_s": 0.23154858599991712,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 100.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.46344725000017206,
+     "median_s": 0.459446000000753,
+     "memory_measured_in": null,
+     "min_s": 0.4590756859997782,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 200.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.9302367660002346,
+     "median_s": 0.9269825299998047,
+     "memory_measured_in": "subprocess",
+     "min_s": 0.9227815040012501,
+     "repeats": 3,
+     "rss_high_water_bytes": 71524352,
+     "size": 400.0,
+     "tracemalloc_peak_bytes": 1564065
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 400.0,
+    "largest_size_benchmarked": 400.0,
+    "seconds_per_call_high": 0.9302367660002346,
+    "seconds_per_call_low": 0.9227815040012501,
+    "seconds_per_call_median": 0.9269825299998047,
+    "spans_more_than_one_decade": false,
+    "target_size": 400.0
+   },
+   "size_symbol": "mc",
+   "theoretical_exponent": 1.0,
+   "theory_note": "a bootstrap is linear in the number of replicates"
+  },
+  "cluster_report": {
+   "call_path": "cresst_s.runner._cell_cluster_report -> cluster_report.* (cluster bootstrap per report)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": 0.04680962637777686,
+    "fitted_exponent": 1.0468096263777769,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.00027911533865237326,
+    "b": 1.0468096263777769,
+    "max_abs_log_residual": 0.04110948334314646,
+    "n_points": 4,
+    "r_squared": 0.9990835675866814,
+    "residual_log_rms": 0.025006175928166632
+   },
+   "kernel": "cluster_report",
+   "notes": "the production replicate count was run directly",
+   "points": [
+    {
+     "max_s": 0.4630415199990239,
+     "median_s": 0.4619070204998934,
+     "memory_measured_in": null,
+     "min_s": 0.46077252100076294,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1200.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 1.0319342900002084,
+     "median_s": 1.0018567434999568,
+     "memory_measured_in": null,
+     "min_s": 0.9717791969997052,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 2500.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 2.270201794000968,
+     "median_s": 2.1664802465011235,
+     "memory_measured_in": null,
+     "min_s": 2.0627586990012787,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 5000.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 4.24608226500095,
+     "median_s": 4.184934704500847,
+     "memory_measured_in": "subprocess",
+     "min_s": 4.123787144000744,
+     "repeats": 2,
+     "rss_high_water_bytes": 202051584,
+     "size": 10000.0,
+     "tracemalloc_peak_bytes": 99943481
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 10000.0,
+    "largest_size_benchmarked": 10000.0,
+    "seconds_per_call_high": 4.24608226500095,
+    "seconds_per_call_low": 4.123787144000744,
+    "seconds_per_call_median": 4.184934704500847,
+    "spans_more_than_one_decade": false,
+    "target_size": 10000.0
+   },
+   "size_symbol": "R",
+   "theoretical_exponent": 1.0,
+   "theory_note": "a bootstrap is linear in the number of replicates"
+  },
+  "empca_robustness": {
+   "call_path": "cresst_s.robustness_design.fit_and_score -> src.canonical.empca.classic_pca (1 fit) + empca (EMPCA_RESTARTS = 2 fits, niter = 25)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -0.507414228603436,
+    "fitted_exponent": 0.49258577139656395,
+    "note": "the measured exponent is BELOW the algorithm's by 0.51: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.20105746968239444,
+    "b": 0.49258577139656395,
+    "max_abs_log_residual": 0.07285752142299479,
+    "n_points": 5,
+    "r_squared": 0.9729633948438582,
+    "residual_log_rms": 0.05034789772008794
+   },
+   "kernel": "empca_robustness",
+   "notes": "the real CRESST pulse traces are NOT in this container; the synthetic pulse root written by the package's own write_fixture_data_root is used AT THE PRODUCTION DIMENSIONS (n_events 400, n_samples 128, n_noise 400). The EMPCA cost is set by those dimensions and by the fixed niter, not by the values, but the substitution is a substitution and is labelled here.",
+   "points": [
+    {
+     "max_s": 0.32678247900003043,
+     "median_s": 0.29346153600090474,
+     "memory_measured_in": null,
+     "min_s": 0.2917254399999365,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 2.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.43293644999903336,
+     "median_s": 0.3967157490005775,
+     "memory_measured_in": null,
+     "min_s": 0.357097371999771,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 4.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.47435884100013936,
+     "median_s": 0.45473924900034035,
+     "memory_measured_in": null,
+     "min_s": 0.44693434100008744,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 6.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.553577757000312,
+     "median_s": 0.5380850830006239,
+     "memory_measured_in": null,
+     "min_s": 0.5300028060009936,
+     "repeats": 3,
+     "rss_high_water_bytes": null,
+     "size": 8.0,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.7821750509992853,
+     "median_s": 0.7354466239994508,
+     "memory_measured_in": "subprocess",
+     "min_s": 0.7318181320006261,
+     "repeats": 3,
+     "rss_high_water_bytes": 75968512,
+     "size": 12.0,
+     "tracemalloc_peak_bytes": 3903425
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 6.0,
+    "largest_size_benchmarked": 12.0,
+    "seconds_per_call_high": 0.47435884100013936,
+    "seconds_per_call_low": 0.44693434100008744,
+    "seconds_per_call_median": 0.45473924900034035,
+    "spans_more_than_one_decade": false,
+    "target_size": 6.0
+   },
+   "size_symbol": "rank k",
+   "theoretical_exponent": 1.0,
+   "theory_note": "a weighted-EM sweep is O(niter . n_train . n_components . k), so linear in the rank k"
+  },
+  "science_control": {
+   "call_path": "",
+   "kernel": "science_control",
+   "notes": "",
+   "points": [
+    {
+     "max_s": 0.0024131509999278933,
+     "median_s": 0.0022484344999611494,
+     "memory_measured_in": null,
+     "min_s": 0.0020837179999944055,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.6206179410000914,
+     "median_s": 0.6195455940005559,
+     "memory_measured_in": null,
+     "min_s": 0.6184732470010204,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 0.03675205299987283,
+     "median_s": 0.03634680249979283,
+     "memory_measured_in": null,
+     "min_s": 0.03594155199971283,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1,
+     "tracemalloc_peak_bytes": null
+    },
+    {
+     "max_s": 1.360238997000124,
+     "median_s": 1.335335114999907,
+     "memory_measured_in": null,
+     "min_s": 1.31043123299969,
+     "repeats": 2,
+     "rss_high_water_bytes": null,
+     "size": 1,
+     "tracemalloc_peak_bytes": null
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production configuration",
+    "seconds_per_call_high": 1.360238997000124,
+    "seconds_per_call_low": 0.0020837179999944055,
+    "seconds_per_call_median": 0.49836898650005423
+   },
+   "size_symbol": null
+  }
+ },
+ "measured_projection_available": true,
+ "package": "cresst_s",
+ "parallelism_assumption": "Cells are independent processes, so the cell compute and the parallel part of the per-cell harness are taken as perfectly parallel over W workers.  Two terms are NOT parallel and are added whole: the ledger appends, which every worker serialises through one advisory flock, and the reduction, which is a single process.  wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction.  The serial ledger term is a floor no worker count beats.",
+ "peak_memory": {
+  "all_points": [
+   {
+    "kernel": "archive_interval",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 141070336,
+    "ru_maxrss_bytes": 141070336,
+    "size": 10000.0,
+    "tracemalloc_peak_bytes": 64289069
+   },
+   {
+    "kernel": "calibration_coverage",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 71524352,
+    "ru_maxrss_bytes": 71524352,
+    "size": 400.0,
+    "tracemalloc_peak_bytes": 1564065
+   },
+   {
+    "kernel": "cluster_report",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 202051584,
+    "ru_maxrss_bytes": 202051584,
+    "size": 10000.0,
+    "tracemalloc_peak_bytes": 99943481
+   },
+   {
+    "kernel": "empca_robustness",
+    "measured_in": "subprocess",
+    "rss_high_water_bytes": 75968512,
+    "ru_maxrss_bytes": 75968512,
+    "size": 12.0,
+    "tracemalloc_peak_bytes": 3903425
+   }
+  ],
+  "measured": true,
+  "per_cell_peak": {
+   "kernel": "cluster_report",
+   "measured_in": "subprocess",
+   "rss_high_water_bytes": 202051584,
+   "ru_maxrss_bytes": 202051584,
+   "size": 10000.0,
+   "tracemalloc_peak_bytes": 99943481
+  },
+  "per_cell_peak_chosen_by": "the largest fresh-subprocess RSS measurement among the kernels, because only a fresh process attributes the high-water mark to one cell; in-process points are listed in all_points and are upper bounds on the whole benchmark process, not on one cell",
+  "per_worker_note": "one worker holds one cell, so W workers need about W x the RSS figure above; this machine has 7 GiB, the server's memory is UNKNOWN",
+  "rss_is": "VmHWM (resident high-water mark) of the process running the cell, including the interpreter and numpy; measured in a fresh subprocess where 'measured_in' says 'subprocess', which is the only way the high-water mark belongs to one problem size.  VmHWM and not ru_maxrss: Linux inherits ru_maxrss across fork, so a probe spawned by a benchmark driver reports the driver's peak, not the child's",
+  "tracemalloc_is": "peak Python-allocator bytes attributable to the call"
+ },
+ "per_cell_central_statistic": "seconds_per_cell_median is the measured median over repeats where the family's cells are identical, and the mean over the family's own cells of their measured medians where they are not (t20s N grid, cresst_s constructions / reports / ranks / designs, t22s n_files census).  The low/high bounds are the corresponding measured minima and maxima; they are measurements, not margins.",
  "priced_cells_note": "the total covers exactly the cells in 'priced_counts': the production matrix with role 'development' (fixture-only work, never transferred) excluded",
  "priced_counts": {
   "by_family": {
@@ -510,11 +1302,254 @@
   "control",
   "pilot"
  ],
+ "reduction_work": {
+  "at_production_scale": {
+   "bound_at_production": "compute",
+   "implied_read_rate_bytes_per_second": 395236.26780732727,
+   "known": true,
+   "note": "At the production scale reduce reads 0 MB in 0.611 s, i.e. 0.4 MB/s, still far below the 50 MB/s at which I/O would take over, so the compute-bound classification measured on the fixture also holds at production for this package.",
+   "production_input_bytes": 241587,
+   "seconds_at_the_measured_per_cell_rate": 0.6112470430415324,
+   "threshold_bytes_per_second": 50000000.0
+  },
+  "basis": "projected from a measured per-cell rate",
+  "bound": "compute",
+  "bound_note": "reduce reads every cell file once; measured throughput 4.5 MB/s over 29 cells (0.21 MB of input) against a warm page cache, so the step is compute-bound AT THAT SIZE.  This is not a claim about the production scale; see reduction_work.at_production_scale in RESOURCE_ESTIMATE.json",
+  "how": "measured seconds per cell on the fixture run root (29 cells) x the production cell count; linear because reduce reads each cell file exactly once",
+  "interpreter_and_import_seconds": 0.2966459700000996,
+  "measured": true,
+  "measured_on_cells": 29,
+  "measured_seconds_of_reduce_work": 0.040104444000462536,
+  "reduces_priced": [
+   {
+    "cells": 47,
+    "seconds": 0.064996857517991,
+    "what": "pilot reduce"
+   },
+   {
+    "cells": 395,
+    "seconds": 0.5462501855235414,
+    "what": "final reduce over the whole run root"
+   }
+  ],
+  "seconds_per_cell_measured": 0.001382911862084915,
+  "throughput_bytes_per_second_measured": 4515883.5763415955,
+  "total_seconds_projected": 0.6112470430415324
+ },
  "retry_allowance": {
+  "cpu_seconds_per_retried_cell": "the family's seconds_per_cell above; a retry costs a whole cell and is charged at start",
   "fits_headroom_under_cap": 344,
   "policy": "At most two retries per cell. Every attempt - running, failed, interrupted or completed - stays charged in the ledger and is never refunded. Headroom under the cap is 344 fits (32.6% of the plan), which covers two retries of every robustness cell of one time cut plus the estimator control."
  },
+ "schema": "mlst-local-package-resource-estimate/2",
+ "setup": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.13878245200066885,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5100607690001198
+  },
+  "separate_from_computation": true,
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.6389819430005446,
+   "seconds_min": 3.593306031998509
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 58.53125182700023,
+   "seconds_min": 57.33935914700123
+  }
+ },
+ "storage": {
+  "cell_files_bytes_total": 241587,
+  "cells": {
+   "archive_interval": {
+    "basis": "measured",
+    "bytes_per_cell": 3028,
+    "bytes_total": 30280,
+    "cells": 10,
+    "how": "one production archive-interval cell result (headline construction, 10000 replicates)"
+   },
+   "archive_point": {
+    "basis": "measured",
+    "bytes_per_cell": 9042,
+    "bytes_total": 9042,
+    "cells": 1,
+    "how": "one production archive-point cell result"
+   },
+   "calib_confirm": {
+    "basis": "measured",
+    "bytes_per_cell": 1255,
+    "bytes_total": 15060,
+    "cells": 12,
+    "how": "one calibration cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "calib_control": {
+    "basis": "measured",
+    "bytes_per_cell": 2555,
+    "bytes_total": 2555,
+    "cells": 1,
+    "how": "the calibration control cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "calib_pilot": {
+    "basis": "measured",
+    "bytes_per_cell": 1255,
+    "bytes_total": 15060,
+    "cells": 12,
+    "how": "one calibration cell result, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "cluster_report": {
+    "basis": "measured",
+    "bytes_per_cell": 6988,
+    "bytes_total": 34940,
+    "cells": 5,
+    "how": "mean over the five cluster reports, run at the fixture replicate count: the result is a summary whose size does not depend on the number of bootstrap draws"
+   },
+   "robustness_confirm": {
+    "basis": "measured",
+    "bytes_per_cell": 377,
+    "bytes_total": 118755,
+    "cells": 315,
+    "how": "one robustness cell result at the production dimensions (synthetic pulses)"
+   },
+   "robustness_pilot": {
+    "basis": "measured",
+    "bytes_per_cell": 377,
+    "bytes_total": 13195,
+    "cells": 35,
+    "how": "one robustness cell result at the production dimensions (synthetic pulses)"
+   },
+   "science_control": {
+    "basis": "measured",
+    "bytes_per_cell": 675,
+    "bytes_total": 2700,
+    "cells": 4,
+    "how": "mean over the four production science controls"
+   }
+  },
+  "ledger_basis": "measured 956 bytes per completed cell on the fixture ledger, x 2 because every attempt writes a start line and a completion line",
+  "ledger_bytes_projected": 755267.2413793104,
+  "note": "cell-file bytes are MEASURED on a production-configuration result object per family; the multiplication by the cell count and the ledger/reduced lines are projections",
+  "reduced_basis": "projected linearly from the measured fixture REDUCED.json (72215 bytes over 29 cells)",
+  "reduced_output_bytes_projected": 983618.1034482758,
+  "total_bytes": 1980472.3448275863,
+  "total_mb": 1.9804723448275863
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
  "timing_source_matrix": "fixture",
- "total_cpu_seconds_point": 583.9729441342355,
- "unmeasured_families": []
+ "total_cpu_hours_point": 0.06530367934517488,
+ "total_cpu_seconds_point": 235.09324564262957,
+ "transfer": {
+  "archive_bytes": 7764484,
+  "archive_path_measured": "/tmp/hf5/mlst-successor_20260913-handoff-20260913T111611Z.tar.gz",
+  "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few tens of kB (timestamps, this report and the estimate files) - two builds of the same tree measured here were 7 702 123 and 7 764 484 bytes.",
+  "separate_from_computation": true
+ },
+ "unknowns": [
+  "server core count (the wall-time rows are conditional on 1, 8 and 32; none of them is asserted)",
+  "server per-core speed relative to the benchmark Intel Xeon @ 2.10GHz",
+  "server BLAS threading policy (these numbers are single-threaded; a multithreaded BLAS changes the per-cell time and the useful worker count in opposite directions)",
+  "server filesystem speed and whether advisory flock on the ledger works there (a network filesystem falls back to serial ledger appends, which caps useful parallelism)",
+  "link bandwidth for the transfer (only the archive size is known)",
+  "whether the pinned requirements are already installed on the server",
+  "server memory per worker (the per-cell RSS figures above are measured; the budget is not known)",
+  "contention between concurrent workers: every per-cell time here was measured on a 2-vCPU container running ONE process at a time, so the numbers contain no cache, memory-bandwidth or disk contention. W concurrent workers share last-level cache, memory bandwidth and one disk queue, which makes each cell slower by an amount this benchmark cannot see and which grows with W.  The wall-time rows at 8 and 32 workers are therefore optimistic by an unmeasured factor."
+ ],
+ "unmeasured_families": [],
+ "wall_time_hours_by_workers": {
+  "1": {
+   "conditional": "CONDITIONAL on the server having 1 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 1 cores exist.",
+   "dominated_by_the_serial_floor": false,
+   "hours_high": 0.07577339365863626,
+   "hours_low": 0.05855796464474367,
+   "hours_point": 0.06530367934517488,
+   "serial_floor_fraction_of_point": 0.003192731505125553,
+   "workers": 1
+  },
+  "32": {
+   "conditional": "CONDITIONAL on the server having 32 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 32 cores exist.",
+   "dominated_by_the_serial_floor": false,
+   "hours_high": 0.0025699001314519036,
+   "hours_low": 0.0020319179747677603,
+   "hours_point": 0.0022427215591562357,
+   "serial_floor_fraction_of_point": 0.09296611681228863,
+   "workers": 32
+  },
+  "8": {
+   "conditional": "CONDITIONAL on the server having 8 usable cores at a per-core speed comparable to the benchmark Xeon.  The server specification is NOT known; this is not a claim that 8 cores exist.",
+   "dominated_by_the_serial_floor": false,
+   "hours_high": 0.009654109182469745,
+   "hours_low": 0.007502180555733171,
+   "hours_point": 0.008345394893287072,
+   "serial_floor_fraction_of_point": 0.02498349294575252,
+   "workers": 8
+  }
+ },
+ "wall_time_model": {
+  "cell_compute_seconds_point": 232.6777953355204,
+  "formula": "wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction",
+  "parallel_harness_seconds": 1.6648606951037372,
+  "reduction_seconds": 0.6112470430415324,
+  "serial_floor_hours": 0.00020849711444595668,
+  "serial_floor_seconds": 0.750589612005444,
+  "serial_ledger_is": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_ledger_seconds": 0.13934256896391162
+ },
+ "work_accounting": {
+  "cells_by_family": {
+   "archive_interval": 10,
+   "archive_point": 1,
+   "calib_confirm": 12,
+   "calib_control": 1,
+   "calib_pilot": 12,
+   "cluster_report": 5,
+   "robustness_confirm": 315,
+   "robustness_pilot": 35,
+   "science_control": 4
+  },
+  "cells_by_role": {
+   "algebraic": 1,
+   "confirmation": 327,
+   "control": 20,
+   "pilot": 47
+  },
+  "empca_iterations": 25,
+  "estimator_calls_production": 1056,
+  "estimator_fits_planned_from_matrix": 1056,
+  "priced_cells": 395,
+  "restarts": {
+   "empca_restarts_per_robustness_cell": 2,
+   "fits_per_robustness_cell": 3,
+   "note": "1 classic PCA + 2 EMPCA restarts = 3 estimator invocations per robustness cell; the restart count is reported separately, not folded in"
+  },
+  "simulation_replicates": {
+   "archive_interval_per_cell": 10000,
+   "calibration_confirmation_per_cell": 160000,
+   "calibration_control": 320000,
+   "calibration_pilot_per_cell": 60000,
+   "cluster_report_per_cell": "1x to 14x 10000 depending on the report"
+  },
+  "solves": "0 by construction (protocol solve_definition)",
+  "solves_planned_from_matrix": 0
+ }
 }

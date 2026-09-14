@@ -131,7 +131,15 @@ def test_resource_estimate_from_fixture_timings(full_run):
     proj = est["production_projection"]                                     # full production matrix x scaled fixture timings
     assert proj["production_counts"]["cells"] == 964 and proj["production_counts"]["fits"] == 4800
     assert proj["unmeasured_families"] == [] and proj["retry_allowance"]["fits_headroom_under_cap"] == 600
-    assert proj["total_cpu_seconds_point"] == pytest.approx(sum(v["production_cpu_seconds"] for v in proj["families"].values()))
+    # m8: this block prices CELL COMPUTE only and must not reuse the file's top-level key
+    # name, which stands for cell compute + harness + reduction
+    assert "total_cpu_seconds_point" not in proj and "total_cpu_hours_point" not in proj
+    assert proj["cell_compute_cpu_seconds_point"] == pytest.approx(
+        sum(v["production_cpu_seconds"] for v in proj["families"].values()))
+    assert proj["total_cpu_seconds_point_including_harness_and_reduction"] == pytest.approx(
+        proj["cell_compute_cpu_seconds_point"] + proj["harness_seconds"] + proj["reduction_seconds"])
+    assert proj["total_cpu_seconds_point_including_harness_and_reduction"] == pytest.approx(
+        est["total_cpu_seconds_point"])
     assert proj["families"]["pilot"]["cells"] == 384 and proj["families"]["confirmation"]["cells"] == 576
 
 

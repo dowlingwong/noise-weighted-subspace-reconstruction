@@ -72,10 +72,12 @@ $PKG estimate --protocol $PROTO --out <RUN_ROOT>
 `reduce` refuses (exit 3) a missing/extra/duplicate/unattributed/tampered cell, a missing
 `FROZEN_SELECTION.json`, or pilot cells whose digest no longer matches the frozen one;
 exit 4 if any scientific self-check fails on a cell. `estimate` writes
-`RESOURCE_ESTIMATE.json` from the observed timings; its `production_projection` block is
-the scaled per-cell timing × the full production matrix (on a production root the scale
-factors of the protocol still apply, so read the raw per-family `fixture_seconds_per_cell`
-as the measured production value there and ignore the factor).
+`RESOURCE_ESTIMATE.json` from the measured benchmarks in `BENCHMARK.json` × the full
+production matrix (every production `N` was timed at `d = 256`); its
+`production_projection` block restates that total per family and adds the per-worker cold
+population-reference cost the per-cell figures exclude. The protocol's flat
+`fixture_to_production_scale` appears only as `cross_check_flat_fixture_scale` and is not
+the estimate.
 
 ## Resume, failure and interruption behaviour
 

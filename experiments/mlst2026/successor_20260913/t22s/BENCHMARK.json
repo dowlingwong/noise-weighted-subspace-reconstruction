@@ -1,0 +1,620 @@
+{
+ "benchmark_wall_seconds": 136.24283325800025,
+ "families": {
+  "control": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "each of the five production control cells run once at its production configuration: ar1_autocorrelation 0.091s, dependence_gate 4.975s, holm_arithmetic 0.000s, iid_bootstrap_se 0.548s, simulator_estimand 0.037s",
+   "kernel": "control_cell",
+   "seconds_per_cell": {
+    "high": 1.1336443544001669,
+    "low": 1.1268685177998123,
+    "median": 1.1302564360999896
+   },
+   "size": 1,
+   "size_symbol": "cell"
+  },
+  "sim_confirm": {
+   "basis": "measured",
+   "calls_per_cell": 100,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9483198240109828,
+   "how": "100 Monte-Carlo replicates per cell x the n_files-weighted measured replicate time (n=4:2.576s, n=8:4.151s, n=16:7.242s) at the ARCHIVED replicate setting; census of the 69 confirmation scenarios by n_files = {4: 27, 8: 15, 16: 27}; the n_files = 4 figure pools the repeats of the two timings of that identical call, so its low/high is between-run variability",
+   "kernel": "pipeline_replicate",
+   "seconds_per_cell": {
+    "high": 480.1501763695816,
+    "low": 472.25056215650943,
+    "median": 474.4312788738843
+   },
+   "size": 2000,
+   "size_symbol": "R_file",
+   "theoretical_exponent": 1.0
+  },
+  "sim_pilot": {
+   "basis": "measured",
+   "calls_per_cell": 100,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 0.9483198240109828,
+   "how": "100 replicates per cell; half the pilot cells run the archived setting and half the reduced one (measured ratio reduced/archived = 0.467), n_files census {4: 3, 16: 2, 8: 3}",
+   "kernel": "pipeline_replicate",
+   "seconds_per_cell": {
+    "high": 321.5183539353128,
+    "low": 316.1635022487803,
+    "median": 317.8090334378311
+   },
+   "size": 2000,
+   "size_symbol": "R_file",
+   "theoretical_exponent": 1.0
+  }
+ },
+ "generated_utc": "2026-09-13T10:52:30+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "harness": {
+  "components": {
+   "ledger_at_fixture_length": {
+    "complete_seconds_median": 0.00021825400108355097,
+    "existing_records": 14,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0007441389989253366,
+    "seconds_per_cell_median": 0.0004452600023796549,
+    "start_seconds_median": 0.00022700600129610393
+   },
+   "ledger_at_production_length": {
+    "complete_seconds_median": 0.0001976000003196532,
+    "existing_records": 727,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006786140002077445,
+    "seconds_per_cell_median": 0.0003940820006391732,
+    "start_seconds_median": 0.00019648200031952
+   },
+   "note": "the ledger figure is start+complete for one cell under the advisory flock; the write figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256",
+   "production_bytes_per_cell_weighted": 988458,
+   "write_and_schema_at_fixture_payload": {
+    "padding_note": "",
+    "payload_bytes": 24833,
+    "samples": 15,
+    "schema_check_seconds_median": 3.7129993870621547e-06,
+    "seconds_per_cell_median": 0.0006190330004756106,
+    "target_bytes": 24828,
+    "write_seconds_median": 0.0006153200010885485
+   },
+   "write_and_schema_at_production_payload": {
+    "padding_note": "",
+    "payload_bytes": 988463,
+    "samples": 15,
+    "schema_check_seconds_median": 7.853999704821035e-06,
+    "seconds_per_cell_median": 0.005184603000088828,
+    "target_bytes": 988458,
+    "write_seconds_median": 0.005176749000384007
+   }
+  },
+  "components_seconds_per_cell_at_production_scale": 0.005578685000728001,
+  "end_to_end": {
+   "cells": 14,
+   "fixture_cell_bytes_median": 24828,
+   "harness_seconds_per_cell": 0.018612625041506754,
+   "harness_seconds_total": 0.26057675058109453,
+   "how": "a real `run --fixture` of this package through common.cli, on a copy of the fixture run root with cells/ and the ledger removed; harness = wall - interpreter start-up - the summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)",
+   "includes_once_per_run_costs": "the matrix write, protocol snapshot, code provenance and the interrupted sweep happen once per run and are amortised over 14 fixture cells here, so this per-cell figure OVERSTATES the production one",
+   "interpreter_and_import_seconds": 0.11387510999884398,
+   "kernel_seconds_total_from_cell_files": 4.140822887420654,
+   "runs": 2,
+   "wall_seconds_total": 4.515274748000593
+  },
+  "floored_at_components": false,
+  "harness_seconds_per_cell": 0.02312701703937949,
+  "harness_seconds_per_cell_swapped_to_production_scale": 0.02312701703937949,
+  "how": "end-to-end harness seconds per cell measured on the fixture, with the scale-dependent components (ledger length, result-file bytes) swapped from the fixture scale to the production scale: 0.018613 - 0.0010643 + 0.0055787 = 0.023127",
+  "measured": true,
+  "per_worker_interpreter_startup_seconds_measured": 0.11387510999884398,
+  "per_worker_note": "the interpreter start-up and package import above is paid once per worker PROCESS, not once per cell; a scheduler that starts a fresh process per cell pays it on every cell instead, which would add 0.1139 s x 727 cells = 82.79 CPU-s",
+  "serial_note": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_seconds_per_cell": 0.0003940820006391732
+ },
+ "kernels": {
+  "control_cell": {
+   "kernel": "control_cell",
+   "points": [
+    {
+     "max_s": 0.09100272899922857,
+     "median_s": 0.09071166649937368,
+     "min_s": 0.09042060399951879,
+     "repeats": 2,
+     "samples_s": [
+      0.09100272899922857,
+      0.09042060399951879
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.00641731126959062,
+     "warmup": 0,
+     "what": "ar1_autocorrelation"
+    },
+    {
+     "max_s": 4.989618542000244,
+     "median_s": 4.974898425500214,
+     "min_s": 4.9601783090001845,
+     "repeats": 2,
+     "samples_s": [
+      4.9601783090001845,
+      4.989618542000244
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.005917755596607831,
+     "warmup": 0,
+     "what": "dependence_gate"
+    },
+    {
+     "max_s": 8.999200144899078e-05,
+     "median_s": 5.734950082114665e-05,
+     "min_s": 2.470700019330252e-05,
+     "repeats": 2,
+     "samples_s": [
+      8.999200144899078e-05,
+      2.470700019330252e-05
+     ],
+     "size": 1.0,
+     "spread_fraction": 1.1383708719503889,
+     "warmup": 0,
+     "what": "holm_arithmetic"
+    },
+    {
+     "max_s": 0.5498780950001674,
+     "median_s": 0.5481688014997417,
+     "min_s": 0.546459507999316,
+     "repeats": 2,
+     "samples_s": [
+      0.546459507999316,
+      0.5498780950001674
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.006236376443713048,
+     "warmup": 0,
+     "what": "iid_bootstrap_se"
+    },
+    {
+     "max_s": 0.03763241399974504,
+     "median_s": 0.037445937499796855,
+     "min_s": 0.03725946099984867,
+     "repeats": 2,
+     "samples_s": [
+      0.03763241399974504,
+      0.03725946099984867
+     ],
+     "size": 1.0,
+     "spread_fraction": 0.009959772001926595,
+     "warmup": 0,
+     "what": "simulator_estimand"
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production configuration",
+    "seconds_per_call_high": 1.1336443544001669,
+    "seconds_per_call_low": 1.1268685177998123,
+    "seconds_per_call_median": 1.1302564360999896
+   }
+  },
+  "pipeline_replicate": {
+   "call_path": "t22s.pipeline.run_replicate: te.joint_bootstrap per evaluation file (R_file), t22.combine_stage two-stage hierarchical bootstrap (R_hier = 5 R_file) and te.block_variance_curve on the development files (R_curve = R_file/5)",
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.051680175989017196,
+    "fitted_exponent": 0.9483198240109828,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.001894771608763223,
+    "b": 0.9483198240109828,
+    "max_abs_log_residual": 0.013021011572978025,
+    "n_points": 4,
+    "r_squared": 0.9999536079465599,
+    "residual_log_rms": 0.008692259283403335,
+    "sizes": [
+     60.0,
+     250.0,
+     1000.0,
+     2000.0
+    ],
+    "times_s": [
+     0.09175838700139138,
+     0.35927261200049543,
+     1.3087641410002107,
+     2.576071955999396
+    ]
+   },
+   "fixture_size": 60.0,
+   "kernel": "pipeline_replicate",
+   "notes": "the three replicate counts are moved together at the archived ratio 1 : 5 : 0.2, so the size axis is the whole replicate budget of one Monte-Carlo replicate; the production (archived) setting was run directly",
+   "points": [
+    {
+     "max_s": 0.10250479900059872,
+     "median_s": 0.09175838700139138,
+     "min_s": 0.09015379399897938,
+     "repeats": 3,
+     "samples_s": [
+      0.10250479900059872,
+      0.09015379399897938,
+      0.09175838700139138
+     ],
+     "size": 60.0,
+     "spread_fraction": 0.1346035540209753,
+     "warmup": 1
+    },
+    {
+     "max_s": 0.3593139770000562,
+     "median_s": 0.35927261200049543,
+     "min_s": 0.3355726270001469,
+     "repeats": 3,
+     "samples_s": [
+      0.3593139770000562,
+      0.35927261200049543,
+      0.3355726270001469
+     ],
+     "size": 250.0,
+     "spread_fraction": 0.06608171401575288,
+     "warmup": 1
+    },
+    {
+     "max_s": 1.3118483550006204,
+     "median_s": 1.3087641410002107,
+     "min_s": 1.3026480089993129,
+     "repeats": 3,
+     "samples_s": [
+      1.3087641410002107,
+      1.3118483550006204,
+      1.3026480089993129
+     ],
+     "size": 1000.0,
+     "spread_fraction": 0.007029796823647844,
+     "warmup": 1
+    },
+    {
+     "max_s": 2.6613520660012,
+     "median_s": 2.576071955999396,
+     "memory": {
+      "kernel": "replicate",
+      "package": "t22s",
+      "rss_before_bytes": 40022016,
+      "rss_delta_bytes": 7446528,
+      "rss_high_water_bytes": 47468544,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 47394816,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 2000.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 2534745
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 2.54627587899995,
+     "pooled_note": "the repeats of the two timings of this identical call, pooled; the min/max is therefore BETWEEN-run variability of the same call, not the within-run jitter of one timing",
+     "repeats": 6,
+     "samples_s": [
+      2.54627587899995,
+      2.5465849410011288,
+      2.553114234999157,
+      2.599029676999635,
+      2.6505137820004165,
+      2.6613520660012
+     ],
+     "size": 2000.0,
+     "spread_fraction": 0.04507287038853873,
+     "warmup": 1
+    }
+   ],
+   "production_size": 2000.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly, twice, under two names; the repeats of both are pooled and the range is their min/max",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 2000.0,
+    "largest_size_benchmarked": 2000.0,
+    "seconds_per_call_high": 2.6613520660012,
+    "seconds_per_call_low": 2.54627587899995,
+    "seconds_per_call_median": 2.576071955999396,
+    "spans_more_than_one_decade": false,
+    "target_size": 2000.0
+   },
+   "repeats": 3,
+   "same_call_reconciliation": {
+    "difference_fraction_of_median": 0.017984092278774625,
+    "pipeline_replicate_at_R_file_2000": {
+     "max_s": 2.6613520660012,
+     "median_s": 2.553114234999157,
+     "min_s": 2.54627587899995,
+     "samples_s": [
+      2.54627587899995,
+      2.553114234999157,
+      2.6613520660012
+     ]
+    },
+    "pooled": {
+     "max_s": 2.6613520660012,
+     "median_s": 2.576071955999396,
+     "min_s": 2.54627587899995,
+     "repeats": 6
+    },
+    "pooled_spread_fraction": 0.04467118503163318,
+    "replicate_by_n_files_at_4": {
+     "max_s": 2.6505137820004165,
+     "median_s": 2.599029676999635,
+     "min_s": 2.5465849410011288,
+     "samples_s": [
+      2.5465849410011288,
+      2.599029676999635,
+      2.6505137820004165
+     ]
+    },
+    "what": "pipeline_replicate at R_file = 2000 and replicate_by_n_files at n_files = 4 are one call: run_replicate(1234, null-complete-n4-phi0.6-tau0.01, file=2000, hier=10000, curve=400)"
+   },
+   "size_symbol": "R_file",
+   "sizes_run": [
+    60.0,
+    250.0,
+    1000.0,
+    2000.0
+   ],
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "a bootstrap is linear in the number of replicates"
+   },
+   "warmup": 1
+  },
+  "replicate_by_n_files": {
+   "exponent_check": {
+    "agrees": true,
+    "agrees_within": 0.35,
+    "difference": -0.25436825203051894,
+    "fitted_exponent": 0.7456317479694811,
+    "note": "the measured exponent agrees with the algorithm within +/- 0.35",
+    "theoretical_exponent": 1.0
+   },
+   "fit": {
+    "a": 0.9042411800112781,
+    "b": 0.7456317479694811,
+    "max_abs_log_residual": 0.026519631048516512,
+    "n_points": 3,
+    "r_squared": 0.9980292126439273,
+    "residual_log_rms": 0.018752210948971337,
+    "sizes": [
+     4.0,
+     8.0,
+     16.0
+    ],
+    "times_s": [
+     2.576071955999396,
+     4.150873683998725,
+     7.242242013000578
+    ]
+   },
+   "kernel": "replicate_by_n_files",
+   "points": [
+    {
+     "max_s": 2.6613520660012,
+     "median_s": 2.576071955999396,
+     "min_s": 2.54627587899995,
+     "pooled_note": "the repeats of the two timings of this identical call, pooled; the min/max is therefore BETWEEN-run variability of the same call, not the within-run jitter of one timing",
+     "repeats": 6,
+     "samples_s": [
+      2.54627587899995,
+      2.5465849410011288,
+      2.553114234999157,
+      2.599029676999635,
+      2.6505137820004165,
+      2.6613520660012
+     ],
+     "size": 4,
+     "spread_fraction": 0.039987554555077284,
+     "warmup": 1
+    },
+    {
+     "max_s": 4.165177503999075,
+     "median_s": 4.150873683998725,
+     "min_s": 4.1306327160000365,
+     "repeats": 3,
+     "samples_s": [
+      4.1306327160000365,
+      4.150873683998725,
+      4.165177503999075
+     ],
+     "size": 8,
+     "spread_fraction": 0.008322293239663284,
+     "warmup": 1
+    },
+    {
+     "max_s": 7.295164938999733,
+     "median_s": 7.242242013000578,
+     "min_s": 7.227553644999716,
+     "repeats": 3,
+     "samples_s": [
+      7.295164938999733,
+      7.242242013000578,
+      7.227553644999716
+     ],
+     "size": 16,
+     "spread_fraction": 0.00933568553476221,
+     "warmup": 1
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "every production n_files (4, 8, 16) was run"
+   },
+   "size_symbol": "n_files",
+   "theory": {
+    "exponent": 1.0,
+    "key": "bootstrap",
+    "note": "the joint bootstrap is run once per evaluation file, so the replicate is linear in n_files above a fixed simulation cost"
+   }
+  }
+ },
+ "notes": [
+  "The production replicate setting (file 2000 / hier 10000 / curve 400) was run directly, so the per-replicate cost is a MEASUREMENT; only the multiplication by mc = 100 and by the cell count is arithmetic.",
+  "The dominant cost is te.joint_bootstrap, which runs once per evaluation file: the replicate time is close to linear in n_files, and the confirmation catalogue is 1/3 at n_files = 16.",
+  "pipeline_replicate at R_file = 2000 and replicate_by_n_files at n_files = 4 are the same call. They are timed twice (once in each series) and the two sets of repeats are POOLED, so both tables print one number for it and the quoted min/max is the real between-run spread rather than the jitter of a single timing; kernels.pipeline_replicate.same_call_reconciliation holds the two separate measurements and their difference."
+ ],
+ "package": "t22s",
+ "reduce": {
+  "bound": "compute",
+  "bound_measured_on_cells": 14,
+  "bound_measured_on_input_bytes": 316063,
+  "bound_note": "reduce reads every cell file once; measured throughput 4.1 MB/s over 14 cells (0.32 MB of input) against a warm page cache, so the step is compute-bound AT THAT SIZE.  This is not a claim about the production scale; see reduction_work.at_production_scale in RESOURCE_ESTIMATE.json",
+  "bound_threshold_bytes_per_second": 50000000.0,
+  "cells_read": 14,
+  "fixture_cell_bytes_median": 24828,
+  "fixture_cell_bytes_total": 302802,
+  "input_bytes_read": 316063,
+  "interpreter_and_import_seconds_measured": 0.11403331399924355,
+  "ledger_bytes_fixture": 13261,
+  "ledger_bytes_per_cell": 947.2142857142857,
+  "measured": true,
+  "reduced_output_bytes": 63276,
+  "returncode": 0,
+  "seconds_per_cell": 0.005298696714427413,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 4081893.2374112154,
+  "wall_seconds_reduce_work": 0.07418175400198379,
+  "wall_seconds_total_including_interpreter": 0.18821506800122734
+ },
+ "scenario_shape_spread": {
+  "alt-large-n4-phi0.85-tau0.01": {
+   "max_s": 2.5494078870015073,
+   "median_s": 2.5340322700003526,
+   "min_s": 2.518656652999198,
+   "repeats": 2,
+   "samples_s": [
+    2.5494078870015073,
+    2.518656652999198
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.012135296920392108,
+   "warmup": 1
+  },
+  "null-partial-n4-phi0.6-tau0.01-drift0.15": {
+   "max_s": 2.615577148000739,
+   "median_s": 2.5859948980005356,
+   "min_s": 2.5564126480003324,
+   "repeats": 2,
+   "samples_s": [
+    2.615577148000739,
+    2.5564126480003324
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.022878815440104613,
+   "warmup": 1
+  },
+  "null-partial-n4-phi0.6-tau0.01-t3": {
+   "max_s": 2.561966704999577,
+   "median_s": 2.540357603999837,
+   "min_s": 2.518748503000097,
+   "repeats": 2,
+   "samples_s": [
+    2.561966704999577,
+    2.518748503000097
+   ],
+   "size": 4.0,
+   "spread_fraction": 0.01701264496440658,
+   "warmup": 1
+  }
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.13878245200066885,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5100607690001198
+  },
+  "transfer": {
+   "archive_bytes": 7764484,
+   "archive_path_measured": "/tmp/hf5/mlst-successor_20260913-handoff-20260913T111611Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few tens of kB (timestamps, this report and the estimate files) - two builds of the same tree measured here were 7 702 123 and 7 764 484 bytes."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.6389819430005446,
+   "seconds_min": 3.593306031998509
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 58.53125182700023,
+   "seconds_min": 57.33935914700123
+  }
+ },
+ "storage": {
+  "basis": "measured for one Monte-Carlo record at n_files = 4 and the archived setting; a cell holds mc = 100 such records, so the cell file is projected linearly in mc (the records list is exactly mc entries long)",
+  "bytes_per_cell_by_family": {
+   "control": {
+    "basis": "measured",
+    "bytes": 964,
+    "how": "one production control cell result"
+   },
+   "sim_confirm": {
+    "basis": "projected",
+    "bytes": 998378,
+    "how": "mc = 100 Monte-Carlo records per cell; one record measured per n_files (4/8/16) and averaged over the scenario catalogue. The record was produced at the reduced replicate setting: a record's SIZE does not depend on the replicate counts (it holds summaries, not draws), only on n_files. Projected linearly in mc (the records list is exactly mc long)."
+   },
+   "sim_pilot": {
+    "basis": "projected",
+    "bytes": 928862,
+    "how": "mc = 100 Monte-Carlo records per cell; one record measured per n_files (4/8/16) and averaged over the scenario catalogue. The record was produced at the reduced replicate setting: a record's SIZE does not depend on the replicate counts (it holds summaries, not draws), only on n_files."
+   }
+  },
+  "cell_result_bytes_projected": 639600,
+  "records_per_cell": 100,
+  "simulation_cell_record_bytes_measured": 6396
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "archived_setting_seconds_per_replicate_measured": 2.576071955999396,
+  "estimator_calls": 0,
+  "estimator_calls_note": "the production matrix plans 0 estimator fits: the simulator generates the learned estimates, so no estimator is invoked on drawn data. All the work is simulation and bootstrap replicates.",
+  "frozen_setting_unknown": "the confirmation setting is frozen by the pilot; the archived setting is the more expensive of the two and is what is priced here, so the confirmation total is an UPPER bound (measured ratio reduced/archived = 0.467 at n_files = 4)",
+  "reduced_over_archived_ratio_measured": 0.46686786570562594,
+  "reduced_setting_seconds_per_replicate_measured": 1.202685216001555,
+  "replicate_settings_production": {
+   "archived": {
+    "curve": 400,
+    "file": 2000,
+    "hier": 10000
+   },
+   "reduced": {
+    "curve": 200,
+    "file": 1000,
+    "hier": 4000
+   }
+  },
+  "restarts": "not applicable (nothing is fitted)",
+  "simulation_replicates_per_confirmation_cell": {
+   "block_curve_draws": "mc x n_dev x (4 x 6 + 4) x R_curve",
+   "joint_bootstrap_draws": "mc x n_files x R_file = 100 x n_files x 2000",
+   "monte_carlo": 100,
+   "two_stage_bootstrap_draws": "mc x 4 contrasts x R_hier = 100 x 4 x 10000"
+  }
+ }
+}

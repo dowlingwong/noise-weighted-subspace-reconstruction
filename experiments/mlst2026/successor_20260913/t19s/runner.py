@@ -480,49 +480,89 @@ def reduce_run(P: dict, matrix: RunMatrix, cells: dict, out: Path, partial: bool
 # production resource estimate from fixture timings
 # =============================================================================
 def production_estimate(P: dict, fixture_root: Path) -> dict:
-    """Measured fixture timings (per family, from a --fixture run root) x the
-    declared ``budget.fixture_to_production_scale`` x the PRODUCTION matrix.
+    """The PRODUCTION projection, from the measured benchmarks in ``BENCHMARK.json``.
 
-    The common ``estimate`` subcommand rebuilds the matrix with the run root's
-    own fixture flag, so pointed at a fixture root it prices the fixture matrix;
-    this function prices the production matrix instead and is exposed as the
-    package-local ``estimate-production`` command.  Absent timings are reported
-    as absent, never guessed."""
-    from ..common.results import read_cells
+    ``cli._estimate`` writes ``RESOURCE_ESTIMATE.json`` into the run root; this
+    package-local ``estimate-production`` command writes the same production
+    projection to ``RESOURCE_ESTIMATE_PRODUCTION.json`` with the stage split a
+    scheduler wants, and it re-states the *measured* per-cell seconds rather than
+    a fixture time multiplied by a declared constant.  Absent measurements are
+    reported as absent, never guessed."""
+    from ..common import benchmark as BM
     fixture_root = Path(fixture_root)
     if not (fixture_root / "run_matrix_summary.json").exists():
         raise cli.UsageError(f"{fixture_root} has no run matrix")
     if not json.loads((fixture_root / "run_matrix_summary.json").read_text()).get("fixture"):
-        raise cli.UsageError("estimate-production expects a --fixture run root for the timings")
-    timings: dict[str, list[float]] = {}
-    for files in read_cells(fixture_root).values():
-        for _, js in files:
-            timings.setdefault(js["family"] or "-", []).append(float(js.get("wall_s", 0.0)))
-    prod = cli._production_only(build_matrix(P, False))   # development cells are fixture work; never priced
-    scale = P["budget"].get("fixture_to_production_scale", {})
-    est = {"basis": "fixture wall seconds per cell x declared scale x production matrix", "fixture_root": str(fixture_root),
-           "families": {}, "total_cpu_seconds_point": 0.0, "unmeasured_families": []}
-    for fam, info in prod.counts()["by_family"].items():
-        t = timings.get(fam)
-        if not t:
+        raise cli.UsageError("estimate-production expects a --fixture run root for the fixture cross-check")
+    bench_path = Path(P["_path"]).resolve().parent / "BENCHMARK.json"
+    bench = json.loads(bench_path.read_text()) if bench_path.exists() else None
+    prod = cli._production_only(build_matrix(P, False))
+    counts = prod.counts()
+    est = {"basis": ("measured per-cell seconds at the production dimension (BENCHMARK.json) x the production "
+                     "matrix; the paired cell was benchmarked at d = 32, 64, 128 and 256 with N = 2d, so the "
+                     "d = 256 point is the production cell itself"),
+           "benchmark": str(bench_path), "benchmark_present": bench is not None,
+           "hardware": (bench or {}).get("hardware", "UNKNOWN"),
+           "fixture_root": str(fixture_root), "families": {}, "total_cpu_seconds_point": 0.0,
+           "total_cpu_seconds_low": 0.0, "total_cpu_seconds_high": 0.0, "unmeasured_families": []}
+    bfam = (bench or {}).get("families") or {}
+    for fam, info in counts["by_family"].items():
+        e = bfam.get(fam)
+        if not e:
             est["unmeasured_families"].append(fam)
             est["families"][fam] = {"cells": info["cells"], "measured": False}
             continue
-        sc = float(scale.get(fam, scale.get("default", 1.0)))
-        per = float(sum(t) / len(t)) * sc
-        est["families"][fam] = {"cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
-                                "fixture_seconds_per_cell": float(sum(t) / len(t)), "fixture_cells_timed": len(t), "scale": sc,
-                                "production_seconds_per_cell": per, "production_cpu_seconds": per * info["cells"]}
-        est["total_cpu_seconds_point"] += per * info["cells"]
+        s = e["seconds_per_cell"]
+        est["families"][fam] = {
+            "cells": info["cells"], "fits": info["fits"], "solves": info["solves"], "measured": True,
+            "basis": e.get("basis"), "kernel": e.get("kernel"),
+            "fitted_exponent": e.get("fitted_exponent"), "theoretical_exponent": e.get("theoretical_exponent"),
+            "extrapolation_factor_in_dimension": e.get("extrapolation_factor_in_dimension"),
+            "production_seconds_per_cell": s["median"],
+            "production_seconds_per_cell_low": s["low"], "production_seconds_per_cell_high": s["high"],
+            "production_cpu_seconds": s["median"] * info["cells"]}
+        est["total_cpu_seconds_point"] += s["median"] * info["cells"]
+        est["total_cpu_seconds_low"] += s["low"] * info["cells"]
+        est["total_cpu_seconds_high"] += s["high"] * info["cells"]
     est["total_cpu_hours_point"] = est["total_cpu_seconds_point"] / 3600.0
-    est["counts"] = prod.counts()
-    est["stages"] = {"pilot_cells": prod.counts()["by_role"].get("pilot", {}).get("cells"), "confirmation_cells": prod.counts()["by_role"].get("confirmation", {}).get("cells"),
-                     "deterministic_cells": sum(prod.counts()["by_role"].get(r, {}).get("cells", 0) for r in ("algebraic", "control"))}
+    est["counts"] = counts
+    est["stages"] = {"pilot_cells": counts["by_role"].get("pilot", {}).get("cells"),
+                     "confirmation_cells": counts["by_role"].get("confirmation", {}).get("cells"),
+                     "deterministic_cells": sum(counts["by_role"].get(r, {}).get("cells", 0)
+                                                for r in ("algebraic", "control"))}
+    # the reduce and harness projections come from the same helpers cli._estimate uses,
+    # so this file and RESOURCE_ESTIMATE.json cannot disagree about the same package
+    pilot_cells = int(counts["by_role"].get("pilot", {}).get("cells", 0))
+    est["reduction_work"] = cli._reduce_projection(bench, counts, pilot_cells)
+    est["harness_work"] = cli._harness_projection(bench, counts)
     est["retry_allowance"] = {"policy": P["budget"].get("retry_policy", "unspecified"),
-                              "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - prod.counts()["fits"],
+                              "fits_headroom_under_cap": P["budget"]["estimator_fits_cap"] - counts["fits"],
                               "cpu_seconds_headroom_at_25_percent": 0.25 * est["total_cpu_seconds_point"]}
-    est["memory_note"] = P["budget"].get("scale_basis", "")
-    est["parallelism"] = "cells are independent; one ledger per run root (advisory flock; serial fallback on network filesystems); <WORKERS> unresolved"
+    est["peak_memory"] = ((bench or {}).get("kernels", {}).get("paired_cell", {}) or {})
+    est["peak_memory"] = next((r.get("memory") for r in est["peak_memory"].get("points", []) if r.get("memory")),
+                              {"measured": False})
+    reduce_s = float(est["reduction_work"].get("total_seconds_projected") or 0.0)
+    harness_s = float(est["harness_work"].get("total_seconds_projected") or 0.0)
+    serial_s = float(est["harness_work"].get("serial_total_seconds_projected") or 0.0)
+    parallel_harness_s = max(0.0, harness_s - serial_s)
+    est["harness_seconds"] = harness_s
+    est["reduction_seconds"] = reduce_s
+    est["total_with_harness_and_reduction_cpu_seconds_point"] = (est["total_cpu_seconds_point"]
+                                                                 + harness_s + reduce_s)
+    est["total_cpu_seconds_note"] = ("'total_cpu_seconds_*' above is CELL COMPUTE only.  The harness and the "
+                                     "reduction are the two other terms and are listed beside it; their sum "
+                                     "is 'total_with_harness_and_reduction_cpu_seconds_point', which is what "
+                                     "RESOURCE_ESTIMATE.json calls cpu_seconds.total_point.")
+    cpu_lo, cpu_hi = est["total_cpu_seconds_low"], est["total_cpu_seconds_high"]
+    est["wall_time_hours_by_workers"] = BM.wall_time_range(
+        cpu_lo + parallel_harness_s, cpu_hi + parallel_harness_s, (1, 8, 32),
+        serial_seconds=serial_s, reduction_seconds=reduce_s)
+    est["parallelism"] = ("cells are independent processes, so the cell compute and the parallel part of the "
+                          "per-cell harness divide by the worker count; the ledger appends (one advisory "
+                          "flock for all workers) and the single-process reduction do not and are added "
+                          "whole.  wall = (cell_compute + parallel_harness) / W + serial_ledger + reduction, "
+                          "the same model RESOURCE_ESTIMATE.json uses.  The worker counts are CONDITIONAL: "
+                          "the server specification is not known.")
     return est
 
 

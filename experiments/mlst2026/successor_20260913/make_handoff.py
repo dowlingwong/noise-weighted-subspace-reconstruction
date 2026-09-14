@@ -166,7 +166,7 @@ def package_materials(dst: Path, matrices: dict) -> None:
         outd = dst / "packages" / pkg
         outd.mkdir(parents=True, exist_ok=True)
         for pat in ("PROTOCOL_*.json", "REMOTE_COMMANDS.md", "SCHEMA.md", "FINDINGS_*.md",
-                    "requirements.txt", "RESOURCE_ESTIMATE.json", "FROZEN_*.json",
+                    "requirements.txt", "RESOURCE_ESTIMATE.json", "BENCHMARK.json", "FROZEN_*.json",
                     "EXPOSURE_INVENTORY.md"):
             for p in sorted(srcd.glob(pat)):
                 shutil.copy2(p, outd / p.name)
@@ -203,7 +203,64 @@ def _priced_counts(pkg: str, est: dict | None, summary: dict) -> dict | None:
     if "development" in (priced.get("by_role") or {}):
         raise HandoffFactError(f"{pkg}: the resource estimate prices development cells; "
                                "development work is fixture work and is never transferred")
+    _check_measured_estimate(pkg, est)
     return priced
+
+
+def _check_measured_estimate(pkg: str, est: dict) -> None:
+    """The estimate must be the measured, scaling-aware one, not the flat product.
+
+    The v1 schema multiplied one fixture wall time by a constant declared in the
+    protocol.  That is a linear extrapolation of a tiny fixture with no dimension
+    and no algorithmic scaling in it, and shipping it as the estimate is what this
+    guard exists to prevent.  The checks are structural, so a regression that
+    quietly reinstates the flat product fails the build rather than the reader.
+    """
+    if est.get("schema") != "mlst-local-package-resource-estimate/2":
+        raise HandoffFactError(
+            f"{pkg}: RESOURCE_ESTIMATE.json is schema {est.get('schema')!r}, not the measured "
+            "'mlst-local-package-resource-estimate/2'; regenerate it with the current `estimate` subcommand "
+            "after running run_benchmarks.py")
+    if not est.get("measured_projection_available"):
+        raise HandoffFactError(f"{pkg}: the resource estimate has no measured projection "
+                               f"({est.get('why_no_measured_projection', 'BENCHMARK.json missing')})")
+    missing = [k for k in ("hardware", "cpu_seconds", "wall_time_hours_by_workers", "wall_time_model",
+                           "parallelism_assumption", "peak_memory", "storage", "transfer", "setup",
+                           "unknowns", "reduction_work", "harness_work", "work_accounting", "families")
+               if k not in est]
+    if missing:
+        raise HandoffFactError(f"{pkg}: the resource estimate is missing required fields {missing}")
+    if est.get("unmeasured_families"):
+        raise HandoffFactError(f"{pkg}: families {est['unmeasured_families']} have no measured benchmark; "
+                               "an unbenchmarked family may not be shipped inside a priced total")
+    for fam, row in (est.get("families") or {}).items():
+        if not row.get("measured"):
+            raise HandoffFactError(f"{pkg}: family {fam!r} is unmeasured in the resource estimate")
+        if row.get("basis") not in ("measured", "projected", "measured-on-substitute"):
+            raise HandoffFactError(f"{pkg}: family {fam!r} does not label its basis measured/projected")
+        if row.get("basis") == "projected" and row.get("fitted_exponent") is None:
+            raise HandoffFactError(f"{pkg}: family {fam!r} is projected but names no fitted exponent")
+    flat = (est.get("cross_check_flat_fixture_scale") or {}).get("total_cpu_seconds_point")
+    cpu = est.get("cpu_seconds") or {}
+    point = cpu.get("cell_compute_point")
+    if flat and point and abs(point - flat) < 1e-9:
+        raise HandoffFactError(f"{pkg}: the projected total equals the flat fixture x declared-scale product "
+                               "exactly; the flat product is a cross-check, not the estimate")
+    # the harness around the kernel is part of what a run costs, so it has to be measured
+    # and it has to be inside the headline total rather than beside it
+    harn = est.get("harness_work") or {}
+    if not harn.get("measured"):
+        raise HandoffFactError(f"{pkg}: the per-cell CLI harness is not measured "
+                               f"({harn.get('why', 'no harness block')}); a total that prices only the "
+                               "kernel is not the cost of a run")
+    parts = (point or 0.0) + (cpu.get("harness") or 0.0) + (cpu.get("reduction") or 0.0)
+    if abs(parts - (cpu.get("total_point") or 0.0)) > 1e-6 * max(1.0, parts):
+        raise HandoffFactError(f"{pkg}: cpu_seconds.total_point is not cell compute + harness + reduction "
+                               f"({cpu.get('total_point')} vs {parts})")
+    model = est.get("wall_time_model") or {}
+    if not model.get("serial_ledger_seconds"):
+        raise HandoffFactError(f"{pkg}: the wall-time model has no measured serial ledger term; the ledger "
+                               "appends serialise under one flock and are a floor no worker count beats")
 
 
 #: Names of module-level constants that hold the run-root file a pilot reduce freezes.
@@ -397,8 +454,11 @@ Nothing in this archive may be quoted as a result, and no fixture output is cita
 | `verify_handoff.py` | run this first in the extracted tree |
 | `experiments/`, `src/`, `tests/`, `pyproject.toml` | source snapshot |
 | `results/t22_2026-09-11/`, `results/mlst_2026-09-10/` | **read-only** archived run records the T22-S exposure inventory reads. Do not write here; the runners refuse `<RUN_ROOT>` under `results/` |
-| `packages/<pkg>/` | protocol, commands, schema, findings, requirements, resource estimate, `EXPECTED_CELLS.json` |
+| `packages/<pkg>/` | protocol, commands, schema, findings, requirements, resource estimate, `BENCHMARK.json`, `EXPECTED_CELLS.json` |
 | `provenance/` | branch commit, this round's diff against its merge base, and a git bundle of this round's commits |
+| `experiments/mlst2026/successor_20260913/RESOURCE_REPORT.md` | the measured benchmark tables, fitted vs theoretical scaling exponents, wall-time ranges per worker count, storage, and the list of what remains unknown about the receiving machine |
+| `experiments/mlst2026/successor_20260913/CONDITIONAL_EXPERIMENTS.md` | which experiments were conditional on retaining a stronger claim, what happened to that claim, and whether each was built, not built, or is not buildable |
+| `experiments/mlst2026/successor_20260913/README.md` | the round's binding conventions: layout, seed namespaces, accounting rules, required tests, status vocabulary |
 
 ## First step, before anything is computed
 
@@ -569,11 +629,28 @@ Their digests are in `MANIFEST.json`, so a modified copy is detected by
 
 ## Resource projections
 
-`packages/<pkg>/RESOURCE_ESTIMATE.json` holds, per package, the measured fixture
-seconds per cell, the protocol's declared fixture-to-production scale factor, and the
-product against the full production matrix. These are point estimates with no variance,
-they exclude reduce and I/O time, and where fixture cells are overhead-dominated the
-projection is an upper bound. They are not a scheduler request.
+`packages/<pkg>/RESOURCE_ESTIMATE.json` holds, per package, a **measured** projection:
+each package's dominant kernel was benchmarked with its own code at four or more problem
+sizes that bracket or reach the production dimension, the scaling was fitted as
+`t = a n^b` and reported beside the algorithm's exponent, and the per-cell seconds were
+multiplied by the enumerated production matrix. `packages/<pkg>/BENCHMARK.json` holds the
+raw timings, the memory probes and the fits; `RESOURCE_REPORT.md` prints them as tables
+with the arithmetic shown.
+
+Every family says whether its number is `measured` or `projected`; a projected one names
+the fitted exponent and the extrapolation factor in the dimension. The totals are ranges
+taken from the measured min/max over repeats and the fit residual, not from an invented
+margin. The estimates include estimator calls, restarts, replicates and the reduction
+step, and report peak memory, output storage, transfer size and setup time separately
+from computation.
+
+The old flat product (one fixture wall time times a constant declared in the protocol)
+is kept only as `cross_check_flat_fixture_scale`, labelled as not being the estimate.
+Where it disagrees with the measurement by more than a factor two, the estimate says so.
+
+Wall-time rows at 1, 8 and 32 workers are **conditional**: the server's core count,
+per-core speed, BLAS threading policy, filesystem behaviour and link bandwidth are not
+known here and have not been invented. Each estimate carries its own `unknowns` list.
 
 ## Cost of a failure
 
@@ -820,15 +897,32 @@ def build(out_dir: Path, verify: bool, ms_evidence: Path) -> int:
     (staging / "verify_handoff.py").write_text(VERIFY_PY)
     (staging / "verify_handoff.py").chmod(0o755)
 
-    rows = ["| package | cells | fits | solves | projected CPU-seconds (point, same cells) |",
-            "|---|---|---|---|---|"]
+    rows = ["| package | cells | fits | solves | measured CPU-seconds (range, same cells) | "
+            "wall h @ 8 workers | peak RSS/cell | output |",
+            "|---|---|---|---|---|---|---|---|"]
     for pkg in PKGS:
         m = matrices[pkg]
         est = m.get("resource_estimate") or {}
-        pp = est.get("production_projection", est)
-        secs = pp.get("total_cpu_seconds_point")
-        rows.append(f"| `{pkg}` | {m['cells']} | {m['fits']} | {m['solves']} | "
-                    f"{('%.0f' % secs) if isinstance(secs, (int, float)) else 'see RESOURCE_ESTIMATE.json'} |")
+        cpu = est.get("cpu_seconds") or {}
+        w8 = (est.get("wall_time_hours_by_workers") or {}).get("8") or {}
+        mem = ((est.get("peak_memory") or {}).get("per_cell_peak") or {}).get("rss_high_water_bytes")
+        store = (est.get("storage") or {}).get("total_mb")
+        lo, hi = cpu.get("total_low"), cpu.get("total_high")
+        cpu_s = ("%.0f - %.0f" % (lo, hi)) if isinstance(lo, (int, float)) else "see RESOURCE_ESTIMATE.json"
+        w8_s = ("%.2f - %.2f" % (w8["hours_low"], w8["hours_high"])) if w8 else "-"
+        mem_s = ("%.0f MB" % (mem / 1e6)) if isinstance(mem, (int, float)) else "-"
+        st_s = ("%.0f MB" % store) if isinstance(store, (int, float)) else "-"
+        rows.append(f"| `{pkg}` | {m['cells']} | {m['fits']} | {m['solves']} | {cpu_s} | {w8_s} | "
+                    f"{mem_s} | {st_s} |")
+    rows.append("")
+    rows.append("CPU-seconds are measured on the benchmark host recorded in each "
+                "`RESOURCE_ESTIMATE.json` (`hardware`), single-threaded BLAS, and cover cell compute **plus** "
+                "the per-cell `common/cli.py` harness (ledger append under `flock`, schema and fit checks, "
+                "atomic result write) **plus** the reduce step. The 8-worker column is **conditional**: this "
+                "round does not know the server's core count, per-core speed or BLAS policy, and it was "
+                "measured with one process running at a time, so it contains no contention between workers. "
+                "See `RESOURCE_REPORT.md` for the per-package benchmark tables and the list of what remains "
+                "unknown.")
     (staging / "HANDOFF.md").write_text(HANDOFF_MD.format(
         date=datetime.now(timezone.utc).strftime("%d %B %Y"),
         branch=branch, commit=commit, tarname=f"{stem}.tar.gz", stem=stem,

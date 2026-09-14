@@ -12,8 +12,8 @@ Status: `configured` → `locally tested`.  Nothing in a fixture root is a resul
 | `cells/<cell_id>.json` | `run` | one per completed cell (schema below) |
 | `PILOT_SELECTION.json` | pilot-stage `reduce` (or the fixture reduce, flagged `development_only`) | the frozen scoring selection; never overwritten |
 | `REDUCED.json` | `reduce` | reduction summary (below) |
-| `RESOURCE_ESTIMATE.json` | `estimate` | common estimate for the matrix of the run root it is pointed at |
-| `RESOURCE_ESTIMATE_PRODUCTION.json` | `estimate-production` | fixture timings × declared scale × the **production** matrix |
+| `RESOURCE_ESTIMATE.json` | `estimate` | measured, scaling-aware estimate for the **production** matrix (reads `BENCHMARK.json`) |
+| `RESOURCE_ESTIMATE_PRODUCTION.json` | `estimate-production` | the same measured production projection with the pilot/confirmation/deterministic stage split |
 
 ## Accounting
 

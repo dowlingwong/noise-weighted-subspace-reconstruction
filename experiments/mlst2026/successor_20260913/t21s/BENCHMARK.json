@@ -1,0 +1,975 @@
+{
+ "benchmark_wall_seconds": 10.069522554000287,
+ "families": {
+  "algebraic": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "how": "the three algebraic cells are two geometry-invariant checks (0.0034 s each) and one predictor sanity check (0.0032 s); the family mean is their average",
+   "kernel": "algebraic_cell",
+   "seconds_per_cell": {
+    "high": 0.003470129999186611,
+    "low": 0.0031826369995542336,
+    "median": 0.0033311849996001306
+   },
+   "size": 256,
+   "size_symbol": "d"
+  },
+  "confirmation-correlated-hi": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.066427501126438,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_correlated_hi",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.01432351500079676,
+    "low": 0.01407184299932851,
+    "median": 0.014246665999962715
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "confirmation-correlated-lo": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.4732088721612555,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_correlated_lo",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.0416186309994373,
+    "low": 0.04055007100032526,
+    "median": 0.041369877000761335
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "confirmation-orthogonal-hi": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.0591956481192006,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_orthogonal_hi",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.01401526999870839,
+    "low": 0.01390320199971029,
+    "median": 0.013932032001321204
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "confirmation-orthogonal-lo": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.4680214266506906,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_orthogonal_lo",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.04129541499969491,
+    "low": 0.0405061929996009,
+    "median": 0.04099969399976544
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "pilot-correlated-hi": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.066427501126438,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_correlated_hi",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.01432351500079676,
+    "low": 0.01407184299932851,
+    "median": 0.014246665999962715
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "pilot-correlated-lo": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.4732088721612555,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_correlated_lo",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.0416186309994373,
+    "low": 0.04055007100032526,
+    "median": 0.041369877000761335
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "pilot-orthogonal-hi": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.0591956481192006,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_orthogonal_hi",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.01401526999870839,
+    "low": 0.01390320199971029,
+    "median": 0.013932032001321204
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  },
+  "pilot-orthogonal-lo": {
+   "basis": "measured",
+   "calls_per_cell": 1,
+   "extrapolation_factor_in_dimension": 1.0,
+   "fitted_exponent": 1.4680214266506906,
+   "how": "the production size was run directly; the range is the measured min/max over repeats",
+   "kernel": "data_cell_orthogonal_lo",
+   "projection_label": "measured at the production size",
+   "seconds_per_cell": {
+    "high": 0.04129541499969491,
+    "low": 0.0405061929996009,
+    "median": 0.04099969399976544
+   },
+   "size": 256,
+   "size_symbol": "d",
+   "theoretical_exponent": 3.0
+  }
+ },
+ "generated_utc": "2026-09-13T10:50:14+00:00",
+ "hardware": "Intel(R) Xeon(R) Processor @ 2.10GHz, 2 vCPU (2 cores, 1 thread/core), 7 GiB RAM\nLinux container; python 3.11.15, numpy 2.4.4, scipy-openblas 0.3.31.188.0\nBenchmarks run single-threaded: OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1",
+ "harness": {
+  "components": {
+   "ledger_at_fixture_length": {
+    "complete_seconds_median": 0.00022152400015329476,
+    "existing_records": 419,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006146420000732178,
+    "seconds_per_cell_median": 0.00046659399959025905,
+    "start_seconds_median": 0.0002450699994369643
+   },
+   "ledger_at_production_length": {
+    "complete_seconds_median": 0.00023609799973201007,
+    "existing_records": 2499,
+    "samples": 25,
+    "seconds_per_cell_max": 0.0006793760003347415,
+    "seconds_per_cell_median": 0.0004826719996344764,
+    "start_seconds_median": 0.0002465739999024663
+   },
+   "note": "the ledger figure is start+complete for one cell under the advisory flock; the write figure is common.results.write_json_atomic, i.e. json encode + fsync + sha256",
+   "production_bytes_per_cell_weighted": 2533,
+   "write_and_schema_at_fixture_payload": {
+    "padding_note": "",
+    "payload_bytes": 4675,
+    "samples": 15,
+    "schema_check_seconds_median": 4.086999979335815e-06,
+    "seconds_per_cell_median": 0.0008669289982208284,
+    "target_bytes": 4635,
+    "write_seconds_median": 0.0008628419982414925
+   },
+   "write_and_schema_at_production_payload": {
+    "padding_note": "",
+    "payload_bytes": 4675,
+    "samples": 15,
+    "schema_check_seconds_median": 4.104998879483901e-06,
+    "seconds_per_cell_median": 0.000839162999909604,
+    "target_bytes": 2533,
+    "write_seconds_median": 0.0008350580010301201
+   }
+  },
+  "components_seconds_per_cell_at_production_scale": 0.0013218349995440803,
+  "end_to_end": {
+   "cells": 419,
+   "fixture_cell_bytes_median": 4635,
+   "harness_seconds_per_cell": 0.003454523956247233,
+   "harness_seconds_total": 1.4474455376675905,
+   "how": "a real `run --fixture` of this package through common.cli, on a copy of the fixture run root with cells/ and the ledger removed; harness = wall - interpreter start-up - the summed per-cell wall_s the run recorded (which is the kernel plus the fit instrumentation)",
+   "includes_once_per_run_costs": "the matrix write, protocol snapshot, code provenance and the interrupted sweep happen once per run and are amortised over 419 fixture cells here, so this per-cell figure OVERSTATES the production one",
+   "interpreter_and_import_seconds": 0.10604276300000492,
+   "kernel_seconds_total_from_cell_files": 0.6438143253326416,
+   "runs": 2,
+   "wall_seconds_total": 2.197302626000237
+  },
+  "floored_at_components": false,
+  "harness_seconds_per_cell": 0.003442835957980226,
+  "harness_seconds_per_cell_swapped_to_production_scale": 0.003442835957980226,
+  "how": "end-to-end harness seconds per cell measured on the fixture, with the scale-dependent components (ledger length, result-file bytes) swapped from the fixture scale to the production scale: 0.0034545 - 0.0013335 + 0.0013218 = 0.0034428",
+  "measured": true,
+  "per_worker_interpreter_startup_seconds_measured": 0.10604276300000492,
+  "per_worker_note": "the interpreter start-up and package import above is paid once per worker PROCESS, not once per cell; a scheduler that starts a fresh process per cell pays it on every cell instead, which would add 0.106 s x 2499 cells = 265 CPU-s",
+  "serial_note": "ledger start+complete run under an advisory flock on one lock file, so they do not parallelise: this is a floor on the wall time that no worker count beats",
+  "serial_seconds_per_cell": 0.0004826719996344764
+ },
+ "kernels": {
+  "algebraic_cell": {
+   "kernel": "algebraic_cell",
+   "points": [
+    {
+     "max_s": 0.003470129999186611,
+     "median_s": 0.003378974999577622,
+     "min_s": 0.0032965829996101093,
+     "repeats": 5,
+     "samples_s": [
+      0.003470129999186611,
+      0.0033801390000007814,
+      0.0032965829996101093,
+      0.003344771999763907,
+      0.003378974999577622
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.05136084155644692,
+     "warmup": 2,
+     "what": "geometry_invariants"
+    },
+    {
+     "max_s": 0.0034503829992900137,
+     "median_s": 0.0032356049996451475,
+     "min_s": 0.0031826369995542336,
+     "repeats": 5,
+     "samples_s": [
+      0.003220489001250826,
+      0.0031826369995542336,
+      0.0032356049996451475,
+      0.0032734079995861975,
+      0.0034503829992900137
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.08274990295946015,
+     "warmup": 2,
+     "what": "predictor_sanity"
+    }
+   ],
+   "projection": {
+    "basis": "measured",
+    "label": "measured at the production size",
+    "seconds_per_call_high": 0.003470129999186611,
+    "seconds_per_call_low": 0.0031826369995542336,
+    "seconds_per_call_median": 0.0033311849996001306
+   }
+  },
+  "data_cell_correlated_hi": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.933572498873562,
+    "fitted_exponent": 1.066427501126438,
+    "note": "the measured exponent is BELOW the algorithm's by 1.93: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 2.9988913094900147e-05,
+    "b": 1.066427501126438,
+    "max_abs_log_residual": 0.24992071813540573,
+    "n_points": 4,
+    "r_squared": 0.9455502565155143,
+    "residual_log_rms": 0.22392305895488146,
+    "sizes": [
+     24.0,
+     64.0,
+     128.0,
+     256.0
+    ],
+    "times_s": [
+     0.0010817200000019511,
+     0.0020218849986122223,
+     0.004243396000674693,
+     0.014246665999962715
+    ]
+   },
+   "fixture_size": 24.0,
+   "kernel": "data_cell_correlated_hi",
+   "notes": "the correlated geometry arm; N is held at the production aspect ratio for the hi arm (gamma = d/N fixed), so the d = 256 point IS a production correlated/hi cell",
+   "points": [
+    {
+     "max_s": 0.001291456999751972,
+     "median_s": 0.0010817200000019511,
+     "min_s": 0.0010586000007606344,
+     "repeats": 5,
+     "samples_s": [
+      0.0010591019999992568,
+      0.0010586000007606344,
+      0.001291456999751972,
+      0.001099801998861949,
+      0.0010817200000019511
+     ],
+     "size": 24.0,
+     "spread_fraction": 0.21526550215482526,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.0022987189986451995,
+     "median_s": 0.0020218849986122223,
+     "min_s": 0.0018416670009173686,
+     "repeats": 5,
+     "samples_s": [
+      0.0020218849986122223,
+      0.0018499160014471272,
+      0.0018416670009173686,
+      0.0022987189986451995,
+      0.0021436090009956388
+     ],
+     "size": 64.0,
+     "spread_fraction": 0.22605242041042958,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.004549043998849811,
+     "median_s": 0.004243396000674693,
+     "min_s": 0.004145527998844045,
+     "repeats": 5,
+     "samples_s": [
+      0.004243396000674693,
+      0.004145527998844045,
+      0.004192884000076447,
+      0.004549043998849811,
+      0.00436903700028779
+     ],
+     "size": 128.0,
+     "spread_fraction": 0.09509270403742838,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.01432351500079676,
+     "median_s": 0.014246665999962715,
+     "memory": {
+      "kernel": "data_correlated_hi",
+      "package": "t21s",
+      "rss_before_bytes": 39931904,
+      "rss_delta_bytes": 9621504,
+      "rss_high_water_bytes": 49553408,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 49553408,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 256.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 2356624
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 0.01407184299932851,
+     "repeats": 5,
+     "samples_s": [
+      0.014246665999962715,
+      0.014081261000683298,
+      0.01432351500079676,
+      0.0142715309993946,
+      0.01407184299932851
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.017665326152021054,
+     "warmup": 2
+    }
+   ],
+   "production_size": 256.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.01432351500079676,
+    "seconds_per_call_low": 0.01407184299932851,
+    "seconds_per_call_median": 0.014246665999962715,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "repeats": 5,
+   "size_symbol": "d",
+   "sizes_run": [
+    24.0,
+    64.0,
+    128.0,
+    256.0
+   ],
+   "theory": {
+    "exponent": 3.0,
+    "key": "svd",
+    "note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+   },
+   "warmup": 2
+  },
+  "data_cell_correlated_lo": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.5267911278387445,
+    "fitted_exponent": 1.4732088721612555,
+    "note": "the measured exponent is BELOW the algorithm's by 1.53: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 9.363087203476528e-06,
+    "b": 1.4732088721612555,
+    "max_abs_log_residual": 0.2901533657552733,
+    "n_points": 4,
+    "r_squared": 0.9705673533330954,
+    "residual_log_rms": 0.22448018728876593,
+    "sizes": [
+     24.0,
+     64.0,
+     128.0,
+     256.0
+    ],
+    "times_s": [
+     0.001251057999979821,
+     0.003208392001397442,
+     0.010276562999933958,
+     0.041369877000761335
+    ]
+   },
+   "fixture_size": 24.0,
+   "kernel": "data_cell_correlated_lo",
+   "notes": "the correlated geometry arm; N is held at the production aspect ratio for the lo arm (gamma = d/N fixed), so the d = 256 point IS a production correlated/lo cell",
+   "points": [
+    {
+     "max_s": 0.0013146500004950212,
+     "median_s": 0.001251057999979821,
+     "min_s": 0.001175411000076565,
+     "repeats": 5,
+     "samples_s": [
+      0.0012678849998337682,
+      0.001251057999979821,
+      0.0012071250002918532,
+      0.001175411000076565,
+      0.0013146500004950212
+     ],
+     "size": 24.0,
+     "spread_fraction": 0.11129699855698308,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.0033036559998436132,
+     "median_s": 0.003208392001397442,
+     "min_s": 0.0031196740001178114,
+     "repeats": 5,
+     "samples_s": [
+      0.003208392001397442,
+      0.003269631000875961,
+      0.0033036559998436132,
+      0.0031214169994200347,
+      0.0031196740001178114
+     ],
+     "size": 64.0,
+     "spread_fraction": 0.05734399027477533,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.01041367700054252,
+     "median_s": 0.010276562999933958,
+     "min_s": 0.01018159599880164,
+     "repeats": 5,
+     "samples_s": [
+      0.010246812000332284,
+      0.010282600998834823,
+      0.01018159599880164,
+      0.01041367700054252,
+      0.010276562999933958
+     ],
+     "size": 128.0,
+     "spread_fraction": 0.02258352347398364,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.0416186309994373,
+     "median_s": 0.041369877000761335,
+     "memory": {
+      "kernel": "data_correlated_lo",
+      "package": "t21s",
+      "rss_before_bytes": 39829504,
+      "rss_delta_bytes": 20631552,
+      "rss_high_water_bytes": 60461056,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 60461056,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 256.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 7567546
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 0.04055007100032526,
+     "repeats": 5,
+     "samples_s": [
+      0.04142978799973207,
+      0.0416186309994373,
+      0.041369877000761335,
+      0.041364056000020355,
+      0.04055007100032526
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.025829421709239672,
+     "warmup": 2
+    }
+   ],
+   "production_size": 256.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.0416186309994373,
+    "seconds_per_call_low": 0.04055007100032526,
+    "seconds_per_call_median": 0.041369877000761335,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "repeats": 5,
+   "size_symbol": "d",
+   "sizes_run": [
+    24.0,
+    64.0,
+    128.0,
+    256.0
+   ],
+   "theory": {
+    "exponent": 3.0,
+    "key": "svd",
+    "note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+   },
+   "warmup": 2
+  },
+  "data_cell_orthogonal_hi": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.9408043518807994,
+    "fitted_exponent": 1.0591956481192006,
+    "note": "the measured exponent is BELOW the algorithm's by 1.94: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 3.033345173687337e-05,
+    "b": 1.0591956481192006,
+    "max_abs_log_residual": 0.2700360419442065,
+    "n_points": 4,
+    "r_squared": 0.9378307153665258,
+    "residual_log_rms": 0.23862380581521034,
+    "sizes": [
+     24.0,
+     64.0,
+     128.0,
+     256.0
+    ],
+    "times_s": [
+     0.001092647999030305,
+     0.0018955909999931464,
+     0.0042189520008832915,
+     0.013932032001321204
+    ]
+   },
+   "fixture_size": 24.0,
+   "kernel": "data_cell_orthogonal_hi",
+   "notes": "the orthogonal geometry arm; N is held at the production aspect ratio for the hi arm (gamma = d/N fixed), so the d = 256 point IS a production orthogonal/hi cell",
+   "points": [
+    {
+     "max_s": 0.0014816230013821041,
+     "median_s": 0.001092647999030305,
+     "min_s": 0.0010179109995078761,
+     "repeats": 5,
+     "samples_s": [
+      0.0014816230013821041,
+      0.0011129750000691274,
+      0.0010227660004602512,
+      0.0010179109995078761,
+      0.001092647999030305
+     ],
+     "size": 24.0,
+     "spread_fraction": 0.42439285322057935,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.002032817999861436,
+     "median_s": 0.0018955909999931464,
+     "min_s": 0.0018521359997976106,
+     "repeats": 5,
+     "samples_s": [
+      0.002032817999861436,
+      0.001914499000122305,
+      0.0018955909999931464,
+      0.001855477999924915,
+      0.0018521359997976106
+     ],
+     "size": 64.0,
+     "spread_fraction": 0.0953169750565806,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.004348184000264155,
+     "median_s": 0.0042189520008832915,
+     "min_s": 0.004097557000932284,
+     "repeats": 5,
+     "samples_s": [
+      0.004285517999960575,
+      0.0042189520008832915,
+      0.004348184000264155,
+      0.004178126000624616,
+      0.004097557000932284
+     ],
+     "size": 128.0,
+     "spread_fraction": 0.05940503690949769,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.01401526999870839,
+     "median_s": 0.013932032001321204,
+     "memory": {
+      "kernel": "data_orthogonal_hi",
+      "package": "t21s",
+      "rss_before_bytes": 39849984,
+      "rss_delta_bytes": 9633792,
+      "rss_high_water_bytes": 49483776,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 49483776,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 256.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 2356035
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 0.01390320199971029,
+     "repeats": 5,
+     "samples_s": [
+      0.01401526999870839,
+      0.014015049000590807,
+      0.013927170999522787,
+      0.013932032001321204,
+      0.01390320199971029
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.008043909100084776,
+     "warmup": 2
+    }
+   ],
+   "production_size": 256.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.01401526999870839,
+    "seconds_per_call_low": 0.01390320199971029,
+    "seconds_per_call_median": 0.013932032001321204,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "repeats": 5,
+   "size_symbol": "d",
+   "sizes_run": [
+    24.0,
+    64.0,
+    128.0,
+    256.0
+   ],
+   "theory": {
+    "exponent": 3.0,
+    "key": "svd",
+    "note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+   },
+   "warmup": 2
+  },
+  "data_cell_orthogonal_lo": {
+   "call_path": "t21s.runner.run_data_cell -> compute_predictions (eigh of the d x d population K, one solve) then fit_pca (thin SVD of the centred N x d draw, one fit)",
+   "exponent_check": {
+    "agrees": false,
+    "agrees_within": 0.35,
+    "difference": -1.5319785733493094,
+    "fitted_exponent": 1.4680214266506906,
+    "note": "the measured exponent is BELOW the algorithm's by 1.53: at these sizes the kernel is not yet flop-bound (Python/allocation overhead dominates), so a projection made with the fitted exponent UNDERSTATES the cost at larger sizes and one made with the theoretical exponent overstates it at these ones",
+    "theoretical_exponent": 3.0
+   },
+   "fit": {
+    "a": 9.55452632322662e-06,
+    "b": 1.4680214266506906,
+    "max_abs_log_residual": 0.29537299662719807,
+    "n_points": 4,
+    "r_squared": 0.9699926023229115,
+    "residual_log_rms": 0.22593016616390224,
+    "sizes": [
+     24.0,
+     64.0,
+     128.0,
+     256.0
+    ],
+    "times_s": [
+     0.0012582389990711818,
+     0.0031874340002104873,
+     0.01026406799974211,
+     0.04099969399976544
+    ]
+   },
+   "fixture_size": 24.0,
+   "kernel": "data_cell_orthogonal_lo",
+   "notes": "the orthogonal geometry arm; N is held at the production aspect ratio for the lo arm (gamma = d/N fixed), so the d = 256 point IS a production orthogonal/lo cell",
+   "points": [
+    {
+     "max_s": 0.0012980659994354937,
+     "median_s": 0.0012582389990711818,
+     "min_s": 0.0012022649989376077,
+     "repeats": 5,
+     "samples_s": [
+      0.0012920429999212502,
+      0.001250888999493327,
+      0.0012582389990711818,
+      0.0012980659994354937,
+      0.0012022649989376077
+     ],
+     "size": 24.0,
+     "spread_fraction": 0.07613895338533079,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.0034723579992714804,
+     "median_s": 0.0031874340002104873,
+     "min_s": 0.0031224689992086496,
+     "repeats": 5,
+     "samples_s": [
+      0.0031224689992086496,
+      0.0034723579992714804,
+      0.003177001000949531,
+      0.0031874340002104873,
+      0.0032183050007006386
+     ],
+     "size": 64.0,
+     "spread_fraction": 0.10977137096477144,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.010334304999560118,
+     "median_s": 0.01026406799974211,
+     "min_s": 0.010228717999780201,
+     "repeats": 5,
+     "samples_s": [
+      0.010298657998646377,
+      0.01026406799974211,
+      0.010334304999560118,
+      0.010228717999780201,
+      0.010251731000607833
+     ],
+     "size": 128.0,
+     "spread_fraction": 0.01028705185727231,
+     "warmup": 2
+    },
+    {
+     "max_s": 0.04129541499969491,
+     "median_s": 0.04099969399976544,
+     "memory": {
+      "kernel": "data_orthogonal_lo",
+      "package": "t21s",
+      "rss_before_bytes": 39833600,
+      "rss_delta_bytes": 20635648,
+      "rss_high_water_bytes": 60469248,
+      "rss_is": "VmHWM of THIS process (resident high-water mark, never decreases); meaningful per size only when measured in a fresh subprocess",
+      "ru_maxrss_bytes": 60469248,
+      "ru_maxrss_is": "getrusage(RUSAGE_SELF).ru_maxrss, which Linux INHERITS across fork: in a process spawned by a benchmark driver it is at least the driver's own high-water mark and says nothing about this call.  Kept for the record; rss_high_water_bytes is the one to read",
+      "size": 256.0,
+      "tracemalloc_is": "peak Python-allocator bytes for this call only",
+      "tracemalloc_peak_bytes": 7566760
+     },
+     "memory_measured_in": "subprocess",
+     "min_s": 0.0405061929996009,
+     "repeats": 5,
+     "samples_s": [
+      0.04113541900005657,
+      0.04091925100146909,
+      0.04099969399976544,
+      0.04129541499969491,
+      0.0405061929996009
+     ],
+     "size": 256.0,
+     "spread_fraction": 0.01924946074228089,
+     "warmup": 2
+    }
+   ],
+   "production_size": 256.0,
+   "projection": {
+    "basis": "measured",
+    "decades_in_size": 0.0,
+    "extrapolation_factor_in_size": 1.0,
+    "how": "the production size was run directly; the range is the measured min/max over repeats",
+    "is_measurement": true,
+    "label": "measured at the production size",
+    "largest_measured_size": 256.0,
+    "largest_size_benchmarked": 256.0,
+    "seconds_per_call_high": 0.04129541499969491,
+    "seconds_per_call_low": 0.0405061929996009,
+    "seconds_per_call_median": 0.04099969399976544,
+    "spans_more_than_one_decade": false,
+    "target_size": 256.0
+   },
+   "repeats": 5,
+   "size_symbol": "d",
+   "sizes_run": [
+    24.0,
+    64.0,
+    128.0,
+    256.0
+   ],
+   "theory": {
+    "exponent": 3.0,
+    "key": "svd",
+    "note": "thin SVD of an N x d matrix is O(N d min(N, d)); at fixed aspect ratio that is O(d^3)"
+   },
+   "warmup": 2
+  }
+ },
+ "notes": [
+  "The protocol derives its flat scale from the PCA flop count N d min(N, d). That is NOT where the time goes at the production size: compute_predictions (the d x d eigendecomposition of K plus the QR of the direction frame) is comparable to or larger than the SVD, and at the fixture size both are dwarfed by Python overhead.",
+  "Both production sizes (d = 256 with N = 128 and with N = 1024) were run directly, in BOTH geometry arms (correlated and orthogonal), so every one of the eight data families is a MEASUREMENT of its own configuration."
+ ],
+ "package": "t21s",
+ "reduce": {
+  "bound": "compute",
+  "bound_measured_on_cells": 419,
+  "bound_measured_on_input_bytes": 2334301,
+  "bound_note": "reduce reads every cell file once; measured throughput 3.7 MB/s over 419 cells (2.33 MB of input) against a warm page cache, so the step is compute-bound AT THAT SIZE.  This is not a claim about the production scale; see reduction_work.at_production_scale in RESOURCE_ESTIMATE.json",
+  "bound_threshold_bytes_per_second": 50000000.0,
+  "cells_read": 419,
+  "fixture_cell_bytes_median": 4635,
+  "fixture_cell_bytes_total": 1935808,
+  "input_bytes_read": 2334301,
+  "interpreter_and_import_seconds_measured": 0.10762078299921995,
+  "ledger_bytes_fixture": 398493,
+  "ledger_bytes_per_cell": 951.0572792362768,
+  "measured": true,
+  "reduced_output_bytes": 780241,
+  "returncode": 0,
+  "seconds_per_cell": 0.0012439295083531935,
+  "stderr_tail": "",
+  "throughput_bytes_per_second": 3714090.5451242533,
+  "wall_seconds_reduce_work": 0.521206463999988,
+  "wall_seconds_total_including_interpreter": 0.628827246999208
+ },
+ "schema": "mlst-local-package-benchmark/1",
+ "setup_and_transfer": {
+  "requirements": {
+   "already_satisfied_here": true,
+   "import_check_seconds_measured": 0.13878245200066885,
+   "pinned_lines": [
+    "h5py==3.16.0",
+    "numpy==2.4.4",
+    "pytest==9.1.1",
+    "scipy==1.17.1"
+   ],
+   "pip_dry_run_note": "a real `pip install` of these pins was NOT timed: this container already satisfies them and has no guaranteed network egress, so the honest figure is the check time above. On a remote host without them, budget the download of numpy+scipy wheels (~90 MB) plus install, which is link-dependent and UNKNOWN.",
+   "pip_dry_run_returncode": 0,
+   "pip_dry_run_seconds_measured": 0.5100607690001198
+  },
+  "transfer": {
+   "archive_bytes": 7764484,
+   "archive_path_measured": "/tmp/hf5/mlst-successor_20260913-handoff-20260913T111611Z.tar.gz",
+   "note": "the wall time of the transfer depends on the link, which is UNKNOWN; only the size is a fact. Measured on a build of this handoff; successive builds differ by a few tens of kB (timestamps, this report and the estimate files) - two builds of the same tree measured here were 7 702 123 and 7 764 484 bytes."
+  },
+  "verify_handoff": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 3.6389819430005446,
+   "seconds_min": 3.593306031998509
+  },
+  "verify_handoff_tests": {
+   "measured": true,
+   "note": "each run in a pristine copy of the extracted handoff; the copy itself is not timed",
+   "returncode": 0,
+   "runs": 2,
+   "seconds_max": 58.53125182700023,
+   "seconds_min": 57.33935914700123
+  }
+ },
+ "storage": {
+  "basis": "measured: the production-size result dict serialised with the runner's encoder",
+  "bytes_per_cell_by_family": {
+   "algebraic": {
+    "basis": "measured",
+    "bytes": 963,
+    "how": "one geometry-invariant algebraic cell"
+   },
+   "confirmation-correlated-hi": {
+    "basis": "measured",
+    "bytes": 2583,
+    "how": "one production correlated data cell result (d = 256, N = 128)"
+   },
+   "confirmation-correlated-lo": {
+    "basis": "measured",
+    "bytes": 2519,
+    "how": "one production correlated data cell result (d = 256, N = 1024)"
+   },
+   "confirmation-orthogonal-hi": {
+    "basis": "measured",
+    "bytes": 2544,
+    "how": "one production orthogonal data cell result (d = 256, N = 128)"
+   },
+   "confirmation-orthogonal-lo": {
+    "basis": "measured",
+    "bytes": 2496,
+    "how": "one production orthogonal data cell result (d = 256, N = 1024)"
+   },
+   "pilot-correlated-hi": {
+    "basis": "measured",
+    "bytes": 2583,
+    "how": "one production correlated data cell result (d = 256, N = 128)"
+   },
+   "pilot-correlated-lo": {
+    "basis": "measured",
+    "bytes": 2519,
+    "how": "one production correlated data cell result (d = 256, N = 1024)"
+   },
+   "pilot-orthogonal-hi": {
+    "basis": "measured",
+    "bytes": 2544,
+    "how": "one production orthogonal data cell result (d = 256, N = 128)"
+   },
+   "pilot-orthogonal-lo": {
+    "basis": "measured",
+    "bytes": 2496,
+    "how": "one production orthogonal data cell result (d = 256, N = 1024)"
+   }
+  },
+  "data_cell_result_bytes_measured": 2519
+ },
+ "thread_settings": {
+  "MKL_NUM_THREADS": "1",
+  "NUMEXPR_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "VECLIB_MAXIMUM_THREADS": "1"
+ },
+ "work_accounting": {
+  "bootstrap_replicates_in_reduce": 1000,
+  "estimator_calls_per_data_cell": 1,
+  "restarts": "none: the learner is closed-form rank-k PCA (thin SVD), it has no restarts",
+  "simulation_replicates": {
+   "draws_per_data_cell": 1,
+   "rows_drawn": "N = 128 (hi) or 1024 (lo)"
+  },
+  "solves_per_data_cell": 1
+ }
+}

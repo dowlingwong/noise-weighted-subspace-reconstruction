@@ -1,6 +1,32 @@
 # Current Status
 
-Last consolidated: 2026-07-27 (added TIDMAD).
+Last consolidated: 2026-07-27 (added TIDMAD).  **Superseded by the September
+2026 evidence map below for the canonical manuscript's claim boundaries.**
+
+## September 2026 evidence map (current)
+
+The canonical manuscript is `arXiv-v1-polished-extended-preprint/main.tex`
+(plus `supplement.tex`).  The September boundary map is:
+
+- The controlled synthetic S1-S9 gates verify estimator identities; P1 and P2
+  are confirmed on the simulator and P3 holds there as a generator property.
+- CRESST-A is a positive but **archive-specific** same-rank residual effect
+  (seven correlated run/channel clusters from two runs, post-freeze intervals
+  on the same-rank fraction, unvalidated covariance), not improved physical
+  reconstruction.
+- GWOSC is a completed negative calibration stress test.
+- **TIDMAD is not optional.**  The whole-window stage established no useful
+  recovery, and the narrowband T22 stage withheld every registered verdict
+  because its dependence gate failed.  Neither stage computed the matched-rank
+  weighted-residual contrast, so neither tests the P3 joint-ordering hypothesis.
+- Successor packages in `experiments/mlst2026/successor_20260913/` (T19-S,
+  T20-S, T21-S, T22-S simulation, CRESST archive/calibration) are configured and
+  locally tested but **not executed**; they are not evidence.  The matched
+  TIDMAD instrument stage and the full CRESST raw-pulse robustness extension
+  remain **explicitly blocked** (`experiments/mlst2026/successor_20260913/remote/README.md`).
+
+Everything below this point is the dated July consolidation, retained as
+historical evidence.
 
 ## Central Claim
 

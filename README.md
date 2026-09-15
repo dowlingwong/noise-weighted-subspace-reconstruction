@@ -20,6 +20,40 @@ Current status and paper claim boundaries are in
 
 ## Status
 
+### September 2026 evidence map (supersedes the July summary below)
+
+The canonical manuscript is `arXiv-v1-polished-extended-preprint/main.tex` (plus
+`supplement.tex`).  Its September claim boundaries differ from the July
+consolidation retained below.  In brief:
+
+- The controlled synthetic suite S1-S9 verifies the estimator identities.
+  Predictions P1 and P2 are confirmed on the simulator; P3 holds there as a
+  property of the generator, not a guarantee.
+- CRESST-A remains a positive but **archive-specific** same-rank residual
+  effect: seven correlated run/channel clusters from two runs, every interval on
+  the same-rank fraction post-freeze, and a covariance the release cannot
+  validate.  It is residual reduction in the optimized metric, not improved
+  physical reconstruction.
+- GWOSC is a completed negative public real-noise calibration stress test.
+- **TIDMAD is no longer optional.**  The whole-window stage established *no
+  useful recovery* (no rank-2 reconstruction beat the zero predictor), and the
+  narrowband T22 stage withheld all three registered verdicts because its
+  dependence gate failed.  The matched-rank weighted-residual contrast that
+  would test the joint-ordering hypothesis was not computed on either stage;
+  those stages are therefore *not* a test of it.
+- The successor packages under
+  [`experiments/mlst2026/successor_20260913/`](experiments/mlst2026/successor_20260913/)
+  (T19-S, T20-S, T21-S, T22-S simulation, CRESST archive/calibration) are
+  **configured and locally tested but not executed**; they are not evidence for
+  any manuscript claim.  The matched TIDMAD instrument stage and the full
+  CRESST raw-pulse robustness extension remain **explicitly blocked**; see
+  [`experiments/mlst2026/successor_20260913/remote/README.md`](experiments/mlst2026/successor_20260913/remote/README.md).
+
+The July consolidation below is retained as historical evidence and is not
+overwritten.
+
+### July consolidation (historical)
+
 The controlled synthetic suite S1-S9 has verified positive evidence. GWOSC is
 a completed negative public real-noise stress test: PSD/reference and
 shared-FIR implementation checks passed, but global and predeclared local PSD

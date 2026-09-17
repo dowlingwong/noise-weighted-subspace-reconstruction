@@ -66,17 +66,49 @@ This round does **not** try to make those failures disappear. Every protocol dec
 
 ## 4. Independent verification already performed (2026-09-17, local)
 
-- Full test suite re-run: **107 passed** in 126.5 s (0 failures/errors/skips), matching `DEVELOPMENT_VALIDATION.md`.
+- Full test suite re-run at review time: **107 passed**; after the F1–F10
+  corrections and round-3 remediation the authoritative count is **138 passed**
+  (129.70 s), matching `DEVELOPMENT_VALIDATION.md`.
 - All six `validate` commands re-run with the documented environment pins: exit 0, nothing computed.
 - R0 export, A1–A5 receipts, protocols, matrices, `RESOURCE_REPORT.md`, `REMOTE_EXECUTION_HANDOFF.md` inspected.
-- `git status`: no tracked-file modifications; branch `codex/followup-20260917` at `20df7a6`.
+- `git status`: no tracked-file modifications; branch `codex/followup-20260917` committed at `72fc538`.
 
 ## 5. Open items before production launch
 
-1. **Commit the deliverables** to `codex/followup-20260917` (currently untracked; the repo's own transfer history — commit `4c19e64`, "carry the branch tip, not an earlier commit" — requires a committed tip for transfer). Do not push/publish beyond the documented transfer.
-2. **Fix stale `STATUS.md`**: it says 88 tests; the delivered suite is 107 (execution-modes tests added later).
-3. **R1 scientific review**: candidate family and all-scenario adequacy rule — in particular whether `re_t`/`welch_fe_t` should be scored against their own declared targets given the R0 target-mismatch finding (29/65), and whether 8 pilot scenarios can carry selection for 65.
-4. **R2 scientific review**: candidate complexity limit and the 6-claim multiplicity family.
-5. **R4**: note the run-root path convention for the R1 freeze/acceptance receipt (protocol defaults point into the source tree; env overrides in the handoff are the operative paths; gate fails closed otherwise).
-6. **R5**: measure one production-calibration pilot cell before pricing the multi-million-sample allocation.
-7. **R6**: remains blocked on the CRESST raw-pulse root, ≥4 independent runs, and the TIDMAD release file list / unexposed-file resolution. No automatic chaining from R1/R4 to instrument analysis.
+> **Update (round 2/3, 17 September 2026).** After this brief was first written,
+> an independent implementation review (`output/implementation-review-20260917/`)
+> raised blocking findings F1–F10; those are fixed, tested and documented in
+> `CORRECTIONS_2026-09-17.md`, and a round-3 remediation closed the remaining
+> pre-transfer blockers. The authoritative suite is now **138 passed**
+> (129.70 s) and the branch tip is committed at `72fc538`. Items 1–3 and 5 below
+> are resolved; the genuine scientific/data reviews remain.
+
+Resolved since the original brief:
+- **Committed**: branch `codex/followup-20260917` now carries the round at
+  `72fc538` (only `remote-return/` left untracked, intentionally).
+- **Receipts reconciled** to `138 passed` in `STATUS.md`,
+  `DEVELOPMENT_VALIDATION.md`, `CORRECTIONS_2026-09-17.md`.
+- **R0**: canonical export regenerated with the R0-v2 reducer (v1 retained under
+  `evidence_export_v1_retained/`); handoff/README use the exploratory
+  displacement framing.
+- **Remote commands**: all point at the v2 protocols; R1/R4/R5 v1 protocols are
+  refused at validate/run (R5 via an explicit superseded-version check + test).
+- **R4 path convention**: documented; the gate fails closed to `unresolved`/`blocked`
+  if the receipt is absent.
+- **F1–F10**: fixed with regression tests (archived baseline carry-through,
+  withholding enforced, primary-eligibility split, effective-df, unified type-I
+  predicate, fail-closed gate at the run boundary, separated dev/eval streams,
+  nested R5 path, freeze/source binding, R0 provenance).
+
+Still open (scientific / data, unchanged):
+1. **R1 scientific review**: candidate family and all-scenario adequacy rule —
+   the primary-eligibility split now excludes target-mismatched candidates, but a
+   reviewer should confirm the rule and whether 8 pilot scenarios can carry
+   selection for 65.
+2. **R2 scientific review**: candidate complexity limit and the 6-claim
+   multiplicity family.
+3. **R5**: measure one production-calibration pilot cell before pricing the
+   multi-million-sample allocation.
+4. **R6**: remains blocked on the CRESST raw-pulse root, ≥4 independent runs, and
+   the TIDMAD release file list / unexposed-file resolution. No automatic chaining
+   from R1/R4 to instrument analysis.

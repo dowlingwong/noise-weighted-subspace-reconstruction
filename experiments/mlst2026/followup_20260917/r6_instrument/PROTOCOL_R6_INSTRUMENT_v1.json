@@ -1,0 +1,156 @@
+{
+ "schema": "mlst-local-package/1",
+ "package": "r6_instrument",
+ "version": "R6-v1",
+ "date": "2026-09-17",
+ "title": "R6: data-blocked instrument readiness for the CRESST raw-pulse robustness grid and the matched TIDMAD whole-window/narrowband design",
+ "question": "What inputs, provenance/split checks, exposure records and matched design are required before the archived CRESST 350-cell robustness grid could be executed and before a real TIDMAD matched whole-window/narrowband ordering/benefit comparison could be attempted, and what must each interface refuse when those inputs are absent?",
+ "supersedes": [
+  {
+   "package": "cresst_s",
+   "protocol_file": "experiments/mlst2026/successor_20260913/cresst_s/PROTOCOL_CRESST_S_v1.json",
+   "what_is_retained": "the archived 350-cell rank/shrinkage/time-cut robustness grid, its pairing, schema, primary setting, EM restart count and fit accounting, imported unchanged from robustness_design",
+   "what_changes": "the grid is re-enumerated under a data-blocked protocol with explicit raw-pulse provenance/split gates and fail-closed refusals; no archived cell is re-run or edited"
+  },
+  {
+   "package": "t22s",
+   "protocol_file": "experiments/mlst2026/successor_20260913/t22s/PROTOCOL_T22S_v2.json",
+   "what_is_retained": "the matched whole-window/narrowband interface (matched_stage), the exposure inventory, the synthetic HDF5 fixture, the feasibility rule and the archived estimator entry points",
+   "what_changes": "the matched design is declared against independent unexposed files with an explicit confirmatory gate, and the weighted-residual contrast that the archived stage never computed is added on the same units as the truth-referenced contrast to test P3"
+  }
+ ],
+ "provenance": {
+  "designed_after": "2026-09-17",
+  "observed_before_design": "the September CRESST two-run non-identifiability and the unexecuted 350-cell robustness grid, the T22-S coverage failures and the absence of a matched weighted-residual contrast, were all observed before this protocol was written; fresh confirmation can validate a new hypothesis, it cannot retroactively preregister the old one",
+  "no_raw_data_present": "NO CRESST RAW DATA IS PRESENT IN THIS ENVIRONMENT and no independent TIDMAD hold-out file exists here. No data was downloaded, sought or manufactured. The release-layout adapters are deliberately unwritten because there is no raw data to validate them against.",
+  "reuse": "the immutable successor_20260913 trees (cresst_s.robustness_design, t22s.matched_stage, t22_tidmad_narrowband, tidmad_band, tidmad_endpoint) are imported, never edited"
+ },
+ "status": "blocked on data",
+ "data_blocked": true,
+ "data_blocked_statement": "This package prepares interfaces, inventory checks and protocols only. It executes no production cell, opens no real instrument file, and claims no executed evidence. Every data-dependent entry point returns a DATA-BLOCKED refusal when its inputs are absent or fail provenance. A synthetic fixture may exercise wiring and is always labelled 'synthetic-fixture, not real data, not validated on real inputs'.",
+ "hypotheses": [
+  "H1 (grid preservation). The archived 350-cell rank/shrinkage/time-cut robustness grid (35 pilot + 315 confirmation) can be enumerated with its original pairing, schema and fit accounting, and every cell is unexecutable without raw CRESST pulse traces.",
+  "H2 (input refusal). Every CRESST cell refuses with a clear 'input not available' reason when the raw pulse root is absent, when an array is missing or malformed, when times are not chronological, when declared and actual counts disagree, when the channel set differs from the archived seven, or when provenance/split identity does not match the declaration.",
+  "H3 (matched design). A TIDMAD matched whole-window versus narrowband comparison can be declared on the same independent, unexposed files with one calibration, one label array, one evaluation unit set, one rank and one scorer, and the weighted-residual contrast can be scored on exactly the units the truth-referenced contrast uses.",
+  "H4 (the two named contrasts). On the same units, the weighted-residual ordering of the two loss geometries and the truth-referenced ordering can be compared to test P3, separately from usefulness against zero, calibration-mean and raw-bin baselines; the whitened-risk identity is applied only where its assumptions hold and a physical endpoint remains empirical.",
+  "H5 (confirmatory gating). Missing independent files, an incomplete or infeasible simulation calibration, and an inconclusive development dependence gate each block confirmatory matched execution; no never-read window of an already examined file may be represented as a new independent file."
+ ],
+ "independent_unit": "For CRESST the dependence unit is the run/channel cluster (seven clusters from only two runs; channels of a run are not independent, and four runs is the existing minimum for reporting a variance component, not a guarantee of useful coverage or power). For TIDMAD the independent unit is one release file the archive never opened; a never-read region of an already examined file is not an independent unit. This package establishes no independent unit because its data are absent.",
+ "estimands": {
+  "cresst_robustness_contrast": "PLANNED, NOT EXECUTED: fraction_c(setting) - fraction_c(reference setting) within a (channel, time cut) group, where fraction_c = 1 - mean(R_EMPCA,c)/mean(R_PCA,c) with both scored on the same held-out events under the same weights.",
+  "cresst_run_aware_interval": "NOT AN ESTIMAND OF THIS PACKAGE. A population or new-run interval needs independent runs and a separately calibrated run-aware procedure. Four runs is the existing minimum for reporting a variance component, not a guarantee of useful coverage or power; more channels cannot substitute for runs. Any run-aware interval is an OPTIONAL separately calibrated methodological study; it is declared here and not run.",
+  "tidmad_weighted_residual_contrast": "mean over the shared evaluation windows of [weighted residual(a) - weighted residual(b)], where the weighted residual is the held-out whitened observation residual |q - eval_read|^2 / N_k; a > 0 means b is preferred.",
+  "tidmad_truth_referenced_contrast": "mean over the SAME shared evaluation windows of [squared error of a against the injected reference - squared error of b], with the single label array t_eval = cal.g * eval_ref[:, k].",
+  "tidmad_p3_agreement": "sign(weighted_residual_contrast) == sign(truth_referenced_contrast) on the same units; P3 is the claim that the weight preferred by the residual is also preferred by the named clean-signal metric.",
+  "tidmad_usefulness": "the same truth-referenced contrast against the zero, calibration-mean and raw-bin baselines; a separate question from P3."
+ },
+ "controls": {
+  "cresst_grid_matches_archived": "the R6 grid constants and every enumerated row are compared field by field with robustness_design.grid_rows on the immutable archived protocol",
+  "cresst_no_data_refusal": "a missing root, missing index, malformed array, non-chronological times, count mismatch, channel-set drift or provenance/split mismatch raises InputNotAvailable",
+  "tidmad_b1_identity": "non-learned B = 1 control: band-PCA = band-EMPCA = bin read to a relative 1e-12",
+  "tidmad_covariance_adequacy": "the whitened calibration residual is reported as a necessary-not-sufficient adequacy diagnostic",
+  "tidmad_risk_identity_arithmetic": "for a fixed equal-trace map with unit noise covariance and vanishing signal/noise cross moment, R_clean = R_obs + 2 tr(B) - d holds on synthetic draws",
+  "tidmad_exposure_gate": "the never-opened release file set is unresolved (the archive holds no release file list), so confirmatory execution is blocked",
+  "tidmad_calibration_gate": "an absent or incomplete simulation calibration blocks confirmatory execution",
+  "tidmad_dependence_gate": "an inconclusive development dependence verdict blocks confirmatory execution"
+ },
+  "seed_namespaces": {
+  "development": [925000, 925999],
+  "pilot": [31000, 31299],
+  "confirmation": [32000, 32499]
+ },
+ "seed_allocation": {
+  "note": "reserved fresh namespaces, disjoint from every earlier package (development 900000-924999, pilot 7000-7199/9000-9099/21000-29299, confirmation 8000-8399/9500-9599/22000-30499). R6 executes no production cell, so no seed in these namespaces is consumed; they are declared only because the protocol schema requires three disjoint namespaces and so that a later study cannot silently reuse them."
+ },
+ "inference": {
+  "primary_report": "The deliverable is a readiness verdict: which inputs exist, which gates pass, and why every data-dependent path refuses. There is no hypothesis test on CRESST or TIDMAD in this package.",
+  "gating_rule": "confirmatory execution is permitted only if the independent unexposed file set is resolved, a complete confirmation calibration is within tolerance at the available file count, withholding and medium-effect power satisfy the declared rule, and the development dependence verdict is not inconclusive.",
+  "no_selection": "NONE. No design constant is selected on data: the CRESST grid is imported from the archive, the TIDMAD band is an input selected on development data in a separate step, and the feasibility rules are fixed here. There is no pilot freeze because no pilot cell is run.",
+  "risk_identity_scope": "the whitened-risk identity is applied only to fixed equal-trace affine maps with unit covariance and vanishing signal/noise cross moment; it is never applied to a learned map or to a physical endpoint."
+ },
+ "stopping_rule": "Fixed allocation: no production cell is executed. The package stops when validate, enumerate, inventory and the fail-closed preflight have run and the DATA-BLOCKED status is reported. There is no outcome-dependent extension and no early stop.",
+ "failure_interpretation": {
+  "data_blocked": "the expected and correct outcome in this environment; it is a refusal, not a failed scientific test and not evidence for or against any hypothesis",
+  "provenance_or_split_mismatch": "the source is refused rather than guessed at; a mismatch is never repaired by relabelling",
+  "calibration_infeasible": "if no interval is adequate at the available independent file count, the correct output is a feasibility failure, not an artificial significance claim",
+  "inconclusive_gate": "an inconclusive development dependence verdict withholds every confirmatory verdict",
+  "fixture_wiring": "a synthetic fixture exercises code paths only; a fixture number is never a scientific result and never a real-data validation"
+ },
+ "budget": {
+  "estimator_fits_cap": 64,
+  "planned_fits_production": 0,
+  "planned_cells_production": 0,
+  "fit_definition": "one estimator invocation on drawn data. The cap is reserved headroom only: R6 runs no matrix cell and charges no production fit. Synthetic-fixture wiring is development-only and is never citable.",
+  "solve_definition": "no production solve is performed.",
+  "retry_policy": "not applicable: no production cell is executed."
+ },
+ "cresst": {
+  "grid": {
+   "channels": ["33_36.0", "33_37.0", "35_26.0", "35_27.0", "35_56.0", "35_57.0", "35_58.0"],
+   "primary_setting": {"rank": 6, "covariance_model": "stationary_psd", "shrinkage": 0.1, "time_cut": "full"},
+   "empca_restarts": 2,
+   "empca_iterations": 25,
+   "fits_per_cell": 3,
+   "production_dimensions": {"n_events": 400, "n_samples": 128, "n_noise": 400},
+   "arms": {
+    "pilot": {"ranks": [2, 4, 6, 8, 12], "shrinkages": [0.1], "time_cuts": ["full"]},
+    "confirmation": {"ranks": [4, 6, 8], "shrinkages": [0.0, 0.05, 0.1, 0.2, 0.4], "time_cuts": ["full", "first_half", "second_half"]}
+   },
+   "pairing": "contrast group = (channel, time cut); every non-reference setting is paired against the group's reference (rank 6, shrinkage 0.1) on the same events of the same channel; time-cut contrasts are formed at the reference setting against the 'full' cut of the same channel",
+   "expected_cells": 350,
+   "expected_pilot_cells": 35,
+   "expected_confirmation_cells": 315,
+   "executable_here": false,
+   "requires": "<CRESST_DATA_ROOT>: raw CRESST pulse traces in the cresst-s-pulse-root/1 interface"
+  },
+  "input_contract": {
+   "root_format": "cresst-s-pulse-root/1",
+   "index_name": "index.json",
+   "required_arrays": ["pulses", "times", "noise"],
+   "require_provenance": true,
+   "expected_archive_id": "cresst-release-2026",
+   "expected_split": "evaluation",
+   "split_rule": "the declared evaluation split; times must be chronological (ascending) so the archived time-cut train/evaluate split is defined",
+   "fail_closed": "absent root, absent/malformed index, absent array, non-chronological times, declared/actual count mismatch, channel-set drift, absent provenance, or provenance/split value mismatch all refuse"
+  },
+  "run_aware_interval": {
+   "status": "OPTIONAL, DECLARED, NOT RUN",
+   "statement": "Four runs is the existing minimum for reporting a variance component; it is not a guarantee of useful coverage or power, and more channels cannot substitute for runs. Any run-aware interval is a separately calibrated methodological study and is not executed here."
+  }
+ },
+ "tidmad": {
+  "matched_design": {
+   "design_id": "r6-tidmad-whole-window-vs-narrowband",
+   "representations": ["whole-window", "band"],
+   "rank": 2,
+   "band_width": 9,
+   "same_units": ["cal_read", "cal_ref", "fit_read", "eval_read", "eval_ref"],
+   "band_selection": "the band is an input; selecting it on development data is a separate step and is not part of matched scoring",
+   "executable_here": false
+  },
+  "feasibility": {
+   "min_independent_files": 4,
+   "max_withholding_rate": 0.5,
+   "min_power_medium_effect": 0.5,
+   "rule": "a matched instrument comparison is feasible at n available independent files only if n >= min_independent_files, the confirmation calibration is complete and within tolerance at the largest calibrated n_files <= n, the maximum withholding rate over the non-drift scenarios is <= max_withholding_rate, the medium-effect power is >= min_power_medium_effect, and the development dependence verdict is not inconclusive; otherwise the output is a feasibility failure with its reasons, never an artificial four-file significance claim"
+  },
+  "exposure": {
+   "inventory_source": "successor_20260913.t22s.matched_stage.exposure_inventory over the archived run trees",
+   "release_file_list_derivable": false,
+   "blocking_input": "the release file list, so the never-opened independent file set cannot be named here"
+  },
+  "both_representations_unchanged": "window length, endpoint, labels, calibration, rank and estimators are shared; the representation is the only difference, so the comparison does not isolate the dimensional hypothesis by itself"
+ },
+ "explicitly_not_claimed": [
+  "NOT a real-data result. No CRESST raw data and no independent TIDMAD hold-out file exist in this environment, none was downloaded or sought, and no cell was executed.",
+  "NOT a validated adapter. An adapter from the CRESST release layout and from the TIDMAD release to the declared interfaces has not been written or validated on real inputs; a synthetic fixture exercises wiring only.",
+  "NOT executed robustness. The 350-cell CRESST grid is enumerated, seeded, paired and costed only; no robustness cell has been run, here or elsewhere.",
+  "NOT a new-run or population claim. Seven channels from two runs are correlated clusters; four runs is the minimum for a variance component, not a guarantee of useful coverage or power, and more channels cannot substitute for runs.",
+  "NOT a run-aware interval. Any run-aware interval is an optional separately calibrated study and is declared, not run.",
+  "NOT a TIDMAD instrument verdict. The matched comparison is unexecuted; the archived T22 verdicts remain withheld and unchanged, and no outcome here establishes adequacy on unexamined instrument data.",
+  "NOT P3 confirmed. The P3 ordering is exercised only on a synthetic fixture and is not a real-data test.",
+  "NOT a physical-parameter claim. The whitened-risk identity is applied only where its assumptions hold; a physical endpoint remains empirical.",
+  "NOT new independent units. No new window cut from a previously examined file may be represented as a new independent file.",
+  "NOT a change to any archived protocol, cell, freeze, ledger or reduction."
+ ]
+}

@@ -1,0 +1,29 @@
+{
+ "schema": "mlst-followup-execution-mode/1",
+ "package": "r5_t19_reach",
+ "decision": "serial",
+ "serial_wall_hours_estimate": 1.0,
+ "serial_wall_hours_low": 0.2,
+ "serial_wall_hours_high": 2.0,
+ "planning_anchor_hours": 4.5,
+ "planning_anchor_range_hours": [3.0, 6.0],
+ "fits_planning_anchor": true,
+ "borderline": false,
+ "basis": "4 cells x 20 independent seeds over the 10.2-million-sample grid at d=256; projected from the d=32 fixture by sample-count x dimension scaling, NOT measured at production m",
+ "measurement_required_before_allocation": true,
+ "measurement_note": "a production-calibration pilot cell must be measured before the multi-million-sample allocation is priced; the projection is a planning bound only",
+ "sharding": {
+  "adopted": false,
+  "conditions_met": {
+   "disjoint_cell_ownership": false,
+   "immutable_receipts": false,
+   "duplicate_missing_detection": false,
+   "every_charged_attempt_preserved": false,
+   "target_filesystem_locking_validated": false
+  },
+  "why_not": "optional package, well within the 3-6 h anchor even at the upper projection; serial is sufficient"
+ },
+ "lock_rewrite_required": false,
+ "fallback": "serial one-worker execution; bounded memory keeps the allocation safe",
+ "rationale": "R5 is optional. Bounded-memory accumulation means memory is O(chunk*d + d^2), so no storage-driven parallelism is needed."
+}

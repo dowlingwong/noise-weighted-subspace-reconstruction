@@ -1,0 +1,220 @@
+{
+  "schema": "mlst-local-package/1",
+  "package": "r3_t21_finite",
+  "version": "R3-v1",
+  "title": "R3: T21-S finite-size recovery before a loadings claim",
+  "supersedes": {
+    "package": "t21s",
+    "protocol_file": "experiments/mlst2026/successor_20260913/t21s/PROTOCOL_T21S_v2.json",
+    "protocol_sha256_expected": "recorded in the successor_20260913 reduction",
+    "what_is_retained": "the frozen orthogonal/correlated Gram, the frozen frame seed and construction, the dgj2018-eq1.6 isolated-spike-times-loadings predictor, the 0.05 primary and 0.10 near-edge absolute tolerances, the [0.7, 1.8] near-edge band with loading_min 0.05, the all-zero and geometry/predictor controls, the seed-mean inference unit and the all-of scoring rule",
+    "what_changes": "gamma = d/N, the population spike strengths and the loading geometry are held fixed while d and N are scaled together over the ladder d0 = 256, 2 d0, 4 d0.  The old grid is NOT re-run and no old row is repaired; a targeted configuration matrix is run at every rung so that the legacy classification and the new finite-size endpoint are visible side by side."
+  },
+  "provenance": {
+    "designed_after": "2026-09-17",
+    "observed_before_design": "the September T21-S outcome was observed before this protocol was written: 296/298 primary pairs passed the old 0.05 tolerance, the orthogonal arm failed 190/192 with both primary failures at orthogonal|hi|N128 (gamma = 2, N = 128, d = 256), and all near-edge failures sat at theta/sqrt(gamma) = 1.  Fresh confirmation can validate a new finite-size hypothesis; it cannot retroactively preregister the old one.",
+    "old_outcome_preserved_verbatim": "T21-S H1 (primary, |err| <= 0.05 in both arms and both gamma): 296/298 -> NOT supported overall.  The rule predictor_fails_on_orthogonal_only applied, so the loadings step is untested.  H1' near-edge: correlated 102/102, orthogonal 9/16.  H2 overlap confound: supported.  H0 all-zero: passed.  The five registered T21 predictions (archive, 11 Sep 2026) remain NOT met.",
+    "old_primary_failures": [
+      "orthogonal|hi|N128|grid|j1|r0.5 direction 1: predicted 0.000 vs observed 0.051 (|err| 0.051, tolerance 0.05)",
+      "orthogonal|hi|N128|grid|j3|r2 direction 3: predicted 0.439 vs observed 0.387 (|err| 0.053, tolerance 0.05)"
+    ],
+    "audit_diagnosis": "both primary failures and all near-edge failures sit where finite-size smoothing of the asymptotic overlap is largest (high gamma, N = 128, at or below the BBP threshold); the question is whether the legacy prediction converges to the observed recovery at fixed gamma as d and N grow.",
+    "targeted_not_full_grid": "This package is a TARGETED finite-size study.  It runs six grid configurations per geometry x gamma arm x rung, not the old 104-configuration grid.  Its conclusions are targeted at the finite-size behaviour of the legacy predictor on those configurations and must not be read as validation of the full old grid.",
+    "no_prior_r3_protocol": "this is the first R3-style finite-size package; it reuses the archived t21s geometry and predictor modules through the successor_20260913 tree and never edits them",
+    "governing_documents": [
+      "arXiv-v1-polished-extended-preprint/output/agent-instructions-20260917/02_IMPLEMENT_NEXT_EXPERIMENTS.md (R3)",
+      "remote-return/mlst-successor-closeout-20260917/reports/mlst-successor-closeout-20260917/audit/SCIENTIFIC_AUDIT.md section 4",
+      "remote-return/mlst-successor-closeout-20260917/reports/mlst-successor-closeout-20260917/audit/PROTOCOL_HYPOTHESES_VERBATIM.md (t21s)"
+    ]
+  },
+  "question": "Holding gamma = d/N, the population spike strengths theta and the planted loading geometry fixed, does the archived asymptotic isolated-spike-times-loadings prediction approach the observed rank-k PCA recovery as d and N are scaled together over a prespecified ladder, so that the orthogonal isolated-spike prerequisite eventually passes and the correlated arm's added-loadings step can be tested?",
+  "hypotheses": {
+    "H1_legacy_largest_size": "at the largest rung d = 4 d0 the legacy predictor, scored with its original 0.05 primary / 0.10 near-edge tolerance and [0.7, 1.8] band, agrees with the seed-mean observed recovery for every legacy-primary (configuration, direction) in the targeted matrix.  This is the finite-size endpoint's agreement half.",
+    "H2_finite_size_decline": "for both old primary-failure configuration types (orthogonal|hi, varied direction at ratio 0.5 and ratio 2.0), the seed-mean absolute error at d = 4 d0 is at or below the original 0.05 tolerance and is strictly smaller than at d0 = 256.  This is the endpoint's decline half.",
+    "H3_prerequisite_gate": "the orthogonal isolated-spike prerequisite is the largest-size legacy agreement restricted to the orthogonal arm.  Only if it passes may a correlated-arm largest-size pass support the added-loadings step; otherwise that step is marked untested (the archived predictor_fails_on_orthogonal_only rule carried forward).",
+    "H4_candidate": "a separate, labeled alternative near-edge band, selected only on fresh pilot seeds under a predeclared rule and frozen before any confirmation cell is drawn, either meets the legacy tolerances on fresh confirmation or is reported as 'none'.  The candidate never replaces or edits the legacy classification, which is always reported.",
+    "H5_old_outcome_preserved": "descriptive: the old 296/298 primary outcome and the five unmet registered T21 predictions are restated and are not repaired by anything in this package."
+  },
+  "independent_unit": "one seed = one independent training draw (N x J latent Gaussians and N x d noise Gaussians).  Uncertainty for every reported mean is computed across seeds within a configuration, never across the coordinates or directions of one draw and never from bootstrap replicates treated as independent samples.  Seeds are shared across configurations with the same (N, d) so contrasts are paired; no across-configuration independence is claimed.",
+  "estimands": {
+    "recovery": "||P u_j||^2 / ||u_j||^2 for the rank-k PCA projector P fitted on centred training data in whitened coordinates (noise covariance I); dimensionless in [0, 1]",
+    "unique_recovery": "||P u_j^perp||^2 / ||u_j^perp||^2 with u_j^perp = u_j projected off span{u_i : i != j}; null with unique_defined=false when ||u_j^perp||^2/||u_j||^2 < 1e-3",
+    "predicted_recovery": "sum_i loading^2(j,i) c^2(theta_i, gamma) with c^2 = (1 - gamma/theta^2)/(1 + gamma/theta) for theta > sqrt(gamma) else 0; the archived formula, unfitted",
+    "finite_size_endpoint": "the pair (decline of the seed-mean absolute error on the two old failure configurations from d0 to 4 d0; legacy agreement of every legacy-primary pair at 4 d0), each with its across-seed uncertainty",
+    "candidate_band": "a labeled alternative near-edge band selected on pilot seeds; scored on fresh confirmation while the legacy classification is reported beside it",
+    "chance_level": "k/d, the expectation of recovery for a Haar-random rank-k projector"
+  },
+  "controls": [
+    "all_zero: K = 0 (pure noise) per geometry x gamma arm x rung; per-seed direction-mean recovery must be at chance k/d within z = 5 standard errors of the exact Beta(k/2,(d-k)/2) law (checked; reduce refuses, exit 4, if violated)",
+    "all_strong: every direction at theta = 3 sqrt(gamma) per geometry x gamma arm x rung (reference configuration; descriptive)",
+    "orthogonal geometry: unique-component recovery must equal ordinary recovery identically (checked per cell to 1e-9)",
+    "correlated geometry: ordinary and unique-component recovery are different observables (difference reported, not scored)",
+    "ladder preservation (algebraic): at every rung and for both Grams the realised Gram equals the declared Gram, unit norms and the Schur identity hold, and the exact-K population spectrum is identical across rungs (the spike quantities are functions of the Gram and theta only, so scaling d must not move them)",
+    "predictor sanity (algebraic): c^2 = 0 at and below sqrt(gamma), monotone above, tends to 1, never outside [0, 1]",
+    "legacy classification rule (algebraic): the implemented legacy near-edge classifier is the archived one (same band, same loading_min, same rule) for the targeted configurations"
+  ],
+  "seed_namespaces": {
+    "development": [922000, 922999],
+    "pilot": [25000, 25299],
+    "confirmation": [26000, 26499]
+  },
+  "design": {
+    "k": 4,
+    "n_directions": 4,
+    "base_d": 256,
+    "base_d_note": "d0 = 256 is the old grid's ambient dimension; with the hi arm N = 128 this reproduces exactly the ambient size of the old primary failures orthogonal|hi|N128",
+    "size_ladder": [1, 2, 4],
+    "gamma_arms": {"hi": 2.0, "lo": 0.25},
+    "sizes": [
+      {"mult": 1, "d": 256, "n_train": {"hi": 128, "lo": 1024}, "note": "base rung d0; the hi cell is the old failure ambient size"},
+      {"mult": 2, "d": 512, "n_train": {"hi": 256, "lo": 2048}, "note": "gamma = d/N unchanged"},
+      {"mult": 4, "d": 1024, "n_train": {"hi": 512, "lo": 4096}, "note": "largest rung; the finite-size endpoint is evaluated here"}
+    ],
+    "learner": "rank-k closed-form PCA (SVD of the centred N x d training matrix, top-k right singular vectors); one fit per cell",
+    "geometry": {
+      "frame_seed": 20260913,
+      "construction": "Q = QR(Gaussian d x J, seed frame_seed, diag(R) > 0); U = Q L^T with G = L L^T (Cholesky); K = U diag(theta) U^T; noise N(0, I)",
+      "arms": ["orthogonal", "correlated"],
+      "gram": {
+        "orthogonal": [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]],
+        "correlated": [[1.0, 0.6, -0.4, 0.0], [0.6, 1.0, 0.0, 0.0], [-0.4, 0.0, 1.0, 0.3], [0.0, 0.0, 0.3, 1.0]]
+      },
+      "independence_from_archive": "no pulse family, no channel/temporal bases, no Jacobian columns, no AR(1)/Brownian covariance; the archived Gram and spectrum are not reproduced",
+      "preservation_requirement": "U^T U == G and the exact-K population spectrum must be identical across the rungs of the ladder for every (geometry, gamma arm, configuration); the Cholesky construction makes U^T U exactly G for every d"
+    },
+    "grid": {
+      "strong_ratio": 3.0,
+      "rule": "one direction varied at theta_j = ratio * sqrt(gamma), the other three held at theta = strong_ratio * sqrt(gamma); strong_ratio = 3 is not a grid point",
+      "configurations": [
+        {"config_id": "below_edge", "varied_direction": 0, "ratio": 0.5, "role": "below-edge: sub-threshold spike, legacy-primary (finite-d excess expected to shrink with d)"},
+        {"config_id": "at_edge", "varied_direction": 0, "ratio": 1.0, "role": "at-edge: theta/sqrt(gamma) = 1 exactly, legacy-near-edge"},
+        {"config_id": "above_edge", "varied_direction": 0, "ratio": 2.0, "role": "above-edge: super-threshold spike, legacy-primary"},
+        {"config_id": "old_failure_subthreshold", "varied_direction": 1, "ratio": 0.5, "role": "the first old primary failure type (orthogonal|hi|N128 grid j1 r0.5, direction 1)"},
+        {"config_id": "old_failure_above", "varied_direction": 3, "ratio": 2.0, "role": "the second old primary failure type (orthogonal|hi|N128 grid j3 r2, direction 3)"},
+        {"config_id": "near_edge_upper", "varied_direction": 2, "ratio": 1.5, "role": "upper transition, legacy-near-edge"}
+      ],
+      "configurations_per_geometry_x_arm_x_rung": "6 grid + all_zero + all_strong = 8",
+      "configurations_total": 96
+    },
+    "seeds": {
+      "pilot": [25000, 25011],
+      "confirmation": [26000, 26023],
+      "note": "inclusive ranges; 12 pilot seeds and 24 confirmation seeds per configuration; the namespaces above are reservations and these are the allocations"
+    },
+    "predictor": {
+      "formula_id": "dgj2018-eq1.6-isolated-spike-x-loadings/1",
+      "source": "successor report 2026-09-12 (T21-S section), retained unchanged; no coefficient is fitted on any data",
+      "tolerance": {
+        "primary_abs": 0.05,
+        "near_edge_abs": 0.10,
+        "near_edge_band_theta_over_sqrt_gamma": [0.7, 1.8],
+        "near_edge_loading_min": 0.05,
+        "classification": "data-free, per (configuration, direction): 'near_edge' when some population spike with loading^2(j,i) >= 0.05 has 0.7 <= theta_i/sqrt(gamma) <= 1.8, else 'primary'"
+      },
+      "scoring_rule": "per (configuration, direction): pass iff |seed-mean observed - frozen predicted| <= tolerance for its class; the legacy arm-level verdict is an all-of over that arm's legacy-primary pairs; near-edge and unique-component agreement are reported with the same tolerances as secondary"
+    },
+    "candidate_family": [
+      {"id": "lower_0.5", "band": [0.5, 1.8]},
+      {"id": "lower_0.4", "band": [0.4, 1.8]},
+      {"id": "upper_2.2", "band": [0.7, 2.2]},
+      {"id": "upper_2.5", "band": [0.7, 2.5]},
+      {"id": "both_0.5_2.2", "band": [0.5, 2.2]},
+      {"id": "both_0.4_2.5", "band": [0.4, 2.5]}
+    ],
+    "candidate_selection_rule": {
+      "purpose": "the alternative band is a separate, labeled candidate.  It is selected only on fresh pilot seeds and frozen before any confirmation cell is drawn; it never edits the legacy classification",
+      "adequate": "a candidate band is adequate if, with that band reclassifying the pilot pairs, every candidate-primary pair has |seed-mean observed - predicted| <= 0.05 on the pilot seeds and there is at least one candidate-primary pair",
+      "select": "among adequate candidates choose the smallest band width (hi - lo); ties broken by the declared family order",
+      "if_none": "freeze 'none'; the candidate is reported as not adequate and no candidate claim is made.  Confirmation of the fixed-design finite-size endpoint still proceeds because that endpoint involves no selection",
+      "no_retuning": "confirmation cells are scored against the frozen candidate only; they never reselect"
+    },
+    "finite_size_endpoint": {
+      "decline_pair_config_ids": ["old_failure_subthreshold", "old_failure_above"],
+      "largest_size_mult": 4,
+      "primary_tolerance": 0.05,
+      "decline_criterion": "for each old failure configuration type, |seed-mean recovery - predicted| at the largest rung <= 0.05 AND strictly smaller than at the base rung d0.  Both pair types must satisfy it",
+      "agreement_criterion": "at the largest rung every legacy-primary (configuration, direction) in the targeted matrix passes the original 0.05 tolerance",
+      "endpoint_met": "decline holds for both pair types AND legacy agreement holds in the orthogonal arm (the prerequisite); the correlated arm's agreement is reported separately and gates the loadings step",
+      "inference": "seed means with independent seeds; sd, se and a fixed-seed percentile bootstrap CI95 over seeds; no direction average and no bootstrap replicate is treated as an independent sample",
+      "seed_choice": "24 confirmation seeds give an SE of the configuration mean small relative to the 0.05 tolerance, so a threshold-sized deviation can be distinguished from sampling noise"
+    },
+    "pilot_regime_rule": {
+      "purpose": "descriptive only in R3: record whether the targeted rungs and configurations were drawn on the pilot seeds; the endpoint is fixed-design and the freeze gates the candidate, not the endpoint",
+      "below_max_excess_over_chance": 0.25,
+      "above_min_recovery": 0.5,
+      "evaluated_per": "geometry x gamma arm, on the base rung pilot grid cells (below ratio 0.5, above ratio 2.0)",
+      "if_not_populated": "recorded in FROZEN_EDGE.json and reported; confirmation of the endpoint is not refused because the endpoint performs no selection, but a change of grid would be a new protocol version"
+    },
+    "controls": {
+      "all_zero": {"z_tolerance": 5.0, "law": "recovery of a fixed unit direction under a Haar-random rank-k projector is Beta(k/2,(d-k)/2): mean k/d, var 2k(d-k)/(d^2(d+2)); tolerance = z * sd / sqrt(n_seeds) on the per-seed direction-mean, the direction average not credited"}
+    }
+  },
+  "matrix": {
+    "note": "Catalogue of record for the targeted finite-size matrix.  The runner expands it deterministically (scaling.ladder / scaling.grid_configs); nothing is computed at validate/enumerate.  It is a targeted study, not the old 104-configuration grid.",
+    "scaling_ladder": [
+      {"mult": 1, "d": 256, "n_train": {"hi": 128, "lo": 1024}},
+      {"mult": 2, "d": 512, "n_train": {"hi": 256, "lo": 2048}},
+      {"mult": 4, "d": 1024, "n_train": {"hi": 512, "lo": 4096}}
+    ],
+    "geometries": ["orthogonal", "correlated"],
+    "gamma_arms": {"hi": 2.0, "lo": 0.25},
+    "targeted_configurations": [
+      {"config_id": "below_edge", "varied_direction": 0, "ratio": 0.5, "edge_role": "below"},
+      {"config_id": "at_edge", "varied_direction": 0, "ratio": 1.0, "edge_role": "at"},
+      {"config_id": "above_edge", "varied_direction": 0, "ratio": 2.0, "edge_role": "above"},
+      {"config_id": "old_failure_subthreshold", "varied_direction": 1, "ratio": 0.5, "edge_role": "old_failure"},
+      {"config_id": "old_failure_above", "varied_direction": 3, "ratio": 2.0, "edge_role": "old_failure"},
+      {"config_id": "near_edge_upper", "varied_direction": 2, "ratio": 1.5, "edge_role": "transition_upper"}
+    ],
+    "configurations_per_geometry_x_arm_x_rung": 8,
+    "configurations_per_phase": 96,
+    "phase_allocation": {"pilot_seeds": 12, "confirmation_seeds": 24, "pilot_fits": 1152, "confirmation_fits": 2304},
+    "algebraic_cells": 4,
+    "planned_fits": 3456,
+    "planned_solves": 3458
+  },
+  "fixture": {
+    "sizes": [
+      {"mult": 1, "d": 16, "n_train": {"hi": 8, "lo": 64}},
+      {"mult": 2, "d": 32, "n_train": {"hi": 16, "lo": 128}}
+    ],
+    "development_seeds": {"pilot_phase": [922000, 922003], "confirmation_phase": [922100, 922103]},
+    "note": "development namespace only; the same targeted catalogue at two small rungs, 4 seeds per phase; outputs are marked development_only, are never citable, and the chance level 4/d exceeds the primary tolerance at these d"
+  },
+  "inference": {
+    "rule": "deterministic tolerance rule on seed means (design.predictor.scoring_rule, design.finite_size_endpoint); uncertainty across independent seeds within a configuration (sd, se, fixed-seed percentile bootstrap CI of the mean, 1000 replicates, seed derived from the configuration key); no hypothesis tests, no p-values",
+    "multiplicity": "the legacy arm verdict is an all-of over its legacy-primary pairs; the finite-size endpoint is an all-of over two decline pairs and one agreement set; adding pairs cannot manufacture a pass",
+    "replicates": "bootstrap replicates are reported as 'replicates', never as fits or as independent samples",
+    "gated_interpretation": "the orthogonal arm's largest-size legacy agreement is the prerequisite; unless it passes, the correlated-arm result cannot support the added-loadings step and that step is marked untested"
+  },
+  "stopping_rule": "fixed allocation: 96 targeted configurations x 12 pilot seeds (1152 fits) + 96 configurations x 24 confirmation seeds (2304 fits) + 4 algebraic cells (0 fits, 3 solves); every enumerated cell is run and reduced; no early stop, no sequential decision, no outcome-dependent extension, no re-selection on confirmation",
+  "failure_interpretation": {
+    "endpoint_not_met": "the legacy asymptotic predictor does not approach the observed recovery over this ladder at fixed gamma; the finite-size explanation is not supported at these rungs and the loadings step stays untested",
+    "orthogonal_prerequisite_fails": "if the orthogonal arm fails its largest-size agreement the isolated-spike overlap itself does not describe this learner at the largest rung either; the correlated-arm result cannot support the added-loadings step and that step is marked untested",
+    "correlated_fails_after_orthogonal_passes": "the isolated-spike prerequisite holds at the largest rung but the loadings step does not; the post-hoc spike/loadings explanation of the archived T21 outcome is not supported on this targeted matrix",
+    "legacy_passes_both_at_largest_size": "the finite-size endpoint is met and the explanation is supported on synthetic Gaussian spiked data with identity noise only; nothing follows for the pulse family, real detectors or any universal edge",
+    "candidate_none": "no alternative band was adequate on pilot seeds; the candidate is reported as 'none' and the legacy classification is still reported unchanged",
+    "candidate_wider_only": "a selected wider band is a labeled alternative that moves threshold-sized deviations into the near-edge class; it is reported beside, never in place of, the legacy classification and cannot repair the legacy verdict",
+    "all_zero_control_fails": "pipeline error: the run is refused at reduce (exit 4); nothing scientific is concluded",
+    "near_edge_disagreement": "disagreement confined to near-edge pairs is reported as the expected finite-d limitation of an asymptotic formula, not as support and not as refutation"
+  },
+  "budget": {
+    "estimator_fits_cap": 4600,
+    "planned_fits": 3456,
+    "planned_solves": 3458,
+    "fit_definition": "one fit = one rank-k PCA on one drawn training matrix; one solve = the eigen-decomposition of the exact K per data cell plus one per ladder-preservation algebraic cell (counted, costed, not capped)",
+    "fixture_to_production_scale": {"default": 1024.0},
+    "fixture_to_production_scale_note": "ratio of the dominant flop count N d min(N,d): production (128,256) over fixture (8,16) is 8^3 = 512 and (1024,256) over (64,16) is 16^3 = 4096; 1024 is a nominal single factor for the flat cross-check only and is superseded by the measured BENCHMARK.json",
+    "retry_policy": "one retry per failed cell, charged; a second failure of the same cell stops the run for inspection; headroom under the cap = 1144 fits (33.1% of the plan); failures, retries and interrupts are never refunded"
+  },
+  "explicitly_not_claimed": [
+    "any repair of the five unmet registered T21 predictions (they remain NOT met; the old 296/298 outcome is restated, not edited)",
+    "validation of the full old 104-configuration grid: this is a targeted six-configuration-per-arm finite-size study",
+    "that the legacy asymptotic predictor is correct at the threshold or below it: the finite-size endpoint asks only whether its error shrinks with d at fixed gamma",
+    "any propagation from a selected wider near-edge band back into the legacy classification or the old verdict",
+    "any statement about the archived pulse family, its Jacobian directions or its Gram/spectrum",
+    "a universal detection edge in theta/sqrt(gamma) or any abstention threshold",
+    "recoverability or non-recoverability of physical latents in any real detector",
+    "any conclusion from fixture (development-only) outputs"
+  ]
+}

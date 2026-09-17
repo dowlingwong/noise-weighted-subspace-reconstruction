@@ -1,0 +1,241 @@
+{
+  "schema": "mlst-local-package/1",
+  "package": "r2_t20_theta012",
+  "version": "R2-v1",
+  "title": "R2: T20-S v3 theta=0.12 scaling and crossover on an extended N grid",
+  "status": "configured (local build; not executed evidence)",
+
+  "supersedes": {
+    "package": "t20s",
+    "protocol_file": "experiments/mlst2026/successor_20260913/t20s/PROTOCOL_T20S_v2.json",
+    "protocol_sha256": "f3fda7cd4cc02a2ecf5d95490aeac34b34399f9cf871414b80153e7a8edf326a",
+    "what_is_retained": "the analytic fixed-spectrum geometry K(theta) = V_sep expm(theta A) diag(mu) expm(theta A)^T V_sep^T of successor_20260913.t20s.generator, the exact population risk R_K(P) = tr K - tr(P K), the partial-trace lower bound and best-found upper bound on the approximation cost a, the paired PCA/ALS learners and training-loss restart selection, the theta=0 product control, the max-|t| simultaneous band over the N grid with the Bonferroni-t fallback, the sign profile and adjacent-bracket reporting, and the four frozen scaling candidates {none, c/N, c/N^alpha, c/N + d/N^2}",
+    "what_changes": "a NEW protocol is opened after the September results were observed; endpoint (a) re-evaluates the OLD t20s frozen prediction on fresh seeds with the offset convention fixed, endpoint (b) selects a NEW model on fresh pilot seeds only, the N grid is extended through 6400 and 12800, and the all-of failure rule is wrapped in a declared multiplicity rule over the claimed geometries/models",
+    "what_is_not_edited": "successor_20260913/t20s and its PROTOCOL_T20S_v2.json, BENCHMARK.json, FROZEN_SELECTION.json and reductions are immutable; R2 imports generator.py and analysis.py unchanged and never rewrites a t20s artifact"
+  },
+
+  "provenance": {
+    "designed_after": "2026-09-17",
+    "observed_before_design": "the September T20-S confirmation result (theta=0.12 d - a_ref outside the simultaneous band at N=1000; 5/6, 3.370 vs critical 2.984; the other three geometries 6/6) and the narrow pilot selection margin (c/N + d/N^2 CV 0.2895 against c/N^alpha 0.2907 and none 0.2975) were observed before this protocol was written. Fresh confirmation can test whether the discrepancy replicates and whether a separately selected model predicts a fresh extended-N grid; it cannot retroactively preregister the old hypothesis, and no old confirmation record is reused as new confirmation",
+    "diagnosis_reused": "remote-return/mlst-successor-closeout-20260917/reports/mlst-successor-closeout-20260917/diagnostics/T20_theta012_diagnosis.txt (existing outputs only; the corrected version drops a first draft that subtracted a_ref although the frozen prediction already includes it)",
+    "old_frozen_prediction_source": "remote-return/mlst-successor-closeout-20260917/extracted/ceph/dwong/mlst-successor-runs-20260913/t20s/FROZEN_SELECTION.json (t20s, frozen 2026-09-13T14:41:13Z)",
+    "governing_documents": [
+      "arXiv-v1-polished-extended-preprint/output/agent-instructions-20260917/02_IMPLEMENT_NEXT_EXPERIMENTS.md (R2 paragraph)",
+      "remote-return/mlst-successor-closeout-20260917/reports/mlst-successor-closeout-20260917/audit/SCIENTIFIC_AUDIT.md section 2",
+      "remote-return/mlst-successor-closeout-20260917/reports/mlst-successor-closeout-20260917/audit/PROTOCOL_HYPOTHESES_VERBATIM.md t20s section"
+    ],
+    "historical_verdicts_that_stand": [
+      "registered c/N law for x_U refuted on the archived pulse-family proxy (T20 stage B)",
+      "N* ~ 960 is a log-linear interpolation of stage-B means, exploratory only",
+      "sign reversal of d between N = 800 and N = 1600 on the archived pulse-family proxy (T20 stage C)",
+      "the analytic generator certifies nothing about the archived Monte-Carlo pulse-family proxy"
+    ]
+  },
+
+  "question": "At the previously failing geometry theta = 0.12 of the analytic fixed-spectrum family, (a) does the OLD t20s frozen scaling prediction of the paired class contrast d(N), re-evaluated on fresh seeds with the offset convention made explicit, replicate its September agreement or disagreement over the old N grid; and (b) can a NEW scaling model, selected only on fresh pilot seeds and frozen before independent confirmation, predict x_U(N) and d(N) - a_ref over an extended N grid through 6400 and 12800, where the crossing of d(N) through zero is bracketed if and only if adjacent grid points carry decided opposite signs?",
+
+  "hypotheses": {
+    "H1_theta0_control": "at theta = 0 the top-k eigenspace is a product subspace by construction: the partial-trace lower bound is exactly 0 and the best-found population a is <= 1e-8 (exact, checked by the algebraic cells)",
+    "H2_invariants": "for every theta in the grid the eigenvalues of K(theta) equal mu to 1e-10 and trace, rank, SNR and Delta_k are unchanged, while k - cap(theta) and the interval [Delta_k (k - cap), a_best] move with theta (exact)",
+    "H3_endpoint_a_old_prediction": "the OLD t20s frozen d-model (c/N + d/N^2 on d - a_ref), re-evaluated on fresh seeds at the old grid with the CURRENT algebraic a_ref added exactly once, is inside the simultaneous band at every old-grid N at theta = 0.12; the same evaluation at the reference geometry theta = 0.25 is reported. Extrapolations to N = 6400 and 12800 are reported and labelled as extrapolations but are not part of the old-grid confirmatory claim",
+    "H4_endpoint_b_new_model": "a model selected only on fresh pilot seeds under the declared out-of-sample rule and frozen before confirmation predicts x_U(N) and d(N) - a_ref(theta) on the full extended grid; 'none' is a valid and reportable frozen outcome; every non-'none' candidate has at most two parameters and no free intercept",
+    "H5_crossover_descriptive": "the sign profile of d(N) over the extended grid within each geometry; a crossing is bracketed only when two ADJACENT grid N carry decided opposite signs. If no adjacent pair has decided opposite signs the package reports the grid bound and claims no crossing. A crossing is never interpolated and the grid is never extended to chase a favourable sign",
+    "H6_multiplicity": "the claimed geometries/models form a predeclared family (theta = 0.12 primary, theta = 0.25 reference, two targets per endpoint); a claim is supported only if the all-of rule holds for that claim AND the per-claim simultaneous band uses alpha divided by the number of predeclared claims. theta = 0 is a control and contributes no claim",
+    "H7_offset_convention": "the offset a_ref is applied EXACTLY ONCE. The t20s stored prediction_at_grid already contains the old geometry's a_ref (successor_20260913/t20s/runner.py:371 pred = pred + a_best_found); R2 rebuilds each prediction from the original (c, d) and the current algebraic a_ref and never reuses a stored offset-bearing prediction as a base. A double application is detectable and is rejected at reduce (exit 4)"
+  },
+
+  "independent_unit": "one replicate seed. A seed indexes one paired dataset across all (theta, N) cells of its phase; within a seed the datasets of different (theta, N) cells are independent draws from disjoint substreams, and within a cell BOTH learners see the same z_i (paired). Inference resamples seeds jointly across the N grid within each geometry. Pilot and confirmation seeds are disjoint and are never both used to select a model.",
+
+  "estimands": {
+    "R_K(P)": "tr K - tr(P K), the exact population risk of a rank-k orthogonal projector under K(theta) (units: whitened variance)",
+    "R_U_star": "R_K(P*_U), P*_U = top-k eigenprojector of K (closed form)",
+    "a_lower_bound": "Delta_k (k - cap(theta)), cap = min{k, sum_{i<=k_c} lambda_i(M_c), sum_{i<=k_t} lambda_i(M_t)} with M_c, M_t the partial traces of P*_U (valid for EVERY product projector; MLST Prop 3.6)",
+    "a_best_found": "R_K(P_F^best) - R_U_star with P_F^best the best of (R_pop + 1) population-ALS restarts on K; an UPPER bound on a. a is reported as the interval [a_lower_bound, a_best_found]; restart agreement is not a certificate",
+    "x_U": "R_K(P_U_hat) - R_U_star, excess risk of top-k PCA of the centred sample second moment; exact and >= 0",
+    "x_F_ref": "R_K(P_F_hat) - R_K(P_F^best), reference-relative excess risk of the training-loss-selected separable ALS fit; may be negative because the reference is best-found, not certified",
+    "d": "R_K(P_F_hat) - R_K(P_U_hat), the paired class contrast. Identity d = a_best_found + x_F_ref - x_U exactly (residual recorded)",
+    "d_minus_a_ref": "d(N) - a_best_found(theta); the target the old frozen scaling model was fitted to. It is the basis of the offset convention: a scaling model of d_minus_a_ref is applied by adding a_ref exactly once",
+    "restart_spread_risk": "max - min over the R restarts of R_K of the restart's product projector; when >= |d| in a cell the cell is flagged unresolved between sampling and optimization error",
+    "old_frozen_prediction": "the t20s pilot-selected model c/N + d/N^2 with per-theta (c, d) from FROZEN_SELECTION.json, retained unmodified; R2 evaluates c/N + d/N^2 + a_ref_current(theta)"
+  },
+
+  "controls": {
+    "theta0_a_zero": "theta = 0 algebraic cells: a_lower_bound must be exactly 0 and a_best_found <= 1e-8",
+    "spectrum_fixed": "every algebraic cell records max |eig(K(theta)) - mu| and requires <= 1e-10",
+    "nonseparability_moves": "k - cap(theta) pairwise distinct across the theta grid (tolerance 1e-6); a theta that fails any invariant is recorded as excluded and dropped from inference, never re-tuned on outcomes",
+    "bound_order": "a_lower_bound <= a_best_found in every theta (a violation is a code defect, rejected at reduce with exit 4)",
+    "identity": "|d - (a_best_found + x_F_ref - x_U)| <= 1e-9 in every fit cell",
+    "x_U_nonnegative": "x_U >= -1e-9 in every fit cell",
+    "training_loss_selection": "the selected restart equals argmin of the recorded restart training losses in every fit cell",
+    "reference_consistency": "the reference quantities recorded in a fit cell equal those of the algebraic cell of the same theta to 1e-9",
+    "offset_applied_once": "a control cell recomputes the old prediction from its original (c, d) and the old offset, verifies stored = base + a_ref exactly once, and verifies that base + 2 a_ref (the double-application trap) is numerically distinct whenever a_ref is nonzero",
+    "old_selection_margins": "a control cell recomputes the archived pilot CV margins from the stored t20s cv_error values and verifies the reported distinction (margin over none 2.7% versus the smaller margin over c/N^alpha)",
+    "grid_and_offset_catalogue": "a control cell verifies the declared old grid, extended grid and required geometries against the protocol record"
+  },
+
+  "seed_namespaces": {
+    "development": [921000, 921999],
+    "pilot": [23000, 23299],
+    "confirmation": [24000, 24499]
+  },
+
+  "inference": {
+    "rule": "per geometry and per target, a max-|t| (studentized) bootstrap over seeds jointly across the N grid, 2000 replicates, fixed seed; simultaneous 95% band m_N +/- q SE_N; a Bonferroni-t band (alpha / (2 n_N), n - 1 df) is computed alongside and becomes the reported band only when fewer than half of the bootstrap replicates are valid (documented fallback)",
+    "bootstrap_seed": 20260913,
+    "replicates": 2000,
+    "alpha": 0.05,
+    "min_seeds_for_max_t_bootstrap": 8,
+    "min_seeds_note": "below 8 seeds per geometry the studentized bootstrap is degenerate; the Bonferroni-t band is then the reported band; production has 16 pilot and 24 confirmation seeds, the fixture always uses the fallback",
+    "profile": "per-N sign decided by the simultaneous band (+, -, 0 undetermined); adjacent brackets are pairs of adjacent grid N with decided opposite signs; nonmonotone profiles are reported as such; an interpolated crossing is never a measurement",
+    "old_prediction_evaluation": "endpoint (a) uses the ORIGINAL t20s (c, d) per geometry on the old grid [400, 800, 1000, 1250, 1600, 3200] and reports predicted d = c/N + d/N^2 + a_ref_current(theta) with a_ref_current from this run's algebraic cell, applied once. Predictions at N = 6400 and 12800 are computed from the same model and labelled extrapolated_beyond_old_grid; they are reported but excluded from the old-grid claim",
+    "new_model_selection": {
+      "candidates": ["none", "c_over_N", "c_over_N_alpha", "c_over_N_d_over_N2"],
+      "complexity_limits": "at most two fitted parameters, no free intercept (the offset is a_ref_current, a fixed algebraic quantity), exponent alpha constrained to [0, 4]; the candidate set is the archived four and nothing larger",
+      "algorithm": "fresh pilot seeds sorted; first half = fitting seeds, second half = holdout (deterministic); each candidate is fitted by least squares to the per-N means of the fitting half and scored by mean squared prediction error on the per-seed values of the holdout half; the two folds (A->B, B->A) are summed over all geometries; the parametric candidate with the smallest error is selected only if it beats 'none' by at least min_relative_improvement (a complexity guard fixed before any R2 data was drawn, not derived from the archived 2.7% margin); otherwise 'none' is frozen",
+      "min_relative_improvement": 0.01,
+      "targets": {"x_U": "x_U(N)", "d_minus_a_ref": "d(N) - a_best_found(theta)"},
+      "freeze": "the pilot reducer writes FROZEN_MODEL.json (new selection, original (c, d) refitted on all pilot seeds per geometry, base predictions and predictions with the offset applied once, the old-prediction reference, the grid, the pilot cell digest, the protocol and matrix sha) into the run root before any confirmation cell exists; the confirmation runner refuses to draw confirmation cells unless the file exists in the same run root; the confirmation reducer refuses if the file is missing or the pilot digest changed",
+      "scoring": "frozen predictions are scored inside/outside the confirmation simultaneous band at every grid N per geometry; 'supported at the grid' iff inside at every N (the all-of rule); a claim is supported only if the all-of rule holds and the per-claim band uses alpha / m for the m predeclared claims"
+    },
+    "multiplicity": {
+      "family": "predeclared claims = {endpoint a old prediction, endpoint b new x_U, endpoint b new d} x {theta = 0.12 primary, theta = 0.25 reference} = 6 claims; theta = 0 is a control and is excluded",
+      "rule": "Bonferroni-divided per-claim simultaneous band (alpha / m) for the support decision, plus a descriptive Holm-Bonferroni step-down over the per-claim bootstrap max-|t| p-values",
+      "all_of": "a prediction is never called supported on a subset of the grid; a partial pattern is reported as not supported"
+    },
+    "sampling_vs_optimization": "a fit cell with restart_spread_risk >= |d| is flagged; a (theta, N) cell with more than half of its seeds flagged is reported as unresolved between sampling and optimization error"
+  },
+
+  "stopping_rule": "fixed allocation: all enumerated pilot and algebraic cells, then the pilot reduce (freeze), then all enumerated confirmation cells, then the confirmation reduce; the final N grid and the seed allocation are frozen in this protocol before production. No early stop, no outcome-dependent extension of the grid, no re-selection after confirmation",
+
+  "failure_interpretation": {
+    "old_prediction_outside_band": "the September theta = 0.12 discrepancy replicates on fresh seeds (endpoint (a) not supported at the old grid); if the prediction is inside at every old-grid N the discrepancy did not replicate on the fresh seeds. Either outcome is reported as observed; a partial pattern is never partial support",
+    "frozen_none": "no new scaling model is tested; confirmation reports brackets and profiles only; this is a reportable outcome and is not repaired on confirmation",
+    "no_crossing": "if no adjacent pair of grid N carries decided opposite signs for d(N), the package reports the largest grid N as the bound within which no crossing was measured; it does not interpolate a crossing and does not extend the grid",
+    "prediction_outside_band": "the frozen model is not supported at the grid for that geometry and target; a partial pattern (inside at some N) is reported as such, not as partial support",
+    "unresolved_cells": "where restart spread is of the order of the contrast the package cannot separate sampling from optimization error; such cells are flagged and excluded from any mechanism statement",
+    "no_decided_signs": "if the simultaneous band contains 0 at every N for a geometry, the profile is undetermined and no bracket is claimed",
+    "failed_or_retried_cells": "charged in the ledger and never refunded; a cell missing at reduce refuses the reduce (exit 3) unless --allow-partial, which labels the output partial",
+    "offset_check_failure": "a frozen prediction that is not base + a_ref applied exactly once is a code/reporting defect; the reduce is refused with exit 4 and the run is not scored"
+  },
+
+  "grid_catalogue": {
+    "old_N": [400, 800, 1000, 1250, 1600, 3200],
+    "extended_N": [6400, 12800],
+    "N": [400, 800, 1000, 1250, 1600, 3200, 6400, 12800],
+    "old_grid_max": 3200,
+    "extension_note": "the grid is provisionally extended through 6400 and 12800 and is frozen here before production; no extension beyond 12800 is authorised by this protocol"
+  },
+
+  "old_frozen_prediction": {
+    "source": "t20s FROZEN_SELECTION.json, target d_minus_a_ref, model c_over_N_d_over_N2",
+    "target": "d_minus_a_ref",
+    "model": "c_over_N_d_over_N2",
+    "old_grid": [400, 800, 1000, 1250, 1600, 3200],
+    "per_theta": {
+      "0.0": {"c": -2796.091940131074, "d": 101581.56148606652, "offset_a_ref": -5.684341886080802e-14,
+              "stored_prediction_at_grid": [-6.355345091039826, -3.3363937353419204, -2.6945103786450644, -2.1718613527538335, -1.7078771651264832, -0.8638586569271438]},
+      "0.12": {"c": -2851.036475564775, "d": 102183.23676330669, "offset_a_ref": 0.5383624199686778,
+               "stored_prediction_at_grid": [-5.950583539172594, -2.8657718670446246, -2.2104908188327905, -1.6770694889546256, -1.20362005039864, -0.3426076469301478]},
+      "0.25": {"c": -2811.6567766912854, "d": 118960.35846098942, "offset_a_ref": 2.3073718086803865,
+               "stored_prediction_at_grid": [-3.9782678926666435, -1.0213236020884242, -0.38532460954990944, 0.13418101674239136, 0.596555213272157, 1.4403462884703158]},
+      "0.4": {"c": -2792.423784797971, "d": 97362.18157435955, "offset_a_ref": 5.757193105398301,
+              "stored_prediction_at_grid": [-0.6153527217568797, 2.4187917831107737, 3.062131502174689, 3.5855658737675142, 4.049960342077053, 4.894068698193306]}
+    },
+    "cv_errors": {
+      "none": 0.29745943554223647,
+      "c_over_N": 0.34669055992939335,
+      "c_over_N_alpha": 0.2907497109592131,
+      "c_over_N_d_over_N2": 0.28950906097500934
+    },
+    "reported_margin_vs_none_relative": 0.02672759246226115,
+    "reported_margin_vs_c_over_N_alpha_relative": 0.004267072115431259,
+    "margin_note": "the 2.7% selection margin was against 'none'; the margin against c/N^alpha was smaller (0.2895 vs 0.2907 vs 0.2975). The two margins are different quantities and are never conflated",
+    "offset_convention": "the stored t20s prediction_at_grid already includes a_ref (runner.py:371 pred = pred + a_best_found). R2 never reuses it as a base: the original (c, d) are retained, the model is c/N + d/N^2, and the CURRENT algebraic a_ref is added exactly once. A second addition is rejected at reduce"
+  },
+
+  "matrix": {
+    "production": {
+      "C": 8, "T": 32, "k_c": 2, "k_t": 3,
+      "spectrum": {"top": [12.0, 11.0, 10.0, 9.0, 8.0, 7.0], "gap": 4.0, "tail_min": 0.02,
+                   "note": "mu_1..mu_6; Delta_6 = 4; geometric tail from 3.0 to 0.02 over 250 entries; identical to T20S v2"},
+      "geometry_seed": 20260913,
+      "geometries": {
+        "required": [0.0, 0.12, 0.25],
+        "optional_costed_expansion": {
+          "theta": 0.4,
+          "extra_algebraic_cells": 1,
+          "extra_pilot_fit_cells": 128,
+          "extra_confirmation_fit_cells": 192,
+          "extra_fits": 1600,
+          "extra_solves": 35,
+          "note": "the full four-geometry confirmation is a declared, costed optional expansion; it is NOT part of the required matrix and is enabled only via build_matrix(..., include_optional=True) (environment R2_T20_INCLUDE_OPTIONAL=1). It is not required by this protocol"
+        }
+      },
+      "N_core": [800, 1000, 1250, 1600, 3200, 6400],
+      "N_anchor": [400, 12800],
+      "R": 4,
+      "R_pop": 32,
+      "als_n_iter": 150,
+      "als_tol": 1e-10,
+      "pop_als_n_iter": 400,
+      "pop_als_tol": 1e-13,
+      "pilot_seeds": [23000, 23015],
+      "confirmation_seeds": [24000, 24023]
+    },
+    "fixture": {
+      "C": 3, "T": 4, "k_c": 2, "k_t": 2,
+      "spectrum": {"top": [6.0, 5.0, 4.0, 3.0], "gap": 1.5, "tail_min": 0.05},
+      "geometry_seed": 20260913,
+      "geometries": {"required": [0.0, 0.12], "optional_costed_expansion": null},
+      "N_core": [400, 800, 1000, 1250, 1600],
+      "N_anchor": [3200, 6400, 12800],
+      "R": 2,
+      "R_pop": 4,
+      "als_n_iter": 60,
+      "als_tol": 1e-10,
+      "pop_als_n_iter": 200,
+      "pop_als_tol": 1e-13,
+      "pilot_seeds": [921000, 921001],
+      "confirmation_seeds": [921100, 921101],
+      "note": "development namespace only; outputs are development_only and never citable; the fixture reuses the full extended N grid at d = 12 so the endpoint machinery is exercised end to end"
+    },
+    "controls": {
+      "offset_applied_once": {"focal_theta": 0.12},
+      "old_selection_margins": {},
+      "grid_and_offset_catalogue": {}
+    },
+    "grid": {
+      "theta_required": [0.0, 0.12, 0.25],
+      "theta_optional": [0.4],
+      "N": [400, 800, 1000, 1250, 1600, 3200, 6400, 12800],
+      "fixed_before_sampling": true,
+      "cells_per_seed_per_phase_required": 24,
+      "fits_per_cell": "1 (PCA, closed form) + R (ALS restarts) = 5"
+    }
+  },
+
+  "budget": {
+    "estimator_fits_cap": 7000,
+    "planned_fits_required": 4800,
+    "planned_fits_optional_expansion": 1600,
+    "planned_solves_required": 105,
+    "planned_cells_required": 966,
+    "planned_fits_note": "one fit = one estimator invocation on drawn data: 1 closed-form PCA + R = 4 ALS restarts per fit cell. Required matrix: 960 fit cells x 5 = 4800 fits. The cap 7000 = 4800 required + 1600 optional four-geometry expansion + 600 retry headroom",
+    "retry_policy": "a failed cell is charged at start and never refunded; a retry is a new attempt and requires an explicit --allow-repeat",
+    "fixture_to_production_scale": {
+      "pilot": 30.0, "confirmation": 30.0, "algebraic": 380.0, "default": 30.0,
+      "derivation": "measured locally at implementation time with the package's own run_fit_cell and run_algebraic_cell (single BLAS thread). Production fit cell (d = 256, R = 4, als_n_iter = 150): 1.74 / 3.46 / 6.73 s at N = 400 / 800 / 1600 (linear in N). Fixture fit cell (d = 12, R = 2): 0.0677 / 0.1179 / 0.1554 / 0.2012 / 0.2385 / 0.4652 / 0.9518 / 1.7221 s over N = 400 ... 12800, grid mean 0.4900 s. The fit scalar 30 is the ratio of the production to the fixture grid-mean per-cell times; the algebraic scalar 380 is production 1.07 s (cold, all thetas) / fixture 0.0028 s. No BENCHMARK.json is shipped with this protocol, so the measured projection is reported as unavailable rather than fabricated, and this scalar is used ONLY for the cross-check block that common.cli labels as not-the-estimate"
+    }
+  },
+
+  "explicitly_not_claimed": [
+    "a certified restricted population optimum P*_F (best-found values are upper bounds only)",
+    "an exact crossover location N*: a crossing is reported only as an adjacent grid bracket, and if no adjacent decided opposite signs exist the grid bound is reported instead of a crossing",
+    "any scientific result from fixture (development namespace) runs: all fixture outputs are development_only and never citable",
+    "any conclusion transfers to the archived Monte-Carlo pulse-family proxy: the historical c/N refutation, the 960 interpolation and the 800/1600 sign reversal stand and are neither confirmed nor revised here",
+    "separation of sampling from optimization error in cells where restart spread is of the order of the contrast",
+    "universality of any scaling law beyond this analytic family and these learners",
+    "that the optional four-geometry expansion was executed: it is declared and costed, not required",
+    "that the t20s verdicts are revised: old artifacts are immutable and R2 opens a new protocol"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+ "schema": "mlst-followup-execution-mode/1",
+ "package": "r3_t21_finite",
+ "decision": "serial",
+ "serial_wall_hours_estimate": 0.35,
+ "serial_wall_hours_low": 0.23,
+ "serial_wall_hours_high": 1.0,
+ "planning_anchor_hours": 7.0,
+ "fits_planning_anchor": true,
+ "borderline": false,
+ "basis": "measured BENCHMARK.json cell compute 816.9 s for 3456 fits at d=256/512/1024, plus unmeasured harness/reduce bounded by the cell count",
+ "sharding": {
+  "adopted": false,
+  "conditions_met": {
+   "disjoint_cell_ownership": false,
+   "immutable_receipts": false,
+   "duplicate_missing_detection": false,
+   "every_charged_attempt_preserved": false,
+   "target_filesystem_locking_validated": false
+  },
+  "why_not": "far below the <= 7 h anchor; serial is sufficient"
+ },
+ "lock_rewrite_required": false,
+ "fallback": "serial one-worker execution",
+ "rationale": "Targeted fixed-gamma ladder; the measured cell compute is minutes, so no parallel infrastructure is warranted."
+}

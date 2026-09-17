@@ -1,0 +1,86 @@
+{
+ "package": "r6_instrument",
+ "version": "R6-v1",
+ "status": "DATA-BLOCKED",
+ "data_blocked": true,
+ "computes": false,
+ "opens_real_data": false,
+ "executes_production_cells": false,
+ "real_data_validated": false,
+ "protocol_sha256": "92610f9a5ef32e842eb217e5f340db6081262e7f7fa626633e5efcf3256d9cc9",
+ "protocol_hash": "984a7618de21749cae98215c274bb5b50dbc830f99f1d92547e70cd33d767925",
+ "label": "synthetic-fixture, not real data, not validated on real inputs",
+ "cresst": {
+  "status": "DATA-BLOCKED",
+  "reason": "input not available: raw CRESST pulse data root (<CRESST_DATA_ROOT>).  The 350-cell rank/shrinkage/time-cut robustness grid needs the raw CRESST pulse traces; no CRESST raw data is present in this environment and none may be sought here.  Pass --cresst-data-root <CRESST_DATA_ROOT> on a host that holds the release; the release-layout adapter is deliberately unwritten and this interface is NOT validated on real inputs."
+ },
+ "tidmad": {
+  "inventory": {
+   "files_known_to_archive": 22,
+   "regions_recorded": 124,
+   "release_file_list_derivable": false,
+   "independent_file_set_resolved": false
+  },
+  "gate": {
+   "blocked": true,
+   "status": "DATA-BLOCKED",
+   "reasons": [
+    "independent unexposed file set unresolved: the archive does not contain the release file list, so the files the archive never opened cannot be named here",
+    "no independent file count is available (no release file list and no instrument files present in this environment)",
+    "too few independent units: 0 < the declared minimum 4",
+    "no complete confirmation calibration: adequacy of the inference at this file count is not established"
+   ],
+   "inventory_check": {
+    "blocked": true,
+    "status": "DATA-BLOCKED",
+    "checks": {
+     "release_file_list_derivable_from_archive": {
+      "passed": false,
+      "value": false
+     },
+     "independent_file_set_resolved": {
+      "passed": false,
+      "value": null
+     },
+     "files_known_to_archive": 22,
+     "regions_recorded": 124
+    },
+    "release_file_list_statement": "The archive names the files it opened (the validation files it characterised and two science files for the noise PSD); it does not contain the release's file list, so the set of release files NOT yet exposed cannot be derived here and is an unresolved input to any new-data decision.",
+    "independent_units_note": "A never-read region of an already examined file is not an independent unit: the file's coupling, tone and noise state were inspected when its other regions were scored.  Only files the archive never opened can count as independent units, and which those are is the unresolved input above.",
+    "note": "no new windows cut from previously examined files may be represented as new independent files; only files the archive never opened can count"
+   },
+   "feasibility": {
+    "n_available_files": 0,
+    "min_independent_files": 4,
+    "dependence_verdict": null,
+    "rules": {
+     "min_independent_files": 4,
+     "max_withholding_rate": 0.5,
+     "min_power_medium_effect": 0.5,
+     "rule": "a matched instrument comparison is feasible at n available independent files only if n >= min_independent_files, the confirmation calibration is complete and within tolerance at the largest calibrated n_files <= n, the maximum withholding rate over the non-drift scenarios is <= max_withholding_rate, the medium-effect power is >= min_power_medium_effect, and the development dependence verdict is not inconclusive; otherwise the output is a feasibility failure with its reasons, never an artificial four-file significance claim"
+    },
+    "label_required": "a matched rerun on already exposed data must be labelled accordingly",
+    "feasible": false,
+    "status": "feasibility-failure",
+    "reasons": [
+     "too few independent units: 0 < the declared minimum 4",
+     "no complete confirmation calibration: adequacy of the inference at this file count is not established"
+    ],
+    "consequence": "the correct output is a feasibility failure, not an artificial four-file significance claim"
+   },
+   "n_available_files": null,
+   "calibration_complete": false,
+   "dependence_verdict": null,
+   "statement": "a matched rerun on already exposed data must be labelled accordingly; no outcome here establishes the adequacy of the archived inference on unexamined instrument data"
+  }
+ },
+ "reasons": [
+  "cresst: input not available: raw CRESST pulse data root (<CRESST_DATA_ROOT>).  The 350-cell rank/shrinkage/time-cut robustness grid needs the raw CRESST pulse traces; no CRESST raw data is present in this environment and none may be sought here.  Pass --cresst-data-root <CRESST_DATA_ROOT> on a host that holds the release; the release-layout adapter is deliberately unwritten and this interface is NOT validated on real inputs.",
+  "tidmad: independent unexposed file set unresolved: the archive does not contain the release file list, so the files the archive never opened cannot be named here",
+  "tidmad: no independent file count is available (no release file list and no instrument files present in this environment)",
+  "tidmad: too few independent units: 0 < the declared minimum 4",
+  "tidmad: no complete confirmation calibration: adequacy of the inference at this file count is not established"
+ ],
+ "blocked": true,
+ "statement": "interface implemented and fail-closed; a passing gate would still be an input check, never a real-data result"
+}

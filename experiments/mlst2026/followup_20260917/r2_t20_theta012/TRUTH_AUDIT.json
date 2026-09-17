@@ -1,0 +1,44 @@
+{
+ "all_passed": true,
+ "checks": {
+  "finite_values": {
+   "passed": true
+  },
+  "invariants_hold": {
+   "excluded": [],
+   "passed": true,
+   "problems": {
+    "0.0": [],
+    "0.12": [],
+    "0.25": []
+   }
+  },
+  "no_clipping_in_source": {
+   "passed": true,
+   "tokens_found": []
+  },
+  "nonseparability_moves": {
+   "passed": true
+  },
+  "spectrum_fixed": {
+   "max_abs_eig_dev": 1.0658141036401503e-14,
+   "passed": true
+  }
+ },
+ "fixture": false,
+ "generator": "successor_20260913.t20s.generator.Geometry",
+ "note": "a fixture audit is a wiring check; it certifies nothing about the pulse-proxy family",
+ "package": "r2_t20_theta012",
+ "schema": "mlst-followup-truth-audit/1",
+ "stochastic_audit": {
+  "clipping": "checked by source scan and by finite-value + spectrum invariance",
+  "dependence_assumptions": "absent: truth is an exact second moment, not a sampled process",
+  "heavy_tail_initialisation": "absent: the family is analytic (no innovations are drawn at truth time)",
+  "heterogeneity_dependent_generation": "absent: the file/geometry is a single fixed K(theta); no per-file effect is drawn"
+ },
+ "thetas": [
+  0.0,
+  0.12,
+  0.25
+ ]
+}

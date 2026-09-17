@@ -1,0 +1,225 @@
+{
+ "schema": "mlst-local-package/1",
+ "package": "r4_t22_feasibility",
+ "version": "R4-v1",
+ "title": "R4: T22 feasibility without an unjustified evaluation-file escalation",
+ "supersedes": {
+  "package": "t22s",
+  "protocol_file": "experiments/mlst2026/successor_20260913/t22s/PROTOCOL_T22S_v2.json",
+  "what_changes": "the single feasibility part is split into (a) evaluation-file power/coverage at a fixed development design and (b) development-data adequacy at a fixed evaluation design; the exact bound P(supported) <= 1 - P(withheld) screens infeasible designs before any large-file production"
+ },
+ "provenance": {
+  "designed_after": "2026-09-17",
+  "observed_before_design": "the September T22-S feasibility failure at 4/8/16 files, the withholding of 0.94-0.96 and the medium-effect power of 0.02-0.04 were observed before this protocol was written",
+  "source_change_recorded": "R4 uses explicit separate development and evaluation random streams (streams.py); the archived simulator is single-stream and is not edited"
+ },
+ "question": "Which evaluation-file counts and development-data conditions jointly meet the original feasibility requirements (primary coverage in tolerance, type-I control, worst-case non-drift withholding <= 0.5, medium-effect unconditional power >= 0.5, at least four independent files), and does the development gate make the criterion unreachable regardless of evaluation-file count?",
+ "hypotheses": {
+  "H1_eval_module": "descriptive: at a fixed development design, evaluation coverage, type-I, withholding, unconditional and conditional medium-effect power are reported at n_files = 4/8/16/32/64",
+  "H2_dev_module": "descriptive: at a fixed evaluation design (n_files = 16), the withholding rate and primary coverage are reported over a development grid n_dev_files in {4,8,16} x n_cal in {64,256}",
+  "H3_bound": "the exact bound P(supported) <= 1 - P(withheld) is computed with Wilson uncertainty; a design whose withholding cannot fall below 0.5 is screened infeasible and is not extended",
+  "H4_feasibility": "the original feasibility rule is applied unchanged; the correct output may be a feasibility failure",
+  "H5_streams": "changing n_files must not change the development realization, and changing the development design must not change the evaluation realization (separate streams)"
+ },
+ "independent_unit": "one simulated collection of files (one Monte-Carlo replicate); evaluation and development data are drawn from separate declared streams",
+ "estimands": {
+  "primary": "the equal-file mean of the per-file population contrasts (unchanged from T22-S)",
+  "power": "P('supported' | alternative) unconditionally and given not withheld; unconditional power is capped by 1 - withholding",
+  "withholding": "P(dependence verdict inconclusive), a property of the development files and the frozen maximum rule"
+ },
+ "controls": {
+  "streams_are_separate": {
+   "checks": "changing n_files leaves the development realization identical"
+  },
+  "support_bound_arithmetic": {
+   "checks": "P(supported) <= 1 - P(withheld) on a fixed synthetic record set"
+  },
+  "estimand_identity": {
+   "checks": "10 small replicates are invariant-clean and their mean bias is small"
+  }
+ },
+ "seed_namespaces": {
+  "development": [
+   923000,
+   923999
+  ],
+  "pilot": [
+   27000,
+   27299
+  ],
+  "confirmation": [
+   28000,
+   28499
+  ]
+ },
+ "inference": {
+  "coverage_band": [
+   0.925,
+   0.975
+  ],
+  "coverage_rule": "Wilson interval not entirely outside the band",
+  "type1_threshold": 0.07,
+  "feasibility": {
+   "rule": "a matched instrument comparison is feasible at n available independent files only if n >= 4, the confirmation calibration is complete and within tolerance at the largest calibrated n_files <= n, the maximum withholding over non-drift scenarios at that n_files is <= 0.5, the medium-effect unconditional power is >= 0.5, and the development-data dependence verdict is not inconclusive",
+   "min_independent_files": 4,
+   "max_withholding_rate": 0.5,
+   "min_power_medium_effect": 0.5,
+   "eval_n_files": [
+    4,
+    8,
+    16,
+    32,
+    64
+   ],
+   "dev_n_files": [
+    4,
+    8,
+    16
+   ],
+   "dev_n_cal": [
+    64,
+    256
+   ],
+   "conditional_power_not_a_substitute": true,
+   "screening": "unconditional support probability cannot exceed 1 - withholding; screen infeasible designs with the Wilson bound before pricing large-file counts",
+   "r1_precondition": {
+    "rule": "R4's large-file production cells (n_files = 32 and 64) are admissible only if R1 yields a usable interval. The precondition FAILS (cancel, not defer) if: R1's frozen primary replacement is 'none'; OR R1's acceptance receipt shows a coverage or type-I failure at any candidate file count; OR the withholding-bound screen rules out every candidate design. It is UNRESOLVED while R1 has not frozen an interval and acceptance receipt, and PASSES only when a frozen, accepted candidate exists and the screen is not universal.",
+    "freeze_path": "experiments/mlst2026/followup_20260917/r1_t22_calibration/FROZEN_CANDIDATE.json",
+    "acceptance_path": "experiments/mlst2026/followup_20260917/r1_t22_calibration/R1_ACCEPTANCE.json",
+    "cancel_large_file_counts": [
+     32,
+     64
+    ],
+    "on_cancel": "emit an R4_INFEASIBLE receipt naming the trigger, omit the cancelled cells from the matrix, launch plan and cost report, and do NOT stage them as ready to transfer"
+   }
+  },
+  "block_grid_evaluation": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32
+  ],
+  "block_grid_calibration": [
+   1,
+   2,
+   4,
+   8
+  ]
+ },
+ "stopping_rule": "fixed allocation: production is 20 chunks per scenario x (16 evaluation-grid scenarios + 12 development-grid scenarios) x 50 MC = 28,000 replicates; the n_files=32/64 evaluation cells are CANCELLED and omitted before execution when the R1 precondition fails; infeasible n_files screened out by H3 are also removed from the launch plan",
+ "failure_interpretation": {
+  "feasibility_failure": "the correct output of the rule; reported with its reasons and never converted into an artificial four-file significance claim",
+  "screened_infeasible": "the development gate makes the power requirement unreachable; report it and omit unnecessary large-file production",
+  "gate_change_required": "a gate candidate or a development-dimension change requires a new protocol version with full type-I/coverage validation and fresh confirmation; it is never forced in a scientific run",
+  "conditional_power_only": "conditional-on-not-withheld power is not a substitute for unconditional power"
+ },
+ "calibration_tolerances": {
+  "coverage": [
+   0.925,
+   0.975
+  ],
+  "type1": [
+   0.0,
+   0.07
+  ]
+ },
+ "matrix": {
+  "production": {
+   "mc_replicates_per_scenario": 1000,
+   "mc_per_cell": 50,
+   "replicates": {
+    "file": 1000,
+    "hier": 4000,
+    "curve": 200
+   },
+   "r1_gate": {
+    "enforce": true,
+    "freeze_path": "experiments/mlst2026/followup_20260917/r1_t22_calibration/FROZEN_CANDIDATE.json",
+    "acceptance_path": "experiments/mlst2026/followup_20260917/r1_t22_calibration/R1_ACCEPTANCE.json",
+    "cancel_large_file_counts": [
+     32,
+     64
+    ]
+   },
+   "controls": {
+    "streams_are_separate": {},
+    "support_bound_arithmetic": {},
+    "estimand_identity": {}
+   }
+  },
+  "fixture": {
+   "chunks": 1,
+   "mc_per_cell": 6,
+   "replicates": {
+    "file": 60,
+    "hier": 250,
+    "curve": 30
+   },
+   "controls": {
+    "streams_are_separate": {},
+    "support_bound_arithmetic": {},
+    "estimand_identity": {}
+   }
+  },
+  "scenario_catalogue": {
+   "eval": [
+    "alt-medium-n4-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n4-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n4-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n8-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n8-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n8-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n16-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n32-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n32-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n32-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n64-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n64-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n64-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-large-n4-phi0.6-tau0.01-ndev4-ncal64-drift0.15"
+   ],
+   "dev": [
+    "alt-medium-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n16-phi0.6-tau0.01-ndev4-ncal256",
+    "null-partial-n16-phi0.6-tau0.01-ndev4-ncal256",
+    "alt-medium-n16-phi0.6-tau0.01-ndev8-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev8-ncal64",
+    "alt-medium-n16-phi0.6-tau0.01-ndev8-ncal256",
+    "null-partial-n16-phi0.6-tau0.01-ndev8-ncal256",
+    "alt-medium-n16-phi0.6-tau0.01-ndev16-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev16-ncal64",
+    "alt-medium-n16-phi0.6-tau0.01-ndev16-ncal256",
+    "null-partial-n16-phi0.6-tau0.01-ndev16-ncal256"
+   ],
+   "fixture_eval": [
+    "alt-medium-n4-phi0-tau0.01-ndev4-ncal64",
+    "alt-medium-n4-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n4-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n8-phi0-tau0.01-ndev4-ncal64"
+   ],
+   "fixture_dev": [
+    "alt-medium-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev4-ncal64",
+    "alt-medium-n16-phi0.6-tau0.01-ndev8-ncal64",
+    "null-partial-n16-phi0.6-tau0.01-ndev8-ncal64"
+   ]
+  }
+ },
+ "budget": {
+  "estimator_fits_cap": 16,
+  "retry_policy": "failed cells are charged and retried only by an explicit --allow-repeat"
+ },
+ "explicitly_not_claimed": [
+  "that increasing evaluation files alone can lower withholding; the gate is computed from development files",
+  "that the synthetic dependence model is the instrument's dependence structure",
+  "any adequacy of the archived inference on unexamined instrument data",
+  "any change to the archived T22 verdicts (all withheld)",
+  "any scientific result from fixture (development) runs",
+  "that the R1 cancellation gate can be bypassed to run large-file cells when R1 froze 'none' or failed; a cancel is final for this protocol version"
+ ]
+}

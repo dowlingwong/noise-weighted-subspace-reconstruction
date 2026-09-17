@@ -1,0 +1,402 @@
+{
+ "_path": "/ceph/dwong/noise-weighted-subspace-reconstruction/experiments/mlst2026/successor_20260913/t22s/PROTOCOL_T22S_v2.json",
+ "_sha256": "30acaa43509832eb9b688e94dd53cdbc29ca20e94e51ad4d7bdd2e2266eed60e",
+ "budget": {
+  "estimator_fits_cap": 64,
+  "fits_note": "simulation and control cells fit nothing (learned estimates are generated); the only fits are the matched fixture cell's 24 (eight estimators per representation plus the B = 1 identity control), development only; the production matrix plans 0 fits",
+  "fixture_to_production_scale": {
+   "control": 20.01,
+   "matched_fixture": 1.0,
+   "sim_confirm": 1842.0,
+   "sim_pilot": 681.1
+  },
+  "replicates_declared": {
+   "fixture": "3 MC replicates per cell at the fixture settings",
+   "production_confirmation": "69 scenarios x 1000 MC replicates; per MC replicate at the archived setting: n_files x 2000 joint replicates, 4 x 10000 two-stage replicates, 4 x 28 x 400 block-curve replicates",
+   "production_pilot": "8 scenarios x 2 settings x 200 MC replicates"
+  },
+  "retry_policy": "every attempt is charged at start; failed and interrupted attempts are never refunded; at most two retries per cell; simulation cells charge 0 fits so the cap constrains only the matched fixture cell (24 of 64)",
+  "scale_formula": "work_proxy_seconds(cell) = mc x [n_files x R_file x 180e-6 + 4 x R_hier x n_files x 2.3e-6 + n_dev x 28 x R_curve x 14e-6 + 0.001 (n_files + n_dev)] (constants measured in this container); scale = mean production work per cell / mean fixture work per cell; the confirmation scale divides production work at the archived setting by fixture work at the reduced setting (the setting a three-replicate fixture pilot freezes), so the confirmation estimate is an upper bound"
+ },
+ "calibration_tolerances": {
+  "applies_to": "coverage: the primary contrast raw-bin|empca on every confirmation scenario (pca|empca and zero|empca reported); type-I: every null claim on every null scenario and the any-null-claim rate",
+  "coverage": [
+   0.925,
+   0.975
+  ],
+  "evaluation": "a scenario is within tolerance when its Wilson interval is not entirely outside the band; tolerances are fixed here, before the validation scenarios, and are copied unchanged into FROZEN_CALIBRATION.json",
+  "type1": [
+   0.0,
+   0.07
+  ]
+ },
+ "controls": [
+  "simulator_estimand: with TRUE labels g rho the realised mean of each exact-mu contrast equals the declared mu within 4 Monte-Carlo standard errors",
+  "ar1_autocorrelation: the complex AR(1) generator has lag-one autocorrelation phi within 0.03 (phi = 0 and 0.6)",
+  "iid_bootstrap_se: at phi = 0 and block length 1 the joint bootstrap sd of a file mean equals the analytic sd/sqrt(n) within 25%",
+  "dependence_gate: with the dependence verdict forced to 'inconclusive' every claim is withheld; forced to 'stabilised' on the large effect at 4 files the denoising claim is supported (positive control)",
+  "holm_arithmetic: Holm step-down on a fixed p-set gives the known adjusted values",
+  "matched_fixture (development only): whole-window and band scoring share identical evaluation windows and labels, the six non-learned estimators are bit-identical across representations, and the B = 1 band identity control holds to 1e-12"
+ ],
+ "estimands": {
+  "bias": "mean over replicates of (equal-file point estimate - mu) with its Monte-Carlo standard error and sign",
+  "coverage": "P(ci95_lo <= mu <= ci95_hi) for the two-stage interval, unconditional and given not withheld; the same for the equal-file t-interval",
+  "length": "mean interval length, two-stage versus t-interval",
+  "mu": "equal-file mean of the per-file contrast E Delta_i over the file-sampling model lam_e,i = lam_e + tau b_i, N_i log-normal(mean 1): mu = lam_e * 4/w for raw-bin|empca, (lam_e - lam_p) * 4/w for pca|empca, lam_z * 4/w for zero|empca (physical-amplitude units; w = 1024 nominal)",
+  "power": "P(claim verdict == 'supported') where the claim's contrasts have mu > 0, unconditional and given not withheld",
+  "type1": "P(claim verdict == 'supported') on scenarios where every contrast of the claim has mu = 0; 'any' = P(at least one null claim supported)",
+  "withholding": "P(aggregate dependence verdict == 'inconclusive'), reported separately from type-I error and power"
+ },
+ "explicitly_not_claimed": [
+  "any change to the archived T22 verdicts (all withheld), intervals or p-values",
+  "adequacy of the archived inference on unexamined instrument data",
+  "that the synthetic dependence model (AR(1) plus optional random-walk drift) is the instrument's dependence structure",
+  "any instrument result from part B: the matched interface is exercised on synthetic HDF5 fixtures only, no hold-out exists in this container, and the release file list is an unresolved input",
+  "that a matched rerun on already exposed data would be independent evidence"
+ ],
+ "failure_interpretation": {
+  "adequacy_on_instrument_data": "NOT established by any outcome here: the dependence structure of unexamined instrument data is unknown",
+  "control_failure": "the run is not reducible (exit 4); the simulator or the wrapper is wrong, not the archived pipeline",
+  "coverage_outside_tolerance": "the archived interval is not calibrated for that dependence/heterogeneity/file-count regime; reported as such, with the t-interval beside it; no re-tuning on confirmation seeds",
+  "feasibility_failure": "the correct output of part B; it is reported as such",
+  "high_withholding": "the procedure has no demonstrated useful power in that regime even if type-I is controlled; counted separately and fed into the feasibility rule",
+  "type1_above_tolerance": "the declared decision rule over-claims in that regime; the archived verdicts (already withheld) are unaffected, and any future instrument run at that regime is infeasible"
+ },
+ "hypotheses": [
+  "H1 (coverage): the two-stage 95% interval for the equal-file mean covers the declared estimand at a rate inside the tolerance band on every validation scenario without drift.",
+  "H2 (type-I): P(any null claim 'supported') is at or below 0.07 on every null scenario, and per null claim.",
+  "H3 (withholding): the withholding rate P(dependence inconclusive) is reported on every scenario; it is expected to rise with phi and to approach one under drift.  H3 is descriptive: no tolerance is set on it, but feasibility (below) uses it.",
+  "H4 (power): P('supported' | alternative) is reported for the small, medium and large effects at 4, 8 and 16 files, unconditionally and given not withheld.  No minimum is hypothesised; the feasibility rule uses the medium effect.",
+  "H5 (secondary): the equal-file Student-t interval and the random-effects interval are reported beside the primary for comparison of coverage and length.",
+  "H6 (bias): the sign of the bias of the equal-file point estimate is reported with its Monte-Carlo standard error."
+ ],
+ "independent_unit": "Part A: one Monte-Carlo replicate (a fresh set of n_dev_files development files and n_files evaluation files); files within a replicate are independent draws of the declared file-sampling model and windows within a file are dependent by design.  Part B: one instrument file never opened by any archived stage; the exposure inventory shows which regions are already exposed, and a region of an already examined file is not an independent unit.",
+ "inference": {
+  "block_grid_calibration": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "block_grid_evaluation": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32
+  ],
+  "claims": {
+   "denoising_benefit": [
+    "raw-bin|empca"
+   ],
+   "limited_recovery": [
+    "zero|empca",
+    "calibration-mean|empca"
+   ],
+   "metric_contribution": [
+    "pca|empca"
+   ]
+  },
+  "feasibility": {
+   "max_withholding_rate": 0.5,
+   "min_independent_files": 4,
+   "min_power_medium_effect": 0.5,
+   "rule": "a matched instrument comparison is feasible at n available independent files only if n >= min_independent_files, the confirmation calibration is complete and within tolerance (type-I and primary coverage) at the largest calibrated n_files <= n, the maximum withholding rate over the non-drift scenarios at that n_files is <= max_withholding_rate, the power at the medium effect is >= min_power_medium_effect, and the development-data dependence verdict is not inconclusive; otherwise the output is a feasibility failure with its reasons, never an artificial four-file significance claim"
+  },
+  "monte_carlo_uncertainty": "Wilson score interval (z = 1.96) on every rate; the declared mc_replicates_per_scenario = 1000 gives half-width 0.0136 at a 5% rate (the smallest n with half-width <= 0.015 is 822)",
+  "multiplicity": "Holm-Bonferroni step-down at familywise 0.05 over the three claims (archived rule); a claim is 'supported' only if its point estimate favours EMPCA, its two-stage interval excludes zero and the Holm-adjusted p < 0.05, and the dependence verdict is not inconclusive",
+  "pilot_decision_rule": {
+   "candidate_setting": "reduced",
+   "output": "FROZEN_CALIBRATION.json in the run root, written by the pilot reducer only when every pilot cell is present; confirmation cells refuse to run without it and record its digest",
+   "purpose": "choose the bootstrap replicate setting (per-file joint, two-stage file, block-curve replicates) before any confirmation cell is drawn; the block grids are the archived ones and are frozen unchanged",
+   "reference_setting": "archived",
+   "rule": "freeze 'reduced' iff on EVERY pilot scenario the coverage of the primary contrast, the withholding rate and the any-supported rate differ between the two settings by at most the reference setting's Wilson half-width (paired seeds); otherwise freeze 'archived'"
+  },
+  "pipeline": "exactly the archived one, by import: te.fit_transfer -> te.squared_errors -> te.block_variance_curve on n_dev_files development files (4 contrasts each) and the calibration series -> te.aggregate_block_curves (maximum rule) -> te.select_block_length (frozen b_eval, b_cal, verdict) -> te.joint_bootstrap per evaluation file at the frozen block lengths -> te.percentile_interval -> t22.combine_stage (t22.hierarchical_file_bootstrap two-stage equal-file mean, t22.holm, verdict rules, t22.t_interval, t22.random_effects, te.combine_files)"
+ },
+ "matrix": {
+  "fixture": {
+   "chunks": 1,
+   "controls": {
+    "ar1_autocorrelation": {
+     "n": 20000
+    },
+    "dependence_gate": {
+     "replicates": {
+      "curve": 40,
+      "file": 60,
+      "hier": 300
+     }
+    },
+    "holm_arithmetic": {},
+    "iid_bootstrap_se": {
+     "replicates": 400
+    },
+    "simulator_estimand": {
+     "n_files": 12
+    }
+   },
+   "mc_per_cell": 3,
+   "n_pilot_scenarios": 2,
+   "replicate_settings": {
+    "archived": {
+     "curve": 40,
+     "file": 60,
+     "hier": 300
+    },
+    "reduced": {
+     "curve": 20,
+     "file": 30,
+     "hier": 150
+    }
+   }
+  },
+  "production": {
+   "controls": {
+    "ar1_autocorrelation": {
+     "n": 200000
+    },
+    "dependence_gate": {
+     "replicates": {
+      "curve": 400,
+      "file": 2000,
+      "hier": 10000
+     }
+    },
+    "holm_arithmetic": {},
+    "iid_bootstrap_se": {
+     "replicates": 4000
+    },
+    "simulator_estimand": {
+     "n_files": 64
+    }
+   },
+   "mc_per_cell": 100,
+   "mc_replicates_per_scenario": 1000,
+   "pilot_mc_per_scenario": 200,
+   "replicate_settings": {
+    "archived": {
+     "curve": 400,
+     "file": 2000,
+     "hier": 10000
+    },
+    "reduced": {
+     "curve": 200,
+     "file": 1000,
+     "hier": 4000
+    }
+   }
+  },
+  "scenario_catalogue": {
+   "confirmation": [
+    "null-complete-n4-phi0-tau0.01",
+    "null-complete-n4-phi0.6-tau0.01",
+    "null-complete-n4-phi0.85-tau0.01",
+    "null-complete-n8-phi0-tau0.01",
+    "null-complete-n8-phi0.6-tau0.01",
+    "null-complete-n8-phi0.85-tau0.01",
+    "null-complete-n16-phi0-tau0.01",
+    "null-complete-n16-phi0.6-tau0.01",
+    "null-complete-n16-phi0.85-tau0.01",
+    "null-partial-n4-phi0-tau0.01",
+    "null-partial-n4-phi0.6-tau0.01",
+    "null-partial-n4-phi0.85-tau0.01",
+    "null-partial-n8-phi0-tau0.01",
+    "null-partial-n8-phi0.6-tau0.01",
+    "null-partial-n8-phi0.85-tau0.01",
+    "null-partial-n16-phi0-tau0.01",
+    "null-partial-n16-phi0.6-tau0.01",
+    "null-partial-n16-phi0.85-tau0.01",
+    "alt-small-n4-phi0-tau0.01",
+    "alt-small-n4-phi0.6-tau0.01",
+    "alt-small-n4-phi0.85-tau0.01",
+    "alt-small-n8-phi0-tau0.01",
+    "alt-small-n8-phi0.6-tau0.01",
+    "alt-small-n8-phi0.85-tau0.01",
+    "alt-small-n16-phi0-tau0.01",
+    "alt-small-n16-phi0.6-tau0.01",
+    "alt-small-n16-phi0.85-tau0.01",
+    "alt-medium-n4-phi0-tau0.01",
+    "alt-medium-n4-phi0.6-tau0.01",
+    "alt-medium-n4-phi0.85-tau0.01",
+    "alt-medium-n8-phi0-tau0.01",
+    "alt-medium-n8-phi0.6-tau0.01",
+    "alt-medium-n8-phi0.85-tau0.01",
+    "alt-medium-n16-phi0-tau0.01",
+    "alt-medium-n16-phi0.6-tau0.01",
+    "alt-medium-n16-phi0.85-tau0.01",
+    "alt-large-n4-phi0-tau0.01",
+    "alt-large-n4-phi0.6-tau0.01",
+    "alt-large-n4-phi0.85-tau0.01",
+    "alt-large-n8-phi0-tau0.01",
+    "alt-large-n8-phi0.6-tau0.01",
+    "alt-large-n8-phi0.85-tau0.01",
+    "alt-large-n16-phi0-tau0.01",
+    "alt-large-n16-phi0.6-tau0.01",
+    "alt-large-n16-phi0.85-tau0.01",
+    "null-partial-n4-phi0.3-tau0.01",
+    "null-partial-n4-phi0.6-tau0",
+    "null-partial-n4-phi0.6-tau0.03",
+    "null-partial-n4-phi0.6-tau0.03-dominant",
+    "null-partial-n4-phi0.6-tau0.01-drift0.15",
+    "null-partial-n4-phi0.6-tau0.01-t3",
+    "null-partial-n16-phi0.3-tau0.01",
+    "null-partial-n16-phi0.6-tau0",
+    "null-partial-n16-phi0.6-tau0.03",
+    "null-partial-n16-phi0.6-tau0.03-dominant",
+    "null-partial-n16-phi0.6-tau0.01-drift0.15",
+    "null-partial-n16-phi0.6-tau0.01-t3",
+    "alt-medium-n4-phi0.3-tau0.01",
+    "alt-medium-n4-phi0.6-tau0",
+    "alt-medium-n4-phi0.6-tau0.03",
+    "alt-medium-n4-phi0.6-tau0.03-dominant",
+    "alt-medium-n4-phi0.6-tau0.01-drift0.15",
+    "alt-medium-n4-phi0.6-tau0.01-t3",
+    "alt-medium-n16-phi0.3-tau0.01",
+    "alt-medium-n16-phi0.6-tau0",
+    "alt-medium-n16-phi0.6-tau0.03",
+    "alt-medium-n16-phi0.6-tau0.03-dominant",
+    "alt-medium-n16-phi0.6-tau0.01-drift0.15",
+    "alt-medium-n16-phi0.6-tau0.01-t3"
+   ],
+   "development": [
+    "null-partial-n4-phi0-tau0.01",
+    "alt-large-n4-phi0-tau0.01",
+    "null-partial-n16-phi0-tau0.01",
+    "alt-medium-n4-phi0.6-tau0.01-drift0.3"
+   ],
+   "pilot": [
+    "null-partial-n4-phi0-tau0.01",
+    "null-partial-n16-phi0.6-tau0.01",
+    "alt-medium-n4-phi0-tau0.01",
+    "alt-medium-n16-phi0.6-tau0.01",
+    "null-complete-n8-phi0.85-tau0.01",
+    "alt-small-n8-phi0.3-tau0.01",
+    "alt-medium-n8-phi0.6-tau0.03-dominant",
+    "alt-large-n4-phi0.6-tau0.01-drift0.15"
+   ]
+  },
+  "scenario_model": {
+   "drift_sd_arm": 0.15,
+   "effect_sizes_per_window_sd": {
+    "alt-large": {
+     "effect_per_file_z": 5.131642619460291,
+     "effect_per_window_sd_units": 0.29627552477303554,
+     "per_window_sd_over_N": 0.2025141970331958
+    },
+    "alt-medium": {
+     "effect_per_file_z": 2.6142694774107347,
+     "effect_per_window_sd_units": 0.15093491865173098,
+     "per_window_sd_over_N": 0.19876116320851078
+    },
+    "alt-small": {
+     "effect_per_file_z": 0.871467278477707,
+     "effect_per_window_sd_units": 0.05031418678190547,
+     "per_window_sd_over_N": 0.1987511006258837
+    },
+    "null-complete": {
+     "effect_per_file_z": 0.0,
+     "effect_per_window_sd_units": 0.0,
+     "per_window_sd_over_N": 0.19949937343260019
+    },
+    "null-partial": {
+     "effect_per_file_z": 0.0,
+     "effect_per_window_sd_units": 0.0,
+     "per_window_sd_over_N": 0.19949937343260019
+    }
+   },
+   "effects": {
+    "alt-large": {
+     "lam_emp": 0.06,
+     "lam_pca": 0.03,
+     "lam_zero": 29.0
+    },
+    "alt-medium": {
+     "lam_emp": 0.03,
+     "lam_pca": 0.015,
+     "lam_zero": 29.0
+    },
+    "alt-small": {
+     "lam_emp": 0.01,
+     "lam_pca": 0.005,
+     "lam_zero": 29.0
+    },
+    "null-complete": {
+     "lam_emp": 0.0,
+     "lam_pca": 0.0,
+     "lam_zero": 0.0
+    },
+    "null-partial": {
+     "lam_emp": 0.0,
+     "lam_pca": 0.0,
+     "lam_zero": 29.0
+    }
+   },
+   "heavy_tails_arm": "t_3 innovations scaled to unit variance",
+   "kappa": 0.99,
+   "lam_zero_alternative": 29.0,
+   "n_cal": 64,
+   "n_dev_files": 4,
+   "n_eval": 300,
+   "n_files_grid": [
+    4,
+    8,
+    16
+   ],
+   "noise_scale_spread_lognormal_sd": 0.5,
+   "phi_grid": [
+    0.0,
+    0.3,
+    0.6,
+    0.85
+   ],
+   "ref_snr": 10000.0,
+   "tau_grid": [
+    0.0,
+    0.01,
+    0.03
+   ],
+   "w_nominal": 1024
+  }
+ },
+ "package": "t22s",
+ "provenance": {
+  "archived_facts_unchanged": [
+   "all three archived T22 verdicts are withheld (inconclusive) because the frozen dependence assessment did not stabilise (V(32)/V(16) = 1.745, curve still rising)",
+   "the archived intervals and p-values are conditional diagnostics, not claims",
+   "the archived whole-window versus narrowband comparison is unmatched (time region, file composition, evaluation length, selection and inference differ)",
+   "416 executions / 240 distinct fits against a cap of 250 are disclosed; nothing in this package re-executes any of them",
+   "T22 hold-out was a temporal hold-out on already examined files, not independent-file replication"
+  ],
+  "design_inputs": [
+   "MS plan/MLST_COMPLETENESS_AND_LOCAL_BUILD_2026-09-13.md section L4",
+   "MS plan/MLST_UPGRADE_INSTRUCTIONS_2026-09-13.md phase 3D",
+   "MS reviews/2026-09-12-mlst-paper-review.md items M4, M5, S8",
+   "MS plan/T22_STAGE0_PROTOCOL_2026-09-11.md and plan/mlst_protocol_2026-09-11-t22-stage0.json (the archived design being calibrated)",
+   "MS evidence/data/paper1/t22_2026-09-11/ (archived exports: magnitudes and the withheld verdicts)"
+  ],
+  "no_prior_t22s_protocol": "No T22-S protocol existed on 12 September 2026; the successor_20260912 round holds T19-S and T20-S protocols only.  This v2 file is the first T22-S protocol; the version label follows the round's naming convention, not a prior v1.",
+  "supersedes": null
+ },
+ "question": "Does the archived T22 inference procedure (joint calibration/evaluation circular-block bootstrap per file, maximum-aggregated block-variance dependence gate, two-stage hierarchical file bootstrap of the equal-file mean, Holm across three claims) have nominal coverage, controlled type-I error and demonstrated useful power -- with its withholding rate counted separately -- on synthetic files with declared dependence, cross-unit heterogeneity and transfer-calibration uncertainty; and what does a matched real-data comparison need before it can be attempted?",
+ "schema": "mlst-local-package/1",
+ "seed_derivation": "Monte-Carlo replicate j of a cell with seed s uses replicate seed s * 10000 + j (j < mc_replicates); the two pilot replicate settings of one chunk share s (paired comparison); confirmation chunks share their seeds across scenarios (common random numbers, declared).  Control cells are seedless and use the fixed internal stream 424242.",
+ "seed_namespaces": {
+  "confirmation": [
+   8000,
+   8399
+  ],
+  "development": [
+   900000,
+   900999
+  ],
+  "pilot": [
+   7000,
+   7199
+  ]
+ },
+ "stopping_rule": "fixed allocation: every pilot cell (8 scenarios x 2 settings x 200 Monte-Carlo replicates), then every confirmation cell (69 scenarios x 1000 Monte-Carlo replicates) and every control; no cell is added, dropped or repeated on the basis of an outcome; the only conditional step is the pre-declared replicate-setting freeze",
+ "title": "T22-S (L4): synthetic calibration of the archived T22 inference pipeline and a matched whole-window/narrowband real-data interface",
+ "version": "v2-2026-09-13"
+}

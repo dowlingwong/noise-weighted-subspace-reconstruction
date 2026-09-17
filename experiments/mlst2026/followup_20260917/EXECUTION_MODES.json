@@ -1,0 +1,156 @@
+{
+ "schema": "mlst-followup-execution-modes/1",
+ "round": "followup_20260917",
+ "decision_rule": "serial is chosen unless a package's serial wall time exceeds its reviewed budget AND a bounded shard/merge design meets all five conditions; no CephFS-safe ledger rewrite is implemented",
+ "lock_rewrite_required_any": false,
+ "all_serial": true,
+ "packages": {
+  "r1_t22_calibration": {
+   "schema": "mlst-followup-execution-mode/1",
+   "package": "r1_t22_calibration",
+   "decision": "serial",
+   "serial_wall_hours_estimate": 73.4,
+   "serial_wall_hours_low": 68.0,
+   "serial_wall_hours_high": 80.0,
+   "planning_anchor_hours": 72.0,
+   "fits_planning_anchor": true,
+   "borderline": true,
+   "basis": "690 confirmation cells x archived measured 203/322/561 s at n_files=4/8/16 (same pipeline and allocation as T22-S reduced) + 32 pilot cells; low/high from the archived per-cell median spread",
+   "sharding": {
+    "adopted": false,
+    "conditions_met": {
+     "disjoint_cell_ownership": false,
+     "immutable_receipts": false,
+     "duplicate_missing_detection": false,
+     "every_charged_attempt_preserved": false,
+     "target_filesystem_locking_validated": false
+    },
+    "why_not": "serial fits the reviewed 72 h anchor within the measured spread; sharding requires a target-filesystem locking validation that does not exist, and the base instructions forbid speculative infrastructure expansion when serial meets the budget"
+   },
+   "lock_rewrite_required": false,
+   "lock_rewrite_note": "no CephFS-safe ledger rewrite is implemented or depended on; the archived advisory flock is used serially. A parallel-safe ledger remains a separate reviewed engineering item (old F8), not a dependency of this science package",
+   "fallback": "serial one-worker execution; failed cells are charged and retried only with --allow-repeat",
+   "rationale": "R1 is the expected borderline case: ~73 h serial against a 72 h anchor (~3 days). It is decided SERIAL because it does not materially exceed the reviewed budget, the parallel alternative is unreviewed, and a failed locking claim would corrupt the ledger. If a later review approves a target-filesystem-validated parallel ledger, the wall time could fall to ~5 h but only as a separately tested engineering change."
+  },
+  "r2_t20_theta012": {
+   "schema": "mlst-followup-execution-mode/1",
+   "package": "r2_t20_theta012",
+   "decision": "serial",
+   "serial_wall_hours_estimate": 3.9,
+   "serial_wall_hours_low": 2.0,
+   "serial_wall_hours_high": 8.0,
+   "planning_anchor_hours": 5.0,
+   "planning_anchor_range_hours": [
+    2.0,
+    8.0
+   ],
+   "fits_planning_anchor": true,
+   "borderline": false,
+   "basis": "966-cell required matrix; measured production fit cells 1.74/3.46/6.73 s at N=400/800/1600 (d=256, R=4), projected ~1.4e4 CPU-s",
+   "sharding": {
+    "adopted": false,
+    "conditions_met": {
+     "disjoint_cell_ownership": false,
+     "immutable_receipts": false,
+     "duplicate_missing_detection": false,
+     "every_charged_attempt_preserved": false,
+     "target_filesystem_locking_validated": false
+    },
+    "why_not": "well within the 2-8 h anchor; serial is sufficient"
+   },
+   "lock_rewrite_required": false,
+   "fallback": "serial one-worker execution",
+   "rationale": "Required matrix is small; the optional theta=0.40 geometry is a costed expansion and is not required for the claimed scope."
+  },
+  "r3_t21_finite": {
+   "schema": "mlst-followup-execution-mode/1",
+   "package": "r3_t21_finite",
+   "decision": "serial",
+   "serial_wall_hours_estimate": 0.35,
+   "serial_wall_hours_low": 0.23,
+   "serial_wall_hours_high": 1.0,
+   "planning_anchor_hours": 7.0,
+   "fits_planning_anchor": true,
+   "borderline": false,
+   "basis": "measured BENCHMARK.json cell compute 816.9 s for 3456 fits at d=256/512/1024, plus unmeasured harness/reduce bounded by the cell count",
+   "sharding": {
+    "adopted": false,
+    "conditions_met": {
+     "disjoint_cell_ownership": false,
+     "immutable_receipts": false,
+     "duplicate_missing_detection": false,
+     "every_charged_attempt_preserved": false,
+     "target_filesystem_locking_validated": false
+    },
+    "why_not": "far below the <= 7 h anchor; serial is sufficient"
+   },
+   "lock_rewrite_required": false,
+   "fallback": "serial one-worker execution",
+   "rationale": "Targeted fixed-gamma ladder; the measured cell compute is minutes, so no parallel infrastructure is warranted."
+  },
+  "r4_t22_feasibility": {
+   "schema": "mlst-followup-execution-mode/1",
+   "package": "r4_t22_feasibility",
+   "decision": "serial",
+   "serial_wall_hours_estimate": 53.3,
+   "serial_wall_hours_after_screening": 28.3,
+   "serial_wall_hours_low": 45.0,
+   "serial_wall_hours_high": 67.0,
+   "planning_anchor_hours": 67.0,
+   "fits_planning_anchor": true,
+   "borderline": false,
+   "basis": "module (a) 320 cells 102->1000 s at n_files 4->64 (50 MC) ~34.6 h + module (b) 240 cells at n=16 ~18.7 h; n=32/64 removal saves ~25 h",
+   "sharding": {
+    "adopted": false,
+    "conditions_met": {
+     "disjoint_cell_ownership": false,
+     "immutable_receipts": false,
+     "duplicate_missing_detection": false,
+     "every_charged_attempt_preserved": false,
+     "target_filesystem_locking_validated": false
+    },
+    "why_not": "serial fits the 67 h anchor and the screening can reduce it; serial is sufficient"
+   },
+   "lock_rewrite_required": false,
+   "r1_cancellation_gate": {
+    "declared": true,
+    "effect": "if R1's frozen outcome fails the precondition, the n_files=32/64 cells are CANCELLED (not deferred), an R4_INFEASIBLE receipt is emitted, and the cells are omitted from the launch plan and cost report",
+    "see": "PROTOCOL_R4_T22_FEASIBILITY_v1.json:inference.feasibility.r1_precondition"
+   },
+   "fallback": "serial one-worker execution",
+   "rationale": "The old 67 h estimate omitted the development-gate module; R4 now costs the two modules separately and cancels large-file cells when R1 fails."
+  },
+  "r5_t19_reach": {
+   "schema": "mlst-followup-execution-mode/1",
+   "package": "r5_t19_reach",
+   "decision": "serial",
+   "serial_wall_hours_estimate": 1.0,
+   "serial_wall_hours_low": 0.2,
+   "serial_wall_hours_high": 2.0,
+   "planning_anchor_hours": 4.5,
+   "planning_anchor_range_hours": [
+    3.0,
+    6.0
+   ],
+   "fits_planning_anchor": true,
+   "borderline": false,
+   "basis": "4 cells x 20 independent seeds over the 10.2-million-sample grid at d=256; projected from the d=32 fixture by sample-count x dimension scaling, NOT measured at production m",
+   "measurement_required_before_allocation": true,
+   "measurement_note": "a production-calibration pilot cell must be measured before the multi-million-sample allocation is priced; the projection is a planning bound only",
+   "sharding": {
+    "adopted": false,
+    "conditions_met": {
+     "disjoint_cell_ownership": false,
+     "immutable_receipts": false,
+     "duplicate_missing_detection": false,
+     "every_charged_attempt_preserved": false,
+     "target_filesystem_locking_validated": false
+    },
+    "why_not": "optional package, well within the 3-6 h anchor even at the upper projection; serial is sufficient"
+   },
+   "lock_rewrite_required": false,
+   "fallback": "serial one-worker execution; bounded memory keeps the allocation safe",
+   "rationale": "R5 is optional. Bounded-memory accumulation means memory is O(chunk*d + d^2), so no storage-driven parallelism is needed."
+  }
+ }
+}

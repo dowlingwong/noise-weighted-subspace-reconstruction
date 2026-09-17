@@ -1,0 +1,27 @@
+{
+ "schema": "mlst-followup-execution-mode/1",
+ "package": "r2_t20_theta012",
+ "decision": "serial",
+ "serial_wall_hours_estimate": 3.9,
+ "serial_wall_hours_low": 2.0,
+ "serial_wall_hours_high": 8.0,
+ "planning_anchor_hours": 5.0,
+ "planning_anchor_range_hours": [2.0, 8.0],
+ "fits_planning_anchor": true,
+ "borderline": false,
+ "basis": "966-cell required matrix; measured production fit cells 1.74/3.46/6.73 s at N=400/800/1600 (d=256, R=4), projected ~1.4e4 CPU-s",
+ "sharding": {
+  "adopted": false,
+  "conditions_met": {
+   "disjoint_cell_ownership": false,
+   "immutable_receipts": false,
+   "duplicate_missing_detection": false,
+   "every_charged_attempt_preserved": false,
+   "target_filesystem_locking_validated": false
+  },
+  "why_not": "well within the 2-8 h anchor; serial is sufficient"
+ },
+ "lock_rewrite_required": false,
+ "fallback": "serial one-worker execution",
+ "rationale": "Required matrix is small; the optional theta=0.40 geometry is a costed expansion and is not required for the claimed scope."
+}

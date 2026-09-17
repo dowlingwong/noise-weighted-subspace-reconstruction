@@ -1,0 +1,32 @@
+{
+ "schema": "mlst-followup-execution-mode/1",
+ "package": "r4_t22_feasibility",
+ "decision": "serial",
+ "serial_wall_hours_estimate": 53.3,
+ "serial_wall_hours_after_screening": 28.3,
+ "serial_wall_hours_low": 45.0,
+ "serial_wall_hours_high": 67.0,
+ "planning_anchor_hours": 67.0,
+ "fits_planning_anchor": true,
+ "borderline": false,
+ "basis": "module (a) 320 cells 102->1000 s at n_files 4->64 (50 MC) ~34.6 h + module (b) 240 cells at n=16 ~18.7 h; n=32/64 removal saves ~25 h",
+ "sharding": {
+  "adopted": false,
+  "conditions_met": {
+   "disjoint_cell_ownership": false,
+   "immutable_receipts": false,
+   "duplicate_missing_detection": false,
+   "every_charged_attempt_preserved": false,
+   "target_filesystem_locking_validated": false
+  },
+  "why_not": "serial fits the 67 h anchor and the screening can reduce it; serial is sufficient"
+ },
+ "lock_rewrite_required": false,
+ "r1_cancellation_gate": {
+  "declared": true,
+  "effect": "if R1's frozen outcome fails the precondition, the n_files=32/64 cells are CANCELLED (not deferred), an R4_INFEASIBLE receipt is emitted, and the cells are omitted from the launch plan and cost report",
+  "see": "PROTOCOL_R4_T22_FEASIBILITY_v1.json:inference.feasibility.r1_precondition"
+ },
+ "fallback": "serial one-worker execution",
+ "rationale": "The old 67 h estimate omitted the development-gate module; R4 now costs the two modules separately and cancels large-file cells when R1 fails."
+}

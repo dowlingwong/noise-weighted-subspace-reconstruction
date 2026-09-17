@@ -1,0 +1,291 @@
+{
+ "schema": "mlst-local-package/1",
+ "package": "r1_t22_calibration",
+ "version": "R1-v2",
+ "title": "R1-v2: T22-S interval calibration with exact baseline carry-through and primary-eligibility split",
+ "supersedes": {
+  "package": "t22s",
+  "protocol_file": "experiments/mlst2026/successor_20260913/t22s/PROTOCOL_T22S_v2.json",
+  "protocol_sha256_expected": "recorded in the successor_20260913 reduction",
+  "what_is_retained": "the 65 non-drift scenarios, the four drift stress scenarios, n_files = 4/8/16, the declared generators, effect scales, the [0.925,0.975] Wilson coverage band, the 0.07 type-I threshold and the three-claim Holm family",
+  "what_changes": "a frozen candidate interval family is added and at most one adequate candidate is selected on fresh pilot seeds before confirmation",
+  "r1_protocol_v1": {
+   "protocol_file": "experiments/mlst2026/followup_20260917/r1_t22_calibration/PROTOCOL_R1_T22_CALIBRATION_v1.json",
+   "what_is_retained": "the scenario catalogue, tolerances, seed namespaces, allocation and the candidate machinery",
+   "what_changes": "(1) the archived two_stage endpoints/p are carried through exactly instead of being rebuilt as point+/-z*SE; (2) a normal approximation is a separately named candidate (normal_z); (3) welch_fe_t and re_t are secondary diagnostics with different targets and are excluded from primary selection; (4) welch_fe_t dof is n_files-1, not the bootstrap draw count; (5) one executable type-I predicate (upper Wilson bound <= 0.07) replaces the overlap/upper-bound inconsistency; (6) a confirmation acceptance receipt requires a complete reduction"
+  }
+ },
+ "provenance": {
+  "designed_after": "2026-09-17",
+  "observed_before_design": "the September T22-S coverage failures and the standard-error-miscalibration diagnosis were observed before this protocol was written; fresh confirmation can validate a new hypothesis, it cannot retroactively preregister the old one",
+  "no_prior_r1_protocol": "this is the first R1-style calibration package; it reuses the archived pipeline through the successor_20260913 t22s module and never edits it"
+ },
+ "question": "Does a small, theoretically justified candidate interval family, frozen before any new production data and selected on fresh pilot seeds under an all-scenario adequacy rule, achieve the archived [0.925,0.975] coverage band across the 65 non-drift scenarios at 4/8/16 files while keeping a coherent type-I rule at or below 0.07?",
+ "hypotheses": {
+  "H1_calibration": "the frozen primary candidate's 95% interval Wilson band is not entirely outside [0.925,0.975] on every non-drift scenario",
+  "H1t_type1": "with the frozen candidate's coherent p-value and the original Holm family, P(any null claim supported) is <= 0.07 on every null scenario",
+  "H2_selection": "the pilot either freezes exactly one adequate candidate under the predeclared all-scenario rule or freezes 'none'; 'none' is a reportable outcome and is not repaired on confirmation",
+  "H3_withholding": "descriptive: the withholding rate is reported per scenario and per candidate; zero false positives caused by universal withholding is not success",
+  "H4_power": "descriptive: unconditional medium-effect power is reported separately from withholding and from conditional-on-not-withheld power",
+  "H5_secondary": "every candidate's coverage, length, bias and standard-error calibration are reported beside the archived two-stage baseline, never as a replacement for it"
+ },
+ "independent_unit": "a newly simulated collection of files (one Monte-Carlo replicate), not a bootstrap draw; candidates are scored on the same replicate so comparisons are paired",
+ "estimands": {
+  "primary": "the equal-file mean of the per-file population contrasts (the archived estimand)",
+  "candidate_targets": "candidates.py TARGET, one per candidate; the random-effects candidate targets the precision-weighted file-effect mean and any target mismatch is labelled",
+  "truth": "declared in the scenario (true_mu) exactly as the archived simulator computes it; no new-generator correction is applied in this version"
+ },
+ "controls": {
+  "t_equal_file_matches_archived_t": {
+   "checks": "the candidate t interval reproduces the archived tidmad_endpoint.t_interval on the same per-file means",
+   "replicates": 60
+  },
+  "coherent_pvalue_matches_pivot": {
+   "checks": "the coherent two-sided p equals 2(1 - F_t(|point|/se, dof)) for a t candidate"
+  },
+  "interval_ordering": {
+   "checks": "every candidate satisfies lo <= point <= hi on a fixed per-file fixture"
+  },
+  "targets_documented": {
+   "checks": "every candidate declares a target estimand and assumptions"
+  }
+ },
+ "candidate_family": [
+  "two_stage",
+  "normal_z",
+  "t_equal_file",
+  "two_stage_t",
+  "welch_fe_t",
+  "re_t"
+ ],
+ "seed_namespaces": {
+  "development": [
+   920000,
+   920999
+  ],
+  "pilot": [
+   21000,
+   21299
+  ],
+  "confirmation": [
+   22000,
+   22499
+  ]
+ },
+ "inference": {
+  "coverage_band": [
+   0.925,
+   0.975
+  ],
+  "coverage_rule": "Wilson interval not entirely outside the band",
+  "type1_threshold": 0.07,
+  "claims": {
+   "limited_recovery": [
+    "zero|empca",
+    "calibration-mean|empca"
+   ],
+   "denoising_benefit": [
+    "raw-bin|empca"
+   ],
+   "metric_contribution": [
+    "pca|empca"
+   ]
+  },
+  "multiplicity": "Holm-Bonferroni step-down over the three claims, familywise level 0.05, using the selected candidate's coherent p-value",
+  "block_grid_evaluation": [
+   1,
+   2,
+   4,
+   8,
+   16,
+   32
+  ],
+  "block_grid_calibration": [
+   1,
+   2,
+   4,
+   8
+  ],
+  "adequacy_rule": "a PRIMARY-ELIGIBLE candidate is adequate if on every non-drift pilot scenario its coverage Wilson interval is not entirely outside [0.925,0.975] and its any-null-claim type-I upper Wilson bound is <= 0.07; among adequate candidates choose the shortest median primary interval length; if none is adequate freeze 'none'",
+  "simultaneous_scope": "confirmation reports every candidate separately; the frozen candidate is primary and the others are secondary, with no post-hoc reselection",
+  "type1_rule": "upper Wilson bound of the any-null-claim error rate <= 0.07 (single executable predicate, candidates.type1_accepts_upper_bound)",
+  "eligibility": "only equal-file-target candidates may replace the primary; target-mismatched candidates are reported beside it and cannot be selected"
+ },
+ "stopping_rule": "fixed allocation: pilot 4 chunks x 8 pilot scenarios x 100 MC = 3200 replicates; confirmation 10 chunks x 69 scenarios x 100 MC = 69,000 replicates; the run stops when the enumerated cells complete",
+ "failure_interpretation": {
+  "coverage_outside_tolerance": "the candidate does not repair the archived miscalibration in that regime; reported as such, with the baseline beside it",
+  "none_adequate": "no candidate met the all-scenario rule; the calibration is reported as a failure and R4 must not assume an interval exists",
+  "type1_above_tolerance": "the coherent decision rule over-claims in that regime; any future instrument run at that regime is infeasible",
+  "control_failure": "the run is not reducible (exit 4); the candidate code or the reuse of the archived pipeline is wrong",
+  "high_withholding": "counted separately; conditional-on-not-withheld power is not a substitute"
+ },
+ "calibration_tolerances": {
+  "coverage": [
+   0.925,
+   0.975
+  ],
+  "type1": [
+   0.0,
+   0.07
+  ]
+ },
+ "matrix": {
+  "production": {
+   "pilot_mc_per_scenario": 400,
+   "mc_replicates_per_scenario": 1000,
+   "mc_per_cell": 100,
+   "replicates": {
+    "file": 1000,
+    "hier": 4000,
+    "curve": 200
+   },
+   "controls": {
+    "t_equal_file_matches_archived_t": {
+     "replicates": 60
+    },
+    "coherent_pvalue_matches_pivot": {},
+    "interval_ordering": {},
+    "targets_documented": {}
+   }
+  },
+  "fixture": {
+   "chunks": 2,
+   "mc_per_cell": 20,
+   "n_pilot_scenarios": 2,
+   "replicates": {
+    "file": 40,
+    "hier": 200,
+    "curve": 30
+   },
+   "controls": {
+    "t_equal_file_matches_archived_t": {
+     "replicates": 60
+    },
+    "coherent_pvalue_matches_pivot": {},
+    "interval_ordering": {},
+    "targets_documented": {}
+   }
+  },
+  "scenario_catalogue": {
+   "pilot": [
+    "null-partial-n4-phi0-tau0.01",
+    "null-partial-n16-phi0.6-tau0.01",
+    "alt-medium-n4-phi0-tau0.01",
+    "alt-medium-n16-phi0.6-tau0.01",
+    "null-complete-n8-phi0.85-tau0.01",
+    "alt-small-n8-phi0.3-tau0.01",
+    "alt-medium-n8-phi0.6-tau0.03-dominant",
+    "alt-large-n4-phi0.6-tau0.01-drift0.15"
+   ],
+   "confirmation": [
+    "null-complete-n4-phi0-tau0.01",
+    "null-complete-n4-phi0.6-tau0.01",
+    "null-complete-n4-phi0.85-tau0.01",
+    "null-complete-n8-phi0-tau0.01",
+    "null-complete-n8-phi0.6-tau0.01",
+    "null-complete-n8-phi0.85-tau0.01",
+    "null-complete-n16-phi0-tau0.01",
+    "null-complete-n16-phi0.6-tau0.01",
+    "null-complete-n16-phi0.85-tau0.01",
+    "null-partial-n4-phi0-tau0.01",
+    "null-partial-n4-phi0.6-tau0.01",
+    "null-partial-n4-phi0.85-tau0.01",
+    "null-partial-n8-phi0-tau0.01",
+    "null-partial-n8-phi0.6-tau0.01",
+    "null-partial-n8-phi0.85-tau0.01",
+    "null-partial-n16-phi0-tau0.01",
+    "null-partial-n16-phi0.6-tau0.01",
+    "null-partial-n16-phi0.85-tau0.01",
+    "alt-small-n4-phi0-tau0.01",
+    "alt-small-n4-phi0.6-tau0.01",
+    "alt-small-n4-phi0.85-tau0.01",
+    "alt-small-n8-phi0-tau0.01",
+    "alt-small-n8-phi0.6-tau0.01",
+    "alt-small-n8-phi0.85-tau0.01",
+    "alt-small-n16-phi0-tau0.01",
+    "alt-small-n16-phi0.6-tau0.01",
+    "alt-small-n16-phi0.85-tau0.01",
+    "alt-medium-n4-phi0-tau0.01",
+    "alt-medium-n4-phi0.6-tau0.01",
+    "alt-medium-n4-phi0.85-tau0.01",
+    "alt-medium-n8-phi0-tau0.01",
+    "alt-medium-n8-phi0.6-tau0.01",
+    "alt-medium-n8-phi0.85-tau0.01",
+    "alt-medium-n16-phi0-tau0.01",
+    "alt-medium-n16-phi0.6-tau0.01",
+    "alt-medium-n16-phi0.85-tau0.01",
+    "alt-large-n4-phi0-tau0.01",
+    "alt-large-n4-phi0.6-tau0.01",
+    "alt-large-n4-phi0.85-tau0.01",
+    "alt-large-n8-phi0-tau0.01",
+    "alt-large-n8-phi0.6-tau0.01",
+    "alt-large-n8-phi0.85-tau0.01",
+    "alt-large-n16-phi0-tau0.01",
+    "alt-large-n16-phi0.6-tau0.01",
+    "alt-large-n16-phi0.85-tau0.01",
+    "null-partial-n4-phi0.3-tau0.01",
+    "null-partial-n4-phi0.6-tau0",
+    "null-partial-n4-phi0.6-tau0.03",
+    "null-partial-n4-phi0.6-tau0.03-dominant",
+    "null-partial-n4-phi0.6-tau0.01-drift0.15",
+    "null-partial-n4-phi0.6-tau0.01-t3",
+    "null-partial-n16-phi0.3-tau0.01",
+    "null-partial-n16-phi0.6-tau0",
+    "null-partial-n16-phi0.6-tau0.03",
+    "null-partial-n16-phi0.6-tau0.03-dominant",
+    "null-partial-n16-phi0.6-tau0.01-drift0.15",
+    "null-partial-n16-phi0.6-tau0.01-t3",
+    "alt-medium-n4-phi0.3-tau0.01",
+    "alt-medium-n4-phi0.6-tau0",
+    "alt-medium-n4-phi0.6-tau0.03",
+    "alt-medium-n4-phi0.6-tau0.03-dominant",
+    "alt-medium-n4-phi0.6-tau0.01-drift0.15",
+    "alt-medium-n4-phi0.6-tau0.01-t3",
+    "alt-medium-n16-phi0.3-tau0.01",
+    "alt-medium-n16-phi0.6-tau0",
+    "alt-medium-n16-phi0.6-tau0.03",
+    "alt-medium-n16-phi0.6-tau0.03-dominant",
+    "alt-medium-n16-phi0.6-tau0.01-drift0.15",
+    "alt-medium-n16-phi0.6-tau0.01-t3"
+   ],
+   "development": [
+    "null-partial-n4-phi0-tau0.01",
+    "alt-large-n4-phi0-tau0.01",
+    "null-partial-n16-phi0-tau0.01",
+    "alt-medium-n4-phi0.6-tau0.01-drift0.3"
+   ]
+  }
+ },
+ "budget": {
+  "estimator_fits_cap": 16,
+  "retry_policy": "a failed cell is charged and retried only by an explicit --allow-repeat; retries are never refunded"
+ },
+ "explicitly_not_claimed": [
+  "any change to the archived T22-S verdicts, intervals or p-values (all withheld)",
+  "that the candidate family is exhaustive or that the selection is the only defensible rule",
+  "adequacy of any interval on unexamined instrument data",
+  "that a repaired coverage implies a coherent decision rule unless the candidate's own p is used",
+  "any analysis of the archived pulse proxy",
+  "any scientific result from fixture (development) runs"
+ ],
+ "primary_eligible": [
+  "two_stage",
+  "normal_z",
+  "t_equal_file",
+  "two_stage_t"
+ ],
+ "secondary_diagnostic": [
+  "welch_fe_t",
+  "re_t"
+ ],
+ "change_log": [
+  {
+   "version": "R1-v1",
+   "change": "initial R1 protocol (superseded by v2; retained)"
+  },
+  {
+   "version": "R1-v2",
+   "change": "exact archived baseline carry-through; normal_z named candidate; primary-eligibility split; effective-df fix; unified type-I predicate; acceptance requires a complete confirmation reduction"
+  }
+ ]
+}

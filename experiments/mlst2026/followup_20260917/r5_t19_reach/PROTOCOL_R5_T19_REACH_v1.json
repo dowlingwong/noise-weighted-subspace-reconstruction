@@ -1,0 +1,67 @@
+{
+ "schema": "mlst-local-package/1",
+ "package": "r5_t19_reach",
+ "version": "R5-v1",
+ "title": "R5 (optional): T19 S_full theorem-domain reachability at a larger calibration allocation",
+ "supersedes": {
+  "package": "t19s",
+  "protocol_file": "experiments/mlst2026/successor_20260913/t19s/PROTOCOL_T19S_v2.json",
+  "what_changes": "a new fixed larger calibration-size grid for the S_full arm only, including the old anchor and values around/beyond the approximately 2.7-million-sample extrapolation; the old protocol's rule forbids enlarging m after the fact, so this is a new labelled reachability extension"
+ },
+ "provenance": {
+  "designed_after": "2026-09-17",
+  "observed_before_design": "the September T19-S finding that S_full did not reach eta <= 0.1 at the allocated m (median eta 0.454 at 131,072 and 0.226 at 524,288) was observed before this protocol was written; the extrapolation is not a guarantee",
+  "source_change_recorded": "bounded-memory covariance accumulation (covariance.py), checked against direct construction on small fixtures"
+ },
+ "question": "At what calibration size m does the independent full sample covariance S_full reach the theorem domain eta <= 0.1 on G1, and does every in-domain realisation satisfy the unchanged 44 eta^2 remainder bound with first-order projector agreement?",
+ "hypotheses": {
+  "H1_reachability": "the eta distribution and the fraction of realisations reaching eta <= 0.1 are reported at every m; 'not reachable' at the largest m is a valid result",
+  "H2_conditional_bound": "every in-domain realisation satisfies ||P_hat - P - delta P||_op <= 44 eta^2; a violation inside eta <= 0.1 is evidence against the constant on G1 and is reported as such",
+  "H3_first_order": "the first-order projector-norm ratio is reported for in-domain realisations",
+  "H4_scaling": "the fitted median-eta-versus-m slope is reported beside the archived m^(-1/2) extrapolation",
+  "H5_integrity": "no realisation is discarded or redrawn, including out-of-domain ones; the calibration and training draws are independent"
+ },
+ "independent_unit": "one independent calibration draw of m noise samples and one independent training draw; seeds are independent across realisations",
+ "estimands": {
+  "primary": "P(eta <= 0.1) for the S_full estimator at each fixed m",
+  "secondary": "the conditional in-domain remainder/eta^2 and the first-order projector-norm ratio"
+ },
+ "controls": {
+  "streaming_matches_direct": {"checks": "the bounded-memory covariance equals the direct construction on a small fixture"},
+  "nested_arms_are_prefixes": {"checks": "nested m arms are prefixes of one stream"},
+  "out_of_domain_retained": {"checks": "out-of-domain realisations are retained in the summary"}
+ },
+ "calibration_grids": {
+  "production": [524288, 2700000, 3000000, 4000000],
+  "fixture": [4096, 8192]
+ },
+ "seed_namespaces": {"development": [924000, 924999], "pilot": [29000, 29299], "confirmation": [30000, 30499]},
+ "inference": {
+  "eta_in_domain": 0.1,
+  "eta_stress_range": [0.2, 1.3],
+  "remainder_bound_constant": 44,
+  "covariance_positivity": "lambda_min(I+E) > 0 is required for a domain classification; non-positive realisations are labelled indefinite and retained",
+  "g1": "the frozen generator G1 at d = 256, rank 2; S_full only",
+  "independent_calibration_vs_training": true,
+  "multiplicity": "none claimed; each m is reported"
+ },
+ "stopping_rule": "fixed allocation: 4 production calibration sizes x 20 independent seeds = 80 fits; the run stops when the enumerated cells complete",
+ "failure_interpretation": {
+  "not_reachable": "no m reaches eta <= 0.1; reported as the predeclared finding, not as a reason to enlarge m after the fact",
+  "in_domain_violation": "a violation inside the theorem domain is evidence against the stated constant on G1 and is reported by (m, eta, lambda_min, remainder/eta^2)",
+  "indefinite_covariance": "realisations with lambda_min(I+E) <= 0 are labelled indefinite and retained; they are not in-domain"
+ },
+ "budget": {"estimator_fits_cap": 200, "retry_policy": "failed cells are charged and retried only by an explicit --allow-repeat"},
+ "matrix": {
+  "production": {"d": 256, "m_grid": [524288, 2700000, 3000000, 4000000], "n_train": 512, "chunk": 16384, "n_seeds": 20},
+  "fixture": {"d": 32, "m_grid": [4096, 8192], "n_train": 64, "chunk": 1024, "n_seeds": 3},
+  "controls": {"streaming_matches_direct": {}, "nested_arms_are_prefixes": {}, "out_of_domain_retained": {}}
+ },
+ "explicitly_not_claimed": [
+  "an extension of the 44 eta^2 bound beyond eta <= 0.1",
+  "that passing the in-domain check proves the proposition; it is a necessary consistency check on one generator",
+  "that the extrapolated calibration size guarantees every realisation enters the domain",
+  "any change to the archived T19 registered prediction (still NOT met)",
+  "any scientific result from fixture (development) runs"
+ ]
+}

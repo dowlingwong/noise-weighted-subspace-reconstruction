@@ -1,0 +1,24 @@
+stored primary-contrast record keys: ['bias', 'bootstrap_mean', 'bootstrap_sd', 'ci95_hi', 'ci95_lo', 'covers', 'excludes_zero', 'length', 'p_two_sided', 'per_file', 'point', 're_estimate', 're_hi', 're_lo', 't_covers', 't_hi', 't_length', 't_lo', 't_mean', 'true_mu']
+
+SUPPLEMENTARY (post hoc, read-only from stored MC records; NOT part of the frozen reduction):
+random-effects interval coverage of the primary contrast, beside two-stage and t, non-drift scenarios
+
+consistency: two-stage coverage recomputed from stored records vs REDUCED.json — scenarios differing: 0
+scenarios: 65; MC replicates per scenario: [1000]
+random-effects within band: 24 of 65 | two-stage median 0.959 | t median 0.932 | random-effects median 0.876 (range 0.427-0.998)
+median length ratio random-effects / two-stage: 0.636
+
+per scenario where two-stage is outside the band (the H1 failures):
+  alt-large-n4-phi0-tau0.01                    two-stage 0.837  t 0.923  random-effects 0.765  RE within band: False
+  alt-large-n4-phi0.6-tau0.01                  two-stage 0.860  t 0.924  random-effects 0.745  RE within band: False
+  alt-large-n4-phi0.85-tau0.01                 two-stage 0.897  t 0.915  random-effects 0.742  RE within band: False
+  alt-large-n8-phi0-tau0.01                    two-stage 0.894  t 0.913  random-effects 0.752  RE within band: False
+  alt-large-n8-phi0.6-tau0.01                  two-stage 0.902  t 0.905  random-effects 0.694  RE within band: False
+  alt-medium-n4-phi0-tau0.01                   two-stage 0.892  t 0.923  random-effects 0.779  RE within band: False
+  alt-medium-n4-phi0.3-tau0.01                 two-stage 0.895  t 0.937  random-effects 0.782  RE within band: False
+  alt-medium-n4-phi0.6-tau0.01-t3              two-stage 0.896  t 0.905  random-effects 0.691  RE within band: False
+  alt-medium-n4-phi0.6-tau0.03                 two-stage 0.878  t 0.954  random-effects 0.834  RE within band: False
+  null-partial-n16-phi0.6-tau0                 two-stage 0.987  t 0.947  random-effects 0.952  RE within band: True
+  null-partial-n16-phi0.6-tau0.03-dominant     two-stage 0.996  t 0.989  random-effects 0.998  RE within band: False
+  null-partial-n4-phi0.6-tau0.03               two-stage 0.895  t 0.972  random-effects 0.871  RE within band: False
+  null-partial-n4-phi0.6-tau0.03-dominant      two-stage 0.999  t 1.000  random-effects 0.994  RE within band: False

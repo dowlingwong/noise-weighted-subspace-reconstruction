@@ -1,0 +1,32 @@
+T20 theta=0.12 contrast-model exception — diagnosis from existing outputs only
+(Corrected version. A first draft subtracted a_ref from the observed contrast although the frozen
+ prediction already includes it (runner.py:371: pred = pred + a_best_found); that draft produced
+ spurious large residuals and was discarded.)
+
+1. Pilot model selection (CV error, lower is better; frozen before confirmation):
+     c_over_N_d_over_N2     0.2895
+     c_over_N_alpha         0.2907
+     none                   0.2975
+     c_over_N               0.3467
+   selected c/N + d/N^2 beats "none" by 0.0080 (2.7%) and c/N^alpha by 0.0012 — a narrow selection margin.
+
+2. Frozen prediction (d scale) vs confirmation d, all four thetas, residual / band half-width (|ratio| > 1 = outside):
+   theta=0.0  N400:-0.10  N800:+0.41  N1000:-0.33  N1250:-0.54  N1600:+0.38  N3200:-0.30   | reducer: inside 6/6, max|stud| 1.557 vs 3.010
+   theta=0.12 N400:+0.54  N800:+0.19  N1000:+1.17  N1250:+0.91  N1600:+0.75  N3200:+0.86   | reducer: inside 5/6, max|stud| 3.370 vs 2.984
+   theta=0.25 N400:-0.21  N800:-0.13  N1000:-0.08  N1250:-0.60  N1600:-0.38  N3200:-0.31   | reducer: inside 6/6, max|stud| 1.734 vs 2.907
+   theta=0.4  N400:-0.12  N800:-0.42  N1000:-0.14  N1250:+0.17  N1600:-0.36  N3200:-0.51   | reducer: inside 6/6, max|stud| 1.481 vs 2.997
+
+3. theta=0.12 detail
+   N=  400 observed d -5.8303  prediction -5.9506  residual +0.1203  half-width 0.2217  optimisation unresolved False  restart spread 2.8e-14
+   N=  800 observed d -2.8433  prediction -2.8658  residual +0.0224  half-width 0.1201  optimisation unresolved False  restart spread 2.8e-14
+   N= 1000 observed d -2.1333  prediction -2.2105  residual +0.0772  half-width 0.0661  optimisation unresolved False  restart spread 2.8e-14
+   N= 1250 observed d -1.6253  prediction -1.6771  residual +0.0517  half-width 0.0568  optimisation unresolved False  restart spread 2.8e-14
+   N= 1600 observed d -1.1614  prediction -1.2036  residual +0.0422  half-width 0.0564  optimisation unresolved False  restart spread 2.8e-14
+   N= 3200 observed d -0.3240  prediction -0.3426  residual +0.0186  half-width 0.0216  optimisation unresolved False  restart spread 2.8e-14
+   residual sign pattern: + + + + + +; the band narrows with N (0.22 -> 0.02), so a small systematic offset first exceeds it mid-grid
+
+4. Reading (descriptive, no re-fit): at theta=0.12 the observed contrast lies systematically above (less negative than) the
+   frozen prediction at every N, by 0.02–0.12 (the other thetas show mixed residual signs), within the band except at N=1000. The exception is not an optimisation artefact (restart spread
+   ~1e-14, no unresolved cells) and not a single-point outlier in sign. It is consistent with a mildly misspecified
+   scaling model selected on a narrow CV margin. Per the protocol this is "not supported at the grid for that theta";
+   a partial pattern is not partial support.

@@ -1,0 +1,47 @@
+CRESST manuscript numbers vs CRESST-S recomputation (archive root)
+
+equal-channel mean: 21.569%  (manuscript 21.6%)
+ratio of means:     22.072%
+
+per-channel (event block-64 bootstrap, %):
+   33_36.0    mean  14.66  CI [ 10.66,  20.45]  excludes zero: True
+   33_37.0    mean  11.71  CI [  2.78,  19.93]  excludes zero: True
+   35_26.0    mean  63.63  CI [ 39.95,  85.99]  excludes zero: True
+   35_27.0    mean  13.28  CI [  9.60,  17.48]  excludes zero: True
+   35_56.0    mean  26.15  CI [ 17.16,  33.79]  excludes zero: True
+   35_57.0    mean  24.28  CI [ 10.03,  41.37]  excludes zero: True
+   35_58.0    mean   1.60  CI [  1.21,   2.07]  excludes zero: True
+  row keys: ['channel_label', 'event_block64', 'event_block64_pct', 'event_iid', 'event_iid_pct', 'fraction', 'fraction_pct', 'n_evaluation_events', 'run']
+
+archive interval constructions (recomputed):
+   {"archived": {"bootstrap_mean": 0.22245344944634585, "bootstrap_sd": 0.024637925418072904, "ci95_hi": 0.27026210674261136, "ci95_lo": 0.1746833796924436}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.2224534494
+   {"archived": {"bootstrap_mean": 0.22203318065680058, "bootstrap_sd": 0.0743439740397264, "ci95_hi": 0.38630158288225014, "ci95_lo": 0.10192706054687382}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22203318065
+   {"archived": {"bootstrap_mean": 0.22191687854071637, "bootstrap_sd": 0.022791728380391837, "ci95_hi": 0.2671488083020073, "ci95_lo": 0.1782250517112107}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22191687854
+   {"archived": {"bootstrap_mean": 0.22117404908488103, "bootstrap_sd": 0.07349181501102482, "ci95_hi": 0.3865372322856101, "ci95_lo": 0.10172783630666922}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22117404908
+   {"archived": {"bootstrap_mean": 0.22247230462196216, "bootstrap_sd": 0.023852909146072066, "ci95_hi": 0.2697466454792237, "ci95_lo": 0.1765038402623887}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22247230462
+   {"archived": {"bootstrap_mean": 0.22279592222898517, "bootstrap_sd": 0.07481032523782945, "ci95_hi": 0.38887486090793855, "ci95_lo": 0.10282791492775376}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.2227959222
+   {"archived": {"bootstrap_mean": 0.22260506942319472, "bootstrap_sd": 0.024864925340795135, "ci95_hi": 0.2712883632720793, "ci95_lo": 0.1741541444551754}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22260506942
+   {"archived": {"bootstrap_mean": 0.2228548887486855, "bootstrap_sd": 0.07483323299675244, "ci95_hi": 0.3882656011824393, "ci95_lo": 0.10312021919467834}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.222854888748
+   {"archived": {"bootstrap_mean": 0.22321393862183908, "bootstrap_sd": 0.03373335457483693, "ci95_hi": 0.2904980568219555, "ci95_lo": 0.1587077609380843}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.223213938621
+   {"archived": {"bootstrap_mean": 0.2277733372948456, "bootstrap_sd": 0.07134692428896618, "ci95_hi": 0.39832293022242443, "ci95_lo": 0.12137026529836739}, "bit_identical_to_archive": true, "max_abs_deviation": 0.0, "recomputed": {"bootstrap_mean": 0.22777333729
+
+leave_one_run_out rows:
+   drop run 33: bootstrap_mean 25.966, bootstrap_sd 8.348, ci95_hi 43.869, ci95_lo 11.600
+   drop run 35: bootstrap_mean 13.263, bootstrap_sd 1.500, ci95_hi 16.104, ci95_lo 10.226
+
+== point estimates (fraction_pct), not bootstrap means ==
+   run 33 33_36.0    fraction 14.28%  n_eval 5323
+   run 33 33_37.0    fraction 11.49%  n_eval 5440
+   run 35 35_26.0    fraction 62.04%  n_eval 1369
+   run 35 35_27.0    fraction 13.06%  n_eval 1618
+   run 35 35_56.0    fraction 25.28%  n_eval 1522
+   run 35 35_57.0    fraction 23.23%  n_eval 1931
+   run 35 35_58.0    fraction 1.60%  n_eval 2132
+  range 1.60% to 62.04%   (manuscript: 1.6% to 62.0%)
+  equal-channel mean 21.569%
+  drop run 33: mean of remaining 5 channels 25.043%  shift +3.47 points
+  drop run 35: mean of remaining 2 channels 12.884%  shift -8.69 points
+
+== run_stratified / LORO point estimates recorded by the reducer ==
+  {"between_run_contrast": {"degrees_of_freedom": 1, "interpretation": "a single one-degree-of-freedom contrast between two runs; it is a description of the archive, not an estimate of run-to-run variability", "runs": ["33", "35"], "theta_difference": -0.12159182909041372, "theta_difference_pct": -12.159182909041371}, "label": "descriptive sensitivity of the archive - not population inference; seven run/channel clusters from two runs cannot establish coverage for a new run or a new detector", "not
+  {"label": "descriptive sensitivity of the archive - not population inference; seven run/channel clusters from two runs cannot establish coverage for a new run or a new detector", "n_runs": 2, "replicates": 10000, "rows": [{"bootstrap_mean": 25.966068027186, "bootstrap_sd": 8.34809053000355, "ci95_hi": 43.86916000036521, "ci95_lo": 11.59977215046603, "dropped_run": "33", "n_channels_retained": 5, "replicates": 10000, "retained_channels": ["35_26.0", "35_27.0", "35_56.0", "35_57.0", "35_58.0"], "retained_runs": ["35"], "shift_from_headline_pct": 3.474052259726104, "theta": 0.2504296735646334, "t

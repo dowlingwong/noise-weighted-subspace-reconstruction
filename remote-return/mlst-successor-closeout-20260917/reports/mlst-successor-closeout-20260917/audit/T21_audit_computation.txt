@@ -1,0 +1,89 @@
+interpretation_rule: {'all_zero_control_fails': 'pipeline error: the run is refused at reduce (exit 4); nothing scientific is concluded', 'near_edge_disagreement': 'disagreement confined to near-edge pairs is reported as the expected finite-d limitation of an asymptotic formula, not as support and not as refutation', 'predictor_fails_on_correlated': 'if H1 fails in the correlated arm the post-hoc spike/loadings explanation of the archived T21 outcome is NOT supported; the archived verdicts (5/5 predictions not met) are unchanged either way', 'predictor_fails_on_orthogonal_only': 'if H1 fails in the orthogonal arm the isolated-spike overlap itself does not describe this learner at these sizes; the loadings step is then untested', 'predictor_passes': 'if H1 passes in both arms the explanation is supported on synthetic Gaussian spiked data with identity noise only; nothing follows for the pulse family, for real detectors, or for any universal detection edge or abstention threshold', 'regimes_not_populated': 'design error found at pilot: confirmation is refused; the grid is revised in a new protocol version'}
+
+overall: {"ci95_coverage_fraction": 0.7836538461538461, "max_primary_abs_error": 0.052704265008059636, "n_near_edge": 118, "n_near_edge_pass": 111, "n_primary": 298, "n_primary_pass": 296, "n_rows": 416, "n_unique_pass": 399, "n_unique_scored": 416, "primary_all_pass": false, "unique_all_pass": false}
+
+verdict_by_geometry: {"correlated": "supported on synthetic Gaussian spiked data only", "orthogonal": "not supported"}
+
+per_geometry: {"correlated": {"ci95_coverage_fraction": 0.7596153846153846, "max_primary_abs_error": 0.024896791210888836, "n_near_edge": 102, "n_near_edge_pass": 102, "n_primary": 106, "n_primary_pass": 106, "n_rows": 208, "n_unique_pass": 200, "n_unique_scored": 208, "primary_all_pass": true, "unique_all_pass": false}, "orthogonal": {"ci95_coverage_fraction": 0.8076923076923077, "max_primary_abs_error": 0.052704265008059636, "n_near_edge": 16, "n_near_edge_pass": 9, "n_primary": 192, "n_primary_pass": 190, "n_rows": 208, "n_unique_pass": 199, "n_unique_scored": 208, "primary_all_pass": false, "unique_all_pass": false}}
+
+per_arm: {"correlated|hi": {"ci95_coverage_fraction": 0.8173076923076923, "max_primary_abs_error": 0.024896791210888836, "n_near_edge": 51, "n_near_edge_pass": 51, "n_primary": 53, "n_primary_pass": 53, "n_rows": 104, "n_unique_pass": 96, "n_unique_scored": 104, "primary_all_pass": true, "unique_all_pass": false}, "correlated|lo": {"ci95_coverage_fraction": 0.7019230769230769, "max_primary_abs_error": 0.0203314303731278, "n_near_edge": 51, "n_near_edge_pass": 51, "n_primary": 53, "n_primary_pass": 53, "n_rows": 104, "n_unique_pass": 104, "n_unique_scored": 104, "primary_all_pass": true, "unique_all_pass": true}, "orthogonal|hi": {"ci95_coverage_fraction": 0.7692307692307693, "max_primary_abs_error": 
+
+unexcited_direction_overlap_confound (H2): [{"chance_level": 0.015625, "config": "correlated|hi|N128|grid|j0|r0", "direction": 0, "ordinary_observed_mean": 0.3242864420397945, "ordinary_predicted": 0.31247985991842997, "unique_observed_mean": 0.010345379561054437, "unique_predicted": 4.479598506033245e-32}, {"chance_level": 0.015625, "config": "correlated|hi|N128|grid|j1|r0", "direction": 1, "ordinary_observed_mean": 0.2082762295805743, "ordinary_predicted": 0.19972631794919643, "unique_observed_mean": 0.015291490104014935, "unique_predicted": 1.074892885734022e-31}, {"chance_level": 0.015625, "config": "correlated|hi|N128|grid|j2|r0", "direction": 2, "ordinary_observed_mean": 0.13862787649914088, "ordinary_predicted": 0.11936647014222021, "unique_observed_mean": 0.008899325990085425, "unique_predicted": 2.475830911752247e-32}, {"chance_level": 0.015625, "config": "correlated|hi|N128|grid|j3|r0", "direction": 3, "ordinary_observe
+
+controls (H0 etc): {"all_strong": {"correlated|hi|N128|all_strong|-|-": {"mean_recovery_by_direction": [0.6721050230246757, 0.6510229116865073, 0.6346768398174577, 0.5980734536487559], "n_seeds": 24, "predicted_by_direction": [0.6571649062187268, 0.6394906366650221, 0.6273395763468506, 0.6096653067931449]}, "correlated|lo|N1024|all_strong|-|-": {"mean_recovery_by_direction": [0.7705977941196624, 0.7716777046407984, 0.7628460627174084, 0.7558725745705178], "n_seeds": 24, "predicted_by_direction": [0.7655949025193879, 0.7631964200625604, 0.7615474633734921, 0.7591489809166646]}, "orthogonal|hi|N128|all_strong|-|-": {"mean_recovery_by_direction": [0.5959270392169951, 0.5991415811184775, 0.6005932974976752, 0.586280057765488], "n_seeds": 24, "predicted_by_direction": [0.6041091190959641, 0.6041091190959635, 0.6041091190959641, 0.6041091190959642]}, "orthogonal|lo|N1024|all_strong|-|-": {"mean_recovery_by_direc
+
+historical_verdicts_preserved: "All five registered T21 predictions (archive, 11 Sep 2026) remain NOT met; this package tests the post-hoc spike/loadings explanation on independent geometry and cannot repair those verdicts."
+
+rows: list 416
+row keys: ['abs_error_of_mean', 'ci95_covers_prediction', 'config', 'direction', 'edge_class', 'expected_n_seeds', 'gamma_arm', 'geometry', 'kind', 'n_seeds', 'observed_ci95', 'observed_mean', 'observed_se', 'pass', 'predicted', 'ratio', 'tolerance_abs', 'unique_abs_error_of_mean', 'unique_observed_ci95', 'unique_observed_mean', 'unique_observed_se', 'unique_pass', 'unique_predicted', 'varied_direction']
+
+== H1 primary failures (orthogonal) ==
+  orthogonal|hi|N128|grid|j1|r0.5      dir 1 predicted 0.0000 observed 0.0511 (CI [0.036, 0.0662]) |err| 0.0511 tol 0.05 n_seeds 20 ratio 0.500
+  orthogonal|hi|N128|grid|j3|r2        dir 3 predicted 0.4393 observed 0.3866 (CI [0.3364, 0.4315]) |err| 0.0527 tol 0.05 n_seeds 20 ratio 2.000
+
+== H1 primary near-misses (|err| > 0.04) ==
+  orthogonal orthogonal|hi|N128|grid|j3|r2        dir 3 |err| 0.0527 pass False pred 0.439 obs 0.387
+  orthogonal orthogonal|hi|N128|grid|j1|r0.5      dir 1 |err| 0.0511 pass False pred 0.000 obs 0.051
+  orthogonal orthogonal|hi|N128|grid|j2|r0.5      dir 2 |err| 0.0366 pass True pred 0.000 obs 0.037
+  orthogonal orthogonal|hi|N128|grid|j3|r0.5      dir 3 |err| 0.0365 pass True pred 0.000 obs 0.036
+  orthogonal orthogonal|lo|N1024|grid|j1|r0.5     dir 1 |err| 0.0298 pass True pred 0.000 obs 0.030
+  orthogonal orthogonal|hi|N128|grid|j1|r1.5      dir 3 |err| 0.0279 pass True pred 0.604 obs 0.576
+  orthogonal orthogonal|hi|N128|grid|j0|r0.5      dir 0 |err| 0.0276 pass True pred 0.000 obs 0.028
+  orthogonal orthogonal|hi|N128|grid|j1|r2        dir 3 |err| 0.0272 pass True pred 0.604 obs 0.577
+
+== H1' near-edge failures ==
+  orthogonal|hi|N128|grid|j0|r1        dir 0 pred 0.0000 obs 0.1150 |err| 0.1150 tol 0.1
+  orthogonal|hi|N128|grid|j1|r1        dir 1 pred 0.0000 obs 0.1608 |err| 0.1608 tol 0.1
+  orthogonal|hi|N128|grid|j2|r1        dir 2 pred 0.0000 obs 0.1232 |err| 0.1232 tol 0.1
+  orthogonal|hi|N128|grid|j3|r1        dir 3 pred 0.0000 obs 0.1214 |err| 0.1214 tol 0.1
+  orthogonal|lo|N1024|grid|j0|r1       dir 0 pred 0.0000 obs 0.1372 |err| 0.1372 tol 0.1
+  orthogonal|lo|N1024|grid|j1|r1       dir 1 pred 0.0000 obs 0.1558 |err| 0.1558 tol 0.1
+  orthogonal|lo|N1024|grid|j3|r1       dir 3 pred 0.0000 obs 0.1058 |err| 0.1058 tol 0.1
+
+== signed error direction, primary rows, by geometry ==
+  correlated n 106 mean signed (obs - pred) +0.0019; obs>pred 73 obs<pred 33
+  orthogonal n 192 mean signed (obs - pred) -0.0019; obs>pred 84 obs<pred 108
+
+== unique-recovery failures ==
+  17 of 416; by geometry {'correlated': 8, 'orthogonal': 9}; by edge_class {'primary': 9, 'near_edge': 8}
+
+== controls pass flags ==
+  all_strong: {"correlated|hi|N128|all_strong|-|-": {"mean_recovery_by_direction": [0.6721050230246757, 0.6510229116865073, 0.6346768398174577, 0.5980734536487559], "n_seeds": 24, "predicted_by_direction": [0.6571649062187268, 0.6394906366650221, 0.6273395763468506, 0.6096653067931449]}, "correlated|lo|N1024|all_
+  all_zero: {"correlated|hi|N128": {"abs_deviation": 0.000696106365995857, "chance_level": 0.015625, "max_predicted_recovery": 0.0, "mean_recovery": 0.016321106365995857, "n_seeds": 24, "pass": true, "sd_beta_single_direction": 0.010919316280026686, "tolerance_abs": 0.01114448051088781, "z": 5.0}, "correlated|l
+  correlated_unique_differs: {"max_abs_diff": 0.662075181903442, "n_cells": 1200, "note": "descriptive: in the correlated arm the two recoveries are different observables; a difference is expected, not scored"}
+  orthogonal_unique_equals_ordinary: {"max_abs_diff": 3.3306690738754696e-16, "n_cells": 1248}
+
+== ci95 coverage of prediction (descriptive) by geometry & arm ==
+  correlated|hi    ci95 covers prediction 0.817; primary 53/53; near-edge 51/51; unique 96/104
+  correlated|lo    ci95 covers prediction 0.702; primary 53/53; near-edge 51/51; unique 104/104
+  orthogonal|hi    ci95 covers prediction 0.769; primary 94/96; near-edge 4/8; unique 98/104
+  orthogonal|lo    ci95 covers prediction 0.846; primary 96/96; near-edge 5/8; unique 101/104
+
+== H2 (correlated arm, varied direction at theta_j = 0): ordinary well above chance, unique at chance ==
+  entries: 16
+  ordinary / chance: min 0.32 median 2.49
+  unique / chance:   min 0.29 median 0.57 max 0.98
+  ordinary predicted vs observed max |diff|: 0.0234
+   correlated|hi|N128|grid|j0|r0      ord 0.3243 (pred 0.3125) uniq 0.0103 chance 0.0156
+   correlated|hi|N128|grid|j1|r0      ord 0.2083 (pred 0.1997) uniq 0.0153 chance 0.0156
+   correlated|hi|N128|grid|j2|r0      ord 0.1386 (pred 0.1194) uniq 0.0089 chance 0.0156
+   correlated|hi|N128|grid|j3|r0      ord 0.0628 (pred 0.0437) uniq 0.0093 chance 0.0156
+   correlated|lo|N1024|grid|j0|r0     ord 0.3969 (pred 0.3966) uniq 0.0045 chance 0.0156
+   correlated|lo|N1024|grid|j1|r0     ord 0.2706 (pred 0.2604) uniq 0.0096 chance 0.0156
+   correlated|lo|N1024|grid|j2|r0     ord 0.1784 (pred 0.1550) uniq 0.0064 chance 0.0156
+   correlated|lo|N1024|grid|j3|r0     ord 0.0640 (pred 0.0545) uniq 0.0078 chance 0.0156
+   orthogonal|hi|N128|grid|j0|r0      ord 0.0060 (pred 0.0000) uniq 0.0060 chance 0.0156
+   orthogonal|hi|N128|grid|j1|r0      ord 0.0149 (pred 0.0000) uniq 0.0149 chance 0.0156
+   orthogonal|hi|N128|grid|j2|r0      ord 0.0110 (pred 0.0000) uniq 0.0110 chance 0.0156
+   orthogonal|hi|N128|grid|j3|r0      ord 0.0090 (pred 0.0000) uniq 0.0090 chance 0.0156
+   orthogonal|lo|N1024|grid|j0|r0     ord 0.0050 (pred 0.0000) uniq 0.0050 chance 0.0156
+   orthogonal|lo|N1024|grid|j1|r0     ord 0.0090 (pred 0.0000) uniq 0.0090 chance 0.0156
+   orthogonal|lo|N1024|grid|j2|r0     ord 0.0054 (pred 0.0000) uniq 0.0054 chance 0.0156
+   orthogonal|lo|N1024|grid|j3|r0     ord 0.0059 (pred 0.0000) uniq 0.0059 chance 0.0156
+  orthogonal arm: unique == ordinary identically, max |diff| = 3.3306690738754696e-16
+
+== H0 all-zero control ==
+  correlated|hi|N128     mean 0.01632 chance 0.01562 |dev| 0.00070 tol 0.01114 pass True
+  correlated|lo|N1024    mean 0.01779 chance 0.01562 |dev| 0.00217 tol 0.01114 pass True
+  orthogonal|hi|N128     mean 0.01724 chance 0.01562 |dev| 0.00162 tol 0.01114 pass True
+  orthogonal|lo|N1024    mean 0.01787 chance 0.01562 |dev| 0.00225 tol 0.01114 pass True

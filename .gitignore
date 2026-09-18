@@ -81,3 +81,12 @@ export/
 # upstream, ~60 MB incl. PPC/PROPOSAL tables).
 src/prometheus_simulation/external/
 src/prometheus_simulation/runs/
+
+# Remote-return successor closeout archive: commit the human-readable reports,
+# hashes and verification receipts, but keep the large transfer tarball and the
+# bulk extracted run evidence (per-cell JSON, logs) out of git. The extracted
+# markdown provenance is retained.
+remote-return/**/*.tar
+remote-return/**/extracted/**
+!remote-return/**/extracted/**/
+!remote-return/**/extracted/**/*.md

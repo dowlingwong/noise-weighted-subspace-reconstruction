@@ -1,0 +1,47 @@
+wilson z=1.959964; coverage band [0.925, 0.975]; type-I band [0.0, 0.07]
+
+reducer Wilson bounds / tolerance flags vs independent recomputation: disagreements = []
+
+H1 scope = non-drift scenarios: 65; within tolerance 52; outside 13
+  under (Wilson hi < 0.925): 10; over (Wilson lo > 0.975): 3
+    alt-large-n4-phi0-tau0.01                    0.837 [0.813,0.859]
+    alt-large-n4-phi0.6-tau0.01                  0.860 [0.837,0.880]
+    alt-medium-n4-phi0.6-tau0.03                 0.878 [0.856,0.897]
+    alt-medium-n4-phi0-tau0.01                   0.892 [0.871,0.910]
+    alt-large-n8-phi0-tau0.01                    0.894 [0.873,0.912]
+    alt-medium-n4-phi0.3-tau0.01                 0.895 [0.874,0.913]
+    null-partial-n4-phi0.6-tau0.03               0.895 [0.874,0.913]
+    alt-medium-n4-phi0.6-tau0.01-t3              0.896 [0.876,0.913]
+    alt-large-n4-phi0.85-tau0.01                 0.897 [0.877,0.914]
+    alt-large-n8-phi0.6-tau0.01                  0.902 [0.882,0.919]
+    null-partial-n16-phi0.6-tau0                 0.987 [0.978,0.992]
+    null-partial-n16-phi0.6-tau0.03-dominant     0.996 [0.990,0.998]
+    null-partial-n4-phi0.6-tau0.03-dominant      0.999 [0.994,1.000]
+drift scenarios (outside H1 scope, reported): 4; outside band 2: alt-medium-n16-phi0.6-tau0.01-drift0.15 0.921, alt-medium-n4-phi0.6-tau0.01-drift0.15 0.835, null-partial-n16-phi0.6-tau0.01-drift0.15 0.924, null-partial-n4-phi0.6-tau0.01-drift0.15 0.823
+reducer tolerance_report (all scenarios, per tolerances.applies_to): 15 of 69
+
+H2: null scenarios 30; any-null-claim outside band: 0; worst any null-partial-n4-phi0.6-tau0.03 0.024
+    per null claim outside band: 0; max rate per claim: {'denoising_benefit': 0.021, 'limited_recovery': 0.004, 'metric_contribution': 0.016}
+
+H3 withholding (non-drift) by phi: phi=0.0: median 0.430 (n=15), phi=0.3: median 0.461 (n=4), phi=0.6: median 0.595 (n=31), phi=0.85: median 0.943 (n=15)
+    drift scenarios: [0.935, 0.938, 0.939, 0.943]
+    rises with phi (medians monotone): True; approaches one under drift (min drift withholding): 0.935
+
+H4 power, P(supported | alternative), claim denoising_benefit, non-drift, by effect x n_files (min over scenarios):
+    small  n= 4: unconditional min 0.002 max 0.075 | given not withheld min 0.033 (scenarios 3)
+    small  n= 8: unconditional min 0.003 max 0.122 | given not withheld min 0.053 (scenarios 3)
+    small  n=16: unconditional min 0.003 max 0.213 | given not withheld min 0.058 (scenarios 3)
+    medium n= 4: unconditional min 0.019 max 0.486 | given not withheld min 0.297 (scenarios 8)
+    medium n= 8: unconditional min 0.039 max 0.558 | given not withheld min 0.736 (scenarios 3)
+    medium n=16: unconditional min 0.035 max 0.580 | given not withheld min 0.761 (scenarios 8)
+    large  n= 4: unconditional min 0.056 max 0.557 | given not withheld min 0.949 (scenarios 3)
+    large  n= 8: unconditional min 0.060 max 0.564 | given not withheld min 1.000 (scenarios 3)
+    large  n=16: unconditional min 0.044 max 0.583 | given not withheld min 1.000 (scenarios 3)
+
+H5 secondary: primary contrast, t-interval coverage vs two-stage (non-drift):
+    t-interval coverage median 0.932 (range 0.895-1.000); two-stage median 0.959
+    median length ratio two-stage / t: 1.027
+    t-interval within band (approx, n=1000): 49 of 65
+    random-effects interval fields present in reduction: NONE
+
+H6 bias sign resolved (primary): {False: 67, True: 2}; resolved cases: [('alt-medium-n16-phi0.6-tau0.01-t3', -1), ('null-partial-n16-phi0.6-tau0.01-t3', -1)]

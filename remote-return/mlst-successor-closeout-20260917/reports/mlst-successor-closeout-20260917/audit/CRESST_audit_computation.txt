@@ -1,0 +1,58 @@
+== H1 reproduction ==
+  verdict: every recomputed point estimate agrees with both archived sources within 1e-12
+  comparison: {"aggregate": {"theta_mean_of_channel_fractions": {"abs_deviation": 0.0, "archived": 0.21568915096737237, "recomputed": 0.21568915096737237, "within_tolerance": true}, "theta_ratio_of_channel_means": {"abs_deviation": 0.0, "archived": 0.22071864028917842, "recomputed": 0.22071864028917842, "within_tolerance": true}}, "all_within_tolerance": true, "max_abs_deviation": 0.0, "per_channel": {"33_36.0": {"fraction": 0.0, "fraction_vs_channel_summary_csv": 0.0, "max_abs_deviation": 0.0, "mean_empca_weighted_residual": 0.0, "mean_pca_weighted_residual": 0.0, "n_evaluation_events_match": true, "run_match": true, "within_tolerance": true}, "33_37.0": {"fraction": 0.0, "fraction_vs_channel_summary_csv
+  intervals: all_within_tolerance True; bit-identical 10/10; max_abs_deviation 0.0
+
+== controls (archive root) ==
+  block1_equals_iid: passed=True  {"checks": {"block1_identical_to_iid": {"passed": true}, "block64_differs_from_iid": {"passed": true}}, "passed": true}
+  empca_uniform_weight_limit: passed=True  {"checks": {"uniform_weights_reduce_empca_to_pca": {"passed": true, "relative_difference": 4.329079117224988e-05, "tolerance": 0.001}, "weighting_changes_the_pr
+  event_weight_constant: passed=True  {"checks": {"archived_event_weight_constant": {"passed": true, "value": 1.0}, "perturbed_weights_detected": {"passed": true}}, "passed": true}
+  null_dependence: passed=True  {"checks": {"between_run_variance_degrades_coverage": {"coverage_drop": 0.15499999999999992, "passed": true}, "null_arm_covers_near_nominal": {"band": [0.85, 0.
+  zero_effect_identity: passed=True  {"checks": {"all_fractions_exactly_zero": {"max_abs_fraction": 0.0, "passed": true}, "interval_degenerate_at_zero": {"passed": true}}, "passed": true}
+  scientific_checks: {"cluster_layer_adds_variance": {"block16_hierarchical/block16_channel_fixed": {"min_ratio": 2.0, "passed": true, "ratio": 3.0174607958343813, "sd_channel_fixed": 0.024637925418072904, "sd_hierarchical": 0.0743439740397264}, "block256_hierarchical/block256_channel_fixed": {"min_ratio": 2.0, "passed"
+
+== H2 cluster structure ==
+  label: descriptive sensitivity of the archive - not population inference; seven run/channel clusters from two runs cannot establish coverage for a new run or a new detector
+  per_channel_effects: {"label": "descriptive sensitivity of the archive - not population inference; seven run/channel clusters from two runs cannot establish coverage for a new run or a new detector", "replicates": 10000, "resampling": "events within the channel only; the channel layer is not resampled", "rows": [{"channel_label": "33_36.0", "event_block64": {"bootstrap_mean": 0.14664517766525345, "bootstrap_sd": 0.025171997622635795, "ci95_hi": 0.2045482102508325, "ci95_lo": 0.1066378154611919, "replicates": 10000}, "event_block64_pct": {"bootstrap_mean": 14.664517766525345, "bootstrap_sd": 2.5171997622635796, "ci
+  leave_one_run_out: {"comparison": {"all_within_tolerance": true, "key": "dropped_run", "max_endpoint_abs_deviation": 0.0, "max_point_abs_deviation": 0.0, "rows": {"33": {"endpoints": {"bootstrap_mean": {"abs_deviation": 0.0, "archived": 25.966068027186, "recomputed": 25.966068027186, "tolerance": 2.5229960199344417, "within_tolerance": true}, "bootstrap_sd": {"abs_deviation": 0.0, "archived": 8.34809053000355, "recomputed": 8.34809053000355, "tolerance": 2.5229960199344417, "within_tolerance": true}, "ci95_hi": {"
+  run_stratified: {"between_run_contrast": {"degrees_of_freedom": 1, "interpretation": "a single one-degree-of-freedom contrast between two runs; it is a description of the archive, not an estimate of run-to-run variability", "runs": ["33", "35"], "theta_difference": -0.12159182909041372, "theta_difference_pct": -12.159182909041371}, "label": "descriptive sensitivity of the archive - not population inference; seven
+
+== H3 non-identifiability (variance decomposition) ==
+  {"between_channel": {"definition": "max(0, Var_c(fraction_c) - mean_c within_channel_variance_c)", "degrees_of_freedom": 6, "moment_estimate": 0.03368835466979424, "share_of_total": 0.8866245414193652}, "between_run": {"c0": 2.8571428571428568, "channels_per_run": {"33": 2, "35": 5}, "chi2_95_width_factor_at_min_required_df": 43.32070419161645, "chi2_95_width_factor_at_this_df": 5115.61365636381, "degrees_of_freedom": 1, "identifiable_from_this_design": false, "identified": false, "mean_square_between_runs": 0.021120818430789112, "mean_square_within_runs": 0.04137126449704644, "min_runs_required_for_a_reported_component": 4, "n_runs": 2, "naive_moment_estimate": -0.007087656123190064, "naive
+
+== H4 procedure calibration (calibration root) ==
+  label: calibration of a procedure under a declared dependence model; NOT evidence about CRESST and NOT a coverage claim for any real detector
+  statement: Coverage of the archive's own hierarchical construction under a declared between-run variance.  It is a property of the procedure; it is not evidence about CRESST and it does not license a new-run claim.
+  nominal: 0.95 | reference_arm: "channels_per_run = 2, sd_run = 0.3: the arm in which the number of clusters is smallest at 2 runs (4 clusters) and the run layer is strongest, so the dependence of coverage on the number of runs is c
+  coverage_curves: {"calib_confirm|C2|sd_run0": {"by_n_runs": {"2": {"analytic_true_over_implied": 1.0, "coverage": {"half_width": 0.034747010668447084, "hi": 0.8838939268632134, "k": 341, "lo": 0.8143999055263192, "n": 400, "rate": 0.8525}, "mean_interval_length": 0.1768762777335808, "n_clusters": 4}, "4": {"analytic_true_over_implied": 1.0, "coverage": {"half_width": 0.027484582343957335, "hi": 0.9385369801335404, "k": 366, "lo": 0.8835678154456257, "n": 400, "rate": 0.915}, "mean_interval_length": 0.14287148012387385, "n_clusters": 8}, "8": {"analytic_true_over_implied": 1.0, "coverage": {"half_width": 0.022634477012235695, "hi": 0.9634015059673307, "k": 378, "lo": 0.9181325519428594, "n": 400, "rate": 0.945}, "mean_interval_length": 0.10626559042645653, "n_clusters": 16}}, "coverage_at_fewest_runs": 0.8525, "coverage_at_most_runs": 0.945, "coverage_gain_fewest_to_most_runs": 0.09249999999999992, "coverage_increases_with_runs": true, "fewest_runs": 2, "most_runs": 8, "n_runs_evaluated": [2, 4, 8]}, "calib_confirm|C2|sd_run0.3": {"by_n_runs": {"2": {"analytic_true_over_implied": 2.714285714285714, "coverage": {"half_width": 0.047582241548925125, "hi": 0.6565358891558025, "k": 244, "lo": 0.561371406
+  calibration controls: {"null_dependence": {"checks": {"between_run_variance_degrades_coverage": {"coverage_drop": 0.15499999999999992, "passed": true}, "null_arm_covers_near_nominal": {"band": [0.85, 0.99], "coverage": {"half_width": 0.020676635436840368, "hi": 0.971348541447106, "k": 382, "lo": 0.9299952705734252, "n": 
+
+== H5 robustness feasibility ==
+  {"label": "prepared and unexecuted", "primary_setting": {"covariance_model": "stationary_psd", "rank": 6, "shrinkage": 0.1, "time_cut": "full"}, "robustness_confirm": {"cells_enumerated": 315, "contrast_plan": {"aggregation": "paired differences would be aggregated over channels with the same cluster-aware construction used for the archive, and would inherit the same limitation: two runs cannot calibrate a new-run interval", "groups": {"33_36.0|first_half": {"channel": "36.0", "contrasts": ["rank4|shrink0.0", "rank4|shrink0.05", "rank4|shrink0.1", "rank4|shrink0.2", "rank4|shrink0.4", "rank6|s
+
+== reconciliation (intentionally partial) ==
+  archive: expected 395 observed 21 complete False partial True families {'archive_interval': 10, 'archive_point': 1, 'calib_control': 1, 'cluster_report': 5, 'science_control': 4}
+  calibration: expected 395 observed 25 complete False partial True families {'calib_confirm': 12, 'calib_control': 1, 'calib_pilot': 12}
+
+== H4 coverage curves (nominal 0.95), by arm and number of runs ==
+  calib_confirm|C2|sd_run0     2 runs: 0.853 [0.814,0.884] (clusters 4)  4 runs: 0.915 [0.884,0.939] (clusters 8)  8 runs: 0.945 [0.918,0.963] (clusters 16)  | increases with runs: True
+  calib_confirm|C2|sd_run0.3   2 runs: 0.610 [0.561,0.657] (clusters 4)  4 runs: 0.713 [0.666,0.755] (clusters 8)  8 runs: 0.820 [0.779,0.855] (clusters 16)  | increases with runs: True
+  calib_confirm|C5|sd_run0     2 runs: 0.915 [0.884,0.939] (clusters 10)  4 runs: 0.910 [0.878,0.934] (clusters 20)  8 runs: 0.968 [0.945,0.981] (clusters 40)  | increases with runs: True
+  calib_confirm|C5|sd_run0.3   2 runs: 0.438 [0.390,0.486] (clusters 10)  4 runs: 0.522 [0.474,0.571] (clusters 20)  8 runs: 0.575 [0.526,0.623] (clusters 40)  | increases with runs: True
+  calib_pilot|C2|sd_run0       2 runs: 0.845 [0.788,0.889] (clusters 4)  4 runs: 0.915 [0.868,0.946] (clusters 8)  8 runs: 0.950 [0.910,0.973] (clusters 16)  | increases with runs: True
+  calib_pilot|C2|sd_run0.3     2 runs: 0.610 [0.541,0.675] (clusters 4)  4 runs: 0.680 [0.612,0.741] (clusters 8)  8 runs: 0.770 [0.707,0.823] (clusters 16)  | increases with runs: True
+  calib_pilot|C5|sd_run0       2 runs: 0.890 [0.839,0.926] (clusters 10)  4 runs: 0.955 [0.917,0.976] (clusters 20)  8 runs: 0.950 [0.910,0.973] (clusters 40)  | increases with runs: True
+  calib_pilot|C5|sd_run0.3     2 runs: 0.445 [0.378,0.514] (clusters 10)  4 runs: 0.540 [0.471,0.608] (clusters 20)  8 runs: 0.590 [0.521,0.656] (clusters 40)  | increases with runs: True
+
+== what the "intentionally partial" remainder is: matrix families vs completed ==
+  family                 in matrix completed
+  archive_interval              10        10
+  archive_point                  1         1
+  calib_confirm                 12        12
+  calib_control                  1         2
+  calib_pilot                   12        12
+  cluster_report                 5         5
+  robustness_confirm           315         0   <- not run (excluded: full robustness)
+  robustness_pilot              35         0   <- not run (excluded: full robustness)
+  science_control                4         4
+  TOTAL                        395        46

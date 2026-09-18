@@ -1,0 +1,72 @@
+T22 H1 diagnosis from existing outputs only (non-drift, primary contrast)
+
+1. Coverage and interval length by number of files
+   n= 4: scenarios 25 | two-stage coverage median 0.955 min 0.837 | t median 0.956 | length two-stage/t median 0.733
+   n= 8: scenarios 15 | two-stage coverage median 0.964 min 0.894 | t median 0.940 | length two-stage/t median 1.027
+   n=16: scenarios 25 | two-stage coverage median 0.974 min 0.923 | t median 0.923 | length two-stage/t median 1.236
+
+2. By scenario kind
+   alt : scenarios 37 | two-stage median 0.940 | under-cover (<0.925 point) 13 | over (>0.975 point) 2
+   null: scenarios 28 | two-stage median 0.972 | under-cover (<0.925 point) 1 | over (>0.975 point) 13
+
+3. Heterogeneity tau at each n (two-stage coverage medians)
+   n= 4 tau=0.0  : median 0.946 (scenarios 2, range 0.916-0.975)
+   n= 4 tau=0.01 : median 0.956 (scenarios 19, range 0.837-0.968)
+   n= 4 tau=0.03 : median 0.925 (scenarios 4, range 0.878-0.999)
+   n= 8 tau=0.01 : median 0.964 (scenarios 15, range 0.894-0.979)
+   n=16 tau=0.0  : median 0.974 (scenarios 2, range 0.962-0.987)
+   n=16 tau=0.01 : median 0.974 (scenarios 19, range 0.923-0.983)
+   n=16 tau=0.03 : median 0.966 (scenarios 4, range 0.930-0.996)
+
+4. Over-coverage cases: tau and structure
+   alt-medium-n16-phi0.6-tau0.03-dominant       tau=0.03 n=16 dominant=True coverage 0.981  length two-stage/t 1.055
+   alt-small-n16-phi0.6-tau0.01                 tau=0.01 n=16 dominant=False coverage 0.979  length two-stage/t 1.273
+   null-complete-n16-phi0-tau0.01               tau=0.01 n=16 dominant=False coverage 0.977  length two-stage/t 1.245
+   null-complete-n16-phi0.6-tau0.01             tau=0.01 n=16 dominant=False coverage 0.983  length two-stage/t 1.291
+   null-complete-n16-phi0.85-tau0.01            tau=0.01 n=16 dominant=False coverage 0.977  length two-stage/t 1.318
+   null-complete-n8-phi0-tau0.01                tau=0.01 n=8 dominant=False coverage 0.976  length two-stage/t 1.027
+   null-partial-n16-phi0-tau0.01                tau=0.01 n=16 dominant=False coverage 0.976  length two-stage/t 1.244
+   null-partial-n16-phi0.3-tau0.01              tau=0.01 n=16 dominant=False coverage 0.976  length two-stage/t 1.256
+   null-partial-n16-phi0.6-tau0                 tau=0.0 n=16 dominant=False coverage 0.987  length two-stage/t 1.383
+   null-partial-n16-phi0.6-tau0.01              tau=0.01 n=16 dominant=False coverage 0.982  length two-stage/t 1.290
+   null-partial-n16-phi0.6-tau0.01-t3           tau=0.01 n=16 dominant=False coverage 0.977  length two-stage/t 1.280
+   null-partial-n16-phi0.6-tau0.03-dominant     tau=0.03 n=16 dominant=True coverage 0.996  length two-stage/t 1.075
+   null-partial-n16-phi0.85-tau0.01             tau=0.01 n=16 dominant=False coverage 0.977  length two-stage/t 1.318
+   null-partial-n4-phi0.6-tau0.03-dominant      tau=0.03 n=4 dominant=True coverage 0.999  length two-stage/t 0.592
+   null-partial-n8-phi0-tau0.01                 tau=0.01 n=8 dominant=False coverage 0.979  length two-stage/t 1.027
+
+5. Under-coverage conditional on NOT withheld (does withholding select the failures?)
+   alt-large-n4-phi0-tau0.01                    unconditional 0.837  given not withheld 0.838
+   alt-large-n4-phi0.6-tau0.01                  unconditional 0.860  given not withheld 0.868
+   alt-medium-n4-phi0.6-tau0.03                 unconditional 0.878  given not withheld 0.880
+   alt-medium-n4-phi0-tau0.01                   unconditional 0.892  given not withheld 0.898
+   alt-large-n8-phi0-tau0.01                    unconditional 0.894  given not withheld 0.899
+   alt-medium-n4-phi0.3-tau0.01                 unconditional 0.895  given not withheld 0.905
+   null-partial-n4-phi0.6-tau0.03               unconditional 0.895  given not withheld 0.888
+   alt-medium-n4-phi0.6-tau0.01-t3              unconditional 0.896  given not withheld 0.913
+   alt-large-n4-phi0.85-tau0.01                 unconditional 0.897  given not withheld 0.932
+   alt-large-n8-phi0.6-tau0.01                  unconditional 0.902  given not withheld 0.895
+
+6. Standard-error calibration (read-only from stored MC records, non-drift)
+   ratio = mean two-stage bootstrap SD / empirical SD of the point estimate across 1,000 replicates
+   (< 1: interval understates uncertainty -> under-coverage; > 1: overstates -> over-coverage)
+
+   n= 4: SE ratio median 1.066 (range 0.791-1.565, scenarios 25)
+   n= 8: SE ratio median 1.140 (range 0.952-1.165, scenarios 15)
+   n=16: SE ratio median 1.165 (range 0.896-1.665, scenarios 25)
+
+   correlation(SE ratio, two-stage coverage) across 65 scenarios: 0.788
+   H1 failures:
+     alt-large-n4-phi0-tau0.01                    SE ratio 0.791  coverage 0.837
+     alt-large-n4-phi0.6-tau0.01                  SE ratio 0.853  coverage 0.860
+     alt-medium-n4-phi0.6-tau0.03                 SE ratio 0.893  coverage 0.878
+     alt-medium-n4-phi0-tau0.01                   SE ratio 0.905  coverage 0.892
+     alt-large-n8-phi0-tau0.01                    SE ratio 0.952  coverage 0.894
+     null-partial-n4-phi0.6-tau0.03               SE ratio 0.909  coverage 0.895
+     alt-medium-n4-phi0.3-tau0.01                 SE ratio 0.927  coverage 0.895
+     alt-medium-n4-phi0.6-tau0.01-t3              SE ratio 0.976  coverage 0.896
+     alt-large-n4-phi0.85-tau0.01                 SE ratio 0.955  coverage 0.897
+     alt-large-n8-phi0.6-tau0.01                  SE ratio 0.983  coverage 0.902
+     null-partial-n16-phi0.6-tau0                 SE ratio 1.347  coverage 0.987
+     null-partial-n16-phi0.6-tau0.03-dominant     SE ratio 1.665  coverage 0.996
+     null-partial-n4-phi0.6-tau0.03-dominant      SE ratio 1.565  coverage 0.999

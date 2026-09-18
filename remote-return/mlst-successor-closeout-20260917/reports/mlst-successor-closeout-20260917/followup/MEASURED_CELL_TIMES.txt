@@ -1,0 +1,45 @@
+Measured single-worker wall time per completed cell (from ledgers; 1 BLAS thread, deepthought)
+
+t19s-continuation: total 0.32 worker-hours over 136 cells
+    algebraic     det_generic            n=   3 median      0.5s  mean      0.5s  total   0.00 h
+    algebraic     det_pure_coupling      n=   3 median      0.5s  mean      0.5s  total   0.00 h
+    algebraic     det_two_d              n=   1 median      0.0s  mean      0.0s  total   0.00 h
+    confirmation  paired                 n= 100 median      9.4s  mean      9.5s  total   0.26 h
+    control       ctrl_additive_generic  n=   3 median      0.4s  mean      0.4s  total   0.00 h
+    control       ctrl_additive_pure_coupling n=   3 median      0.4s  mean      0.4s  total   0.00 h
+    control       ctrl_block_diagonal    n=   2 median      0.5s  mean      0.5s  total   0.00 h
+    control       ctrl_zero              n=   1 median      0.4s  mean      0.4s  total   0.00 h
+    pilot         paired                 n=  20 median      9.3s  mean      9.3s  total   0.05 h
+t20s: total 2.80 worker-hours over 964 cells
+    algebraic     algebraic              n=   4 median      3.3s  mean      3.3s  total   0.00 h
+    confirmation  confirmation           n= 576 median      8.4s  mean     10.4s  total   1.67 h
+    pilot         pilot                  n= 384 median      8.9s  mean     10.6s  total   1.13 h
+t21s: total 0.11 worker-hours over 2499 cells
+    algebraic     algebraic              n=   3 median      0.1s  mean      0.1s  total   0.00 h
+    confirmation  confirmation-correlated-hi n= 520 median      0.1s  mean      0.1s  total   0.02 h
+    confirmation  confirmation-correlated-lo n= 520 median      0.2s  mean      0.2s  total   0.03 h
+    confirmation  confirmation-orthogonal-hi n= 520 median      0.1s  mean      0.1s  total   0.02 h
+    confirmation  confirmation-orthogonal-lo n= 520 median      0.2s  mean      0.2s  total   0.03 h
+    pilot         pilot-correlated-hi    n= 104 median      0.1s  mean      0.1s  total   0.00 h
+    pilot         pilot-correlated-lo    n= 104 median      0.2s  mean      0.2s  total   0.01 h
+    pilot         pilot-orthogonal-hi    n= 104 median      0.1s  mean      0.1s  total   0.00 h
+    pilot         pilot-orthogonal-lo    n= 104 median      0.2s  mean      0.2s  total   0.01 h
+t22s: total 80.08 worker-hours over 727 cells
+    confirmation  sim_confirm            n= 690 median    322.2s  mean    388.5s  total  74.47 h
+    control       control                n=   5 median      0.3s  mean      2.0s  total   0.00 h
+    pilot         sim_pilot              n=  32 median    542.9s  mean    631.3s  total   5.61 h
+cresst-archive: total 0.02 worker-hours over 21 cells
+    algebraic     archive_point          n=   1 median      0.1s  mean      0.1s  total   0.00 h
+    control       archive_interval       n=  10 median      4.1s  mean      3.2s  total   0.01 h
+    control       calib_control          n=   1 median      9.0s  mean      9.0s  total   0.00 h
+    control       cluster_report         n=   5 median      5.8s  mean      6.0s  total   0.01 h
+    control       science_control        n=   4 median      0.7s  mean      0.8s  total   0.00 h
+cresst-calibration: total 0.02 worker-hours over 25 cells
+    confirmation  calib_confirm          n=  12 median      3.6s  mean      4.5s  total   0.01 h
+    control       calib_control          n=   1 median      8.7s  mean      8.7s  total   0.00 h
+    pilot         calib_pilot            n=  12 median      1.6s  mean      1.9s  total   0.01 h
+
+T22 confirmation cell time by number of files:
+    n_files= 4: n=270 median  203.2s
+    n_files= 8: n=150 median  322.2s
+    n_files=16: n=270 median  560.9s

@@ -1,0 +1,45 @@
+frozen_choice: {'d_minus_a_ref': 'c_over_N_d_over_N2', 'x_U': 'c_over_N_d_over_N2'}
+excluded_thetas: []
+
+== H1 control (theta=0) ==
+   {'a_best_found': -5.684341886080802e-14, 'a_lower_bound': 0.0, 'd_profile': '- - - - - -', 'passed': True}
+
+== H2 invariants ==
+   {"0.0": {"Delta_k": 3.9999999999999996, "a_interval": [0.0, -5.684341886080802e-14], "eigenvalues_max_abs_dev": 3.552713678800501e-15, "excluded": false, "invariant_problems": [], "k_minus_cap": 6.217248937900877e-15, "numerical_rank": 256, "snr_per_coordinate": 0.8070468873438368, "spectrum_fixed": true, "theta0_control_passed": true, "trace_K": 206.60400316002222}, "0.12": {"Delta_k": 3.9999999999999996, "a_interval": [0.22680641976639035, 0.5383624199686778], "eigenvalues_max_abs_dev": 1.0658141036401503e-14, "excluded": false, "invariant_problems": [], "k_minus_cap": 0.056701604941597594, "numerical_rank": 256, "snr_per_coordinate": 0.807046887343837, "spectrum_fixed": true, "theta0_control_passed": null, "trace_K": 206.60400316002227}, "0.25": {"Delta_k": 3.9999999999999996, "a_interval": [0.9721069333567341, 2.3073718086803865], "eigenvalues_max_abs_dev": 8.881784197001252e-15, "ex
+
+== H3 sign profiles and a-interval per theta (predicted bracket: theta_1 above core grid, theta_2 inside, theta_3 below) ==
+  grid N: {'N': [400, 800, 1000, 1250, 1600, 3200], 'theta': [0.0, 0.12, 0.25, 0.4]}
+  theta=0.0   profile "- - - - - -" decided 6/6 brackets [] | a_interval [0.0, -0.0] | k-cap 0.0000 | unresolved cells 0
+  theta=0.12  profile "- - - - - -" decided 6/6 brackets [] | a_interval [0.2268, 0.5384] | k-cap 0.0567 | unresolved cells 0
+  theta=0.25  profile "- - - + + +" decided 6/6 brackets [2] | a_interval [0.9721, 2.3074] | k-cap 0.2430 | unresolved cells 0
+  theta=0.4   profile "- + + + + +" decided 6/6 brackets [0] | a_interval [2.4254, 5.7572] | k-cap 0.6063 | unresolved cells 0
+
+== H4 scoring of frozen models ==
+  scoring keys: ['d_minus_a_ref', 'x_U']
+  d_minus_a_ref  theta=per_theta {"0.0": {"critical_value": 3.0098767775387145, "inside_band": [true, true, true, true, true, true], "max_studentized_abs_dev": 1.5566984525257936, "n_grid": 6, "n_inside": 6, "prediction": [-6.355345091039826, -3.3363937353419204, -2.6945103786450644, -2.17186
+  d_minus_a_ref  scored: True
+  d_minus_a_ref  selected: c_over_N_d_over_N2
+  d_minus_a_ref  supported_at_grid_all_thetas: False
+  x_U            theta=per_theta {"0.0": {"critical_value": 3.0373199340429915, "inside_band": [true, true, true, true, true, true], "max_studentized_abs_dev": 1.529444985252829, "n_grid": 6, "n_inside": 6, "prediction": [6.812389834298157, 3.5627306380907724, 2.8752302258232887, 2.3162134384
+  x_U            scored: True
+  x_U            selected: c_over_N_d_over_N2
+  x_U            supported_at_grid_all_thetas: True
+
+== H4 per theta detail ==
+  x_U            theta=0.0   inside 6/6  max|studentized dev| 1.529 vs critical 3.037  outside at N=[]  supported=True
+  x_U            theta=0.12  inside 6/6  max|studentized dev| 2.819 vs critical 3.021  outside at N=[]  supported=True
+  x_U            theta=0.25  inside 6/6  max|studentized dev| 1.722 vs critical 2.930  outside at N=[]  supported=True
+  x_U            theta=0.4   inside 6/6  max|studentized dev| 1.716 vs critical 2.938  outside at N=[]  supported=True
+  d_minus_a_ref  theta=0.0   inside 6/6  max|studentized dev| 1.557 vs critical 3.010  outside at N=[]  supported=True
+  d_minus_a_ref  theta=0.12  inside 5/6  max|studentized dev| 3.370 vs critical 2.984  outside at N=[1000]  supported=False
+  d_minus_a_ref  theta=0.25  inside 6/6  max|studentized dev| 1.734 vs critical 2.907  outside at N=[]  supported=True
+  d_minus_a_ref  theta=0.4   inside 6/6  max|studentized dev| 1.481 vs critical 2.997  outside at N=[]  supported=True
+
+== H3 predicted bracket placement vs observed ==
+  design text: bracket above core grid for theta_1, inside core grid for theta_2, below for theta_3 (theta_1..3 = 0.12, 0.25, 0.4)
+  design keys: ['C', 'N_anchor', 'N_core', 'N_grid', 'R', 'R_pop', 'T', 'als_n_iter', 'als_tol', 'confirmation_seeds', 'd', 'fixture', 'geometry_seed', 'k', 'k_c', 'k_t', 'pilot_seeds', 'pop_als_n_iter', 'pop_als_tol', 'population_intervals_recorded_at_design']
+  theta=0.12: profile - - - - - -; bracket index [] -> N interval []
+  theta=0.25: profile - - - + + +; bracket index [2] -> N interval [(1000, 1250)]
+  theta=0.4: profile - + + + + +; bracket index [0] -> N interval [(400, 800)]
+
+  nonseparability_moves: true

@@ -1,0 +1,57 @@
+scientific_checks: {'n_deterministic_cells': 16, 'n_paired_cells': 120, 'passed': True}
+
+== H1 deterministic ==
+det keys: ['controls', 'n_cells', 'order_table']
+  additive_control/generic: slopes {'angle': 2.0, 'graph': 2.0, 'projector_matrix': 2.0, 'projector_norm': 2.0}
+  additive_control/generic: slopes {'angle': 1.997, 'graph': 2.0, 'projector_matrix': 2.0, 'projector_norm': 1.996}
+  additive_control/generic: slopes {'angle': 2.0, 'graph': 2.0, 'projector_matrix': 2.0, 'projector_norm': 2.0}
+  additive_control/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  additive_control/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  additive_control/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  covariance/generic: slopes {'angle': 2.049, 'graph': 2.0, 'projector_matrix': 2.0, 'projector_norm': 2.054}
+  covariance/generic: slopes {'angle': 2.055, 'graph': 2.0, 'projector_matrix': 2.0, 'projector_norm': 2.082}
+  covariance/generic: slopes {'angle': 2.047, 'graph': 2.0, 'projector_matrix': 2.001, 'projector_norm': 2.066}
+  covariance/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  covariance/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  covariance/pure_coupling: slopes {'angle': 3.0, 'graph': 3.0, 'projector_matrix': 2.0, 'projector_norm': 3.0}
+  covariance/two_d_example: slopes {'angle': 2.999, 'graph': 2.999, 'projector_matrix': 2.0, 'projector_norm': 2.999}
+  controls (max displacement): {'block_diagonal': 1.1670072334044752e-14, 'zero': 2.102757503052029e-15}
+
+== H2 theorem-domain ==
+  C           scored 300 of selected 300; violations 0; fraction 1.0; max rem/eta^2 0.003545008128860184; undefined: None
+  F           scored 300 of selected 300; violations 0; fraction 1.0; max rem/eta^2 0.00542809230678418; undefined: None
+  S_full      scored   0 of selected   0; violations 0; fraction None; max rem/eta^2 None; undefined: no selected in-domain arm
+  S_toeplitz  scored 188 of selected 200; violations 0; fraction 1.0; max rem/eta^2 0.004008558947460431; undefined: None
+  pooled: 1.0 n 788
+
+== estimated_arm_never_in_domain: realised eta by m (from the frozen pilot selection) ==
+  S_full: m_in_domain []; theorem_domain_reachable False; median eta by m {'131072': 0.454, '2048': 4.122, '32768': 0.929, '512': 9.532, '524288': 0.226, '8192': 1.906}
+  S_toeplitz: m_in_domain [131072, 524288]; theorem_domain_reachable True; median eta by m {'131072': 0.068, '2048': 0.652, '32768': 0.15, '512': 1.168, '524288': 0.035, '8192': 0.285}
+
+== H3 first-order agreement, IN-DOMAIN classes only (H3 scope) ==
+  C/beyond               fraction_in_band 1.0000  descriptive (outside H3 scope)
+  C/in_domain            fraction_in_band 1.0000  IN SCOPE
+  C/intermediate         fraction_in_band 1.0000  descriptive (outside H3 scope)
+  C/stress               fraction_in_band 1.0000  descriptive (outside H3 scope)
+  D/beyond               fraction_in_band 1.0000  descriptive (outside H3 scope)
+  F/beyond               fraction_in_band 1.0000  descriptive (outside H3 scope)
+  F/in_domain            fraction_in_band 1.0000  IN SCOPE
+  F/intermediate         fraction_in_band 1.0000  descriptive (outside H3 scope)
+  F/stress               fraction_in_band 1.0000  descriptive (outside H3 scope)
+  S_full/beyond          fraction_in_band 0.9167  descriptive (outside H3 scope)
+  S_full/intermediate    fraction_in_band 1.0000  descriptive (outside H3 scope)
+  S_full/stress          fraction_in_band 1.0000  descriptive (outside H3 scope)
+  S_toeplitz/beyond      fraction_in_band 1.0000  descriptive (outside H3 scope)
+  S_toeplitz/in_domain   fraction_in_band 1.0000  IN SCOPE
+  S_toeplitz/intermediate fraction_in_band 1.0000  descriptive (outside H3 scope)
+  S_toeplitz/stress      fraction_in_band 1.0000  descriptive (outside H3 scope)
+
+== H4 residual orders within 0.3 of H1 ==
+  C angle            predeclared 3 mean 3.0000 CI [2.9999,3.0000] |dev| 0.0000 within0.3 True flag True
+  C graph            predeclared 3 mean 3.0000 CI [3.0000,3.0000] |dev| 0.0000 within0.3 True flag True
+  C projector_matrix predeclared 2 mean 2.0001 CI [2.0001,2.0001] |dev| 0.0001 within0.3 True flag True
+  C projector_norm   predeclared 3 mean 3.0000 CI [2.9999,3.0000] |dev| 0.0000 within0.3 True flag True
+  F angle            predeclared 2 mean 2.0035 CI [1.9874,2.0189] |dev| 0.0035 within0.3 True flag True
+  F graph            predeclared 2 mean 2.0000 CI [1.9998,2.0001] |dev| 0.0000 within0.3 True flag True
+  F projector_matrix predeclared 2 mean 2.0000 CI [1.9998,2.0001] |dev| 0.0000 within0.3 True flag True
+  F projector_norm   predeclared 2 mean 1.9848 CI [1.9420,2.0197] |dev| 0.0152 within0.3 True flag True

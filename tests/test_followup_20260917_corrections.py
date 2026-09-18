@@ -324,7 +324,9 @@ def test_f9_r2_confirmation_precheck_checks_the_pilot_digest(tmp_path):
 
 
 # --------------------------------------------------------------------------- R0-v2 export
-_EXPORT_V2 = REPO / "experiments/mlst2026/followup_20260917/r0_t22_h5/evidence_export_v2"
+# The canonical evidence_export/ holds the regenerated R0-v2 export; the original
+# R0-v1 output is retained under evidence_export_v1_retained/.
+_EXPORT_V2 = REPO / "experiments/mlst2026/followup_20260917/r0_t22_h5/evidence_export"
 
 
 @pytest.mark.skipif(not (_EXPORT_V2 / "PROVENANCE.json").exists(),

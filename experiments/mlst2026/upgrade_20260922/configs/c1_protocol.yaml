@@ -1,0 +1,38 @@
+{
+  "version": "upgrade/1",
+  "study": "c1",
+  "development_only": false,
+  "scientific_settings": {
+    "rank": 4,
+    "dimensions": [
+      64,
+      128
+    ],
+    "spectra": [
+      "S1",
+      "S2",
+      "S3"
+    ],
+    "eta": [
+      0.01,
+      0.03,
+      0.1,
+      0.3
+    ],
+    "pilot_seeds": 8,
+    "confirmation_seeds": 24,
+    "primary": "seed-level equal-cell normalized absolute prediction error advantage",
+    "uncertainty": "Student t across seed aggregates; descriptive for fixture",
+    "covariance": "AR1 0.6; fixed 4d training; nested 4d/16d/64d calibration; empirical/shrink0.1/Toeplitz; floor1e-8 trace/d"
+  },
+  "budget": {
+    "max_cells": 200,
+    "max_fits": 6000,
+    "max_unique_records": 2000000,
+    "max_rss_bytes": 2147483648,
+    "max_elapsed_seconds": 86400,
+    "cell_seconds": 600,
+    "threads": 1,
+    "retries": 0
+  }
+}

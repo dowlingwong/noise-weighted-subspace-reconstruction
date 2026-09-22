@@ -1,0 +1,57 @@
+{
+  "version": "upgrade/1",
+  "study": "cresst",
+  "development_only": false,
+  "scientific_settings": {
+    "split": "train",
+    "width": 512,
+    "pretrigger": 64,
+    "roi": [
+      128,
+      384
+    ],
+    "dt_seconds": 0.00064,
+    "channel_cap": 14,
+    "exposure": "unknown requires audit; seven historical release-test channels exposed",
+    "role_fractions": [
+      0.15,
+      0.15,
+      0.2,
+      0.2,
+      0.1,
+      0.2
+    ],
+    "primary_rank": 3,
+    "training_cap": 128,
+    "evaluation_cap": 512,
+    "calibration_cap": 1024,
+    "template_cap": 128,
+    "covariance": "circular full-space PSD transformed to support; support shrink0.1",
+    "amplitudes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "shape_coefficients": [
+      -1,
+      1
+    ],
+    "primary": "weighted_gls minus pca_gls amplitude MSE; q applied to reconstruction",
+    "uncertainty": "paired raw IDs then temporal blocks; minimum20; Bonferroni simultaneous channel intervals; cross-channel descriptive",
+    "practical_threshold": null,
+    "threshold_rationale": "No calibrated energy or defensible practical threshold; effect estimation only",
+    "minimum_noise_roles": 64,
+    "minimum_template_pulses": 16
+  },
+  "budget": {
+    "max_cells": 126,
+    "max_fits": 882,
+    "max_unique_records": 100000,
+    "max_rss_bytes": 4294967296,
+    "max_elapsed_seconds": 172800,
+    "cell_seconds": 3600,
+    "threads": 1,
+    "retries": 0
+  }
+}

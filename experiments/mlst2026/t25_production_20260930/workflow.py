@@ -46,10 +46,15 @@ def environment():
 
 def git(root,args):
     return subprocess.check_output(['git','-c','core.fsmonitor=false']+args,cwd=root,text=True,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0'}).strip()
-def sources():
+def source_files():
+    return {k:sources(include_git=False)[k] for k in ('EXP_files','MS_files')}
+
+def sources(include_git=True):
     files=sorted(set(list((ROOT/'src').rglob('*.py'))+list((ROOT/'experiments').rglob('*.py'))+list(PACKAGE.glob('*.json'))+[ROOT/'pyproject.toml']))
     msfiles=['03_theory.tex','app_main_proofs.tex','plan/T25_INTERACTION_PROTOCOL_2026-09-29.md','plan/T25_PRODUCTION_ADDENDUM_2026-09-30.md']
-    return {'EXP_files':{str(p.relative_to(ROOT)):sha(p) for p in files},'MS_files':{p:sha(msroot()/p) for p in msfiles},'EXP_head':git(ROOT,['rev-parse','HEAD']),'MS_head':git(msroot(),['rev-parse','HEAD']),'EXP_status':git(ROOT,['status','--short']),'MS_status':git(msroot(),['status','--short'])}
+    out={'EXP_files':{str(p.relative_to(ROOT)):sha(p) for p in files},'MS_files':{p:sha(msroot()/p) for p in msfiles}}
+    if not include_git:return out
+    return {**out,'EXP_head':git(ROOT,['rev-parse','HEAD']),'MS_head':git(msroot(),['rev-parse','HEAD']),'EXP_status':git(ROOT,['status','--short']),'MS_status':git(msroot(),['status','--short'])}
 def code_identity(s):return identity({k:s[k] for k in ('EXP_files','MS_files')})
 def verify_source(f):
     if sources()!=f['sources'] or environment()!=f['environment']:raise ValueError('source/environment changed since freeze')
@@ -67,7 +72,7 @@ def validate_freeze(f,portable=False):
     if f['status']!=('fixture_only' if c['development_only'] else 'confirmation'):raise ValueError('freeze status')
     if portable:
         if not c['development_only']:frozen_evidence_identities(f)
-        if code_identity(sources())!=code_identity(f['sources']):raise ValueError('portable audit must run from the frozen source bytes')
+        if code_identity(source_files())!=code_identity(f['sources']):raise ValueError('portable audit must run from the frozen source bytes')
         return
     if not c['development_only']:
         q=f['qualification']
@@ -103,10 +108,10 @@ def production_gate(acceptance,qualification,s,env):
     if q.get('host')!=socket.gethostname() or q.get('execution_mode')!='direct' or q.get('code_identity')!=code_identity(s) or q.get('environment')!=env:raise ValueError('host/source/environment qualification missing or stale')
     fixture=evidence(q,'fixture_report');evidence(q,'fixture_log',False)
     benchmark=evidence(q,'benchmark_report');author=evidence(q,'author_record');snapshot=evidence(q,'snapshot_record')
-    if fixture.get('exit')!=0 or fixture.get('tests_passed',0)<31 or fixture.get('code_identity')!=code_identity(s) or fixture.get('environment')!=env or fixture.get('log_sha256')!=q['fixture_log_sha256']:raise ValueError('fixture qualification failed')
+    if fixture.get('exit')!=0 or fixture.get('tests_passed',0)<42 or fixture.get('code_identity')!=code_identity(s) or fixture.get('environment')!=env or fixture.get('log_sha256')!=q['fixture_log_sha256']:raise ValueError('fixture qualification failed')
     if fixture.get('peak_rss_bytes',float('inf'))>BASE['budget']['rss_bytes']:raise ValueError('fixture RSS cap')
     if author.get('host')!='deepthought' or author.get('execution_mode')!='direct' or author.get('protocol_resource_caps_remain') is not True:raise ValueError('author direct-run record absent')
-    if snapshot.get('code_identity')!=code_identity(s) or snapshot.get('EXP_root')!=str(ROOT) or snapshot.get('MS_root')!=str(msroot()):raise ValueError('isolated snapshot identity absent')
+    if snapshot.get('code_identity')!=code_identity(s) or snapshot.get('EXP_root')!=str(ROOT) or snapshot.get('MS_root')!=str(msroot()) or snapshot.get('writable_source_files')!=[] or snapshot.get('stale_bytecode')!=[]:raise ValueError('isolated snapshot identity absent or not immutable')
     for role,root in [('EXP',ROOT),('MS',msroot())]:
         for relative in s[role+'_files']:
             if (root/relative).stat().st_mode & 0o222:raise ValueError('source file is writable: '+relative)
@@ -115,7 +120,7 @@ def production_gate(acceptance,qualification,s,env):
     if psutil.virtual_memory().total<8*1024**3:raise ValueError('hardware RAM below requirement')
     scratch=q.get('scratch_root')
     if not scratch or shutil.disk_usage(scratch).free<BASE['budget']['scratch_bytes']:raise ValueError('scratch qualification failed')
-    if benchmark.get('code_identity')!=code_identity(s) or benchmark.get('environment')!=env or benchmark.get('scientific_endpoints_evaluated') is not False or not 0<benchmark.get('projected_lifecycle_seconds_with_margin',0)<=BASE['budget']['campaign_seconds']:raise ValueError('lifecycle benchmark absent/stale/too slow')
+    if benchmark.get('code_identity')!=code_identity(s) or benchmark.get('environment')!=env or benchmark.get('scientific_endpoints_evaluated') is not False or not 0<benchmark.get('projected_lifecycle_seconds_with_margin',0)<=BASE['budget']['campaign_seconds'] or benchmark.get('worst_cell_within_half_cap') is not True or not 0<benchmark.get('peak_rss_bytes',0)<=BASE['budget']['rss_bytes']:raise ValueError('lifecycle benchmark absent/stale/too slow')
 
 def freeze(c,out,acceptance=None,qualification=None):
     thread_gate();out=external(out);s=sources();env=environment()
@@ -270,7 +275,7 @@ def inventory(root):
 def finite_between(v,low,high):
     return isinstance(v,(int,float)) and not isinstance(v,bool) and bool(np.isfinite(v)) and low<=v<=high
 
-def check_export(root,f):
+def check_export(root,f,exporting=False):
     """Bundle roles: EXPORT.START is the original run's single reservation, copied
     into the bundle; EXPORT.CANDIDATE is written by the export worker after the
     copy; EXPORT.COMPLETE is written last by the supervisor. EXPORT.END lives only
@@ -279,6 +284,13 @@ def check_export(root,f):
     if (root/'EXPORT.FAILED.json').exists():raise ValueError('export failed; retain attempt')
     if not (root/'EXPORT.CANDIDATE.json').exists():
         if (root/'EXPORT.COMPLETE.json').exists():raise ValueError('export completion without candidate')
+        if (root/'EXPORT.START.json').exists():
+            if (root/'EXPORT.END.json').exists():
+                end=read(root/'EXPORT.END.json');start=read(root/'EXPORT.START.json');b=f['config']['budget'];r=end.get('resources',{})
+                if set(end)!={'out','resources'} or end['out']!=start.get('out') or set(r)!={'elapsed_seconds','peak_tree_rss_bytes','scratch_bytes','exit'} or r['exit']!=0 or not finite_between(r['elapsed_seconds'],0,start.get('remaining_seconds',0)) or not finite_between(r['peak_tree_rss_bytes'],0,b['rss_bytes']) or not finite_between(r['scratch_bytes'],0,b['scratch_bytes']):raise ValueError('original-run export receipt invalid')
+                return False
+            if not exporting:raise ValueError('interrupted export: reservation without completion; no retry')
+        elif (root/'EXPORT.END.json').exists():raise ValueError('export receipt without reservation')
         return False
     if f['config']['development_only']:raise ValueError('fixture export forbidden')
     if not (root/'EXPORT.COMPLETE.json').is_file():raise ValueError('incomplete export')
@@ -313,6 +325,13 @@ def check_ledgers(root,f):
     if set(complete)!={'development_only','cells','resources','deployment'} or complete['development_only']!=dev or complete['deployment']!=VERSION or complete['cells']!=e['paired_cells']:raise ValueError('completion census')
     r=complete['resources']
     if set(r)!={'elapsed_seconds','peak_tree_rss_bytes','scratch_bytes','exit'} or r['exit']!=0 or not finite_between(r['elapsed_seconds'],worker['elapsed'],end['elapsed_seconds']) or not finite_between(r['peak_tree_rss_bytes'],0,b['rss_bytes']) or not finite_between(r['scratch_bytes'],0,b['scratch_bytes']):raise ValueError('recorded resource failure or inconsistent cumulative elapsed ledger')
+    n=e['paired_cells'];allowed={'freeze.json','campaign.log','ATTEMPT.START.json','WORKER.START.json','FIT_COMPLETE.json','VERIFY.START.json','VERIFY.END.json','REDUCE.START.json','REDUCE.END.json','WORKER_COMPLETE.json','COMPLETE.json','ATTEMPT.END.json','reduction.json','EXPORT.START.json','EXPORT.END.json','EXPORT.CANDIDATE.json','EXPORT.COMPLETE.json'}
+    allowed|={f'{i:04d}.{s}' for i in range(n) for s in ('START.json','END.json','log')}|{f'cell-{i:04d}' for i in range(n)}
+    unknown=sorted({p.name for p in root.iterdir()}-allowed)
+    if unknown:raise ValueError('unexpected entries in run tree: '+', '.join(unknown[:5]))
+    for i in range(n):
+        d=root/f'cell-{i:04d}'
+        if not d.is_dir() or {p.name for p in d.iterdir()}!={'arrays.npz','record.json','COMPLETE.json'}:raise ValueError('cell directory inventory')
     cell_starts={p.name for p in root.glob('[0-9][0-9][0-9][0-9].START.json')};cell_ends={p.name for p in root.glob('[0-9][0-9][0-9][0-9].END.json')}
     if cell_starts!={f'{i:04d}.START.json' for i in range(e['paired_cells'])} or cell_ends!={f'{i:04d}.END.json' for i in range(e['paired_cells'])}:raise ValueError('cell ledger inventory')
     for i,cell in enumerate(e['cells']):
@@ -329,12 +348,12 @@ def domain_census(records):
     if sum(census.values())!=len(domains) or len(domains)!=6*len(records):raise ValueError('domain census incomplete')
     return census
 
-def receiving_verify(root):
+def receiving_verify(root,exporting=False):
     """Host-scoped full replay (optimizer included): qualified host, frozen
     environment and frozen source bytes. Elsewhere use portable_audit."""
     from .reconstruction import verify,assert_close
     root=Path(root);f=read(root/'freeze.json');validate_freeze(f)
-    check_export(root,f);check_ledgers(root,f)
+    check_export(root,f,exporting);check_ledgers(root,f)
     records=verify(root);want=reduce_records(f['config'],records);want['domain_census']=domain_census(records)
     assert_close(read(root/'reduction.json'),{'development_only':f['config']['development_only'],**want})
     return {'verified':True,'mode':'host_full_replay','development_only':f['config']['development_only'],'cells':len(records),'source_identity':code_identity(f['sources'])}
@@ -356,7 +375,7 @@ def portable_audit(root):
 def export_worker(root,out):
     parent_watch(group=True);root=Path(root);out=Path(out)
     worker_nonce(read(root/'EXPORT.START.json'))
-    result=receiving_verify(root)
+    result=receiving_verify(root,exporting=True)
     if result['development_only']:raise ValueError('fixture scientific export forbidden')
     before=inventory(root);shutil.copytree(root,out)
     if inventory(root)!=before or inventory(out)!=before:raise ValueError('run changed while exporting')
@@ -378,17 +397,19 @@ def export(root,out):
     nonce=secrets.token_hex(32)
     # Single persistent reservation; a second export attempt fails on this write.
     write_new(root/'EXPORT.START.json',{'out':str(out),'remaining_seconds':remaining,'retries':0,'supervisor_pid':os.getpid(),'worker_nonce_identity':identity(nonce)})
-    ledger=out.with_name(out.name+'.attempt');ledger.mkdir(parents=True,exist_ok=False)
-    write_new(ledger/'START.json',{'source_run':str(root),'remaining_seconds':remaining,'retries':0})
+    ledger=out.with_name(out.name+'.attempt')
     try:
+        ledger.mkdir(parents=True,exist_ok=False)
+        write_new(ledger/'START.json',{'source_run':str(root),'remaining_seconds':remaining,'retries':0})
         report=supervise([sys.executable,'-m',MODULE,'_export','--root',str(root),'--out',str(out)],ledger/'export.log',out,{'seconds':remaining,'rss_bytes':b['rss_bytes'],'scratch_bytes':b['scratch_bytes']},extra_paths=(root,ledger),extra_env={'PAPER1_T25_WORKER_NONCE':nonce})
         if not (out/'EXPORT.CANDIDATE.json').is_file():raise ValueError('export worker produced no candidate')
         write_new(ledger/'COMPLETE.json',report)
         write_new(out/'EXPORT.COMPLETE.json',{'status':'COMPLETE_CONFIRMATION','candidate_sha256':sha(out/'EXPORT.CANDIDATE.json'),'resources':report})
         write_new(root/'EXPORT.END.json',{'out':str(out),'resources':report})
     except BaseException as e:
-        write_new(ledger/'FAILED.json',{'error':str(e),'retry_allowed':False})
-        write_new(root/'EXPORT.FAILED.json',{'out':str(out),'error':str(e),'retry_allowed':False});raise
+        write_new(root/'EXPORT.FAILED.json',{'out':str(out),'error':str(e),'retry_allowed':False})
+        if ledger.is_dir() and not (ledger/'FAILED.json').exists():write_new(ledger/'FAILED.json',{'error':str(e),'retry_allowed':False})
+        raise
 
 def diagnose(root):
     root=Path(root);f=read(root/'freeze.json');starts=list(root.glob('[0-9]*.START.json'));ends=list(root.glob('[0-9]*.END.json'))

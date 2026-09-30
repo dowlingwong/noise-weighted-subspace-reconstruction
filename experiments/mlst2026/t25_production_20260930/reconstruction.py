@@ -17,6 +17,29 @@ def assert_close(got,want):
     elif got!=want:raise ValueError('record identity changed')
 
 
+def check_optimizer_record(r,objective,gradient,c):
+    """Internal consistency of one restart's saved optimizer record, checkable
+    without replaying it (portable audit) and also enforced on the host."""
+    if set(r)!={'objective','gradient_norm','status','trajectory','accepted_steps','backtracks'}:raise ValueError('optimizer record schema')
+    t,steps,bt,status=r['trajectory'],r['accepted_steps'],r['backtracks'],r['status']
+    tol,cap=c['gradient_tolerance'],c['max_iter']
+    if status not in ('stationary','iteration_limit','line_search_stopped'):raise ValueError('optimizer status')
+    if len(bt)!=len(steps) or any(type(b)!=int or not 0<=b<30 for b in bt):raise ValueError('backtrack ledger')
+    trial=1.
+    for a,b in zip(steps,bt):
+        if a!=trial*.5**b:raise ValueError('accepted step violates registered step rule')
+        trial=min(2*a,1024.)
+    if not np.isclose(t[-1],objective,rtol=1e-10,atol=0) or not np.isclose(r['objective'],objective,rtol=1e-10,atol=0):raise ValueError('trajectory end differs from saved factors')
+    n=len(steps)
+    if status=='iteration_limit':ok=n==cap and len(t)==cap+1 and gradient>tol*.999
+    elif status=='line_search_stopped':ok=n<cap and len(t)==n+2 and gradient>tol*.999
+    else:ok=((n<cap and len(t)==n+2) or (n==cap and len(t)==cap+1)) and gradient<=tol*1.001
+    if not ok:raise ValueError('optimizer status/length/gradient inconsistent')
+    # structured() relabels any final gradient <= tol as stationary, so a
+    # non-stationary status with such a gradient can only be a forgery.
+    if status!='stationary' and gradient<=tol*.999:raise ValueError('stationary fit mislabelled')
+
+
 def verify(root,require_complete=True,replay_optimizer=True):
     from .science import response,starts
     root=Path(root)
@@ -37,7 +60,8 @@ def verify(root,require_complete=True,replay_optimizer=True):
         dest=root/f'cell-{i:04d}';done=read(dest/'COMPLETE.json')
         if done!={'arrays_sha':sha(dest/'arrays.npz'),'record_sha':sha(dest/'record.json')}:raise ValueError('tampered record/arrays')
         r=read(dest/'record.json');a=dict(np.load(dest/'arrays.npz',allow_pickle=False))
-        seed,th,N=cell['seed'],cell['theta'],cell['N'];g,sigma,L,Li,pool,x=make_data(c,seed,th);x=x[:N];mu=x.mean(0);S=(x-mu).T@(x-mu)/N;K=g.K(th);Cs=L@K@L;truth=top(K,g.k);W0=Li@Li
+        seed,th,N=cell['seed'],cell['theta'],cell['N'];g,sigma,L,Li,pool,training=make_data(c,seed,th);x,mu,S=moments(training,N);K=g.K(th);Cs=L@K@L;truth=top(K,g.k);W0=Li@Li
+        if replay_optimizer and not np.array_equal(a['S'],S):raise ValueError('host replay requires bitwise-identical training moments')
         for name,want in {'training':x,'calibration':pool,'S':S,'mean':mu,'Sigma':sigma,'K':K,'Cs':Cs}.items():
             if not np.allclose(a[name],want,rtol=1e-10,atol=1e-10):raise ValueError('data/moment mismatch '+name)
         if (r['seed'],r['theta'],r['N'],r['training_sha'],r['calibration_sha'])!=(seed,th,N,digest(x),digest(pool)):raise ValueError('seed/data identities')
@@ -76,6 +100,7 @@ def verify(root,require_complete=True,replay_optimizer=True):
                         trajectory=opt['restarts'][j]['trajectory']
                         if not np.isfinite(trajectory).all() or np.min(np.diff(trajectory))<-1e-8:raise ValueError('invalid optimization trajectory')
                         if opt['restarts'][j]['status']=='stationary' and gn>c['gradient_tolerance']*1.001:raise ValueError('false stationarity')
+                        check_optimizer_record(opt['restarts'][j],val,gn,c)
                         ar=map_for(np.kron(ut,uc),W);br=(np.eye(g.d)-ar)@mu;rr.append(risks(ar,br,Cs,sigma,W0)['clean'])
                     selected=int(np.argmax(objectives))
                     if opt['selected']!=selected or not np.allclose(B,np.kron(a[tag+f'_ut_{selected}'],a[tag+f'_uc_{selected}'])):raise ValueError('class/selection mismatch')

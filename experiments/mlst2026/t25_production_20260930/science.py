@@ -163,9 +163,16 @@ def make_data(c,seed,theta):
     return g,sigma,L,Li,calibration,clean+noise
 
 
+def moments(training,N):
+    """The ONLY training-moment computation; fit and every replay call this so
+    the BLAS kernel (syrk for same-buffer A.T@A) is identical."""
+    x=training[:N]; mu=x.mean(0); xc=x-mu
+    return x,mu,xc.T@xc/N
+
+
 def fit_cell(c,seed,theta,N):
     g,sigma,L,Li,pool,training=make_data(c,seed,theta)
-    x=training[:N]; mu=x.mean(0); xc=x-mu; S=xc.T@xc/N
+    x,mu,S=moments(training,N)
     K=g.K(theta); Cs=L@K@L; W0=Li@Li; truth=top(K,g.k)
     estimates={'iso':np.eye(g.d),'oracle':sigma}; covdiag={}
     for m in c['m']:

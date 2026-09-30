@@ -24,6 +24,12 @@ def completed(tmp_path_factory):
         else:os.environ[k]=v
     return root
 
+def dead(pid):
+    """Gone, or a zombie awaiting a reaper (containers whose PID 1 does not reap)."""
+    import psutil
+    try:return psutil.Process(pid).status()==psutil.STATUS_ZOMBIE
+    except psutil.NoSuchProcess:return True
+
 def clone(root,tmp_path,name='copy'):
     dest=tmp_path/name;shutil.copytree(root,dest);return dest
 
@@ -69,7 +75,7 @@ def test_orphan_descendant_fails_and_is_killed(tmp_path):
     (tmp_path/'o').mkdir()
     with pytest.raises(ValueError,match='orphan'):w.supervise([sys.executable,'-c',code],tmp_path/'o.log',tmp_path/'o',budget)
     pid=int(pidfile.read_text());time.sleep(.3)
-    with pytest.raises(ProcessLookupError):os.kill(pid,0)
+    assert dead(pid)
 
 def test_sigterm_to_supervisor_kills_group(tmp_path):
     pidfile=tmp_path/'child.pid';(tmp_path/'s').mkdir()
@@ -85,7 +91,7 @@ def test_sigterm_to_supervisor_kills_group(tmp_path):
         if pidfile.exists() and pidfile.read_text():break
         time.sleep(.1)
     child=int(pidfile.read_text());p.send_signal(signal.SIGTERM);assert p.wait(20)==7;time.sleep(.3)
-    with pytest.raises(ProcessLookupError):os.kill(child,0)
+    assert dead(child)
 
 # 4. Scratch accounting includes the extra (input) roots.
 def test_scratch_counts_input_roots(tmp_path):

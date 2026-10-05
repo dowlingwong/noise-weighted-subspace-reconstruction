@@ -1,0 +1,103 @@
+{
+  "version": "x3/1",
+  "C": 8,
+  "T": 32,
+  "kc": 2,
+  "kt": 3,
+  "spectrum": {
+    "top": [
+      12.0,
+      11.0,
+      10.0,
+      9.0,
+      8.0,
+      7.0
+    ],
+    "gap": 4.0,
+    "tail_min": 0.02
+  },
+  "geometry_seed": 20260913,
+  "rho_c": 0.4,
+  "rho_t": 0.7,
+  "theta": 0.25,
+  "N": [
+    400,
+    1600,
+    3200
+  ],
+  "k": 6,
+  "hidden": [
+    128,
+    32
+  ],
+  "classes": [
+    "tied_linear",
+    "deep_linear",
+    "deep_silu"
+  ],
+  "losses": [
+    "isotropic",
+    "sigma_inverse"
+  ],
+  "recipe": {
+    "optimizer": "adam",
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "batch": 64,
+    "max_epochs": 300,
+    "patience": 25,
+    "validation_fraction": 0.2,
+    "restarts": 4,
+    "dtype": "float64",
+    "threads": 1,
+    "deterministic": true
+  },
+  "evaluation": {
+    "records": 2048,
+    "hutchinson_probes": 4
+  },
+  "seeds": [
+    202610050200,
+    202610050201,
+    202610050202,
+    202610050203,
+    202610050204,
+    202610050205,
+    202610050206,
+    202610050207,
+    202610050208,
+    202610050209,
+    202610050210,
+    202610050211,
+    202610050212,
+    202610050213,
+    202610050214,
+    202610050215,
+    202610050216,
+    202610050217,
+    202610050218,
+    202610050219,
+    202610050220,
+    202610050221,
+    202610050222,
+    202610050223
+  ],
+  "namespace": "paper1-x3-v1/confirm",
+  "development_only": false,
+  "torch_version": "2.9.1",
+  "budget": {
+    "max_cells": 72,
+    "max_trainings": 1152,
+    "rss_bytes": 4294967296,
+    "scratch_bytes": 21474836480,
+    "cell_seconds": 3600,
+    "campaign_seconds": 345600,
+    "threads": 1,
+    "retries": 0
+  }
+}

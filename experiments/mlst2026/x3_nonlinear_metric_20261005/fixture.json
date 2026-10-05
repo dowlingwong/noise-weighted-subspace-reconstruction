@@ -1,0 +1,79 @@
+{
+  "version": "x3/1",
+  "C": 3,
+  "T": 4,
+  "kc": 2,
+  "kt": 2,
+  "spectrum": {
+    "top": [
+      6.0,
+      5.0,
+      4.0,
+      3.0
+    ],
+    "gap": 1.5,
+    "tail_min": 0.05
+  },
+  "geometry_seed": 20260913,
+  "rho_c": 0.4,
+  "rho_t": 0.7,
+  "theta": 0.25,
+  "N": [
+    40,
+    80
+  ],
+  "k": 4,
+  "hidden": [
+    8,
+    6
+  ],
+  "classes": [
+    "tied_linear",
+    "deep_linear",
+    "deep_silu"
+  ],
+  "losses": [
+    "isotropic",
+    "sigma_inverse"
+  ],
+  "recipe": {
+    "optimizer": "adam",
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0.0,
+    "batch": 16,
+    "max_epochs": 30,
+    "patience": 5,
+    "validation_fraction": 0.2,
+    "restarts": 4,
+    "dtype": "float64",
+    "threads": 1,
+    "deterministic": true
+  },
+  "evaluation": {
+    "records": 256,
+    "hutchinson_probes": 4
+  },
+  "seeds": [
+    920001,
+    920002,
+    920003
+  ],
+  "namespace": "paper1-x3-v1/fixture",
+  "development_only": true,
+  "torch_version": "2.9.1",
+  "budget": {
+    "max_cells": 72,
+    "max_trainings": 1152,
+    "rss_bytes": 4294967296,
+    "scratch_bytes": 21474836480,
+    "cell_seconds": 3600,
+    "campaign_seconds": 345600,
+    "threads": 1,
+    "retries": 0
+  }
+}

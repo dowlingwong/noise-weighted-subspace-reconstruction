@@ -13,7 +13,7 @@ Protocol: MS `plan/T25NS_PROTOCOL_2026-10-05.md`. Launch kit: MS
 - `workflow.py` — freeze/gates, supervised single attempt with in-campaign optimizer replay,
   reduction, export with tables, `EXPORT.json` and `SHA256SUMS`, portable audit (checks the export
   record and regenerates the tables), host qualification.
-- `tests/` — unit, design and end-to-end fixture tests (37; qualification requires exactly 37 passed).
+- `tests/` — unit, design and end-to-end fixture tests (39; qualification requires exactly 39 passed).
 
 ```sh
 export PYTHONPATH=$PWD/src:$PWD PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1

@@ -128,6 +128,12 @@ def test_floor_wording_is_withheld_where_a_restricted_fit_is_flagged():
     assert flagged and all(x['class'] == 'restricted' and not x['floor_wording_allowed'] for x in flagged)
     assert p1['counts']['floor_wording_allowed'] == 12 - len(flagged)
 
+    def failing(v, cl, rho, n):        # extrapolated floor still positive, but P1 FAILS (decided fall with m)
+        return world(v, cl, rho, n) - (0.5 if v == f'kron_{max(BASE["m"])}' else 0.0)
+    p1 = s.reduce_records(c, fake_records(c, failing))['predictions']['P1']
+    assert p1['verdict'] == 'FAILS' and any(x['extrapolated_floor_at_high_rho'] == '+' for x in p1['locations'])
+    assert p1['counts']['floor_wording_allowed'] == 0 and not any(x['floor_wording_allowed'] for x in p1['locations'])
+
 
 def test_population_limit_penalties_separate_shrinkage_from_separability():
     rows = s.population_penalties(FIXTURE)

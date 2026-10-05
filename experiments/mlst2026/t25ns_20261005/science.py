@@ -1,8 +1,10 @@
 """X2 (T25-NS) science: the T25 fit under a nonseparable physical noise covariance.
 
-Only the covariance constructor, the grid and the namespaces differ from the
-accepted T25 production code, which is imported read-only after guard.py has
-checked its bytes against the accepted closure (identity 01f2f82f...).
+The fit is the accepted T25 production code, imported read-only after guard.py
+has checked its bytes against the accepted closure (identity 01f2f82f...).  What
+X2 adds: the covariance constructor, the grid and namespaces, the population-limit
+references (estimator limits and clean-risk penalties), the E1f extrapolated-floor
+contrast, the cross-rho contrasts and the registered prediction rules.
 
 Indexing is T25's throughout: vec index c + C*t, Sigma_sep = St (x) Sc with the
 TIME factor first.  The shared-line term is therefore S_line (x) g g^T in code;
@@ -356,6 +358,9 @@ def predictions(c, rows):
                            'holds': holds, 'contradicts': sign(a) == '-' or sign(b) == '-',
                            'optimization_limited': flagged,
                            'floor_wording_allowed': holds and sign(f) == '+' and not flagged})
+    if not all(x['holds'] for x in p1):          # floor wording only under P1 HOLDS (protocol section 8)
+        for x in p1:
+            x['floor_wording_allowed'] = False
     p2 = []
     for r in rhos:
         for th in c['theta']:

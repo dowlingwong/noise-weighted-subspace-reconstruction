@@ -6,8 +6,8 @@ their bytes: frozen configuration and source identity, an independent review
 naming the exact code identity, host qualification (fixtures, benchmark,
 immutable snapshot), atomic START/END ledgers, no resume and no retry, one
 supervised process group with RSS / wall / scratch caps, a per-cell wall cap,
-and a full numerical replay (optimizer included) in fresh processes before the
-reduction.  Deviation from T25, stated in the protocol: the export copies the
+and a full numerical replay (optimizer included) in the campaign-worker process,
+separate from the cell-fitting processes, before the reduction.  Deviation from T25, stated in the protocol: the export copies the
 verified run and writes SHA256SUMS instead of replaying a second time; a portable
 saved-map audit then runs on the export.
 """
@@ -17,6 +17,7 @@ from . import guard
 
 guard.assert_direct()
 
+import copy                                                           # noqa: E402
 import csv                                                            # noqa: E402
 import io                                                             # noqa: E402
 import json                                                           # noqa: E402
@@ -45,7 +46,7 @@ MODULE = 'experiments.mlst2026.t25ns_20261005'
 VERSION = 't25ns-deployment/20261005-v1'
 PROTOCOL_MS = 'plan/T25NS_PROTOCOL_2026-10-05.md'
 VERDICT = 'ACCEPTED_T25NS_IMPLEMENTATION'
-EXPECTED_TESTS = 37          # the exact size of tests/ (a vanished test module fails qualification)
+EXPECTED_TESTS = 39          # the exact size of tests/ (a vanished test module fails qualification)
 
 
 def msroot():
@@ -361,7 +362,7 @@ def verify(root, require_complete=True, replay_optimizer=True, notes=None):
     f = read(root / 'freeze.json')
     validate_freeze(f, portable=not replay_optimizer)
     c = f['config']
-    assert_close(f['population_references'], science.population_references(c))
+    check_population_references(f['population_references'], c, host=replay_optimizer, notes=notes)
     cells = f['enumeration']['cells']
     if {p.name for p in root.glob('cell-*')} != {cell_dir(root, i).name for i in range(len(cells))}:
         raise ValueError('incomplete cell inventory')
@@ -383,6 +384,57 @@ def verify(root, require_complete=True, replay_optimizer=True, notes=None):
 #: The host replay keeps the exact first-maximum rule.
 SELECTION_RTOL = 1e-12
 
+#: Portable audit: the population restricted fits tie across their four starts to ~1e-14 relative in
+#: objective while their clean risks differ by up to ~1e-6 (round-2 review), so another BLAS may select
+#: another tied start.  Off the host the restricted population entries are compared to this absolute
+#: tolerance (risks ~150, penalties ~1) and the largest difference is recorded; the host keeps the exact
+#: comparison.
+POPULATION_RESTRICTED_ATOL = 1e-5
+
+#: Calibration-pool digests inside the covariance diagnostics (T25 estimate()).
+CALIBRATION_DIGEST_KEYS = ('prefix_sha', 'mean_sha')
+
+
+def _split_restricted(ref):
+    ref = copy.deepcopy(ref)
+    restricted = []
+    for row in ref['population_penalties']:
+        item = {'rho': row['rho'], 'theta': row['theta'], 'oracle': row['oracle_risk'].pop('restricted'),
+                'status': row.pop('restricted_fit_status')}
+        for k in sorted(k for k in row if k.startswith('penalty_')):
+            item[k] = row[k].pop('restricted')
+        restricted.append(item)
+    return ref, restricted
+
+
+def check_population_references(saved, c, host, notes=None):
+    """Recompute the population references.  On the host: exact (assert_close).  Off the host: everything
+    except the restricted population entries as on the host; those within POPULATION_RESTRICTED_ATOL, with
+    the largest difference and any changed fit status recorded in the notes."""
+    now = science.population_references(c)
+    if host:
+        assert_close(saved, now)
+        return
+    a, ra = _split_restricted(saved)
+    b, rb = _split_restricted(now)
+    assert_close(a, b)
+    if [(x['rho'], x['theta'], sorted(x)) for x in ra] != [(y['rho'], y['theta'], sorted(y)) for y in rb]:
+        raise ValueError('population reference layout differs')
+    worst, statuses = 0.0, []
+    for x, y in zip(ra, rb):
+        for k in x:
+            if k in ('rho', 'theta', 'status'):
+                continue
+            d = abs(float(x[k]) - float(y[k]))
+            if not np.isfinite(d) or d > POPULATION_RESTRICTED_ATOL:
+                raise ValueError('population restricted reference differs beyond tolerance: ' + k)
+            worst = max(worst, d)
+        if x['status'] != y['status']:
+            statuses.append({'rho': x['rho'], 'theta': x['theta'], 'saved': x['status'], 'recomputed': y['status']})
+    if notes is not None:
+        notes['population_restricted_max_abs_difference'] = worst
+        notes['population_restricted_status_changes'] = statuses
+
 
 def verify_cell(c, cell, r, a, replay_optimizer, notes=None):
     seed, rho, th, N = cell['seed'], cell['rho'], cell['theta'], cell['N']
@@ -403,7 +455,14 @@ def verify_cell(c, cell, r, a, replay_optimizer, notes=None):
     if (r['seed'], r['rho'], r['theta'], r['N']) != (seed, rho, th, N):
         raise ValueError('cell identity')
     estimated, cd = science.covariance_estimates(c, pool, g)
-    assert_close(r['covariance'], cd)
+    if replay_optimizer:
+        assert_close(r['covariance'], cd)
+    else:                                   # digests of the regenerated pool may differ under another BLAS
+        saved_cd = {m: {k: v for k, v in d.items() if k not in CALIBRATION_DIGEST_KEYS} for m, d in r['covariance'].items()}
+        now_cd = {m: {k: v for k, v in d.items() if k not in CALIBRATION_DIGEST_KEYS} for m, d in cd.items()}
+        assert_close(saved_cd, now_cd)
+        if any(r['covariance'][m].get(k) != cd[m].get(k) for m in cd for k in CALIBRATION_DIGEST_KEYS) and notes is not None:
+            notes.setdefault('calibration_digest_mismatches', []).append(dict(cell))
     covs = {'oracle': sigma, **estimated}
     methods, expected = {}, {'S', 'mean'}
     initial = science.starts(S, g.C, g.T, g.k_c, g.k_t, (c['namespace'], seed, th, N))
@@ -551,7 +610,8 @@ def write_tables(root, reduction):
         with (tdir / name).open('x') as fh:
             fh.write(buf.getvalue())
     dump('contrasts.csv', rows)
-    dump('E1_kronecker_penalty.csv', [r for r in rows if r['contrast'].startswith(('metric/kron_', 'metric_calibration/kron/', 'rho_change/'))])
+    dump('E1_kronecker_penalty.csv', [r for r in rows if r['contrast'].startswith(('metric/kron_', 'metric_calibration/kron/',
+                                                                                    'rho_change/', 'floor_extrapolated/'))])
     dump('E2_full_minus_kronecker.csv', [r for r in rows if r['contrast'].startswith('estimator/')])
     dump('E3_interaction.csv', [r for r in rows if r['contrast'].startswith('interaction/')])
     write_new(tdir / 'predictions.json', reduction['predictions'])
@@ -637,8 +697,9 @@ def check_export(root, f):
 def audit(root, out):
     """Portable receiver audit (any machine with the frozen source bytes): export record, checksums and
     tables (confirmation exports), ledgers, all records recomputed from saved maps/factors and regenerated
-    data, and the full reduction.  The optimizer is not replayed here (that was the host's job); data-digest
-    mismatches, possible across BLAS builds, are reported rather than ignored."""
+    data, and the full reduction.  The cell optimizer is not replayed here (that was the host's job); the
+    population references are recomputed (their restricted entries to POPULATION_RESTRICTED_ATOL); data and
+    calibration digest mismatches, possible across BLAS builds, are reported rather than ignored."""
     root, out = Path(root).resolve(), external(out)
     if out == root or out.is_relative_to(root) or root.is_relative_to(out):
         raise ValueError('audit output overlaps input')
@@ -655,6 +716,9 @@ def audit(root, out):
         result = {'verified': True, 'mode': 'portable_saved_map_audit', 'optimizer_replayed': False,
                   'export_checked': exported, 'cells': len(records), 'source_identity': code_identity(f['sources']),
                   'data_digest_mismatches': notes.get('data_digest_mismatches', []),
+                  'calibration_digest_mismatches': notes.get('calibration_digest_mismatches', []),
+                  'population_restricted_max_abs_difference': notes.get('population_restricted_max_abs_difference'),
+                  'population_restricted_status_changes': notes.get('population_restricted_status_changes', []),
                   'predictions': {k: want['predictions'][k].get('verdict') for k in ('P1', 'P2')}}
         write_new(out / 'audit.json', result)
         return result

@@ -189,3 +189,49 @@ def test_stale_acceptance_is_refused():
     s = w.source_files()
     with pytest.raises(ValueError, match='stale'):
         w.production_gate({'verdict': w.VERDICT, 'deployment': w.VERSION, 'code_identity': '0' * 64}, {}, s, w.environment())
+
+
+def _shift_restricted(refs, delta, flip_status=False):
+    import copy
+    refs = copy.deepcopy(refs)
+    for row in refs['population_penalties']:
+        row['oracle_risk']['restricted'] += delta
+        for k in row:
+            if k.startswith('penalty_'):
+                row[k]['restricted'] += delta
+        if flip_status:
+            for name in row['restricted_fit_status']:
+                row['restricted_fit_status'][name] = 'other-start-' + str(row['restricted_fit_status'][name])
+    return refs
+
+
+def test_portable_audit_tolerates_tied_population_restarts(fixture_run, tmp_path, monkeypatch):
+    """Another BLAS may select another tied start in a population restricted fit (risk shifts ~1e-6):
+    the portable audit records the difference; the host keeps the exact comparison."""
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    work, _ = fixture_run
+    real = w.science.population_references
+    monkeypatch.setattr(w.science, 'population_references', lambda c: _shift_restricted(real(c), 5e-7, True))
+    result = w.audit(work / 'run', tmp_path / 'tied')
+    assert result['verified'] and 4e-7 < result['population_restricted_max_abs_difference'] < 6e-7
+    assert result['population_restricted_status_changes']
+    with pytest.raises(ValueError):
+        w.verify(work / 'run', require_complete=True, replay_optimizer=True)
+    monkeypatch.setattr(w.science, 'population_references', lambda c: _shift_restricted(real(c), 1e-3))
+    with pytest.raises(ValueError, match='beyond tolerance'):
+        w.audit(work / 'run', tmp_path / 'far')
+
+
+def test_portable_audit_reports_calibration_digest_mismatch(fixture_run, tmp_path, monkeypatch):
+    """A one-ulp change in the regenerated calibration pool (another BLAS) changes its digests: reported
+    off the host, refused on the host."""
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    work, _ = fixture_run
+    real = w.science.covariance_estimates
+    monkeypatch.setattr(w.science, 'covariance_estimates', lambda c, pool, g: real(c, np.nextafter(pool, np.inf), g))
+    result = w.audit(work / 'run', tmp_path / 'ulp')
+    assert result['verified'] and len(result['calibration_digest_mismatches']) == 12
+    with pytest.raises(ValueError):
+        w.verify(work / 'run', require_complete=True, replay_optimizer=True)

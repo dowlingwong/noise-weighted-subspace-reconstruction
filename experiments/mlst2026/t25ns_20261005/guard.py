@@ -165,9 +165,10 @@ def assert_loaded_modules(own_package: Path = PACKAGE) -> dict:
     assert_repo_origin()
     own = str(own_package.relative_to(EXP_ROOT))
     reused = [r for r in loaded_repo_modules() if not r.startswith(own + '/')]
-    # tests and pytest helpers are not part of a run
-    reused = [r for r in reused if '/tests/' not in r and not r.startswith('tests/')
-              and Path(r).name != 'conftest.py']
+    # Only pytest conftest files are exempt (none lies on this package's collection path).
+    # Transitive in-repo imports execute before this check, which runs before any computation;
+    # stale bytecode is excluded by the host snapshot check (no .pyc under experiments/ or src/).
+    reused = [r for r in reused if Path(r).name != 'conftest.py']
     return assert_files(reused, closure)
 
 

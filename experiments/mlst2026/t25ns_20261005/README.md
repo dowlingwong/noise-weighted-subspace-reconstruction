@@ -7,11 +7,13 @@ Protocol: MS `plan/T25NS_PROTOCOL_2026-10-05.md`. Launch kit: MS
   T25 closure (`t25_accepted_sources.json`, identity `01f2f82f…`).
 - `protocol.py`, `production.json`, `fixture.json` — the closed configurations.
 - `science.py` — Σ_ρ, Van Loan–Pitsianis distance, estimator population limits, data (common
-  random numbers across ρ), the T25 fit per cell, contrasts (27 per location + 12 cross-ρ = 336),
+  random numbers across ρ), the T25 fit per cell, contrasts (31 per location + 12 cross-ρ = 384), population-limit
+  clean-risk penalties,
   registered prediction verdicts.
 - `workflow.py` — freeze/gates, supervised single attempt with in-campaign optimizer replay,
-  reduction, export with `SHA256SUMS`, portable audit, host qualification.
-- `tests/` — unit, design and end-to-end fixture tests (31).
+  reduction, export with tables, `EXPORT.json` and `SHA256SUMS`, portable audit (checks the export
+  record and regenerates the tables), host qualification.
+- `tests/` — unit, design and end-to-end fixture tests (37; qualification requires exactly 37 passed).
 
 ```sh
 export PYTHONPATH=$PWD/src:$PWD PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1

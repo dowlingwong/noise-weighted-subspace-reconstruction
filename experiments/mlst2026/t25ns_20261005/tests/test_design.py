@@ -72,7 +72,7 @@ def floor_world(v, cl, rho, n):
 def test_family_size_and_registered_prediction_rules():
     c = copy.deepcopy(BASE)
     red = s.reduce_records(c, fake_records(c, floor_world))
-    assert red['family_size'] == 12 * 27 + 6 * 2 == 336
+    assert red['family_size'] == 12 * 31 + 6 * 2 == 384
     assert red['predictions']['P1']['verdict'] == 'HOLDS'
     assert red['predictions']['P2']['verdict'] == 'HOLDS'
     assert red['domain_census'] == {'in_domain': 0, 'out_of_domain': 288 * 4, 'undefined_gap': 0}
@@ -97,4 +97,47 @@ def test_unrestricted_only_contrasts_are_never_optimization_limited():
     assert s.involved_metrics('interaction/full_256', ms) == {'full_256', 'oracle'}
     assert s.involved_metrics('estimator/1024/restricted', ms) == {'full_1024', 'kron_1024'}
     values = s.contrast_values({f'{v}__{cl}': {'clean': 1.0} for v in s.variants(BASE) for cl in s.CLASSES}, ms)
-    assert len(values) == 27 and all(s.involved_metrics(k, ms) is not None for k in values)
+    assert len(values) == 31 and all(s.involved_metrics(k, ms) is not None for k in values)
+
+
+def test_extrapolated_floor_contrast_and_its_flags():
+    ms = BASE['m']
+    methods = {f'{v}__{cl}': {'clean': 0.0} for v in s.variants(BASE) for cl in s.CLASSES}
+    for cl in s.CLASSES:
+        methods[f'kron_256__{cl}']['clean'] = 3.0 + 400 / 256      # penalty F + c/m with F = 3, c = 400
+        methods[f'kron_1024__{cl}']['clean'] = 3.0 + 400 / 1024
+    v = s.contrast_values(methods, ms)
+    assert abs(v['floor_extrapolated/kron/restricted'] - 3.0) < 1e-12
+    assert s.involved_metrics('floor_extrapolated/kron/restricted', ms) == {'kron_256', 'kron_1024', 'oracle'}
+    assert s.involved_metrics('floor_extrapolated/full/unrestricted', ms) == set()
+
+
+def test_floor_wording_is_withheld_where_a_restricted_fit_is_flagged():
+    c = copy.deepcopy(BASE)
+
+    def world(v, cl, rho, n):          # P1 holds and the extrapolated floor is clearly positive
+        return floor_world(v, cl, rho, n) + (2.0 if v.startswith('kron') else 0.0)
+    recs = fake_records(c, world)
+    target = (c['theta'][0], c['N'][0])
+    for r in recs:
+        if r['rho'] == max(c['rho']) and (r['theta'], r['N']) == target:
+            r['methods']['kron_1024__restricted']['optimization']['restarts'][0]['status'] = 'iteration_limit'
+    p1 = s.reduce_records(c, recs)['predictions']['P1']
+    assert p1['verdict'] == 'HOLDS'
+    flagged = [x for x in p1['locations'] if x['optimization_limited']]
+    assert flagged and all(x['class'] == 'restricted' and not x['floor_wording_allowed'] for x in flagged)
+    assert p1['counts']['floor_wording_allowed'] == 12 - len(flagged)
+
+
+def test_population_limit_penalties_separate_shrinkage_from_separability():
+    rows = s.population_penalties(FIXTURE)
+    zero = [r for r in rows if r['rho'] == 0.0]
+    assert zero and all(abs(r['penalty_kron_unshrunk_limit'][cl]) < 1e-9 for r in zero for cl in s.CLASSES)
+    hi = [r for r in rows if r['rho'] == max(FIXTURE['rho'])]
+    assert all(r['penalty_kron_unshrunk_limit']['unrestricted'] > 0 for r in hi)
+    assert all(set(r) >= {'penalty_full_limit', 'penalty_kron_limit', 'oracle_risk'} for r in rows)
+    # the oracle unrestricted population risk does not depend on rho (common whitened problem)
+    o = {r['theta']: [] for r in rows}
+    for r in rows:
+        o[r['theta']].append(r['oracle_risk']['unrestricted'])
+    assert all(max(v) - min(v) < 1e-9 for v in o.values())

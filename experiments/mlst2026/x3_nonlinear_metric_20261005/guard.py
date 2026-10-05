@@ -1,7 +1,7 @@
 """Fail-closed check that the T25 production code X3 reuses is the accepted code.
 
-Copied unchanged in substance from t25ns_20261005/guard.py (X2) so that X3 does not
-depend on the X2 package; only the module docstring and the reuse lists differ.
+Copied from t25ns_20261005/guard.py (X2) so that X3 does not depend on the X2 package;
+only the module docstring differs (the reuse lists are identical).
 
 The accepted T25 code identity ``01f2f82f...`` is defined by the T25 addendum and
 ``t25_production_20260930/workflow.py::code_identity`` as the SHA-256 of the JSON
@@ -168,9 +168,10 @@ def assert_loaded_modules(own_package: Path = PACKAGE) -> dict:
     assert_repo_origin()
     own = str(own_package.relative_to(EXP_ROOT))
     reused = [r for r in loaded_repo_modules() if not r.startswith(own + '/')]
-    # tests and pytest helpers are not part of a run
-    reused = [r for r in reused if '/tests/' not in r and not r.startswith('tests/')
-              and Path(r).name != 'conftest.py']
+    # Only pytest conftest files are exempt (none lies on this package's collection path).
+    # Transitive in-repo imports execute before this check, which runs before any computation;
+    # stale bytecode is excluded by the host snapshot check (no .pyc under experiments/ or src/).
+    reused = [r for r in reused if Path(r).name != 'conftest.py']
     return assert_files(reused, closure)
 
 

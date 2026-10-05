@@ -5,11 +5,14 @@ import shutil
 
 import numpy as np
 import pytest
+from numpy.testing import assert_allclose
 
+from experiments.mlst2026.x3_nonlinear_metric_20261005 import science
 from experiments.mlst2026.x3_nonlinear_metric_20261005 import workflow as w
 from experiments.mlst2026.x3_nonlinear_metric_20261005.protocol import BASE, FIXTURE, config
 
-THREADS = {k: '1' for k in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS')}
+THREADS = {k: '1' for k in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'NUMEXPR_NUM_THREADS',
+                            'VECLIB_MAXIMUM_THREADS')}
 
 
 @pytest.fixture(scope='module')
@@ -119,3 +122,102 @@ def test_fixture_export_forbidden_and_config_closed(fixture_run, tmp_path):
     p.write_text(json.dumps(dict(BASE, recipe=dict(BASE['recipe'], lr=3e-3))))
     with pytest.raises(ValueError, match='registered'):
         config(p)
+
+
+def test_tied_linear_closed_form_uses_the_training_split(fixture_run):
+    """Every class sees the same N - floor(0.2 N) training records; the closed form never sees validation."""
+    work, _ = fixture_run
+    f = json.loads((work / 'freeze.json').read_text())
+    c = f['config']
+    for i, cell in enumerate(f['enumeration']['cells'][:2]):
+        d = work / 'run' / f'cell-{i:04d}'
+        a = dict(np.load(d / 'arrays.npz'))
+        r = json.loads((d / 'record.json').read_text())
+        g, sigma, L, Li, train, ec, en = science.make_data(c, cell['seed'])
+        n_tr, n_val = science.split(cell['N'], c['recipe']['validation_fraction'])
+        assert (r['n_train'], r['n_validation']) == (n_tr, n_val) and n_val == cell['N'] // 5
+        _, mu, S = science.moments(train, n_tr)
+        _, muN, SN = science.moments(train, cell['N'])
+        for loss, W in (('isotropic', np.eye(g.d)), ('sigma_inverse', Li @ Li)):
+            A, b = science.closed_form(c, S, mu, W, c['k'])
+            assert_allclose(a[f'tied_linear__{loss}__A'], A, rtol=0, atol=1e-12)
+            assert_allclose(a[f'tied_linear__{loss}__b'], b, rtol=0, atol=1e-12)
+            AN, _ = science.closed_form(c, SN, muN, W, c['k'])
+            assert not np.allclose(a[f'tied_linear__{loss}__A'], AN, atol=1e-6)
+
+
+def test_export_tables_and_records_are_bound_by_the_audit(fixture_run, tmp_path, monkeypatch):
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setattr(w, 'preflight_space', lambda *a: None)   # disk-size gate is the host's concern
+    work, _ = fixture_run
+    out = tmp_path / 'export'
+    w.export(work / 'run', out, allow_development=True)
+    assert w.audit(out, tmp_path / 'ok')['export_checked'] is True
+    forged = tmp_path / 'forged'                                  # verdict flipped, checksums regenerated
+    shutil.copytree(out, forged)
+    p = forged / 'tables' / 'predictions.json'
+    pred = json.loads(p.read_text())
+    pred['P1']['verdict'] = 'HOLDS' if pred['P1']['verdict'] != 'HOLDS' else 'FAILS'
+    p.unlink()
+    p.write_text(json.dumps(pred))
+    (forged / 'SHA256SUMS').unlink()
+    (forged / 'SHA256SUMS').write_text(w.sha256sums(forged))
+    with pytest.raises(ValueError, match='tables differ'):
+        w.audit(forged, tmp_path / 'bad1')
+    csvf = tmp_path / 'csv'                                       # one table value changed
+    shutil.copytree(out, csvf)
+    q = csvf / 'tables' / 'P1_metric_effect.csv'
+    lines = q.read_text().splitlines()
+    cells = lines[1].split(',')
+    cells[2] = repr(float(cells[2]) - 1.0)
+    lines[1] = ','.join(cells)
+    q.unlink()
+    q.write_text('\n'.join(lines) + '\n')
+    (csvf / 'SHA256SUMS').unlink()
+    (csvf / 'SHA256SUMS').write_text(w.sha256sums(csvf))
+    with pytest.raises(ValueError, match='tables differ'):
+        w.audit(csvf, tmp_path / 'bad2')
+    rec = tmp_path / 'record'                                     # export record identity zeroed
+    shutil.copytree(out, rec)
+    e = json.loads((rec / 'EXPORT.json').read_text())
+    e['code_identity'] = '0' * 64
+    (rec / 'EXPORT.json').unlink()
+    (rec / 'EXPORT.json').write_text(json.dumps(e))
+    (rec / 'SHA256SUMS').unlink()
+    (rec / 'SHA256SUMS').write_text(w.sha256sums(rec))
+    with pytest.raises(ValueError, match='export record'):
+        w.audit(rec, tmp_path / 'bad3')
+    gone = tmp_path / 'gone'                                      # checksums removed
+    shutil.copytree(out, gone)
+    (gone / 'SHA256SUMS').unlink()
+    with pytest.raises(ValueError, match='incomplete export'):
+        w.audit(gone, tmp_path / 'bad4')
+
+
+def test_forged_data_digest_is_reported_by_the_portable_audit(fixture_run, tmp_path):
+    run = copy_run(fixture_run[0], tmp_path, 'dg')
+    d = run / 'cell-0000'
+    r = json.loads((d / 'record.json').read_text())
+    r['training_sha'] = '0' * 64
+    (d / 'record.json').write_text(json.dumps(r))
+    rehash(d)
+    result = w.audit(run, tmp_path / 'a7')
+    assert result['data_digest_mismatches'] == [json.loads((run / 'freeze.json').read_text())['enumeration']['cells'][0]]
+    with pytest.raises(ValueError, match='seed/data'):
+        w.verify(run, require_complete=True, replay=True)
+
+
+def test_stale_acceptance_is_refused():
+    s = w.source_files()
+    with pytest.raises(ValueError, match='stale'):
+        w.production_gate({'verdict': w.VERDICT, 'deployment': w.VERSION, 'code_identity': '0' * 64}, {}, s, w.environment())
+
+
+def test_thread_gate_requires_veclib_single_thread(monkeypatch):
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    w.thread_gate()
+    monkeypatch.delenv('VECLIB_MAXIMUM_THREADS')
+    with pytest.raises(ValueError, match='VECLIB'):
+        w.thread_gate()

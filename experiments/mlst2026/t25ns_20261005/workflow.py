@@ -26,6 +26,7 @@ import secrets                                                        # noqa: E4
 import shutil                                                         # noqa: E402
 import socket                                                         # noqa: E402
 import subprocess                                                     # noqa: E402
+import tempfile                                                       # noqa: E402
 import sys                                                            # noqa: E402
 import time                                                           # noqa: E402
 from pathlib import Path                                              # noqa: E402
@@ -44,7 +45,7 @@ MODULE = 'experiments.mlst2026.t25ns_20261005'
 VERSION = 't25ns-deployment/20261005-v1'
 PROTOCOL_MS = 'plan/T25NS_PROTOCOL_2026-10-05.md'
 VERDICT = 'ACCEPTED_T25NS_IMPLEMENTATION'
-MIN_TESTS = 20
+EXPECTED_TESTS = 37          # the exact size of tests/ (a vanished test module fails qualification)
 
 
 def msroot():
@@ -129,17 +130,21 @@ def production_gate(acceptance, qualification, s, env):
         raise ValueError('independent review does not accept this exact code identity')
     if env.get('dont_write_bytecode') is not True:
         raise ValueError('PYTHONDONTWRITEBYTECODE=1 required for a bound source tree')
-    if q.get('host') != socket.gethostname() or q.get('code_identity') != cid or q.get('environment') != env:
+    if (q.get('host') != socket.gethostname() or q.get('execution_mode') != 'direct' or q.get('code_identity') != cid
+            or q.get('environment') != env):
         raise ValueError('host/source/environment qualification missing or stale')
     fixture = evidence(q, 'fixture_report')
     evidence(q, 'fixture_log', False)
     bench = evidence(q, 'benchmark_report')
     snap = evidence(q, 'snapshot_record')
-    if (fixture.get('exit') != 0 or fixture.get('tests_passed', 0) < MIN_TESTS or fixture.get('tests_failed', 1) != 0
+    if (fixture.get('exit') != 0 or fixture.get('tests_passed') != EXPECTED_TESTS or fixture.get('tests_failed', 1) != 0
             or fixture.get('code_identity') != cid or fixture.get('environment') != env
             or fixture.get('log_sha256') != q['fixture_log_sha256']):
         raise ValueError('fixture qualification failed')
-    if snap.get('code_identity') != cid or snap.get('writable_source_files') != [] or snap.get('stale_bytecode') != []:
+    if fixture.get('peak_rss_bytes', float('inf')) > BASE['budget']['rss_bytes']:
+        raise ValueError('fixture RSS cap')
+    if (snap.get('code_identity') != cid or snap.get('EXP_root') != str(ROOT) or snap.get('MS_root') != str(msroot())
+            or snap.get('writable_source_files') != [] or snap.get('stale_bytecode') != []):
         raise ValueError('isolated snapshot identity absent or not immutable')
     for rel in s['EXP_files']:
         if (ROOT / rel).stat().st_mode & 0o222:
@@ -149,15 +154,33 @@ def production_gate(acceptance, qualification, s, env):
             raise ValueError('source file is writable: ' + rel)
     if not env['threadpools'] or any(p['num_threads'] != 1 for p in env['threadpools']):
         raise ValueError('actual BLAS thread count unqualified')
+    import psutil
+    if psutil.virtual_memory().total < 8 * 1024 ** 3:
+        raise ValueError('hardware RAM below requirement')
     scratch = q.get('scratch_root')
     if not scratch or shutil.disk_usage(scratch).free < BASE['budget']['scratch_bytes']:
         raise ValueError('scratch qualification failed')
     if (bench.get('code_identity') != cid or bench.get('environment') != env
-            or bench.get('scientific_endpoints_evaluated') is not False
+            or bench.get('scientific_endpoints_viewed') is not False
             or not 0 < bench.get('projected_lifecycle_seconds_with_margin', 0) <= BASE['budget']['campaign_seconds']
             or bench.get('worst_cell_within_half_cap') is not True
             or not 0 < bench.get('peak_rss_bytes', 0) <= BASE['budget']['rss_bytes']):
         raise ValueError('benchmark absent/stale/too slow')
+
+
+def frozen_evidence_identities(f):
+    """Recorded acceptance/qualification identities, checkable without the host (as T25)."""
+    a, q, cid = f['acceptance'], f['qualification'], code_identity(f['sources'])
+    if a.get('verdict') != VERDICT or a.get('deployment') != VERSION or a.get('code_identity') != cid:
+        raise ValueError('frozen acceptance identity')
+    if (q.get('code_identity') != cid or q.get('execution_mode') != 'direct' or q.get('environment') != f['environment']
+            or not q.get('host')):
+        raise ValueError('frozen qualification identity')
+    for record, names in ((a, ('independent_review',)),
+                          (q, ('fixture_report', 'fixture_log', 'benchmark_report', 'snapshot_record'))):
+        for n in names:
+            if not re.fullmatch('[0-9a-f]{64}', str(record.get(n + '_sha256', ''))):
+                raise ValueError('frozen evidence hash absent: ' + n)
 
 
 FREEZE_KEYS = {'deployment', 'status', 'config', 'config_identity', 'enumeration', 'population_references',
@@ -180,9 +203,7 @@ def validate_freeze(f, portable=False):
         if code_identity(source_files()) != code_identity(f['sources']):
             raise ValueError('portable audit must run from the frozen source bytes')
         if not c['development_only']:
-            a = f['acceptance']
-            if a.get('verdict') != VERDICT or a.get('code_identity') != code_identity(f['sources']):
-                raise ValueError('frozen acceptance identity')
+            frozen_evidence_identities(f)
         return
     if not c['development_only']:
         if f['qualification'].get('host') != socket.gethostname():
@@ -330,7 +351,7 @@ def execute(fpath, root):
 from experiments.mlst2026.t25_production_20260930.reconstruction import assert_close, check_optimizer_record  # noqa: E402
 
 
-def verify(root, require_complete=True, replay_optimizer=True):
+def verify(root, require_complete=True, replay_optimizer=True, notes=None):
     """Recompute every record from the saved maps and factors and the regenerated data.
     replay_optimizer=True (qualified host only) also re-runs every structured restart and
     requires bitwise-identical training moments; the portable audit skips both."""
@@ -353,21 +374,30 @@ def verify(root, require_complete=True, replay_optimizer=True):
         if read(dest / 'COMPLETE.json') != {'arrays_sha': sha(dest / 'arrays.npz'), 'record_sha': sha(dest / 'record.json')}:
             raise ValueError('tampered record/arrays')
         records.append(verify_cell(c, cell, read(dest / 'record.json'),
-                                   dict(np.load(dest / 'arrays.npz', allow_pickle=False)), replay_optimizer))
+                                   dict(np.load(dest / 'arrays.npz', allow_pickle=False)), replay_optimizer, notes))
     return records
 
 
-def verify_cell(c, cell, r, a, replay_optimizer):
+#: Portable audit: restart objectives recomputed from saved factors may reorder near-ties under another
+#: BLAS; the saved selection is accepted if its objective is within this relative distance of the maximum.
+#: The host replay keeps the exact first-maximum rule.
+SELECTION_RTOL = 1e-12
+
+
+def verify_cell(c, cell, r, a, replay_optimizer, notes=None):
     seed, rho, th, N = cell['seed'], cell['rho'], cell['theta'], cell['N']
     g, sigma, L, Li, pool, training = science.make_data(c, seed, rho, th)
     x, mu, S = science.moments(training, N)
     K = g.K(th)
     Cs, W0, truth = L @ K @ L, Li @ Li, science.top(K, g.k)
+    digests_match = (r['training_sha'], r['calibration_sha'], r['sigma_sha']) == (science.digest(x), science.digest(pool), science.digest(sigma))
     if replay_optimizer:
         if not np.array_equal(a['S'], S):
             raise ValueError('host replay requires bitwise-identical training moments')
-        if (r['training_sha'], r['calibration_sha'], r['sigma_sha']) != (science.digest(x), science.digest(pool), science.digest(sigma)):
+        if not digests_match:
             raise ValueError('seed/data identities')
+    elif not digests_match and notes is not None:
+        notes.setdefault('data_digest_mismatches', []).append(dict(cell))
     if not np.allclose(a['S'], S, rtol=1e-10, atol=1e-10) or not np.allclose(a['mean'], mu, rtol=1e-10, atol=1e-10):
         raise ValueError('data/moment mismatch')
     if (r['seed'], r['rho'], r['theta'], r['N']) != (seed, rho, th, N):
@@ -424,8 +454,13 @@ def verify_cell(c, cell, r, a, replay_optimizer):
                     check_optimizer_record(opt['restarts'][j], val, gn, c)
                     ar = science.map_for(np.kron(ut, uc), W)
                     rr.append(science.risks(ar, (np.eye(g.d) - ar) @ mu, Cs, sigma, W0)['clean'])
-                sel = int(np.argmax(objectives))
-                if opt['selected'] != sel or not np.allclose(B, np.kron(a[tag + f'_ut_{sel}'], a[tag + f'_uc_{sel}'])):
+                sel, saved = int(np.argmax(objectives)), opt['selected']
+                if replay_optimizer:
+                    ok = saved == sel
+                else:
+                    ok = (type(saved) is int and 0 <= saved < 4
+                          and objectives[saved] >= max(objectives) - SELECTION_RTOL * abs(max(objectives)))
+                if not ok or not np.allclose(B, np.kron(a[tag + f'_ut_{saved}'], a[tag + f'_uc_{saved}'])):
                     raise ValueError('class/selection mismatch')
                 row.update(optimization=opt, restart_clean_risks=rr, restart_risk_spread=float(max(rr) - min(rr)))
             else:
@@ -533,13 +568,16 @@ def sha256sums(root):
     return '\n'.join(lines) + '\n'
 
 
-def export(root, out):
-    """Copy the complete, replay-verified run, add tables, EXPORT.json and SHA256SUMS."""
+def export(root, out, allow_development=False):
+    """Copy the complete, replay-verified run, add tables, EXPORT.json and SHA256SUMS.
+    allow_development exists for the package tests only (fixture runs); a production export
+    is a confirmation export."""
     thread_gate()
     root, out = external(root), external(out)
     f = read(root / 'freeze.json')
     validate_freeze(f)
-    if f['config']['development_only']:
+    dev = f['config']['development_only']
+    if dev and not allow_development:
         raise ValueError('fixture scientific export forbidden')
     if out.exists() or out.is_relative_to(root) or root.is_relative_to(out):
         raise ValueError('export requires a separate fresh output')
@@ -549,11 +587,10 @@ def export(root, out):
     shutil.copytree(root, out)
     if inventory(root) != before or inventory(out) != before:
         raise ValueError('run changed while exporting')
-    reduction = read(out / 'reduction.json')
-    write_tables(out, reduction)
-    write_new(out / 'EXPORT.json', {'deployment': VERSION, 'status': 'CONFIRMATION_EXPORT', 'source_run': str(root),
-                                    'code_identity': code_identity(f['sources']), 'files_before_tables': before,
-                                    'reduction_sha256': sha(out / 'reduction.json')})
+    write_tables(out, read(out / 'reduction.json'))
+    write_new(out / 'EXPORT.json', {'deployment': VERSION, 'status': 'DEVELOPMENT_EXPORT' if dev else 'CONFIRMATION_EXPORT',
+                                    'source_run': str(root), 'code_identity': code_identity(f['sources']),
+                                    'files_before_tables': before, 'reduction_sha256': sha(out / 'reduction.json')})
     with (out / 'SHA256SUMS').open('x') as fh:
         fh.write(sha256sums(out))
 
@@ -564,10 +601,44 @@ def check_sha256sums(root):
         raise ValueError('SHA256SUMS mismatch')
 
 
+def check_export(root, f):
+    """A confirmation export must carry SHA256SUMS, EXPORT.json and tables/, all consistent: checksums,
+    the export record (deployment, status, frozen code identity, reduction hash, pre-table inventory),
+    and tables regenerated byte for byte from the verified reduction."""
+    root = Path(root)
+    parts = [(root / n).exists() for n in ('SHA256SUMS', 'EXPORT.json', 'tables')]
+    if not any(parts):
+        if not f['config']['development_only']:
+            raise ValueError('confirmation export lacks SHA256SUMS/EXPORT.json/tables')
+        return False
+    if not all(parts):
+        raise ValueError('incomplete export: SHA256SUMS, EXPORT.json and tables are all required')
+    check_sha256sums(root)
+    e = read(root / 'EXPORT.json')
+    want_status = 'DEVELOPMENT_EXPORT' if f['config']['development_only'] else 'CONFIRMATION_EXPORT'
+    if (set(e) != {'deployment', 'status', 'source_run', 'code_identity', 'files_before_tables', 'reduction_sha256'}
+            or e['deployment'] != VERSION or e['status'] != want_status or e['code_identity'] != code_identity(f['sources'])
+            or e['reduction_sha256'] != sha(root / 'reduction.json')):
+        raise ValueError('export record invalid')
+    inv = inventory(root)
+    for name in [k for k in inv if k == 'EXPORT.json' or k == 'SHA256SUMS' or k.startswith('tables/')]:
+        inv.pop(name)
+    if inv != e['files_before_tables']:
+        raise ValueError('export inventory differs from the recorded run inventory')
+    with tempfile.TemporaryDirectory() as tmp:
+        write_tables(tmp, read(root / 'reduction.json'))
+        want = {str(p.relative_to(tmp)): p.read_bytes() for p in Path(tmp, 'tables').rglob('*') if p.is_file()}
+        got = {str(p.relative_to(root)): p.read_bytes() for p in (root / 'tables').rglob('*') if p.is_file()}
+        if want != got:
+            raise ValueError('exported tables differ from the verified reduction')
+    return True
+
+
 def audit(root, out):
-    """Portable receiver audit (any machine with the frozen source bytes): SHA256SUMS,
-    ledgers, all records recomputed from saved maps/factors and regenerated data, and the
-    full reduction.  The optimizer is not replayed here (that was the host's job)."""
+    """Portable receiver audit (any machine with the frozen source bytes): export record, checksums and
+    tables (confirmation exports), ledgers, all records recomputed from saved maps/factors and regenerated
+    data, and the full reduction.  The optimizer is not replayed here (that was the host's job); data-digest
+    mismatches, possible across BLAS builds, are reported rather than ignored."""
     root, out = Path(root).resolve(), external(out)
     if out == root or out.is_relative_to(root) or root.is_relative_to(out):
         raise ValueError('audit output overlaps input')
@@ -575,14 +646,15 @@ def audit(root, out):
     write_new(out / 'START.json', {'operation': 'portable_audit', 'source_run': str(root), 'retries': 0})
     try:
         f = read(root / 'freeze.json')
-        if (root / 'SHA256SUMS').exists():
-            check_sha256sums(root)
+        exported = check_export(root, f)
         check_ledgers(root, f)
-        records = verify(root, require_complete=True, replay_optimizer=False)
+        notes = {}
+        records = verify(root, require_complete=True, replay_optimizer=False, notes=notes)
         want = {'development_only': f['config']['development_only'], **science.reduce_records(f['config'], records)}
         assert_close(read(root / 'reduction.json'), want)
         result = {'verified': True, 'mode': 'portable_saved_map_audit', 'optimizer_replayed': False,
-                  'cells': len(records), 'source_identity': code_identity(f['sources']),
+                  'export_checked': exported, 'cells': len(records), 'source_identity': code_identity(f['sources']),
+                  'data_digest_mismatches': notes.get('data_digest_mismatches', []),
                   'predictions': {k: want['predictions'][k].get('verdict') for k in ('P1', 'P2')}}
         write_new(out / 'audit.json', result)
         return result
@@ -644,8 +716,9 @@ def benchmark(out, cells=None):
     mean = float(np.mean([r['fit_seconds'] for r in rows]))
     worst = float(max(r['fit_seconds'] for r in rows))
     projected = mean * e['paired_cells'] * 2 * 2
-    report = {'development_only': True, 'scientific_endpoints_evaluated': False, 'namespace': c['namespace'],
-              'note': 'confirmation endpoints never computed; benchmark-namespace fits are discarded unviewed',
+    report = {'development_only': True, 'scientific_endpoints_viewed': False, 'namespace': c['namespace'],
+              'note': 'confirmation endpoints never computed; benchmark-namespace fits (risks included) are computed '
+                      'in memory and discarded unviewed',
               'code_identity': code_identity(sources()), 'environment': environment(), 'host': socket.gethostname(),
               'cells': rows, 'mean_cell_fit_seconds': mean, 'worst_cell_fit_seconds': worst,
               'projected_fit_seconds': mean * e['paired_cells'],

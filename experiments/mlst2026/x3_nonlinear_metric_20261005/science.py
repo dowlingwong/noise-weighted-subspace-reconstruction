@@ -41,6 +41,12 @@ def import_torch(c):
     return torch
 
 
+def tensor(torch, a):
+    """A torch-allocated float64 copy (never a view of a numpy buffer, so results cannot depend on
+    the buffer's alignment under MKL)."""
+    return torch.tensor(np.ascontiguousarray(a, dtype=np.float64), dtype=torch.float64)
+
+
 def make_data(c, seed):
     """T25 generator, oracle Sigma.  Training pool (nested prefixes) and one evaluation set
     per seed, each with its own stream; physical clean signal L s is kept for the truth risk."""
@@ -98,8 +104,8 @@ def train_deep(c, torch, x_train, x_val, whiten, activation, init_key):
     opt = torch.optim.Adam(model.parameters(), lr=rec['lr'], betas=tuple(rec['betas']), eps=rec['eps'],
                            weight_decay=rec['weight_decay'])
     gen = torch.Generator().manual_seed(init_key ^ 0x5BD1E995)
-    Xtr, Xva = torch.from_numpy(x_train), torch.from_numpy(x_val)
-    Wt = None if whiten is None else torch.from_numpy(whiten)
+    Xtr, Xva = tensor(torch, x_train), tensor(torch, x_val)
+    Wt = None if whiten is None else tensor(torch, whiten)
 
     def loss(X):
         return metric_loss(model, X, Wt)
@@ -115,6 +121,8 @@ def train_deep(c, torch, x_train, x_val, whiten, activation, init_key):
         model.eval()
         with torch.no_grad():
             v = float(loss(Xva))
+        if not np.isfinite(v):
+            raise ValueError('non-finite validation loss; the attempt stops here')
         history.append(v)
         if v < best:
             best, best_epoch, bad = v, epoch, 0
@@ -136,7 +144,7 @@ def train_deep(c, torch, x_train, x_val, whiten, activation, init_key):
 def build_model(c, torch, cls, state):
     from .models import FlatAE
     model = FlatAE(c['C'] * c['T'], c['k'], c['hidden'], ACTIVATION[cls])
-    model.load_state_dict({k: torch.from_numpy(np.asarray(v)) for k, v in state.items()})
+    model.load_state_dict({k: tensor(torch, v) for k, v in state.items()})
     model.eval()
     return model
 
@@ -145,7 +153,7 @@ def evaluate(c, torch, seed, fn, eclean, enoisy, Li):
     """Truth-referenced clean risks (Sigma^-1 and Euclidean), held-out whitened residual and
     SURE on the shared evaluation set; one Hutchinson probe stream per seed for every model."""
     from .models import sure_terms
-    X, Cl, Wt = torch.from_numpy(enoisy), torch.from_numpy(eclean), torch.from_numpy(Li)
+    X, Cl, Wt = tensor(torch, enoisy), tensor(torch, eclean), tensor(torch, Li)
     with torch.no_grad():
         out = fn(X)
         err = out - Cl
@@ -157,11 +165,24 @@ def evaluate(c, torch, seed, fn, eclean, enoisy, Li):
             'sure': float(st['sure'].mean()), 'divergence': float(st['divergence'].mean())}
 
 
-def fit_cell(c, seed, N, torch=None):
+def affine_of(torch, model, d):
+    """(A, b) of a model that is affine (the deep linear AE): f(x) = A x + b."""
+    with torch.no_grad():
+        b = model(torch.zeros(1, d, dtype=torch.float64))[0]
+        A = (model(torch.eye(d, dtype=torch.float64)) - b).T
+    return A.numpy().copy(), b.numpy().copy()
+
+
+def fit_cell(c, seed, N, torch=None, evaluate_models=True):
+    """All classes see the same training split: the closed-form tied linear AE is fitted on the first
+    N - floor(0.2 N) records (training-split mean and covariance), exactly the data the deep models
+    train on; the last floor(0.2 N) records are validation for the deep models only.
+    evaluate_models=False (benchmark timing) skips every clean-risk evaluation."""
     torch = torch or import_torch(c)
     g, sigma, L, Li, train, eclean, enoisy = make_data(c, seed)
-    x, mu, S = moments(train, N)
+    x, _, _ = moments(train, N)
     n_tr, n_val = split(N, c['recipe']['validation_fraction'])
+    _, mu, S = moments(train, n_tr)
     metrics = {'isotropic': None, 'sigma_inverse': Li}
     Wmat = {'isotropic': np.eye(g.d), 'sigma_inverse': Li @ Li}
     Cs = L @ g.K(c['theta']) @ L
@@ -171,12 +192,13 @@ def fit_cell(c, seed, N, torch=None):
     for loss in c['losses']:
         A, b = closed_form(c, S, mu, Wmat[loss], c['k'])
         arrays[f'tied_linear__{loss}__A'], arrays[f'tied_linear__{loss}__b'] = A, b
-        At, bt = torch.from_numpy(A), torch.from_numpy(b)
-        ev = evaluate(c, torch, seed, lambda X: X @ At.T + bt, eclean, enoisy, Li)
-        exact = risks(A, b, Cs, sigma, Li @ Li)
-        ev.update(exact_clean_whitened=exact['clean'], exact_clean_euclidean=exact['euclidean_clean'],
-                  exact_divergence=float(np.trace(A)))
-        record['models'][f'tied_linear__{loss}'] = ev
+        if evaluate_models:
+            At, bt = tensor(torch, A), tensor(torch, b)
+            ev = evaluate(c, torch, seed, lambda X: X @ At.T + bt, eclean, enoisy, Li)
+            exact = risks(A, b, Cs, sigma, Li @ Li)
+            ev.update(exact_clean_whitened=exact['clean'], exact_clean_euclidean=exact['euclidean_clean'],
+                      exact_divergence=float(np.trace(A)))
+            record['models'][f'tied_linear__{loss}'] = ev
     for cls in DEEP:
         for loss in c['losses']:
             runs, states = [], []
@@ -189,10 +211,21 @@ def fit_cell(c, seed, N, torch=None):
             tag = f'{cls}__{loss}'
             for k, v in states[sel].items():
                 arrays[f'{tag}__{k}'] = v
-            model = build_model(c, torch, cls, states[sel])
-            record['models'][tag] = evaluate(c, torch, seed, model, eclean, enoisy, Li)
             record['training'][tag] = {'selected': sel, 'restarts': runs}
+            if evaluate_models:
+                model = build_model(c, torch, cls, states[sel])
+                record['models'][tag] = evaluate_deep(c, torch, seed, cls, model, eclean, enoisy, Li, Cs, sigma)
     return record, arrays
+
+
+def evaluate_deep(c, torch, seed, cls, model, eclean, enoisy, Li, Cs, sigma):
+    ev = evaluate(c, torch, seed, model, eclean, enoisy, Li)
+    if cls == 'deep_linear':                       # affine: also its exact risk, as a Monte-Carlo check
+        A, b = affine_of(torch, model, c['C'] * c['T'])
+        exact = risks(A, b, Cs, sigma, Li @ Li)
+        ev.update(exact_clean_whitened=exact['clean'], exact_clean_euclidean=exact['euclidean_clean'],
+                  exact_divergence=float(np.trace(A)))
+    return ev
 
 
 def state_of(arrays, tag):
@@ -243,21 +276,50 @@ def reduce_records(c, records):
                      'zero_standard_error': sd == 0})
     get = {(r['N'], r['contrast']): r for r in rows}
     p1 = [{'N': n, 'class': cls, 'sign': sign(get[(n, f'metric/whitened/{cls}')])} for cls in c['classes'] for n in c['N']]
-    p2 = [{'N': n, 'loss': loss, 'sign': sign(get[(n, f'class/whitened/{loss}/deep_silu-tied_linear')])}
-          for loss in c['losses'] for n in c['N']]
-    stops = [d['stopped'] for r in records for t in r['training'].values() for d in t['restarts']]
+    p2 = []
+    for loss in c['losses']:
+        for n in c['N']:
+            st = sign(get[(n, f'class/whitened/{loss}/deep_silu-tied_linear')])
+            sd = sign(get[(n, f'class/whitened/{loss}/deep_silu-deep_linear')])
+            dt = sign(get[(n, f'class/whitened/{loss}/deep_linear-tied_linear')])
+            attribution = None
+            if st == '-':
+                attribution = 'nonlinearity' if sd == '-' else 'training' if dt == '-' else 'unattributed'
+            p2.append({'N': n, 'loss': loss, 'sign': st, 'silu_minus_deep_linear': sd,
+                       'deep_linear_minus_tied': dt, 'attribution': attribution})
+    sure = [{'N': n, 'class': cls, 'loss': loss, 'sign': sign(get[(n, f'sure_gap/{cls}/{loss}')])}
+            for cls in c['classes'] for loss in c['losses'] for n in c['N']]
+    summary = {}
+    for n in c['N']:
+        for tag in sorted(records[0]['models']):
+            for key in ('clean_whitened', 'clean_euclidean', 'sure'):
+                v = np.asarray([r['models'][tag][key] for r in records if r['N'] == n], dtype=float)
+                summary[f'{n}/{tag}/{key}'] = {'mean': float(v.mean()), 'sd': float(v.std(ddof=1)), 'seeds': len(v)}
+    stops = {}
+    for r in records:
+        for tag, t in r['training'].items():
+            for d in t['restarts']:
+                key = f"{r['N']}/{tag}/{d['stopped']}"
+                stops[key] = stops.get(key, 0) + 1
     return {
         'family_size': family, 'interval': 'approximate Bonferroni Student-t over independent seeds (23 df at 24 seeds)',
         'zero_SE_rule': 'degenerate observed-seed interval; zero is undecided',
-        'contrasts': rows,
-        'training_stops': {k: stops.count(k) for k in ('patience', 'max_epochs')},
+        'contrasts': rows, 'risk_summary': summary, 'training_stops': stops,
         'predictions': {
             'P1': {'rule': 'HOLDS if Sigma^-1-minus-isotropic whitened clean risk is decided negative for every '
-                           'class at every N; FAILS if any is decided positive; UNDECIDED otherwise',
+                           'class at every N; FAILS if any is decided positive (the Sigma^-1 loss raised the risk); '
+                           'UNDECIDED otherwise',
                    'verdict': 'HOLDS' if all(x['sign'] == '-' for x in p1) else
                               'FAILS' if any(x['sign'] == '+' for x in p1) else 'UNDECIDED',
                    'locations': p1},
             'P2': {'rule': 'HOLDS if the SiLU-minus-tied-linear whitened clean risk is not decided negative at any '
-                           '(loss, N); FAILS if any is decided negative (SiLU better beyond seed variation)',
+                           '(loss, N); FAILS if any is decided negative (SiLU better beyond seed variation). A '
+                           'failure is attributed to the nonlinearity only where SiLU - deep linear is also decided '
+                           'negative; to training where instead deep linear - tied linear is decided negative; '
+                           'otherwise unattributed',
                    'verdict': 'FAILS' if any(x['sign'] == '-' for x in p2) else 'HOLDS',
-                   'counts': {s: sum(x['sign'] == s for x in p2) for s in '-+?'}, 'locations': p2}}}
+                   'counts': {s_: sum(x['sign'] == s_ for x in p2) for s_ in '-+?'}, 'locations': p2},
+            'SURE_agreement': {'rule': 'AGREES if no SURE-minus-truth interval excludes zero; otherwise DISAGREES, '
+                                       'listing the decided cells',
+                               'verdict': 'AGREES' if all(x['sign'] == '?' for x in sure) else 'DISAGREES',
+                               'decided': [x for x in sure if x['sign'] != '?']}}}

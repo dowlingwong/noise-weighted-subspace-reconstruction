@@ -32,7 +32,7 @@ def test_fixture_lifecycle_completes_and_audits(fixture_run):
     work, result = fixture_run
     assert result['audit']['verified'] and result['audit']['cells'] == 12
     red = json.loads((work / 'run' / 'reduction.json').read_text())
-    assert red['development_only'] is True and red['family_size'] == 4 * 27 + 2 * 2
+    assert red['development_only'] is True and red['family_size'] == 4 * 31 + 2 * 2
     assert sum(red['domain_census'].values()) == 12 * 4
     assert set(red['predictions']) >= {'P1', 'P2', 'P3', 'E2'}
     f = json.loads((work / 'freeze.json').read_text())
@@ -131,3 +131,61 @@ def test_fixture_export_forbidden_and_config_closed(fixture_run, tmp_path):
 def test_outputs_inside_source_trees_are_refused():
     with pytest.raises(ValueError, match='inside source'):
         w.external(w.ROOT / 'tmp_x2_output')
+
+
+def test_export_tables_and_records_are_bound_by_the_audit(fixture_run, tmp_path, monkeypatch):
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.setattr(w, 'preflight_space', lambda *a: None)   # disk-size gate is the host's concern
+    work, _ = fixture_run
+    out = tmp_path / 'export'
+    w.export(work / 'run', out, allow_development=True)
+    assert w.audit(out, tmp_path / 'ok')['export_checked'] is True
+    forged = tmp_path / 'forged'
+    shutil.copytree(out, forged)
+    p = forged / 'tables' / 'predictions.json'
+    pred = json.loads(p.read_text())
+    pred['P1']['verdict'] = 'HOLDS' if pred['P1']['verdict'] != 'HOLDS' else 'FAILS'
+    p.unlink()
+    p.write_text(json.dumps(pred))
+    (forged / 'SHA256SUMS').unlink()
+    (forged / 'SHA256SUMS').write_text(w.sha256sums(forged))
+    with pytest.raises(ValueError, match='tables differ'):
+        w.audit(forged, tmp_path / 'bad1')
+    gone = tmp_path / 'gone'
+    shutil.copytree(out, gone)
+    (gone / 'SHA256SUMS').unlink()
+    with pytest.raises(ValueError, match='incomplete export'):
+        w.audit(gone, tmp_path / 'bad2')
+
+
+def test_consistent_restart_swap_passes_portable_audit_but_not_host_replay(fixture_run, tmp_path, monkeypatch):
+    for k, v in THREADS.items():
+        monkeypatch.setenv(k, v)
+    work, _ = fixture_run
+    run = copy_run(work, tmp_path, 'swap')
+    d = run / 'cell-0000'
+    tag = 'oracle__restricted'
+    a = dict(np.load(d / 'arrays.npz'))
+    for part in ('uc', 'ut'):
+        a[f'{tag}_{part}_0'], a[f'{tag}_{part}_1'] = a[f'{tag}_{part}_1'].copy(), a[f'{tag}_{part}_0'].copy()
+    (d / 'arrays.npz').unlink()
+    with (d / 'arrays.npz').open('xb') as fh:
+        np.savez_compressed(fh, **a)
+    r = json.loads((d / 'record.json').read_text())
+    opt = r['methods'][tag]['optimization']
+    opt['restarts'][0], opt['restarts'][1] = opt['restarts'][1], opt['restarts'][0]
+    opt['selected'] = {0: 1, 1: 0}.get(opt['selected'], opt['selected'])
+    rr = r['methods'][tag]['restart_clean_risks']
+    rr[0], rr[1] = rr[1], rr[0]
+    (d / 'record.json').write_text(json.dumps(r, indent=2, sort_keys=True))
+    (d / 'COMPLETE.json').write_text(json.dumps({'arrays_sha': w.sha(d / 'arrays.npz'), 'record_sha': w.sha(d / 'record.json')}))
+    assert w.audit(run, tmp_path / 'portable')['verified']
+    with pytest.raises(ValueError):
+        w.verify(run, require_complete=True, replay_optimizer=True)
+
+
+def test_stale_acceptance_is_refused():
+    s = w.source_files()
+    with pytest.raises(ValueError, match='stale'):
+        w.production_gate({'verdict': w.VERDICT, 'deployment': w.VERSION, 'code_identity': '0' * 64}, {}, s, w.environment())

@@ -122,6 +122,43 @@ def population_reference(c, rho):
     return out
 
 
+def population_penalties(c):
+    """Deterministic m, N -> infinity clean-risk penalties relative to the oracle in the common metric
+    Sigma_rho^-1, both classes, for the population limits of the full and Kronecker estimators
+    (shrinkage and floors included) and for the unshrunk Kronecker limit (its separability part alone).
+    The population second moment of x is C_s + Sigma (zero mean, so no intercept).  No seed is drawn;
+    the random product starts use a fixed key that names no namespace."""
+    g = geometry(c)
+    rows = []
+    for rho in [0.0] + list(c['rho']):
+        sigma = covariance(c, rho)
+        L, Li = powers(sigma)
+        W0 = Li @ Li
+        lim = moment_limits(sigma, c['C'], c['T'])
+        metrics = {'oracle': sigma, 'full_limit': lim['full'], 'kron_limit': lim['kron'],
+                   'kron_unshrunk_limit': lim['kron_unshrunk']}
+        for theta in c['theta']:
+            Cs = L @ g.K(theta) @ L
+            S = Cs + sigma
+            initial = starts(S, g.C, g.T, g.k_c, g.k_t, ('population-reference', rho, theta))
+            risk, status = {}, {}
+            for name, cov in metrics.items():
+                W = np.linalg.inv(cov)
+                Au = map_for(unrestricted(W, S, g.k), W)
+                Br, diag, _ = structured(W, S, initial, c['max_iter'], c['gradient_tolerance'])
+                Ar = map_for(Br, W)
+                zero = np.zeros(g.d)
+                risk[name] = {'restricted': risks(Ar, zero, Cs, sigma, W0)['clean'],
+                              'unrestricted': risks(Au, zero, Cs, sigma, W0)['clean']}
+                status[name] = diag['restarts'][diag['selected']]['status']
+            row = {'rho': rho, 'theta': theta, 'oracle_risk': risk['oracle'], 'restricted_fit_status': status}
+            for name in metrics:
+                if name != 'oracle':
+                    row['penalty_' + name] = {cl: risk[name][cl] - risk['oracle'][cl] for cl in CLASSES}
+            rows.append(row)
+    return rows
+
+
 def population_references(c):
     g = geometry(c)
     spectra = []
@@ -134,7 +171,7 @@ def population_references(c):
     for r in rows:
         if abs(r['trace_scale_c_rho'] - 1.0) > 1e-12:
             raise ValueError('trace scale departs from 1 although ||g||^2 = C and S_line has unit diagonal')
-    return {'covariance': rows, 'whitened_spectrum': spectra,
+    return {'covariance': rows, 'whitened_spectrum': spectra, 'population_penalties': population_penalties(c),
             'note': 'whitened clean covariance K(theta) is rho-independent; references are population '
                     'quantities computed before any seed is drawn'}
 
@@ -217,7 +254,7 @@ def fit_cell(c, seed, rho, theta, N):
 # contrasts, inference and registered predictions
 # --------------------------------------------------------------------------------------
 def contrast_values(methods, ms):
-    """27 contrasts per (rho, theta, N) location; negative D favours structure."""
+    """31 contrasts per (rho, theta, N) location; negative D favours structure."""
     V = ['oracle'] + [f'{arm}_{m}' for m in ms for arm in ARMS]
     R = lambda v, cl: methods[v + '__' + cl]['clean']                       # noqa: E731
     D = {v: R(v, 'restricted') - R(v, 'unrestricted') for v in V}
@@ -233,9 +270,15 @@ def contrast_values(methods, ms):
             out[f'calibration_class/{arm}/{a}-{b}'] = D[f'{arm}_{b}'] - D[f'{arm}_{a}']
             for cl in CLASSES:
                 out[f'metric_calibration/{arm}/{cl}/{a}-{b}'] = R(f'{arm}_{b}', cl) - R(f'{arm}_{a}', cl)
-    top_m = max(ms)
+    top_m, lo_m = max(ms), min(ms)
     for cl in CLASSES:
         out[f'estimator/{top_m}/{cl}'] = R(f'full_{top_m}', cl) - R(f'kron_{top_m}', cl)
+    r = top_m / lo_m
+    for arm in ARMS:
+        for cl in CLASSES:
+            hi = R(f'{arm}_{top_m}', cl) - R('oracle', cl)
+            lo = R(f'{arm}_{lo_m}', cl) - R('oracle', cl)
+            out[f'floor_extrapolated/{arm}/{cl}'] = (r * hi - lo) / (r - 1)   # penalty = F + c/m
     return out
 
 
@@ -271,6 +314,8 @@ def involved_metrics(name, ms):
         return {f'full_{parts[1]}', f'kron_{parts[1]}'} if parts[2] == 'restricted' else set()
     if kind == 'rho_change':
         return {parts[1], 'oracle'} if parts[2] == 'restricted' else set()
+    if kind == 'floor_extrapolated':
+        return ({f'{parts[1]}_{m}' for m in ms} | {'oracle'}) if parts[2] == 'restricted' else set()
     raise ValueError('unknown contrast ' + name)
 
 
@@ -303,11 +348,14 @@ def predictions(c, rows):
             for cl in CLASSES:
                 a = get[(cross, th, n, f'rho_change/kron_{top_m}/{cl}')]
                 b = get[(hi_r, th, n, f'metric_calibration/kron/{cl}/{lo_m}-{top_m}')]
+                f = get[(hi_r, th, n, f'floor_extrapolated/kron/{cl}')]
+                flagged = a['optimization_limited'] or b['optimization_limited'] or f['optimization_limited']
+                holds = sign(a) == '+' and sign(b) != '-'
                 p1.append({'theta': th, 'N': n, 'class': cl, 'penalty_rise_with_rho': sign(a),
-                           'penalty_change_with_m_at_high_rho': sign(b),
-                           'holds': sign(a) == '+' and sign(b) != '-',
-                           'contradicts': sign(a) == '-' or sign(b) == '-',
-                           'optimization_limited': a['optimization_limited'] or b['optimization_limited']})
+                           'penalty_change_with_m_at_high_rho': sign(b), 'extrapolated_floor_at_high_rho': sign(f),
+                           'holds': holds, 'contradicts': sign(a) == '-' or sign(b) == '-',
+                           'optimization_limited': flagged,
+                           'floor_wording_allowed': holds and sign(f) == '+' and not flagged})
     p2 = []
     for r in rhos:
         for th in c['theta']:
@@ -331,6 +379,21 @@ def predictions(c, rows):
                     row = get[(r, th, n, f'estimator/{top_m}/{cl}')]
                     e2.append({'rho': r, 'theta': th, 'N': n, 'class': cl, 'sign': sign(row),
                                'optimization_limited': row['optimization_limited']})
+    floor = []
+    for r in rhos:
+        for th in c['theta']:
+            for n in c['N']:
+                for arm in ARMS:
+                    for cl in CLASSES:
+                        row = get[(r, th, n, f'floor_extrapolated/{arm}/{cl}')]
+                        floor.append({'rho': r, 'theta': th, 'N': n, 'estimator': arm, 'class': cl,
+                                      'sign': sign(row), 'optimization_limited': row['optimization_limited']})
+    interaction = {}
+    for r in rhos:
+        for v in variants(c)[1:]:
+            sel = [get[(r, th, n, f'interaction/{v}')] for th in c['theta'] for n in c['N']]
+            interaction[f'{r}/{v}'] = {s: sum(sign(x) == s for x in sel) for s in '-+?'} | \
+                {'optimization_limited': sum(x['optimization_limited'] for x in sel), 'locations': len(sel)}
 
     def verdict(holds, contradicts):
         return 'HOLDS' if all(holds) else 'FAILS' if any(contradicts) else 'UNDECIDED'
@@ -338,10 +401,17 @@ def predictions(c, rows):
         'P1': {'rule': 'HOLDS if at every (theta, N, class) the Kronecker penalty at the largest m rises from '
                        'the lower to the higher rho (interval above zero) and its change from the smallest to '
                        'the largest m at the higher rho is not decided negative; FAILS if any location has a '
-                       'decided fall with rho or a decided fall with m; UNDECIDED otherwise',
+                       'decided fall with rho or a decided fall with m; UNDECIDED otherwise. A HOLDS verdict '
+                       'means "rises with rho and no decided decrease with calibration on this grid"; it does '
+                       'not by itself establish a floor.',
                'verdict': verdict([x['holds'] for x in p1], [x['contradicts'] for x in p1]),
                'counts': {'holds': sum(x['holds'] for x in p1), 'contradicts': sum(x['contradicts'] for x in p1),
-                          'locations': len(p1)},
+                          'optimization_limited': sum(x['optimization_limited'] for x in p1),
+                          'floor_wording_allowed': sum(x['floor_wording_allowed'] for x in p1), 'locations': len(p1)},
+               'floor_wording_rule': 'the word "floor" may be used only if P1 HOLDS, and only for locations where '
+                                     'the 1/m-extrapolated Kronecker penalty at the higher rho is decided positive '
+                                     'and no involved restricted fit is optimization-limited; the separability '
+                                     'and shrinkage shares are then read from the population-limit penalties',
                'locations': p1},
         'P2': {'rule': 'HOLDS if the full-estimate penalty change from the smallest to the largest m is decided '
                        'negative at every (rho, theta, N, class); FAILS if any is decided positive; UNDECIDED '
@@ -353,6 +423,11 @@ def predictions(c, rows):
                'counts': {s: sum(x['sign'] == s for x in p3) for s in '-+?'}, 'locations': p3},
         'E2': {'rule': 'full minus Kronecker clean risk at the largest m, per location, no direction registered',
                'counts': {s: sum(x['sign'] == s for x in e2) for s in '-+?'}, 'locations': e2},
+        'E1_floor': {'rule': 'secondary, nondirectional: 1/m-extrapolated penalty F = (r P(m_max) - P(m_min))/(r - 1), '
+                             'r = m_max/m_min, per (rho, theta, N, estimator, class)',
+                     'locations': floor},
+        'E3_interaction_counts': {'rule': 'nondirectional counts of decided signs of I_v over (theta, N) per (rho, v)',
+                                  'counts': interaction},
         'attribution': 'verdicts use the fitted-learner contrasts at every location; a floor or covariance '
                        'mechanism is not attributed at locations flagged optimization_limited'}
 

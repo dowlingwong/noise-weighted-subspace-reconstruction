@@ -3,8 +3,8 @@
 Protocol: MS `plan/X3_NONLINEAR_METRIC_PROTOCOL_2026-10-05.md`. Launch kit: MS
 `reviews/production_20261005/launch/` (`x3_host.sh`, README). Nothing here runs on import.
 
-**Pinned dependency: torch == 2.9.1, CPU build** (checked at start-up; any other version refuses
-to run). Install into the same interpreter as numpy/scipy/psutil/pytest/threadpoolctl:
+**Pinned dependency: torch == 2.9.1** (the version is checked at start-up and any other version
+refuses to run; the build is recorded in the freeze, not checked — install the CPU wheel as below). Install into the same interpreter as numpy/scipy/psutil/pytest/threadpoolctl:
 
 ```sh
 # Linux (Deepthought): CPU wheel, avoids the multi-GB CUDA dependencies
@@ -18,13 +18,16 @@ $PY -m pip install torch==2.9.1
 - `models.py` — `FlatAE`, Hutchinson divergence and SURE, ported from VERITAS
   `src/whitebox_subjects/{ladder,geometry}.py` (MIT, same author).
 - `science.py` — data (T25 generator, oracle Σ, θ = 0.25), closed-form tied linear AE, frozen
-  training recipe, evaluation (Σ⁻¹ and Euclidean clean risk, SURE), 54 contrasts, P1/P2 verdicts.
+  training recipe, evaluation (Σ⁻¹ and Euclidean clean risk, SURE), 54 contrasts, P1/P2 verdicts, P2 attribution and the SURE-agreement rule. The closed form is
+  fitted on the same N − ⌊0.2N⌋ training records as the deep models.
 - `workflow.py` — the X2 process design (freeze, single supervised attempt, in-campaign
-  re-evaluation plus training replay of the first seed, export, portable audit, qualification).
-- `tests/` — 20 tests including the end-to-end fixture lifecycle and tamper checks.
+  re-evaluation plus training replay of the first seed, export with tables, `EXPORT.json` and
+  `SHA256SUMS`, portable audit, qualification).
+- `tests/` — 28 tests including the end-to-end fixture lifecycle, export and tamper checks;
+  qualification requires exactly 28 passed.
 
 ```sh
-export PYTHONPATH=$PWD/src:$PWD PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+export PYTHONPATH=$PWD/src:$PWD PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1
 python -m experiments.mlst2026.x3_nonlinear_metric_20261005 torch-check
 python -m pytest -q experiments/mlst2026/x3_nonlinear_metric_20261005/tests
 ```

@@ -82,10 +82,10 @@ def test_moment_estimator_population_limits():
 
 
 def test_population_references_are_deterministic_and_ordered():
-    refs = s.population_references(BASE)
-    rows = {r['rho']: r for r in refs['covariance']}
+    # covariance rows only (the population-limit penalties are tested on the fixture geometry)
+    rows = {rho: s.population_reference(BASE, rho) for rho in (0.0, 0.25, 0.5)}
     assert set(rows) == {0.0, 0.25, 0.5}
     assert rows[0.0]['nearest_kronecker_relative_distance'] < 1e-12
     assert rows[0.0]['kron_unshrunk_limit_whitened_error_op'] < 1e-10
     assert rows[0.5]['kron_unshrunk_limit_whitened_error_op'] > rows[0.25]['kron_unshrunk_limit_whitened_error_op'] > 0.5
-    assert refs == s.population_references(BASE)
+    assert rows[0.5] == s.population_reference(BASE, 0.5)

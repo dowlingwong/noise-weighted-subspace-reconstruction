@@ -42,12 +42,13 @@ GATE = {
 DIAGNOSTICS = {
     'eval_records': 65536, 'eval_chunk': 8192,
     'probe_fit_fraction': 0.5,             # first half of the evaluation draws fits probes, second half scores
-    'recovery_threshold': 0.5,             # proposal: R^2 above which a latent counts as recovered (E-NL use)
+    # No recovery threshold here (D8): any R^2 threshold for 'recovered' is frozen before formal E-NL,
+    # not chosen in or after the pilot; the pilot reports recovery R^2 descriptively.
     'interference_amplitudes': [-2.0, -1.5, -1.0, -0.5, 0.5, 1.0, 1.5, 2.0],   # times 1/sqrt(p), latent units
 }
 
 PILOT = {
-    'version': 'tr07-pilot/20261006-v1-candidate',
+    'version': 'tr07-pilot/20261006-v2-amendment1-candidate',
     'namespace': NAMESPACE, 'geometry': T25_GEOMETRY, 'theta': 0.25, 'n_sparse': 6, 'k': 3,
     'p': [0.1, 1.0], 'N': [12800], 'N_diagnostic': [], 'seeds': [1, 2, 3],      # no N = 51,200 (author, 6 Oct)
     'hidden': [128, 32], 'activation': 'silu', 'recipe': RECIPE, 'gate': GATE, 'diagnostics': DIAGNOSTICS,

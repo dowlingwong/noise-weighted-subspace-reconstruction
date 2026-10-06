@@ -128,7 +128,8 @@ def reduce(run_dir):
     summary = {'verdict': verdict, 'diagnostic_cells': diag,
                'population_references': {k_: refs[k_] for k_ in ('projector', 'shrinkage', 'full_wiener', 'bayes',
                                                                  'bayes_error_estimate', 'gap_shrinkage_to_bayes')},
-               'note': 'p = 1 and N = 51,200 cells are diagnostics and never enter the verdict'}
+               'note': 'p = 1 cells are diagnostics and never enter the verdict; there is no N = 51,200 cell '
+                       '(Amendment 1)'}
     write_json(run_dir / 'GATE.json', summary)
     return summary
 

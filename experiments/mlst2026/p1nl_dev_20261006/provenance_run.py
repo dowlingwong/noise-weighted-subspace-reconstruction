@@ -4,8 +4,12 @@
 
 Before the run: copies every file of this development package and every accepted T25 file it imports
 into DIR/source_snapshot/, records SHA-256 of each, argv, cwd, host, platform, Python and the installed
-distributions.  Runs ``<module>.main(args)`` in-process.  After the run: records every in-repository
-module actually loaded (path and SHA-256) and checks that no snapshotted file changed during the run.
+distributions.  Imports ``<module>`` and, still before running it, hashes and snapshots every
+in-repository module that the import loaded (including those outside this package).  Runs
+``<module>.main(args)`` in-process.  After the run: re-hashes all of those, records every in-repository
+module actually loaded, and checks that no file hashed before the run changed during it.  Scope: a
+module first imported lazily *during* the run can only be hashed after it; such modules are listed
+separately (``loaded_during_run_only``).
 Writes DIR/PROVENANCE.json.  The module's own outputs go wherever its arguments say (normally DIR/run).
 """
 from __future__ import annotations
@@ -72,20 +76,29 @@ def main():
                                                   'MKL_NUM_THREADS', 'PYTHONDONTWRITEBYTECODE')},
            'distributions': sorted(f"{d.metadata['Name']}=={d.version}" for d in md.distributions()),
            'package_files_before': before}
-    t0 = time.time()
     mod = importlib.import_module(module)
+    pre = loaded_repo_files()
+    for rel in pre:
+        if rel not in before:
+            dest = snap / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / rel, dest)
+    rec['loaded_repo_modules_before_run'] = pre
+    t0 = time.time()
     mod.main(margs)
     rec['seconds'] = time.time() - t0
     rec['finished_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     loaded = loaded_repo_files()
     rec['loaded_repo_modules'] = loaded
     for rel, h in loaded.items():
-        if rel not in before:
+        if rel not in before and rel not in pre:      # lazily imported during the run: post-run bytes
             dest = snap / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / rel, dest)
+    rec['loaded_during_run_only'] = sorted(set(loaded) - set(pre))
     rec['package_files_after'] = {str(p.relative_to(ROOT)): sha(p) for p in package_files()}
-    rec['unchanged_during_run'] = rec['package_files_after'] == before
+    pre_after = {rel: sha(ROOT / rel) for rel in pre}
+    rec['unchanged_during_run'] = rec['package_files_after'] == before and pre_after == pre
     rec['snapshot_files'] = {str(p.relative_to(snap)): sha(p) for p in sorted(snap.rglob('*')) if p.is_file()}
     (out / 'PROVENANCE.json').write_text(json.dumps(rec, indent=1))
     if not rec['unchanged_during_run']:

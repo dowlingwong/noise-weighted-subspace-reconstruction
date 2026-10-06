@@ -85,8 +85,8 @@ def test_affine_rank_at_most_k_has_zero_leakage(refs, rank):
     assert abs(r['leakage']) < 1e-12
     if rank == FIXTURE['k']:
         assert r['status'] == 'ok'
-    else:                                       # rank < k: the top-k output subspace is not identifiable
-        assert r['status'] == 'top_k_not_identifiable' and r['d_sigma'] is None
+    else:                                       # rank < k: the top-k output subspace is not unique
+        assert r['status'] == 'rank_deficient' and r['d_sigma'] is None and r['numerical_rank'] == rank
 
 
 def test_nonlinear_output_has_positive_leakage(refs):
@@ -180,7 +180,9 @@ def test_reducer_medians_iqr_and_pairing():
     p = next(x for x in paired if x['class'] == 'deep_silu')
     assert p['median'] == pytest.approx(np.median([0.05 * s for s in base]))
     assert all(set(x) == set(rep.SUMMARY_FIELDS) for x in summary)              # no intervals / tests
-    assert exp['section5_silu_sentence_allowed'] is False                       # sigma loss is FARTHER here
+    e1 = [x for x in exp['E1_sigma_loss_nearer_P_sigma'] if x['class'] == 'deep_silu']
+    assert all(x['status'] == 'evaluated_on_complete_summaries' and x['holds'] is False for x in e1)
+    assert 'section5_silu_sentence_allowed' not in exp and 'withdrawn' in exp['section5_qualitative_sentence']
 
 
 def test_reducer_refuses_duplicates_and_missing_seeds():
@@ -198,6 +200,7 @@ def test_reducer_flags_undefined_values():
     summary, paired, _ = rep.reduce_rows(c, rows)
     r = next(x for x in summary if x['class'] == 'deep_silu' and x['metric'] == 'd_sigma')
     assert r['n_defined'] == 2 and r['complete'] is False and r['median'] == pytest.approx(0.2)
+    assert r['summary_label'].startswith('INCOMPLETE available-case')
 
 
 # --------------------------------------------------------------------------------------
@@ -380,3 +383,100 @@ def test_module_outside_frozen_closure_is_refused():
             'try:\n    r.check_loaded_modules()\nexcept r.Refusal as e:\n    print("REFUSED", e)\n')
     out = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, env={**os.environ, **THREADS})
     assert 'REFUSED' in out.stdout, out.stderr
+
+
+# --------------------------------------------------------------------------------------
+# review findings R2/R3 (6 Oct): defined small gaps are kept; ties, rank deficiency and zero variance are
+# undefined with explicit reasons; incomplete summaries never drive E1/E2
+# --------------------------------------------------------------------------------------
+def diag_refs(D, k):
+    U = np.eye(D)[:, :k]
+    return {'k': k, 'W': np.eye(D), 'U_sigma': U, 'U_iso': U, 'P_sigma': U @ U.T, 'P_iso': U @ U.T}
+
+
+def outputs_with_spectrum(eigs, n=4000, seed=0):
+    """Rows whose sample covariance (divisor n - 1) has EXACTLY the given eigenvalues on the axes."""
+    D = len(eigs)
+    g = np.random.default_rng(seed).normal(size=(n, D))
+    g -= g.mean(0)
+    q, r = np.linalg.qr(g)                          # n x D with orthonormal columns
+    q = q * np.where(np.diag(r) < 0, -1.0, 1.0)
+    return q * np.sqrt(np.asarray(eigs) * (n - 1))
+
+
+def test_small_but_resolved_gap_keeps_the_registered_endpoint():
+    eigs = [10, 9, 8, 7, 6, 1e-9, 0, 0, 0]          # reviewer reproducer: top six unique
+    r = rep.endpoints(outputs_with_spectrum(eigs), diag_refs(9, 6))
+    assert r['status'] == 'ok' and r['numerical_rank'] == 6
+    assert r['d_sigma'] == pytest.approx(0.0, abs=1e-9) and r['relative_gap'] == pytest.approx(1e-10, rel=1e-3)
+
+
+def test_exact_tie_rank_deficiency_and_zero_variance_are_undefined_with_reasons():
+    refs = diag_refs(9, 6)
+    tie = rep.endpoints(outputs_with_spectrum([10, 9, 8, 7, 6, 3, 3, 1, 0.5]), refs)
+    assert tie['status'] == 'unresolved_tie' and tie['d_sigma'] is None and tie['leakage'] is not None
+    rk = rep.endpoints(outputs_with_spectrum([10, 9, 8, 7, 6, 0, 0, 0, 0]), refs)
+    assert rk['status'] == 'rank_deficient' and rk['d_sigma'] is None and abs(rk['leakage']) < 1e-12
+    z = rep.endpoints(np.ones((50, 9)), refs)
+    assert z['status'] == 'zero_output_variance' and z['leakage'] is None
+    ok = rep.endpoints(outputs_with_spectrum([10, 9, 8, 7, 6, 5, 1, 0.5, 0.1]), refs)
+    assert ok['status'] == 'ok' and ok['d_sigma'] == pytest.approx(0.0, abs=1e-9)
+
+
+def rows_with_missing(c, missing):
+    """missing(cl, lo, n, s) -> True makes that row undefined (status rank_deficient)."""
+    rows = []
+    for cl in c['classes']:
+        for lo in c['losses']:
+            for n in c['N']:
+                for s in c['seeds']:
+                    if missing(cl, lo, n, s):
+                        rows.append({'class': cl, 'loss': lo, 'N': n, 'seed': s, 'status': 'rank_deficient',
+                                     'd_sigma': None, 'd_iso': None, 'max_angle_sigma_deg': None,
+                                     'max_angle_iso_deg': None, 'leakage': 0.0})
+                    else:
+                        v = 0.8 if lo == 'sigma_inverse' else 0.9
+                        rows.append({'class': cl, 'loss': lo, 'N': n, 'seed': s, 'status': 'ok', 'd_sigma': v,
+                                     'd_iso': v + 0.05, 'max_angle_sigma_deg': 40.0, 'max_angle_iso_deg': 50.0,
+                                     'leakage': 0.01})
+    return rows
+
+
+C24 = {**FIXTURE, 'seeds': list(range(1, 25))}
+
+
+def e1_for(exp, cl='deep_silu'):
+    return [x for x in exp['E1_sigma_loss_nearer_P_sigma'] if x['class'] == cl]
+
+
+def test_reviewer_r3_reproducer_one_defined_seed_does_not_evaluate_e1():
+    summ, paired, exp = rep.reduce_rows(C24, rows_with_missing(C24, lambda cl, lo, n, s: s != 1))
+    assert all(x['status'] == 'not_evaluable_incomplete' and x['holds'] is None for x in e1_for(exp))
+    r = next(x for x in summ if x['class'] == 'deep_silu' and x['metric'] == 'd_sigma')
+    assert r['n_defined'] == 1 and r['summary_label'].startswith('INCOMPLETE')
+    assert json.loads(r['undefined_reasons']) == {'rank_deficient': 23}
+
+
+@pytest.mark.parametrize('case', ['one_missing', 'all_missing', 'by_loss', 'all_complete'])
+def test_missingness_patterns(case):
+    miss = {'one_missing': lambda cl, lo, n, s: s == 7 and cl == 'deep_silu',
+            'all_missing': lambda cl, lo, n, s: cl == 'deep_silu',
+            'by_loss': lambda cl, lo, n, s: cl == 'deep_silu' and lo == 'isotropic' and s <= 3,
+            'all_complete': lambda *a: False}[case]
+    summ, paired, exp = rep.reduce_rows(C24, rows_with_missing(C24, miss))
+    e1 = e1_for(exp)
+    p = [x for x in paired if x['class'] == 'deep_silu']
+    if case == 'all_complete':
+        assert all(x['holds'] is True for x in e1) and all(x['complete'] for x in p)
+    else:
+        assert all(x['status'] == 'not_evaluable_incomplete' for x in e1)
+        assert all(not x['complete'] and x['summary_label'].startswith('INCOMPLETE') for x in p)
+    if case == 'all_missing':
+        r = next(x for x in summ if x['class'] == 'deep_silu' and x['metric'] == 'd_sigma')
+        assert r['median'] is None and r['n_defined'] == 0
+    if case == 'by_loss':
+        iso = next(x for x in summ if x['class'] == 'deep_silu' and x['loss'] == 'isotropic' and x['metric'] == 'd_sigma')
+        sig = next(x for x in summ if x['class'] == 'deep_silu' and x['loss'] == 'sigma_inverse' and x['metric'] == 'd_sigma')
+        assert iso['n_defined'] == 21 and sig['complete']
+    # the linear classes are complete in every case and keep their evaluation
+    assert all(x['status'] == 'evaluated_on_complete_summaries' for x in e1_for(exp, 'tied_linear'))

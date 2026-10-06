@@ -28,8 +28,8 @@ from . import core
 NAMESPACE = 'paper1-tr09-dev'
 
 
-def replicate(model, pt_star, Hinv, N, key, global_check=False):
-    y, _, _ = model.sample_keyed(N, NAMESPACE, *key)
+def replicate(model, pt_star, Hinv, N, key, global_check=False, namespace=NAMESPACE):
+    y, _, _ = model.sample_keyed(N, namespace, *key)
     ybar = y.mean(0)
     yc = y - ybar
     S = yc.T @ yc / N
@@ -56,7 +56,7 @@ def replicate(model, pt_star, Hinv, N, key, global_check=False):
     if global_check:
         best, bval = None, -np.inf
         for name, Uc, Ut in core.product_starts(S, model.C, model.T, model.kc, model.kt,
-                                                rng(NAMESPACE, *key, 'starts'), n_random=3):
+                                                rng(namespace, *key, 'starts'), n_random=3):
             p2, i2 = core.refine(S, model.C, model.T, core.ProductPoint(Uc, Ut))
             if i2['value'] > bval:
                 best, bval = p2, i2['value']
@@ -67,18 +67,18 @@ def replicate(model, pt_star, Hinv, N, key, global_check=False):
     return out
 
 
-def run_cell(theta, p, N, reps, rep0=0, global_every=1):
+def run_cell(theta, p, N, reps, rep0=0, global_every=1, namespace=NAMESPACE):
     model = SparseLatentModel(theta=theta, p=p)
     base = SparseLatentModel(theta=theta, p=1.0)
-    pt, dist = core.population_product_optimum(base, rng(NAMESPACE, 'population', theta), n_random=6)
+    pt, dist = core.population_product_optimum(base, rng(namespace, 'population', theta), n_random=6)
     fo = core.first_order(base, pt)
     rows = []
     t0 = time.time()
     for r in range(rep0, rep0 + reps):
-        row = replicate(model, pt, fo['Hinv'], N, (theta, N, r), global_check=(r % global_every == 0))
+        row = replicate(model, pt, fo['Hinv'], N, (theta, N, r), global_check=(r % global_every == 0), namespace=namespace)
         row.update(theta=theta, p=p, N=N, rep=r)
         rows.append(row)
-    return {'theta': theta, 'p': p, 'N': N, 'reps': reps, 'seconds': time.time() - t0,
+    return {'theta': theta, 'p': p, 'N': N, 'reps': reps, 'seconds': time.time() - t0, 'namespace': namespace,
             'prediction': core.summary(model, pt, fo), 'rows': rows}
 
 
@@ -91,6 +91,7 @@ def main(argv=None):
     ap.add_argument('--rep0', type=int, default=0)
     ap.add_argument('--global-every', type=int, default=4)
     ap.add_argument('--out', required=True)
+    ap.add_argument('--namespace', default=NAMESPACE)
     a = ap.parse_args(argv)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -100,7 +101,7 @@ def main(argv=None):
                 f = out / f'cell_theta{th}_N{N}_p{p}_r{a.rep0}-{a.rep0 + a.reps - 1}.json'
                 if f.exists():
                     continue
-                res = run_cell(th, p, N, a.reps, a.rep0, a.global_every)
+                res = run_cell(th, p, N, a.reps, a.rep0, a.global_every, a.namespace)
                 f.write_text(json.dumps(res))
                 print(f.name, round(res['seconds'], 1), flush=True)
 

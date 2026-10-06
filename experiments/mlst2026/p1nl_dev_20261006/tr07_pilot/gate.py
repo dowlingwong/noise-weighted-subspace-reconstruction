@@ -7,13 +7,19 @@ FITTED on the same training records, and R_AE the Monte Carlo risk of the select
 
 G1 (beats both, beyond seed spread), for X in {a, b}:
     every seed: d_X(s) + m_mc * MCSE(s) < 0,  and  mean_s d_X + m_sd * sd_s(d_X) < 0   (sd with ddof = 1).
-G2 (closes >= 25% of the shrinkage-to-Bayes gap), per seed, with the POPULATION shrinkage reference R_sh:
-    'literal':            (R_sh - R_AE) / (R_sh - R_Bayes)
+G2 (closes >= 25% of a reference gap), per seed, with the POPULATION shrinkage reference R_sh.  The
+operational normalisation is 'sparse_oracle' (author decision D1, 6 Oct 2026); the other two are reported as
+diagnostics:
     'sparse_oracle':      (R_sh - R_AE) / (R_sh - R_sparse_oracle),
                           R_sparse_oracle = sum_{sparse a} r_a^Bayes + sum_{tail a} lambda_a
-                          (Bayes on the six sparse coordinates, nothing on the tail: the reference that a
-                          bottleneck-k model which recovers all sparse latents and ignores the tail attains)
-    'sparse_coordinates': sum_{sparse a} (r_a^sh - r_a^AE) / sum_{sparse a} (r_a^sh - r_a^Bayes)
+                          (the specified reference: Bayes on the six sparse coordinates and zero output on every
+                          tail coordinate).  The total-risk numerator penalises tail degradation.  This reference
+                          scale is NOT a bound for bottleneck-k models and NOT a measure of nonlinearity alone.
+    'full_gap':           (R_sh - R_AE) / (R_sh - R_Bayes)   (diagnostic)
+    'sparse_coordinates': sum_{sparse a} (r_a^sh - r_a^AE) / sum_{sparse a} (r_a^sh - r_a^Bayes)   (diagnostic)
+On the T25 geometry at p = 0.1 the sparse_oracle reference itself closes about 24.0% of the full gap
+(``full_gap_closure_of_sparse_reference``).  That is a property of this zero-tail reference, not an
+upper bound: models that also recover tail energy can close more of the full gap.
     G2 holds if min over seeds of (numerator - m_mc * MCSE_numerator) / denominator >= gap_fraction.
     A denominator below gate['min_gap'] makes G2 'undefined', which fails the gate.
 PASS iff G1(a), G1(b) and G2 hold and every seed produced a trained model.  PASS means only "keep
@@ -25,8 +31,8 @@ from __future__ import annotations
 import numpy as np
 
 
-def ceiling_literal(refs, model):
-    """Closure that the sparse-oracle reference itself attains under the literal denominator."""
+def full_gap_closure_of_sparse_reference(refs, model):
+    """Full-gap closure attained by the zero-tail sparse reference itself (descriptive; not a bound)."""
     so = sparse_oracle(refs, model)
     return (refs['shrinkage'] - so) / (refs['shrinkage'] - refs['bayes'])
 
@@ -58,7 +64,7 @@ def evaluate(cells, refs, model, cfg):
         g1[name] = {'d': d.tolist(), 'mean': float(d.mean()), 'sd': float(d.std(ddof=1)),
                     'every_seed_beyond_mc': every, 'beyond_seed_spread': spread, 'holds': every and spread}
     sh = refs['shrinkage']
-    dens = {'literal': sh - refs['bayes'], 'sparse_oracle': sh - sparse_oracle(refs, model),
+    dens = {'full_gap': sh - refs['bayes'], 'sparse_oracle': sh - sparse_oracle(refs, model),
             'sparse_coordinates': float(np.sum(refs['shrinkage_per_coordinate'][:model.n_sparse]
                                                - refs['bayes_per_coordinate'][:model.n_sparse]))}
     g2 = {}
@@ -76,7 +82,7 @@ def evaluate(cells, refs, model, cfg):
                     'min_lower': float(lower.min()), 'holds': bool(lower.min() >= G['gap_fraction'])}
     chosen = G['gap_definition']
     out.update(G1=g1, G2=g2, G2_definition_used=chosen,
-               literal_rule_ceiling_for_sparse_oracle=float(ceiling_literal(refs, model)))
+               full_gap_closure_of_sparse_reference=float(full_gap_closure_of_sparse_reference(refs, model)))
     passed = g1['projector']['holds'] and g1['shrinkage']['holds'] and g2[chosen]['holds']
     if not g1['projector']['holds']:
         out['reasons'].append('G1 fails against the fitted projector')

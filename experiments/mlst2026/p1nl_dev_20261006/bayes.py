@@ -16,7 +16,9 @@ lambda = 0: the posterior mean is 0.
 Per-coordinate Bayes risk (MMSE): r = lambda - E[(pi gamma c)^2], computed by one-dimensional quadrature
 in each mixture component (y = sigma_1 t and y = t with t ~ N(0, 1)), with two independent rules
 (adaptive scipy quad, and composite Simpson on [-14, 14] at two resolutions) and a reported discrepancy.  This is a
-numerical-integration result with a controlled error, not a Monte Carlo estimate.
+numerical-integration result with an ESTIMATED error (the maximum of the adaptive-rule error estimate and the
+discrepancies between rules and resolutions; about 3e-12 in total at p = 0.1): convergence evidence, not a
+certified bound, and not a Monte Carlo estimate.
 
 Linear population references (whitened clean risk, oracle Sigma, truth mean 0):
 * rank-k projector onto the top-k eigenvectors: sum_{a in top k} 1 + sum_{a not in top k} lambda_a;
@@ -81,9 +83,9 @@ def _simpson(f, n, half_width=14.0):
 def sparse_mmse(lam, p, quad_tol=1e-13, simpson_intervals=(20000, 40000)):
     """Bayes risk of one Bernoulli-Gaussian coordinate and its numerical-error report."""
     if lam <= 0:
-        return 0.0, {'method': 'zero signal', 'error_bound': 0.0}
+        return 0.0, {'method': 'zero signal', 'error_estimate': 0.0}
     if p >= 1.0:
-        return lam / (lam + 1.0), {'method': 'Gaussian closed form', 'error_bound': 0.0}
+        return lam / (lam + 1.0), {'method': 'Gaussian closed form', 'error_estimate': 0.0}
     f1, f0 = _second_moment_integrands(lam, p)
     q1, e1 = integrate.quad(f1, -np.inf, np.inf, epsabs=quad_tol, epsrel=quad_tol, limit=500)
     q0, e0 = integrate.quad(f0, -np.inf, np.inf, epsabs=quad_tol, epsrel=quad_tol, limit=500)
@@ -92,7 +94,7 @@ def sparse_mmse(lam, p, quad_tol=1e-13, simpson_intervals=(20000, 40000)):
     risk = lam - m2_quad
     err = max(abs(m2_quad - simp[-1]), abs(simp[0] - simp[-1]), p * e1 + (1 - p) * e0)
     return float(risk), {'method': 'quadrature', 'second_moment_quad': m2_quad, 'second_moment_simpson': simp,
-                         'quad_abserr': p * e1 + (1 - p) * e0, 'error_bound': float(err)}
+                         'quad_abserr': p * e1 + (1 - p) * e0, 'error_estimate': float(err)}
 
 
 def bayes_risk(mu, n_sparse, p):
@@ -101,7 +103,7 @@ def bayes_risk(mu, n_sparse, p):
     for a, lam in enumerate(mu):
         if a < n_sparse:
             r, info = sparse_mmse(float(lam), p)
-            err += info['error_bound']
+            err += info['error_estimate']
         else:
             r = float(lam / (lam + 1.0))
         per.append(r)
@@ -130,7 +132,7 @@ def references(model, k, p=None):
     p = model.p if p is None else p
     lin = linear_references(model.mu, k)
     rb, per, err = bayes_risk(model.mu, model.n_sparse, p)
-    return {**lin, 'bayes': rb, 'bayes_error_bound': err, 'bayes_per_coordinate': per,
+    return {**lin, 'bayes': rb, 'bayes_error_estimate': err, 'bayes_per_coordinate': per,
             'gap_shrinkage_to_bayes': lin['shrinkage'] - rb}
 
 

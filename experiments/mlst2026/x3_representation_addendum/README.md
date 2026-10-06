@@ -1,6 +1,10 @@
 # TR03: X3 representation endpoints S1/S2 (descriptive)
 
-**Status: implemented; independent review pending.** Not yet run on any confirmation data.
+**Status: implemented (v2, 6 Oct, after review round 1 findings R2/R3 and the author's overlay
+decisions); independent re-review pending.** Not yet run on any confirmation data.
+
+Interpretive overlay: MS `plan/onthefly/X3_ADDENDUM_OVERLAY_v1_2026-10-06.md`. The overlay is
+versioned separately; the registered addendum and the frozen receiving package keep their bytes.
 
 Registered definition: MS `plan/onthefly/X3_ADDENDUM_REPRESENTATION_ENDPOINTS.md`, committed in MS
 `8bad592` (6 Oct 2026, 12:23 UTC). The script checks that the addendum bytes are unchanged
@@ -14,8 +18,10 @@ reviewed package, descriptive.*
 - It imports the frozen X3 package (`x3_nonlinear_metric_20261005`, code identity `83360c2a…`)
   read-only. It does not change the package, its 54-contrast family or the P1/P2/SURE verdicts.
 - It adds no intervals, tests or decision rules. `expectations.json` gives the descriptive status of
-  the registered expectations E1–E3 and the section-5 wording gate. It never supports a superposition
-  claim from leakage alone.
+  the registered expectations E1–E3. E1/E2 are evaluated only on complete summaries. The addendum's
+  section-5 qualitative sentence ("approximately the covariance-optimal subspace") is **withdrawn**
+  by the overlay; no sentence gate is computed. It never supports a superposition claim from leakage
+  alone.
 
 ## Order of use (phase 4, after the X3 return)
 
@@ -65,29 +71,36 @@ expected runtime is a few minutes on one thread; this has not been measured at c
   closure is loaded.
 - Confirmation mode only: `--primary-verdicts` is required and must equal the reduction's verdicts.
 
-## Interpretations and declared choices (for the reviewer; none changes a registered definition)
+## Interpretations and declared choices (overlay v1; none changes the registered addendum bytes)
 
 1. **"The two largest principal angles" (addendum §3).** Read as the largest principal angle to
-   each of the two references, consistent with §2 ("the largest principal angle … for each
-   reference"). Every per-seed row also carries all k angles to both references, so the other
-   reading (the two largest angles to one reference) can be summarised from the same file without
-   recomputation.
-2. **Non-identifiable top-k output subspace.** If ν_k − ν_{k+1} ≤ 1e-8 · ν_1, U_f is not unique. d
-   and the angles are then undefined; leakage stays defined, because the top-k eigenvalue sum is
-   unique. This happens, for example, for an affine model of rank below k. Undefined values are
-   excluded from summaries, which then show `n_defined < n_seeds` and `complete = False`.
-   **Flag:** the addendum does not say how a 24-seed median treats an undefined seed. This choice
-   needs the reviewer's or the author's confirmation if it occurs in the confirmation data.
-3. **Zero output variance** (tr C_f = 0): every endpoint of that model is undefined (same flag).
-4. **A defined but weakly determined subspace.** A collapsed deep-linear bottleneck can give ν_k ≪ ν_1
-   with ν_k still above the identifiability threshold; one fixture case has ν_k ≈ 1e-5 ν_1. d is then
-   defined but sensitive to small perturbations. `per_seed.csv` reports ν_1, ν_k and ν_{k+1} so this
-   can be seen. No threshold is added.
-5. **Cross-host data digests.** The frozen portable audit only *notes* a data-digest mismatch, which
-   can occur when data are regenerated with a different BLAS. The addendum requires the digest to
-   match, so this script refuses. If X3 ran on Deepthought and the receiver works on the Mac, run
-   this script on the run host or ask the author for an addendum interpretation. Do not bypass the
-   check.
+   each of the two references, consistent with §2. Every per-seed row also carries all k angles to
+   both references, so the other reading can be summarised from the same file.
+2. **When U_f is undefined.** Only where the registered top-6 eigenspace is not unique, up to
+   floating-point resolution τ = 64·ε·D·ν₁ (≈ 3.6e-12·ν₁ at D = 256; a numerical-resolution
+   tolerance, not a substantive threshold). Each case keeps an explicit reason:
+   - `zero_output_variance`: tr C_f ≤ 0; every endpoint is undefined.
+   - `rank_deficient`: fewer than k eigenvalues exceed τ, so the zero eigenspace makes the top-k choice
+     arbitrary. Leakage stays defined.
+   - `unresolved_tie`: ν_k − ν_{k+1} ≤ τ. Leakage stays defined.
+
+   A small but resolved gap is **not** excluded. d and the angles are reported, with the relative gap
+   (ν_k − ν_{k+1})/ν₁ and the numerical rank as diagnostics in `per_seed.csv`. This corrects review
+   finding R2: the earlier 1e-8·ν₁ cutoff treated ill-conditioning as non-uniqueness.
+3. **Incomplete summaries.** Undefined values are never imputed. A summary over fewer than all
+   registered seeds is labelled `INCOMPLETE available-case summary (n/24 …)`, carries `n_defined` and
+   the `undefined_reasons` counts, and is never presented as the complete 24-seed result. E1/E2 are
+   evaluated only when both compared groups are complete; otherwise they are
+   `not_evaluable_incomplete` (review finding R3).
+4. **Section-5 wording.** The qualitative sentence is withdrawn (author decision, 6 Oct). Report the
+   registered distances, angles and leakage measures and the relative comparisons E1/E2. No absolute
+   threshold for "approximately" is introduced.
+5. **Strict data digests.** The frozen portable audit only *notes* a data-digest mismatch, which can
+   occur when data are regenerated under a different BLAS. This script refuses with a `BLOCKED`
+   reason.
+   - Preferred route: run it on the original X3 host with its pinned environment, after the frozen
+     audit and the primary verdicts are recorded.
+   - If parity still fails, report TR03 as **blocked**. Never weaken the check.
 6. **IQR.** Q3 − Q1 with numpy's default linear percentile interpolation; Q1 and Q3 are also reported.
 7. **Linear-class check.** |ℓ| < 1e-8 for the tied-linear and deep-linear models is reported in
    `checks.json`. As registered, it is a check and not an endpoint; a failure is reported, not hidden.
@@ -98,7 +111,7 @@ expected runtime is a few minutes on one thread; this has not been measured at c
 python -m pytest -q -p no:cacheprovider experiments/mlst2026/x3_representation_addendum/tests
 ```
 
-31 tests (34 s on one CPU). They cover:
+See the test file for the current count (v2 adds the review-R2/R3 cases). They cover:
 
 - hand-built distance and angle references;
 - descending eigenvalue order;

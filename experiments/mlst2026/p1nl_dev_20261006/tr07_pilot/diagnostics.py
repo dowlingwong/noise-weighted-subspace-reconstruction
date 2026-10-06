@@ -11,8 +11,10 @@
   (univariate least squares with intercept) and (ii) the k-dimensional code (linear least squares with
   intercept).  Probes are fitted on the first half of the evaluation draws and scored on the second half.
 * Interference: noise-free single-latent inputs y = t sqrt(lambda_a) v_a; response of latent coordinate b,
-  rho_b(t) = v_b^T (f(y) - f(0)) / sqrt(lambda_b); I_ab = sum_t rho_b(t) t / sum_t t^2 (perfect, isolated
-  recovery gives the identity on the sparse block).
+  rho_b(t) = v_b^T (f(y) - f(0)) / sqrt(lambda_b); I_ab = sum_t rho_b(t) t / sum_t t^2.  Off-diagonal entries
+  measure cross-latent interference; diagonal entries are amplitude gains.  Exact, isolated recovery of the
+  latent amplitude would give the identity; a shrinking estimator such as the factorised Bayes map gives
+  zero off-diagonal interference but diagonal gains below one (pi(c) gamma < 1).
 """
 from __future__ import annotations
 

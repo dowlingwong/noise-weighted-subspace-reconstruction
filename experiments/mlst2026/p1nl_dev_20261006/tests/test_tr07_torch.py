@@ -54,12 +54,24 @@ def test_fixture_pilot_end_to_end(tmp_path):
     assert len(rec['interference']) == 4 and len(rec['recovery']['output_r2']) == 4
     summary = pilot.reduce(out)
     assert summary['verdict']['verdict'].split()[0] in ('PASS', 'FAIL')
-    assert 'literal_rule_ceiling_for_sparse_oracle' in summary['verdict']
+    assert 'full_gap_closure_of_sparse_reference' in summary['verdict']
     assert (out / 'GATE.json').is_file()
 
 
-def test_pilot_mode_refuses_without_recorded_decisions(tmp_path, monkeypatch):
+def test_pilot_mode_refuses_before_review_acceptance_and_authorisation(tmp_path, monkeypatch):
     monkeypatch.delenv('P1NL_TR07_PILOT_AUTHORISED', raising=False)
     with pytest.raises(SystemExit, match='pilot refused'):
         pilot.run('pilot', tmp_path / 'p')
+    monkeypatch.setenv('P1NL_TR07_PILOT_AUTHORISED', 'yes')         # still refused: review not accepted
+    with pytest.raises(SystemExit, match='independent review'):
+        pilot.run('pilot', tmp_path / 'p')
+    assert not (tmp_path / 'p').exists()
+
+
+def test_pilot_mode_refuses_the_51200_diagnostic(tmp_path, monkeypatch):
+    from experiments.mlst2026.p1nl_dev_20261006.tr07_pilot import config
+    monkeypatch.setitem(config.PILOT, 'independent_review_accepted', True)
+    monkeypatch.setenv('P1NL_TR07_PILOT_AUTHORISED', 'yes')
+    with pytest.raises(SystemExit, match='51,200'):
+        pilot.run('pilot', tmp_path / 'p', diagnostic_N=True)
     assert not (tmp_path / 'p').exists()

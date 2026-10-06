@@ -3,9 +3,9 @@
     python -m experiments.mlst2026.p1nl_dev_20261006.tr07_pilot.pilot run --mode fixture --out DIR
     python -m experiments.mlst2026.p1nl_dev_20261006.tr07_pilot.pilot reduce --run DIR
     python -m experiments.mlst2026.p1nl_dev_20261006.tr07_pilot.pilot resources --out DIR   # bounded timing
-    # the pilot itself (NOT run in the preparation pass; requires the recorded author decisions and
-    # P1NL_TR07_PILOT_AUTHORISED=yes):
-    python -m experiments.mlst2026.p1nl_dev_20261006.tr07_pilot.pilot run --mode pilot --out DIR [--diagnostic-N]
+    # the pilot itself (NOT run in the preparation pass; requires the recorded author decisions, an accepted
+    # independent review of the amended implementation, and P1NL_TR07_PILOT_AUTHORISED=yes; N = 12,800 only):
+    python -m experiments.mlst2026.p1nl_dev_20261006.tr07_pilot.pilot run --mode pilot --out DIR
 
 Per (seed, p, N) cell: one keyed training pool per (seed, p) (nested prefixes over N; paired across p by
 common random numbers), one keyed evaluation set per seed (paired across p); the autoencoder and both
@@ -82,9 +82,13 @@ def run_cell(torch, cfg, seed, p, N, Yt, Yev, Sev, Zev, refs, model_dir=None):
 def run(mode, out, diagnostic_N=False, seeds=None):
     cfg = FIXTURE if mode == 'fixture' else PILOT
     if mode == 'pilot':
-        if not cfg['author_decisions_recorded'] or os.environ.get('P1NL_TR07_PILOT_AUTHORISED') != 'yes':
-            raise SystemExit('pilot refused: record the author decisions in the protocol and config, then set '
-                             'P1NL_TR07_PILOT_AUTHORISED=yes')
+        if (not cfg['author_decisions_recorded'] or not cfg.get('independent_review_accepted')
+                or os.environ.get('P1NL_TR07_PILOT_AUTHORISED') != 'yes'):
+            raise SystemExit('pilot refused: requires the recorded author decisions, an independent review that '
+                             'accepts the amended implementation, and P1NL_TR07_PILOT_AUTHORISED=yes')
+        if diagnostic_N:
+            raise SystemExit('pilot refused: N = 51,200 is not part of the planned pilot (author, 6 Oct); a larger '
+                             'grid needs a separately reviewed redesign and may not rescue a failed pilot')
     out = Path(out)
     out.mkdir(parents=True, exist_ok=False)
     (out / 'models').mkdir()
@@ -123,7 +127,7 @@ def reduce(run_dir):
             if not (c['p'] == G['p'] and c['N'] == G['N'])]
     summary = {'verdict': verdict, 'diagnostic_cells': diag,
                'population_references': {k_: refs[k_] for k_ in ('projector', 'shrinkage', 'full_wiener', 'bayes',
-                                                                 'bayes_error_bound', 'gap_shrinkage_to_bayes')},
+                                                                 'bayes_error_estimate', 'gap_shrinkage_to_bayes')},
                'note': 'p = 1 and N = 51,200 cells are diagnostics and never enter the verdict'}
     write_json(run_dir / 'GATE.json', summary)
     return summary

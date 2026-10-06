@@ -55,7 +55,7 @@ def price_of_linearity(theta=0.25, ps=(1.0, 0.3, 0.1), ks=(3, 6)):
             r = bayes.references(m, k)
             sh_pc, b_pc = r['shrinkage_per_coordinate'], r['bayes_per_coordinate']
             rows.append({'theta': theta, 'p': p, 'k': k, 'R_projector': r['projector'], 'R_shrinkage': r['shrinkage'],
-                         'R_full_wiener': r['full_wiener'], 'R_bayes': r['bayes'], 'bayes_error_bound': r['bayes_error_bound'],
+                         'R_full_wiener': r['full_wiener'], 'R_bayes': r['bayes'], 'bayes_error_estimate': r['bayes_error_estimate'],
                          'price_no_bottleneck': r['full_wiener'] - r['bayes'],
                          'gain_bound_bottleneck': r['shrinkage'] - r['bayes'],
                          'gain_bound_sparse_part': float(np.sum(sh_pc[:n] - b_pc[:n])),

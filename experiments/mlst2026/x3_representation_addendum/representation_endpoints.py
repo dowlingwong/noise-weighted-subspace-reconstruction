@@ -20,11 +20,20 @@ Reporting (addendum section 3): per (class, loss, N) the median and IQR over see
 seed-paired difference d_Sigma(Sigma^-1 loss) - d_Sigma(isotropic loss).  No intervals, tests or decision
 rules.  The expectation table (E1-E3) is a descriptive status of registered expectations, not a test.
 
-Implementation choices that the addendum does not fix (declared; see README "Interpretations"):
-* IDENTIFIABILITY_RTOL: the top-k subspace of C_f is declared non-identifiable when
-  nu_k - nu_{k+1} <= IDENTIFIABILITY_RTOL * nu_1; d and the angles are then undefined (None).
-* tr C_f <= 0 (zero output variance): every endpoint of that model is undefined (None).
-* Undefined values are excluded from a summary, which then carries n_defined < n_seeds and complete=False.
+Interpretive overlay (MS plan/onthefly/X3_ADDENDUM_OVERLAY_v1_2026-10-06.md; the registered addendum bytes are
+unchanged) and implementation choices:
+* U_f is undefined only where the registered top-k eigenspace is not unique, up to floating-point resolution
+  tau = TIE_EPS_FACTOR * eps * D * nu_1 (a numerical-resolution tolerance, not a substantive threshold):
+  'zero_output_variance' (tr C_f <= 0: every endpoint undefined); 'rank_deficient' (fewer than k eigenvalues
+  above tau, so the zero eigenspace makes the top-k choice arbitrary; leakage stays defined); 'unresolved_tie'
+  (nu_k - nu_{k+1} <= tau; leakage stays defined).  A small but resolved gap is NOT excluded: d and the angles
+  are reported, with the relative gap (nu_k - nu_{k+1})/nu_1 and the numerical rank as diagnostics.
+* Undefined values are never imputed.  A summary over fewer than all registered seeds is labelled
+  'INCOMPLETE available-case' with n_defined and the undefined reasons; it is never the registered
+  24-seed summary.  E1/E2 are evaluated only when both compared groups are complete; otherwise their status
+  is 'not_evaluable_incomplete'.
+* The addendum section-5 qualitative sentence ("approximately the covariance-optimal subspace") is withdrawn
+  by the overlay: no sentence gate is computed; the numbers and the supported relative comparisons are reported.
 * IQR uses numpy's default linear percentile interpolation (Q3 - Q1; Q1 and Q3 are also reported).
 * "the two largest principal angles" (section 3) is read as the largest principal angle to each of the
   two references (section 2); every per-seed row also carries all k angles to both references.
@@ -59,7 +68,7 @@ from experiments.mlst2026.x3_nonlinear_metric_20261005.protocol import BASE, FIX
 
 PACKAGE = Path(__file__).resolve().parent
 EXP_ROOT = PACKAGE.parents[2]
-VERSION = 'x3-representation-addendum/20261006-v1'
+VERSION = 'x3-representation-addendum/20261006-v2'
 ADDENDUM_MS = 'plan/onthefly/X3_ADDENDUM_REPRESENTATION_ENDPOINTS.md'
 ADDENDUM_REGISTRATION_COMMIT = '8bad592'
 #: SHA-256 of the addendum bytes as committed in MS 8bad592 (checked against the MS tree at run time).
@@ -68,7 +77,9 @@ REGISTERED_X3_IDENTITY = '83360c2a09cd4e06989ceeeae884429542dc682577e8bddc37a1db
 REGISTERED_K = 6
 REGISTERED_EVAL_RECORDS = 2048
 LINEAR_CHECK_TOL = 1e-8          # addendum section 2: |l| < 1e-8 is reported as a check, not an endpoint
-IDENTIFIABILITY_RTOL = 1e-8      # implementation choice (declared)
+TIE_EPS_FACTOR = 64.0            # numerical resolution: tau = 64 * eps * D * nu_1 (overlay v1, section 2)
+REFERENCE_RTOL = 1e-8            # population references must be well separated (they are: gaps 4 and >0.1)
+OVERLAY_MS = 'plan/onthefly/X3_ADDENDUM_OVERLAY_v1_2026-10-06.md'
 WHITENING_TOL = 1e-10
 CLOSED_FORM_RTOL, CLOSED_FORM_ATOL = 1e-9, 1e-11   # as in the frozen workflow.verify_cell
 METRICS = ('d_sigma', 'd_iso', 'max_angle_sigma_deg', 'max_angle_iso_deg', 'leakage')
@@ -133,12 +144,12 @@ def references(c, W=None):
     Cs = L @ K @ L
     nu_s, V_s = eigh_desc(W @ Cs @ W.T)
     gap_s = float(nu_s[k - 1] - nu_s[k])
-    if gap_s <= IDENTIFIABILITY_RTOL * nu_s[0]:
+    if gap_s <= REFERENCE_RTOL * nu_s[0]:
         raise Refusal('population P_Sigma not identifiable')
     U_sigma = V_s[:, :k]
     nu_x, V_x = eigh_desc(Cs + sigma)
     gap_x = float(nu_x[k - 1] - nu_x[k])
-    if gap_x <= IDENTIFIABILITY_RTOL * nu_x[0]:
+    if gap_x <= REFERENCE_RTOL * nu_x[0]:
         raise Refusal('population isotropic-PCA subspace not identifiable')
     U_iso = orthonormalise(W @ V_x[:, :k])
     out = {'k': k, 'W': W, 'U_sigma': U_sigma, 'U_iso': U_iso, 'P_sigma': projector(U_sigma),
@@ -169,15 +180,23 @@ def endpoints(F, refs):
     C = output_covariance(F, W)
     nu, V = eigh_desc(C)
     tr = float(np.trace(C))
+    D = len(nu)
     row = {'trace_C': tr, 'nu_k': float(nu[k - 1]), 'nu_k_plus_1': float(nu[k]), 'nu_1': float(nu[0]),
            'status': 'ok', 'd_sigma': None, 'd_iso': None, 'max_angle_sigma_deg': None, 'max_angle_iso_deg': None,
-           'angles_sigma_deg': None, 'angles_iso_deg': None, 'leakage': None}
+           'angles_sigma_deg': None, 'angles_iso_deg': None, 'leakage': None, 'relative_gap': None,
+           'numerical_rank': None}
     if not tr > 0:
         row['status'] = 'zero_output_variance'
         return row
+    tau = TIE_EPS_FACTOR * np.finfo(float).eps * D * nu[0]
+    row['numerical_rank'] = int(np.sum(nu > tau))
+    row['relative_gap'] = float((nu[k - 1] - nu[k]) / nu[0])
     row['leakage'] = float(1.0 - nu[:k].sum() / tr)
-    if not nu[k - 1] - nu[k] > IDENTIFIABILITY_RTOL * nu[0]:
-        row['status'] = 'top_k_not_identifiable'
+    if row['numerical_rank'] < k:
+        row['status'] = 'rank_deficient'
+        return row
+    if not nu[k - 1] - nu[k] > tau:
+        row['status'] = 'unresolved_tie'
         return row
     U = V[:, :k]
     P = projector(U)
@@ -191,15 +210,28 @@ def endpoints(F, refs):
 # --------------------------------------------------------------------------------------
 # reduction (descriptive)
 # --------------------------------------------------------------------------------------
-def describe(values, n_expected):
+def describe(values, n_expected, reasons=None):
     v = np.asarray([x for x in values if x is not None and np.isfinite(x)], dtype=float)
     out = {'n_seeds': n_expected, 'n_defined': int(v.size), 'complete': bool(v.size == n_expected)}
+    out['summary_label'] = ('complete registered-seed summary' if out['complete'] else
+                            f'INCOMPLETE available-case summary ({v.size}/{n_expected} seeds defined); '
+                            'not the registered complete summary; no imputation')
+    rs = {}
+    for r in (reasons or []):
+        if r != 'ok':
+            rs[r] = rs.get(r, 0) + 1
+    out['undefined_reasons'] = json_dumps_sorted(rs)
     if v.size == 0:
         out.update(median=None, q1=None, q3=None, iqr=None)
     else:
         q1, med, q3 = np.percentile(v, [25, 50, 75])
         out.update(median=float(med), q1=float(q1), q3=float(q3), iqr=float(q3 - q1))
     return out
+
+
+def json_dumps_sorted(d):
+    import json as _json
+    return _json.dumps(d, sort_keys=True)
 
 
 def reduce_rows(c, rows):
@@ -222,33 +254,45 @@ def reduce_rows(c, rows):
     summary = []
     for (cl, lo, n) in sorted(expected):
         for m in METRICS:
+            grp = [keyset[(cl, lo, n)][s] for s in seeds]
+            reasons = [g.get('status', 'ok') if g[m] is None else 'ok' for g in grp]
             summary.append({'class': cl, 'loss': lo, 'N': n, 'metric': m,
-                            **describe([keyset[(cl, lo, n)][s][m] for s in seeds], len(seeds))})
+                            **describe([g[m] for g in grp], len(seeds), reasons)})
     paired = []
     for cl in c['classes']:
         for n in c['N']:
-            diffs = []
+            diffs, reasons = [], []
             for s in seeds:
-                a, b = keyset[(cl, 'sigma_inverse', n)][s]['d_sigma'], keyset[(cl, 'isotropic', n)][s]['d_sigma']
+                ra, rb = keyset[(cl, 'sigma_inverse', n)][s], keyset[(cl, 'isotropic', n)][s]
+                a, b = ra['d_sigma'], rb['d_sigma']
                 diffs.append(None if a is None or b is None else a - b)
+                reasons.append('ok' if a is not None and b is not None else
+                               '+'.join(sorted({r.get('status', 'undefined') for r in (ra, rb) if r['d_sigma'] is None})))
             paired.append({'class': cl, 'N': n, 'quantity': 'd_sigma(sigma_inverse) - d_sigma(isotropic)',
-                           **describe(diffs, len(seeds))})
-    med = {(r['class'], r['loss'], r['N'], r['metric']): r['median'] for r in summary}
+                           **describe(diffs, len(seeds), reasons)})
+    S = {(r['class'], r['loss'], r['N'], r['metric']): r for r in summary}
 
-    def lt(a, b):
-        return None if a is None or b is None else bool(a < b)
-    e1 = [{'class': cl, 'N': n, 'holds': lt(med[(cl, 'sigma_inverse', n, 'd_sigma')], med[(cl, 'isotropic', n, 'd_sigma')])}
+    def compare(a, b):
+        ra, rb = S[a], S[b]
+        if not (ra['complete'] and rb['complete']):
+            return {'holds': None, 'status': 'not_evaluable_incomplete',
+                    'n_defined': [ra['n_defined'], rb['n_defined']], 'n_seeds': ra['n_seeds']}
+        return {'holds': bool(ra['median'] < rb['median']), 'status': 'evaluated_on_complete_summaries',
+                'medians': [ra['median'], rb['median']]}
+    e1 = [{'class': cl, 'N': n, **compare((cl, 'sigma_inverse', n, 'd_sigma'), (cl, 'isotropic', n, 'd_sigma'))}
           for cl in c['classes'] for n in c['N']]
-    e2 = [{'class': cl, 'N': n, 'holds': lt(med[(cl, 'isotropic', n, 'd_iso')], med[(cl, 'isotropic', n, 'd_sigma')])}
+    e2 = [{'class': cl, 'N': n, **compare((cl, 'isotropic', n, 'd_iso'), (cl, 'isotropic', n, 'd_sigma'))}
           for cl in c['classes'] for n in c['N']]
-    e3 = ([{'loss': lo, 'N': n, 'median_leakage': med[('deep_silu', lo, n, 'leakage')]}
+    e3 = ([{'loss': lo, 'N': n, 'median_leakage': S[('deep_silu', lo, n, 'leakage')]['median'],
+            'summary_label': S[('deep_silu', lo, n, 'leakage')]['summary_label']}
            for lo in c['losses'] for n in c['N']] if 'deep_silu' in c['classes'] else [])
-    silu_e1 = [x['holds'] for x in e1 if x['class'] == 'deep_silu']
     expectations = {
         'status': 'descriptive status of registered expectations (addendum section 4); not tests, no threshold',
         'E1_sigma_loss_nearer_P_sigma': e1, 'E2_iso_loss_nearer_P_iso_than_P_sigma': e2,
         'E3_silu_leakage_reported': e3,
-        'section5_silu_sentence_allowed': bool(silu_e1) and all(x is True for x in silu_e1),
+        'section5_qualitative_sentence': ('withdrawn by overlay v1 (' + OVERLAY_MS + '): report the registered '
+                                          'distances, angles and leakage and the relative comparisons E1/E2 only; '
+                                          'no absolute-closeness wording'),
         'section5_never': 'no claim of superposition or of a nonlinear representation from leakage alone',
         'reading_order': 'read only after the X3 primary verdicts (P1, P2, SURE agreement) are recorded'}
     return summary, paired, expectations
@@ -356,8 +400,9 @@ def check_data(c, root, cells):
             N = r['N']
             x, _, _ = x3s.moments(train, N)
             if r['evaluation_sha'] != ed or r['training_sha'] != x3s.digest(x):
-                raise Refusal(f'cell {i}: regenerated data digest differs from the record '
-                              '(cross-BLAS regeneration? see README "Interpretations")')
+                raise Refusal(f'BLOCKED: cell {i}: regenerated data digest differs from the record. Do not weaken '
+                              'this check; run on the original X3 host and pinned environment after the frozen '
+                              'audit and primary verdicts (overlay v1 section 3), else report TR03 as blocked')
             n_tr, _ = x3s.split(N, c['recipe']['validation_fraction'])
             _, mu, S = x3s.moments(train, n_tr)
             a = dict(np.load(d / 'arrays.npz', allow_pickle=False))
@@ -419,10 +464,13 @@ def compute(c, root, cells, refs=None):
 # outputs
 # --------------------------------------------------------------------------------------
 ROW_FIELDS = ['seed', 'N', 'class', 'loss', 'cell', 'status', 'd_sigma', 'd_iso', 'max_angle_sigma_deg',
-              'max_angle_iso_deg', 'leakage', 'trace_C', 'nu_1', 'nu_k', 'nu_k_plus_1', 'linear_leakage_check',
+              'max_angle_iso_deg', 'leakage', 'trace_C', 'nu_1', 'nu_k', 'nu_k_plus_1', 'relative_gap',
+              'numerical_rank', 'linear_leakage_check',
               'angles_sigma_deg', 'angles_iso_deg']
-SUMMARY_FIELDS = ['class', 'loss', 'N', 'metric', 'n_seeds', 'n_defined', 'complete', 'median', 'q1', 'q3', 'iqr']
-PAIRED_FIELDS = ['class', 'N', 'quantity', 'n_seeds', 'n_defined', 'complete', 'median', 'q1', 'q3', 'iqr']
+SUMMARY_FIELDS = ['class', 'loss', 'N', 'metric', 'n_seeds', 'n_defined', 'complete', 'summary_label',
+                  'undefined_reasons', 'median', 'q1', 'q3', 'iqr']
+PAIRED_FIELDS = ['class', 'N', 'quantity', 'n_seeds', 'n_defined', 'complete', 'summary_label', 'undefined_reasons',
+                 'median', 'q1', 'q3', 'iqr']
 
 
 def _cell(v):
@@ -503,7 +551,8 @@ def run(mode, export, out, primary_verdicts=None):
                    'export_code_identity': e['code_identity'], 'reduction_sha256': e['reduction_sha256'],
                    'primary_verdicts': verdicts},
         'x3_code_identity': REGISTERED_X3_IDENTITY, 'addendum_package_files': addendum_files(),
-        'declared_choices': {'identifiability_rtol': IDENTIFIABILITY_RTOL, 'linear_check_tol': LINEAR_CHECK_TOL,
+        'overlay': OVERLAY_MS,
+        'declared_choices': {'tie_eps_factor': TIE_EPS_FACTOR, 'linear_check_tol': LINEAR_CHECK_TOL,
                              'iqr': 'numpy linear percentile interpolation', 'k': c['k'],
                              'two_largest_angles_reading': 'largest principal angle to each reference'},
         'environment': {'python': sys.version, 'numpy': np.__version__, 'platform': platform.platform(),

@@ -37,6 +37,8 @@ def environment():
                     except AttributeError:continue
                     fn.restype=restype;fn.argtypes=[];value=fn();row[tag]=value.decode() if isinstance(value,bytes) else value;break
             pools.append(row)
+    # Dynamic loader enumeration order is not a runtime topology difference.
+    pools=sorted(pools,key=lambda row:row["filepath"])
     executable=Path(sys.executable).resolve()
     return dict(python=sys.version,executable=str(executable),executable_sha256=sha(executable),platform=platform.platform(),
                 numpy=numpy.__version__,scipy=scipy.__version__,distributions=metadata,installed_packages=installed,

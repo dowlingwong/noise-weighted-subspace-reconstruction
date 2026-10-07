@@ -25,12 +25,12 @@ def fit(c,seed,theta,N,p):
     results={}
     for label,basis in [('U',Bu),('F',B)]:
         A=t25.map_for(basis,W); b=(np.eye(g.d)-A)@mean
-        arrays['A_'+label]=A;arrays['b_'+label]=b
+        arrays['A_'+label]=A;arrays['b_'+label]=b;arrays['B_'+label]=basis
         results[label]=t25.risks(A,b,Cs,sigma,W)
     rr=[]
     for i,(uc,ut) in enumerate(factors):
         A=t25.map_for(np.kron(ut,uc),W);b=(np.eye(g.d)-A)@mean
-        arrays[f'A_restart_{i}']=A;arrays[f'b_restart_{i}']=b
+        arrays[f'A_restart_{i}']=A;arrays[f'b_restart_{i}']=b;arrays[f'uc_{i}']=uc;arrays[f'ut_{i}']=ut
         rr.append(t25.risks(A,b,Cs,sigma,W)['clean'])
     D=results['F']['clean']-results['U']['clean'];spread=max(rr)-min(rr)
     row={'seed':seed,'theta':theta,'N':N,'p':p,'R_U':results['U']['clean'],'R_F':results['F']['clean'],'D':D,

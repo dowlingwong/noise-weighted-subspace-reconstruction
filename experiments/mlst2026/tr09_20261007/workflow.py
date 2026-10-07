@@ -135,6 +135,19 @@ def audit(out,report=None,in_campaign=False):
         if attempt.get('supervisor',{}).get('timeout_seconds')!=28800:raise ValueError('supervisor timeout missing')
         if frozen['sources']!=start['sources'] or frozen['config']!=c or frozen['environment']!=start['environment'] or acceptance.get('registered') is not True or acceptance.get('verdict')!='ACCEPTED' or acceptance.get('freeze_sha256')!=freeze_sha or acceptance.get('namespace')!=c['namespace'] or attempt.get('freeze_sha256')!=freeze_sha or attempt.get('namespace')!=c['namespace']:raise ValueError('supervised attempt identity mismatch')
     if c!=config(start['mode']):raise ValueError('returned config differs from shipped design')
+    required={'START.json','SUMMARY.json'}|{'source_snapshot/'+rel for rel in start['sources']}
+    for seed in c['seeds']:
+        for theta in c['theta']:
+            for N in c['N']:
+                for p in c['p']:
+                    stem=f'cell_{seed}_{theta}_{N}_{p}'
+                    required|={stem+'.json',stem+'.npz'}
+    if start['mode']=='confirmation':required|={'FREEZE.json','ACCEPTANCE.json','ATTEMPT.json'}
+    if not in_campaign:
+        required|={'EXIT.json','AUDIT.json','SHA256SUMS'}
+        if start['mode']=='confirmation':required.add('SUPERVISOR_EXIT.json')
+    actual={str(p.relative_to(out)) for p in out.rglob('*') if p.is_file() and p.name!='return.tgz'}
+    if actual!=required:raise ValueError('authoritative file census mismatch')
     for rel,want in start['sources'].items():
         p=Path(rel)
         if p.is_absolute() or '..' in p.parts or sha(out/'source_snapshot'/p)!=want:raise ValueError('source snapshot mismatch')

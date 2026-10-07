@@ -135,3 +135,11 @@ def test_failed_or_unsafe_receipt_refused(tmp_path,attack,fixture_archive):
     else:
         (out/'injected').symlink_to(tmp_path)
         with pytest.raises(ValueError,match='symlink'):workflow.verify_receipt(out)
+
+
+def test_rehashed_extra_file_refused(tmp_path,fixture_archive):
+    out=tmp_path/'extra';shutil.copytree(fixture_archive,out)
+    (out/'injected.txt').write_text('self-consistently re-exported unexpected payload')
+    workflow.export(out)
+    workflow.verify_receipt(out)
+    with pytest.raises(ValueError,match='authoritative file census'):workflow.audit(out)

@@ -143,3 +143,23 @@ def test_rehashed_extra_file_refused(tmp_path,fixture_archive):
     workflow.export(out)
     workflow.verify_receipt(out)
     with pytest.raises(ValueError,match='authoritative file census'):workflow.audit(out)
+
+
+def test_authoritative_shell_cache_preflight(tmp_path):
+    import os,subprocess
+    body=(workflow.PACKAGE/'supervisor.sh').read_text()
+    fragment=body[body.index('unset PYTHONPYCACHEPREFIX'):body.index('ulimit -v')]
+    (tmp_path/'experiments').mkdir();(tmp_path/'src').mkdir()
+    env=dict(os.environ,PYTHONPYCACHEPREFIX='/untrusted/cache')
+    command=fragment+'\ntest -z "${PYTHONPYCACHEPREFIX:-}"\n'
+    assert subprocess.run(['bash','-c',command],cwd=tmp_path,env=env,capture_output=True).returncode==0
+    (tmp_path/'experiments/stale.pyc').write_bytes(b'unbound executable cache')
+    blocked=subprocess.run(['bash','-c',command],cwd=tmp_path,env=env,capture_output=True)
+    assert blocked.returncode==75;assert b'executable bytecode cache' in blocked.stderr
+
+
+def test_high_noncentrality_planning_power_is_finite():
+    from experiments.mlst2026.tr09_20261007.benchmark_decision import power
+    value=power(-0.9683282454474421,1.462659399718627,120)
+    assert np.isfinite(value)
+    assert value==pytest.approx(0.9999984029155331,abs=1e-12)

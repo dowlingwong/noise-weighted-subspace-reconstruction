@@ -7,7 +7,9 @@ This package adds sparse eigenbasis latents, paired streams, oracle-only endpoin
 The primary contrasts intentionally also appear in the secondary family.
 
 Run from the EXP root with `PYTHONPATH=src` and OPENBLAS_NUM_THREADS,
-OMP_NUM_THREADS and MKL_NUM_THREADS each set to 1. Fixture and benchmark modes use
+OMP_NUM_THREADS and MKL_NUM_THREADS each set to 1,
+PYTHONDONTWRITEBYTECODE=1, and PYTHONPYCACHEPREFIX unset. Use a fresh checkout
+without .pyc under experiments or src; the supervisor refuses caches before import. Fixture and benchmark modes use
 separate shipped configurations. Output must be fresh. The benchmark is development
 information only. No confirmation seed is drawn by tests or fixtures.
 

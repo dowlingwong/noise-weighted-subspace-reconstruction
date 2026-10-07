@@ -19,7 +19,7 @@ def environment():
         distribution=importlib.metadata.distribution(name)
         for relative in distribution.files or []:
             path=Path(distribution.locate_file(relative))
-            if path.is_file() and ('.so' in path.name or path.suffix in ['.dylib','.dll'] or path.name in ['METADATA','RECORD']):
+            if path.is_file() and ('.so' in path.name or path.suffix in ['.dylib','.dll','.py'] or path.name in ['METADATA','RECORD']):
                 binaries[str(path.resolve())]=sha(path)
         metadata[name]=distribution.version
     output=io.StringIO()
@@ -50,7 +50,7 @@ def validate(c,mode,require_auth=False):
     if c!=config(mode):raise ValueError('configuration differs from shipped design')
     cells=len(c['seeds'])*len(c['theta'])*len(c['N'])*len(c['p'])
     if cells>c['budget']['max_cells'] or cells*4>c['budget']['max_product_restarts'] or c['budget']['retries']!=0:raise ValueError('allocation exceeds frozen caps')
-    if mode!='confirmation' and any(202610060300<=s<=202610060999 for s in c['seeds']):raise ValueError('confirmation seeds forbidden')
+    if mode!='confirmation' and any(s in config('confirmation')['seeds'] or 202610060300<=s<=202610060999 for s in c['seeds']):raise ValueError('confirmation seeds forbidden')
     if mode=='fixture' and (c['C']*c['T']>=256 or max(c['N'])>=400):raise ValueError('fixture must be small')
     if mode in ('benchmark','confirmation') and any(os.getenv(k)!='1' for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']):raise ValueError('single-thread environment required')
     if mode=='benchmark' and c['namespace']!='paper1-tr09-t25-benchmark-20261007/development':raise ValueError('development namespace required')
@@ -83,9 +83,9 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
         parent=os.getppid();status=Path(f'/proc/{parent}/status').read_text();grandparent=int(next(x.split()[1] for x in status.splitlines() if x.startswith('PPid:')))
         parent_cmd=Path(f'/proc/{parent}/cmdline').read_bytes().split(b'\0')
         grand_cmd=Path(f'/proc/{grandparent}/cmdline').read_bytes().split(b'\0')
-        if not any(Path(os.fsdecode(x)).name=='timeout' for x in parent_cmd if x) or os.fsencode(str(PACKAGE/'supervisor.sh')) not in grand_cmd:raise ValueError('registered supervisor ancestry required')
+        if not any(Path(os.fsdecode(x)).name=='timeout' for x in parent_cmd if x) or os.fsencode(str(PACKAGE/'supervisor.sh')) not in grand_cmd or str(c['budget']['campaign_seconds']).encode() not in parent_cmd or b'--kill-after=60' not in parent_cmd:raise ValueError('registered supervisor ancestry required')
         fd=os.open(ledger,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
-        with os.fdopen(fd,'w') as stream:json.dump(dict(namespace=c['namespace'],freeze_sha256=sha(freeze_path),out=str(out),time=time.time(),supervisor=dict(parent_cmd=[os.fsdecode(x) for x in parent_cmd if x],grandparent_cmd=[os.fsdecode(x) for x in grand_cmd if x],timeout_seconds=28800,parent_pid=parent,grandparent_pid=grandparent)),stream)
+        with os.fdopen(fd,'w') as stream:json.dump(dict(namespace=c['namespace'],freeze_sha256=sha(freeze_path),out=str(out),time=time.time(),supervisor=dict(parent_cmd=[os.fsdecode(x) for x in parent_cmd if x],grandparent_cmd=[os.fsdecode(x) for x in grand_cmd if x],timeout_seconds=c['budget']['campaign_seconds'],parent_pid=parent,grandparent_pid=grandparent)),stream)
     out.mkdir(exist_ok=False,parents=True)
     if mode=='confirmation':
         (out/'FREEZE.json').write_bytes(Path(freeze_path).read_bytes());(out/'ACCEPTANCE.json').write_bytes(Path(acceptance).read_bytes());(out/'ATTEMPT.json').write_bytes(Path(ledger).read_bytes())
@@ -132,7 +132,7 @@ def audit(out,report=None,in_campaign=False):
         if not in_campaign:
             supervision=json.loads((out/'SUPERVISOR_EXIT.json').read_text())
             if supervision.get('exit_code')!=0 or supervision.get('attempt_sha256')!=sha(out/'ATTEMPT.json'):raise ValueError('supervisor exit binding mismatch')
-        if attempt.get('supervisor',{}).get('timeout_seconds')!=28800:raise ValueError('supervisor timeout missing')
+        if attempt.get('supervisor',{}).get('timeout_seconds')!=c['budget']['campaign_seconds']:raise ValueError('supervisor timeout missing')
         if frozen['sources']!=start['sources'] or frozen['config']!=c or frozen['environment']!=start['environment'] or acceptance.get('registered') is not True or acceptance.get('verdict')!='ACCEPTED' or acceptance.get('freeze_sha256')!=freeze_sha or acceptance.get('namespace')!=c['namespace'] or attempt.get('freeze_sha256')!=freeze_sha or attempt.get('namespace')!=c['namespace']:raise ValueError('supervised attempt identity mismatch')
     if c!=config(start['mode']):raise ValueError('returned config differs from shipped design')
     required={'START.json','SUMMARY.json'}|{'source_snapshot/'+rel for rel in start['sources']}
@@ -243,6 +243,7 @@ def main():
     else:
         out=Path(a.out)
         if a.exit_code is None:raise ValueError('supervisor exit required')
+        if (out/'SUPERVISOR_EXIT.json').exists() or (out/'return.tgz').exists():raise ValueError('attempt already sealed; immutable return')
         write(out/'SUPERVISOR_EXIT.json',dict(exit_code=a.exit_code,attempt_sha256=sha(out/'ATTEMPT.json'),time=time.time()))
         export(out)
 if __name__=='__main__':main()

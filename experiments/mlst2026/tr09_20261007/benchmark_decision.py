@@ -7,7 +7,8 @@ from scipy.stats import t,nct,chi2
 def power(mean,sd,n):
     cutoff=t.ppf(1-.05/8,n-1)
     noncentrality=abs(mean)*np.sqrt(n)/sd
-    return float(nct.sf(cutoff,n-1,noncentrality)+nct.cdf(-cutoff,n-1,noncentrality))
+    # Reflection computes the same lower tail without SciPy 1.17 CDF NaNs.
+    return float(nct.sf(cutoff,n-1,noncentrality)+nct.sf(cutoff,n-1,-noncentrality))
 def decide(summary,dev2):
     rows=[];trigger=False;needed=120
     for row in summary['families']['primary']:

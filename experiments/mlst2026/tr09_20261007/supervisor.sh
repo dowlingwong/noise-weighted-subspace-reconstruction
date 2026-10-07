@@ -14,10 +14,17 @@ flock -n 9 || exit 73
 test ! -e "$registry/paper1-tr09-v1-confirm.attempt.json"
 test ! -e "$TR09_OUTPUT"
 cd "$TR09_CHECKOUT"
-export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=src
+unset PYTHONPYCACHEPREFIX
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1
+# Refuse executable caches before any repository Python import.
+if find experiments src -name "*.pyc" -print -quit | read -r cached; then
+  echo "Frozen source checkout contains executable bytecode cache" >&2
+  exit 75
+fi
 ulimit -v 8388608
+deadline=$(/ceph/dwong/x3_env/bin/python -c 'from experiments.mlst2026.tr09_20261007.workflow import config; print(config("confirmation")["budget"]["campaign_seconds"])')
 set +e
-timeout --kill-after=60 28800 /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.tr09_20261007.workflow run --mode confirmation --out "$TR09_OUTPUT" --freeze "$TR09_FREEZE" --acceptance "$TR09_ACCEPTANCE" --ledger "$registry/paper1-tr09-v1-confirm.attempt.json"
+timeout --kill-after=60 "$deadline" /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.tr09_20261007.workflow run --mode confirmation --out "$TR09_OUTPUT" --freeze "$TR09_FREEZE" --acceptance "$TR09_ACCEPTANCE" --ledger "$registry/paper1-tr09-v1-confirm.attempt.json"
 rc=$?
 set -e
 printf '{"exit_code": %s}\n' "$rc" > "${TR09_OUTPUT}.supervisor_exit.json"

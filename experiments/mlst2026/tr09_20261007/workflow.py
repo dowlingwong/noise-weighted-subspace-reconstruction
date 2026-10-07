@@ -10,11 +10,42 @@ def sources():
     own=[str(p.relative_to(ROOT)) for p in PACKAGE.rglob('*') if p.suffix in ('.py','.json','.sh')]
     return {r:sha(ROOT/r) for r in sorted(set(own+guard.T25_REUSED+guard.loaded_repo_modules()))}
 def environment():
-    import numpy,scipy
-    return dict(python=sys.version,platform=platform.platform(),numpy=numpy.__version__,scipy=scipy.__version__,threads={k:os.getenv(k) for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']})
+    import numpy,scipy,scipy.linalg,importlib.metadata,contextlib,io
+    try:
+        from threadpoolctl import threadpool_info
+    except ImportError:threadpool_info=None
+    binaries={};metadata={}
+    for name in ['numpy','scipy']+(['threadpoolctl'] if threadpool_info else []):
+        distribution=importlib.metadata.distribution(name)
+        for relative in distribution.files or []:
+            path=Path(distribution.locate_file(relative))
+            if path.is_file() and ('.so' in path.name or path.suffix in ['.dylib','.dll'] or path.name in ['METADATA','RECORD']):
+                binaries[str(path.resolve())]=sha(path)
+        metadata[name]=distribution.version
+    output=io.StringIO()
+    with contextlib.redirect_stdout(output):numpy.show_config()
+    installed=sorted([d.metadata['Name'],d.version] for d in importlib.metadata.distributions() if d.metadata['Name'])
+    pools=threadpool_info() if threadpool_info else []
+    if not threadpool_info:
+        import ctypes
+        for library in binaries:
+            if 'openblas' not in Path(library).name.lower():continue
+            handle=ctypes.CDLL(library);row=dict(filepath=library)
+            for tag,restype in [('get_num_threads',ctypes.c_int),('get_config',ctypes.c_char_p),('get_corename',ctypes.c_char_p)]:
+                for symbol in [f'{prefix}openblas_{tag}{suffix}' for prefix in ['', 'scipy_'] for suffix in ['', '_', '64_', '64']]:
+                    try:fn=getattr(handle,symbol)
+                    except AttributeError:continue
+                    fn.restype=restype;fn.argtypes=[];value=fn();row[tag]=value.decode() if isinstance(value,bytes) else value;break
+            pools.append(row)
+    executable=Path(sys.executable).resolve()
+    return dict(python=sys.version,executable=str(executable),executable_sha256=sha(executable),platform=platform.platform(),
+                numpy=numpy.__version__,scipy=scipy.__version__,distributions=metadata,installed_packages=installed,
+                binary_metadata_sha256=binaries,blas_configuration=output.getvalue(),threadpools=pools,
+                cpu_count=os.cpu_count(),threads={k:os.getenv(k) for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']})
+
 def config(mode):
     return json.loads((PACKAGE/(mode+'.json')).read_text())
-def validate(c,mode):
+def validate(c,mode,require_auth=False):
     if mode not in ('fixture','benchmark','confirmation'):raise ValueError('unknown mode')
     if c!=config(mode):raise ValueError('configuration differs from shipped design')
     cells=len(c['seeds'])*len(c['theta'])*len(c['N'])*len(c['p'])
@@ -23,7 +54,7 @@ def validate(c,mode):
     if mode=='fixture' and (c['C']*c['T']>=256 or max(c['N'])>=400):raise ValueError('fixture must be small')
     if mode in ('benchmark','confirmation') and any(os.getenv(k)!='1' for k in ['OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS']):raise ValueError('single-thread environment required')
     if mode=='benchmark' and c['namespace']!='paper1-tr09-t25-benchmark-20261007/development':raise ValueError('development namespace required')
-    if mode=='confirmation' and os.getenv('TR09_CONFIRMATION_AUTHORISED')!='yes':raise ValueError('authorisation required')
+    if mode=='confirmation' and require_auth and os.getenv('TR09_CONFIRMATION_AUTHORISED')!='yes':raise ValueError('authorisation required')
 def freeze(mode,out):
     c=config(mode);validate(c,mode);guard.assert_direct()
     out=Path(out);out.mkdir(exist_ok=False,parents=True)
@@ -32,7 +63,7 @@ def freeze(mode,out):
     return body
 
 def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
-    c=config(mode);validate(c,mode);guard.assert_direct()
+    c=config(mode);validate(c,mode,require_auth=True);guard.assert_direct()
     from . import science
     import numpy as np
     guard.assert_loaded_modules()
@@ -62,7 +93,7 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
     snap=out/'source_snapshot'
     for rel in before:
         dest=snap/rel;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes((ROOT/rel).read_bytes())
-    records=[];start=time.time()
+    records=[];start=time.time();written=sum(p.stat().st_size for p in out.rglob('*') if p.is_file())
     def terminate(signum,frame):raise SystemExit(128+signum)
     signal.signal(signal.SIGTERM,terminate)
     try:
@@ -70,9 +101,14 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
        for theta in c['theta']:
         for N in c['N']:
          for p in c['p']:
-          then=time.time();row,arrays=science.fit(c,seed,theta,N,p);row['seconds']=time.time()-then
+          if time.time()-start>c['budget']['campaign_seconds']:raise TimeoutError('campaign budget exceeded')
+          def cell_timeout(signum,frame):raise TimeoutError('cell budget exceeded')
+          signal.signal(signal.SIGALRM,cell_timeout);signal.alarm(c['budget']['cell_seconds'])
+          then=time.time();row,arrays=science.fit(c,seed,theta,N,p);row['seconds']=time.time()-then;signal.alarm(0)
           name=f'cell_{seed}_{theta}_{N}_{p}';row['arrays']=name+'.npz'
           np.savez_compressed(out/row['arrays'],**arrays);write(out/(name+'.json'),row);records.append(row)
+          written+=(out/row['arrays']).stat().st_size+(out/(name+'.json')).stat().st_size
+          if written>c['budget']['scratch_bytes']//2-16777216:raise RuntimeError('scratch budget reserved for export exceeded')
           print(name,round(row['seconds'],3),flush=True)
       if before!=sources():raise ValueError('source changed during campaign')
       write(out/'SUMMARY.json',science.reduce(c,records))
@@ -80,6 +116,7 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
       write(out/'EXIT.json',dict(exit_code=0,seconds=time.time()-start,source_unchanged=True,loaded_modules_after=guard.loaded_repo_modules()))
       if mode!='confirmation':export(out)
     except BaseException as e:
+      signal.alarm(0)
       write(out/'EXIT.json',dict(exit_code=1,seconds=time.time()-start,error=repr(e),source_unchanged=before==sources()))
       if mode!='confirmation':export(out)
       raise
@@ -109,7 +146,10 @@ def audit(out,report=None,in_campaign=False):
         g=t25.geometry(c);sig=t25.covariance(c);L,Li=t25.powers(sig);Cs=L@g.K(row['theta'])@L;W=Li@Li
         for key,value in [('Sigma',sig),('Cs',Cs),('W',W)]:
             if not np.allclose(a[key],value,rtol=1e-10,atol=1e-10):raise ValueError('truth matrices differ')
-        _,_,_,_,pool=science.data(c,row['seed'],row['theta'],row['p'])
+        _,_,_,_,regenerated=science.data(c,row['seed'],row['theta'],row['p'])
+        full=out/f"cell_{row['seed']}_{row['theta']}_{max(c['N'])}_{row['p']}.npz"
+        with np.load(full,allow_pickle=False) as full_arrays:pool=full_arrays['training_pool']
+        if not np.allclose(pool,regenerated,rtol=1e-9,atol=1e-9):raise ValueError('keyed training records mismatch')
         x,mean,S=t25.moments(pool,row['N'])
         if t25.digest(x)!=row['training_sha'] or not np.allclose(mean,a['mean'],rtol=1e-10,atol=1e-10) or not np.allclose(S,a['S'],rtol=1e-10,atol=1e-10):raise ValueError('training provenance mismatch')
         recomputed={}

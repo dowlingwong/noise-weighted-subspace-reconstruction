@@ -22,6 +22,7 @@ def fit(c,seed,theta,N,p):
     B,diag,factors=t25.structured(W,S,initial,150,1e-8)
     Bu=t25.unrestricted(W,S,g.k)
     arrays={'mean':mean,'S':S,'Cs':Cs,'Sigma':sigma,'W':W}
+    if N==max(c['N']):arrays['training_pool']=pool
     results={}
     for label,basis in [('U',Bu),('F',B)]:
         A=t25.map_for(basis,W); b=(np.eye(g.d)-A)@mean

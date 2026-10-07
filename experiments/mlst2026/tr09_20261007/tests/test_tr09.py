@@ -4,6 +4,12 @@ import numpy as np
 import pytest
 from experiments.mlst2026.tr09_20261007 import science,workflow,guard
 
+@pytest.fixture(scope='session')
+def fixture_archive(tmp_path_factory):
+    out=tmp_path_factory.mktemp('tr09')/'fixture'
+    workflow.run('fixture',out)
+    return out
+
 def test_accepted_dependency_identity():
     assert guard.closure_identity(guard.load_closure())==guard.ACCEPTED_T25_IDENTITY
     guard.assert_direct();guard.assert_loaded_modules()
@@ -58,9 +64,8 @@ def test_development_seeds_disjoint_and_config_guard():
     c['seeds'][0]=202610060300
     with pytest.raises(ValueError):workflow.validate(c,'benchmark')
 
-def test_raw_map_tamper_and_duplicate_census(tmp_path):
-    origin=Path('/private/tmp/tr09-fixture-v3')
-    if not origin.exists():pytest.skip('full fixture archive provided separately')
+def test_raw_map_tamper_and_duplicate_census(tmp_path,fixture_archive):
+    origin=fixture_archive
     out=tmp_path/'fixture';shutil.copytree(origin,out)
     # Source later gains tests, so bind to current source for a fixture consumer test.
     start=json.loads((out/'START.json').read_text());start['sources']=workflow.sources();workflow.write(out/'START.json',start)
@@ -72,9 +77,8 @@ def test_raw_map_tamper_and_duplicate_census(tmp_path):
     with pytest.raises(ValueError,match='endpoint'):workflow.audit(out)
 
 
-def test_receipt_tamper_and_census(tmp_path):
-    origin=Path('/private/tmp/tr09-fixture-v3')
-    if not origin.exists():pytest.skip('full fixture archive provided separately')
+def test_receipt_tamper_and_census(tmp_path,fixture_archive):
+    origin=fixture_archive
     out=tmp_path/'receipt';shutil.copytree(origin,out)
     workflow.verify_receipt(out)
     (out/'extra.txt').write_text('injected file')
@@ -85,9 +89,8 @@ def test_receipt_tamper_and_census(tmp_path):
 
 
 @pytest.mark.parametrize('attack',['intercept','basis','factor','objective','snapshot','training'])
-def test_adversarial_portable_consumer(tmp_path,attack):
-    origin=Path('/private/tmp/tr09-fixture-v3')
-    if not origin.exists():pytest.skip('full fixture archive provided separately')
+def test_adversarial_portable_consumer(tmp_path,attack,fixture_archive):
+    origin=fixture_archive
     out=tmp_path/'altered';shutil.copytree(origin,out)
     start=json.loads((out/'START.json').read_text());start['sources']=workflow.sources();workflow.write(out/'START.json',start)
     for rel in start['sources']:
@@ -120,9 +123,8 @@ def test_namespace_claim_blocks_second_attempt_without_drawing(tmp_path,monkeypa
 
 
 @pytest.mark.parametrize('attack',['missing_exit','failed_exit','symlink'])
-def test_failed_or_unsafe_receipt_refused(tmp_path,attack):
-    origin=Path('/private/tmp/tr09-fixture-v3')
-    if not origin.exists():pytest.skip('full fixture archive provided separately')
+def test_failed_or_unsafe_receipt_refused(tmp_path,attack,fixture_archive):
+    origin=fixture_archive
     out=tmp_path/'bad';shutil.copytree(origin,out)
     if attack=='missing_exit':
         (out/'EXIT.json').unlink()

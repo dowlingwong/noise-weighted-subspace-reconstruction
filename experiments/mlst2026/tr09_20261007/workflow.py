@@ -54,7 +54,7 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
         grand_cmd=Path(f'/proc/{grandparent}/cmdline').read_bytes().split(b'\0')
         if not any(Path(os.fsdecode(x)).name=='timeout' for x in parent_cmd if x) or os.fsencode(str(PACKAGE/'supervisor.sh')) not in grand_cmd:raise ValueError('registered supervisor ancestry required')
         fd=os.open(ledger,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
-        with os.fdopen(fd,'w') as stream:json.dump(dict(namespace=c['namespace'],freeze_sha256=sha(freeze_path),out=str(out),time=time.time(),supervisor=dict(parent_cmd=[os.fsdecode(x) for x in parent_cmd if x],grandparent_cmd=[os.fsdecode(x) for x in grand_cmd if x],timeout_seconds=28800,parent_pid=parent,grandparent_pid=grandparent))),stream)
+        with os.fdopen(fd,'w') as stream:json.dump(dict(namespace=c['namespace'],freeze_sha256=sha(freeze_path),out=str(out),time=time.time(),supervisor=dict(parent_cmd=[os.fsdecode(x) for x in parent_cmd if x],grandparent_cmd=[os.fsdecode(x) for x in grand_cmd if x],timeout_seconds=28800,parent_pid=parent,grandparent_pid=grandparent)),stream)
     out.mkdir(exist_ok=False,parents=True)
     if mode=='confirmation':
         (out/'FREEZE.json').write_bytes(Path(freeze_path).read_bytes());(out/'ACCEPTANCE.json').write_bytes(Path(acceptance).read_bytes());(out/'ATTEMPT.json').write_bytes(Path(ledger).read_bytes())

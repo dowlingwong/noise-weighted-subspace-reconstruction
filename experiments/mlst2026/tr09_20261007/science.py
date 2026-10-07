@@ -60,4 +60,10 @@ def reduce(c,records):
           families[family].append(dict(theta=th,N=n,p=p,endpoint=endpoint,values=vals,mean=mu,sd=sd,ci=ci,decision=sign,zero_SE=sd==0,family_size=size,seeds=len(vals)))
     primary=families['primary'];decisions=[r['decision'] for r in primary]
     reading='replicated' if len(primary)==4 and all(x=='negative' for x in decisions) else 'did_not_replicate_in_positive_cells' if 'positive' in decisions else 'not_resolved_at_this_replication'
-    return dict(families=families,reading=reading,optimization_limited_count=sum(r['optimization_limited'] for r in records),hosvd_agreement_count=sum(r['selected_equals_hosvd'] for r in records),cell_count=len(records),interval='approximate Bonferroni Student-t, independent seeds; zero-SE not population certainty')
+    levels=[]
+    for th in c['theta']:
+      for n in c['N']:
+       for p in c['p']:
+        subset=[lookup[s,th,n,p] for s in c['seeds']]
+        levels.append(dict(theta=th,N=n,p=p,seeds=len(subset),mean={endpoint:float(np.mean([r[endpoint] for r in subset])) for endpoint in ['R_U','R_F','D']},optimization_limited_count=sum(r['optimization_limited'] for r in subset),hosvd_agreement_count=sum(r['selected_equals_hosvd'] for r in subset)))
+    return dict(levels=levels,families=families,reading=reading,optimization_limited_count=sum(r['optimization_limited'] for r in records),hosvd_agreement_count=sum(r['selected_equals_hosvd'] for r in records),cell_count=len(records),interval='approximate Bonferroni Student-t, independent seeds; zero-SE not population certainty')

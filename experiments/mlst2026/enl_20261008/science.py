@@ -88,6 +88,13 @@ def references(m,k):
     return ref
 
 
+def closure_values(shrinkage,risk,bayes_risk,sparse_oracle):
+    result={}
+    for name,target in [('full_bayes',bayes_risk),('sparse_oracle',sparse_oracle)]:
+        denom=shrinkage-target
+        result[name]={'numerator':shrinkage-risk,'denominator':denom,'value':None if denom<=.001 else (shrinkage-risk)/denom}
+    return result
+
 def evaluate(torch,ae,m,k,c,pool):
     Y,S,_=data(pool,'evaluation',m)
     Sh=models.predict(torch,ae,m.physical(Y),c['eval_chunk'])@m.Li
@@ -100,10 +107,7 @@ def evaluate(torch,ae,m,k,c,pool):
     f=lambda y:models.predict(torch,ae,m.physical(y),c['eval_chunk'])@m.Li
     inter=interference(f,m,c)
     refs=references(m,k); risk=ev['risk']
-    closure={}
-    for name,target in [('full_bayes',refs['bayes']),('sparse_oracle',refs['sparse_oracle'])]:
-        denom=refs['shrinkage']-target
-        closure[name]={'numerator':refs['shrinkage']-risk,'denominator':denom,'value':None if denom<=.001 else (refs['shrinkage']-risk)/denom}
+    closure=closure_values(refs['shrinkage'],risk,refs['bayes'],refs['sparse_oracle'])
     return {'R_AE':risk,'mcse':ev['mcse'],'per_coordinate':ev['per_coordinate'].tolist(),'per_coordinate_se':ev['per_coordinate_se'].tolist(),
             'groups':diagnostics.group_sums(ev['per_coordinate'],m,k),'recovery':rec,'recovered_output_count':recovered,
             'recovered_code_count':sum(v is not None and v>=c['recovery_threshold'] for v in rec['code_r2']),
@@ -140,7 +144,9 @@ def fit(c,seed,k,N,p,pool,out):
             row['paired_mcse']={name:float((per-v).std(ddof=1)/np.sqrt(len(per))) for name,v in [('projector',ep),('shrinkage',es)]}
             if best is None or fitrec['best_validation_loss']<rec['restarts'][best]['fit']['best_validation_loss']:best=r
         rec['restarts'].append(row)
-    if best is None:raise RuntimeError('all restarts failed; preserve partial attempt; no retry')
+    if best is None:
+        (out/(stem+'_failed.json')).write_text(json.dumps(rec,indent=2,allow_nan=False))
+        raise RuntimeError('all restarts failed; preserve partial attempt; no retry')
     rec['selected']=best;rec['optimization_limited']=rec['restarts'][best]['fit']['stopped']=='max_epochs'
     rec['evaluation']=rec['restarts'][best]['evaluation'];rec['R_AE']=rec['evaluation']['R_AE']
     rec['contrasts']={'projector':rec['R_AE']-rec['R_proj'],'shrinkage':rec['R_AE']-rec['R_shrink']}

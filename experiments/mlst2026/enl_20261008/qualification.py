@@ -10,7 +10,7 @@ def qualify(out):
     if len(rows)!=2 or any(len(r['restarts'])!=1 or r['restarts'][0]['fit']['epochs_run']!=2 for r in rows):raise ValueError('bounded qualification census')
     # Independent external invocation demonstrates portable saved-artifact audit too.
     then=time.monotonic();w.verify_receipt(sample);verify_seconds=time.monotonic()-then
-    then=time.monotonic();w.audit(sample);external_audit_seconds=time.monotonic()-then
+    then=time.monotonic();audit_timing={};w.audit(sample,timings=audit_timing);external_audit_seconds=time.monotonic()-then
     measure={r['k']:r for r in rows};train_seconds=0.
     for k,Ns in c['arms'].items():
         row=measure[int(k)];observed=row['restarts'][0]['train_seconds']/2
@@ -20,7 +20,7 @@ def qualify(out):
     per_restart_overhead=max(r['seconds']-r['restarts'][0]['train_seconds'] for r in rows)
     overhead_seconds=per_restart_overhead*c['budget']['max_restarts']
     # Audit measured includes raw-pool loading, all evaluation/probes/gradients and environment hashes.
-    audit_seconds=external_audit_seconds/2*c['budget']['max_restarts']
+    audit_seconds=(external_audit_seconds-audit_timing['setup_seconds'])/2*c['budget']['max_restarts']+audit_timing['setup_seconds']
     file_sizes={str(p.relative_to(sample)):p.stat().st_size for p in sample.rglob('*') if p.is_file()}
     pool_bytes=sum(v for k,v in file_sizes.items() if k.startswith('pool_'))
     source_bytes=sum(v for k,v in file_sizes.items() if k.startswith('source_snapshot/'))
@@ -38,7 +38,7 @@ def qualify(out):
     total_projection=run_projection+archive_seconds*1.5+1800
     vm_status=Path('/proc/self/status').read_text() if Path('/proc/self/status').exists() else ''
     vm_peak_kib=int(next((line.split()[1] for line in vm_status.splitlines() if line.startswith('VmPeak:')),'0'))
-    body={'kind':'ENGINEERING_ONLY','source_sha256':w.sources(),'config':c,'resource_config':rc,'resource_namespace':rc['namespace'],'sample_cells':2,'sample_trainings':2,'sample_epochs':4,'confirmation_namespace_claimed':False,'measured':{'rows':rows,'external_audit_seconds':external_audit_seconds,'verify_seconds':verify_seconds,'sample_wall_seconds':total_sample_seconds,'vm_peak_bytes':vm_peak_kib*1024,'rss_peak_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'sample_file_bytes':file_sizes},'projection':{'full300epoch_train_hours':train_seconds/3600,'nontraining_hours':overhead_seconds/3600,'all1728restart_audit_hours':audit_seconds/3600,'archive_hash_import_hours':archive_seconds/3600,'run_with_margin_hours':run_projection/3600,'whole_campaign_with_margin_hours':total_projection/3600,'receipt_bytes':receipt_bytes,'archive_bytes':archive_bytes,'scratch_peak_with_margin_bytes':scratch_peak,'time_size_margin':1.5,'fixed_time_reserve_seconds':3600},'limitations':['Two-epoch full-shape engineering measurement is a conservative planning projection, not a mathematical worst-case runtime guarantee.','Whole campaign is operationally stopped at72h; lack of completion preserves an incomplete permanent attempt, never triggers retry.','No primary confirmation truth outcome was inspected.']}
+    body={'kind':'ENGINEERING_ONLY','source_sha256':w.sources(),'runtime':w.read(sample/'START.json')['environment'],'config':c,'resource_config':rc,'resource_namespace':rc['namespace'],'sample_cells':2,'sample_trainings':2,'sample_epochs':4,'confirmation_namespace_claimed':False,'measured':{'rows':rows,'external_audit_seconds':external_audit_seconds,'audit_timing':audit_timing,'verify_seconds':verify_seconds,'sample_wall_seconds':total_sample_seconds,'vm_peak_bytes':vm_peak_kib*1024,'rss_peak_kib':resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,'sample_file_bytes':file_sizes},'projection':{'full300epoch_train_hours':train_seconds/3600,'nontraining_hours':overhead_seconds/3600,'all1728restart_audit_hours':audit_seconds/3600,'archive_hash_import_hours':archive_seconds/3600,'run_with_margin_hours':run_projection/3600,'whole_campaign_with_margin_hours':total_projection/3600,'receipt_bytes':receipt_bytes,'archive_bytes':archive_bytes,'scratch_peak_with_margin_bytes':scratch_peak,'time_size_margin':1.5,'fixed_time_reserve_seconds':3600},'limitations':['Two-epoch full-shape engineering measurement is a conservative planning projection, not a mathematical worst-case runtime guarantee.','Whole campaign is operationally stopped at72h; lack of completion preserves an incomplete permanent attempt, never triggers retry.','No primary confirmation truth outcome was inspected.']}
     body['qualified']=total_projection<c['budget']['campaign_seconds'] and run_projection<c['budget']['run_seconds'] and scratch_peak<c['budget']['scratch_bytes'] and vm_peak_kib*1024<c['budget']['virtual_memory_bytes'] and vm_peak_kib>0
     w.write(out/'QUALIFICATION.json',body)
     if not body['qualified']:raise ValueError('full-grid resource projection does not fit approved budget')

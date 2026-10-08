@@ -25,3 +25,30 @@ def test_gradient_matches_directional_difference():
  minus=value()
  with torch.no_grad():p.copy_(before)
  assert (plus-minus)/(2*eps)==pytest.approx(g,rel=1e-5,abs=1e-6) and norm>=0
+
+
+def test_all_restart_failure_is_preserved(tmp_path,monkeypatch):
+ c=w.config('fixture');pool=s.raw_pools(c,c['seeds'][0])
+ monkeypatch.setattr(s.models,'train',lambda *args:(None,{'failed':'engineered nonfinite validation','epochs_run':1,'validation_history':[]}))
+ with pytest.raises(RuntimeError,match='all restarts failed'):s.fit(c,c['seeds'][0],2,32,.1,pool,tmp_path)
+ failed=list(tmp_path.glob('*_failed.json'));assert len(failed)==1
+ assert len(w.read(failed[0])['restarts'])==2
+
+
+def test_nonfinite_validation_fails_restart():
+ c=w.config('fixture');torch=s.models.import_torch();X=np.full((8,12),np.nan)
+ model,rec=s.models.train(torch,{**c,'k':2},X,X,np.eye(12),17)
+ assert model is None and rec['failed']=='non-finite validation loss'
+
+
+def test_validation_tie_chooses_first_restart(tmp_path,monkeypatch):
+ c=w.config('fixture');torch=s.models.import_torch();pool=s.raw_pools(c,c['seeds'][0])
+ def fake(torch,cfg,Xtr,Xva,Li,key):
+  model=s.models.build(torch,12,2,c['hidden'],'silu')
+  with torch.no_grad():
+   for param in model.parameters():param.fill_(0.)
+  val,_=s.validation(torch,model,Xva,Li,16)
+  return model,{'best_validation_loss':val,'best_epoch':0,'epochs_run':2,'stopped':'max_epochs','validation_history':[val,val]}
+ monkeypatch.setattr(s.models,'train',fake)
+ row=s.fit(c,c['seeds'][0],2,32,.1,pool,tmp_path)
+ assert row['selected']==0 and row['restarts'][0]['fit']['best_validation_loss']==row['restarts'][1]['fit']['best_validation_loss']

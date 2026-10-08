@@ -33,6 +33,8 @@ def no_cache():
     if not sys.dont_write_bytecode:raise ValueError('bytecode writes must be disabled')
 
 def numerical():
+    from . import runtime
+    if not any(isinstance(x,runtime.Finder) for x in sys.meta_path):runtime.install()
     from . import science
     torch=science.models.import_torch()
     # Force optimizer imports without random initialization or fitting.
@@ -47,7 +49,8 @@ def environment():
     for relative in dist.files or []:
         p=Path(dist.locate_file(relative))
         if p.is_file() and ('.so' in p.name or p.suffix in ['.py','.dylib','.dll'] or p.name in ['METADATA','RECORD']):binaries[str(p.resolve())]=sha(p)
-    env.update(torch=torch.__version__,torch_config=torch.__config__.show(),torch_threads=torch.get_num_threads(),torch_interop_threads=torch.get_num_interop_threads(),torch_dtype=str(torch.get_default_dtype()),torch_deterministic=torch.are_deterministic_algorithms_enabled(),torch_binaries=binaries)
+    from . import runtime
+    env.update(executable_files=runtime.executable_files(sha),source_only_imports=True,torch=torch.__version__,torch_config=torch.__config__.show(),torch_threads=torch.get_num_threads(),torch_interop_threads=torch.get_num_interop_threads(),torch_dtype=str(torch.get_default_dtype()),torch_deterministic=torch.are_deterministic_algorithms_enabled(),torch_binaries=binaries)
     return env
 
 def loaded_identity(bound):
@@ -74,12 +77,19 @@ def ancestry(c):
     cmd=lambda pid:[os.fsdecode(x) for x in Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0') if x]
     pc,gc=cmd(parent),cmd(grand)
     if not any(Path(x).name=='timeout' for x in pc) or str(c['budget']['run_seconds']) not in pc or '--kill-after=60' not in pc or str(PACKAGE/'supervisor.sh') not in gc:raise ValueError('source-bound supervisor ancestry refused')
-    return {'parent_cmd':pc,'grandparent_cmd':gc,'parent_pid':parent,'grandparent_pid':grand,'timeout_seconds':c['budget']['run_seconds']}
+    coordinator=int(os.getenv('ENL_COORDINATOR_PID','0'))
+    gstatus=Path(f'/proc/{grand}/status').read_text();actual=int(next(x.split()[1] for x in gstatus.splitlines() if x.startswith('PPid:')))
+    if coordinator!=actual or 'experiments.mlst2026.enl_20261008.coordinator' not in cmd(coordinator):raise ValueError('source-bound whole-campaign coordinator required')
+    cs=Path(f'/proc/{coordinator}/status').read_text();outer=int(next(x.split()[1] for x in cs.splitlines() if x.startswith('PPid:')));oc=cmd(outer)
+    if not any(Path(x).name=='timeout' for x in oc) or '259140' not in oc or '--kill-after=60' not in oc:raise ValueError('whole72h process-tree deadline required')
+    return {'coordinator_pid':coordinator,'outer_cmd':oc,'parent_cmd':pc,'grandparent_cmd':gc,'parent_pid':parent,'grandparent_pid':grand,'timeout_seconds':c['budget']['run_seconds']}
 
-def freeze(out):
+def freeze(out,qualification):
     no_cache();c=config('confirmation');validate(c,'confirmation');before=sources();numerical();env=environment();loaded_identity(before)
+    q=read(qualification)
+    if q.get('qualified') is not True or q.get('source_sha256')!=before or q.get('config')!=c or q.get('runtime')!=env:raise ValueError('qualified exact-source runtime report required')
     out=Path(out);out.mkdir(parents=True,exist_ok=False)
-    write(out/'freeze.json',{'mode':'confirmation','config':c,'sources':before,'environment':env,'ledger_path':LEDGER,'registered':False,'independent_review_accepted':False})
+    write(out/'freeze.json',{'qualification_sha256':sha(qualification),'qualification_path':str(Path(qualification).resolve()),'mode':'confirmation','config':c,'sources':before,'environment':env,'ledger_path':LEDGER,'registered':False,'independent_review_accepted':False})
 
 def authorize(mode,c,out,freeze_path,acceptance,ledger):
     """All standard-library refusal gates precede numerical imports or pool draws."""
@@ -89,12 +99,16 @@ def authorize(mode,c,out,freeze_path,acceptance,ledger):
     if Path(out).exists() or Path(ledger).exists():raise ValueError('permanent attempt/output exists; no retry')
     f,a=read(freeze_path),read(acceptance)
     if f.get('mode')!='confirmation' or f.get('config')!=c or f.get('sources')!=sources() or f.get('ledger_path')!=LEDGER:raise ValueError('freeze source/config/ledger mismatch')
+    qp=Path(f.get('qualification_path',''))
+    if not qp.is_file() or sha(qp)!=f.get('qualification_sha256') or read(qp).get('qualified') is not True:raise ValueError('frozen resource qualification binding mismatch')
     if a.get('registered') is not True or a.get('verdict')!='ACCEPTED' or a.get('namespace')!=c['namespace'] or a.get('freeze_sha256')!=sha(freeze_path):raise ValueError('registered independent acceptance mismatch')
     rp=Path(a.get('review_path',''))
     if not rp.is_file() or a.get('review_sha256')!=sha(rp):raise ValueError('independent review byte binding mismatch')
     import resource
     vmem=resource.getrlimit(resource.RLIMIT_AS)[0];cpu=resource.getrlimit(resource.RLIMIT_CPU)[0]
     if vmem<0 or vmem>c['budget']['virtual_memory_bytes'] or cpu<0 or cpu>c['budget']['campaign_seconds']:raise ValueError('required virtual-memory/CPU limits absent')
+    from . import runtime
+    runtime.preimport(f['environment'],sha)
     return f, a, ancestry(c)
 
 def usage(out):return sum(p.stat().st_size for p in Path(out).rglob('*') if p.is_file())
@@ -149,7 +163,7 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
         signal.alarm(0);write(out/'EXIT.json',{'exit_code':1,'seconds':time.monotonic()-begin,'error':repr(error),'source_unchanged':before==sources()});raise
 
 
-def audit(out,in_campaign=False,report=None):
+def audit(out,in_campaign=False,report=None,timings=None):
     no_cache();science,torch=numerical();import numpy as np
     audit_begin=time.monotonic();out=Path(out);start=read(out/'START.json');c=start['config'];mode=start['mode'];validate(c,mode)
     if start['sources']!=sources() or start['environment']!=environment():raise ValueError('source/runtime audit mismatch')
@@ -160,6 +174,7 @@ def audit(out,in_campaign=False,report=None):
         if not in_campaign:
             s=read(out/'SUPERVISOR_EXIT.json')
             if s.get('exit_code')!=0 or s.get('attempt_sha256')!=sha(out/'ATTEMPT.json'):raise ValueError('sealed supervisor exit mismatch')
+    setup_seconds=time.monotonic()-audit_begin
     rows=[];required={'START.json','SUMMARY.json'}|{'source_snapshot/'+rel for rel in start['sources']}
     if mode=='confirmation':required|={'FREEZE.json','ACCEPTANCE.json','ATTEMPT.json'}
     if not in_campaign:required|={'EXIT.json','AUDIT.json','SHA256SUMS'}|({'SUPERVISOR_EXIT.json'} if mode=='confirmation' else set())
@@ -185,6 +200,7 @@ def audit(out,in_campaign=False,report=None):
                 mean=Y[:ntrain].mean(0);S=(Y[:ntrain]-mean).T@(Y[:ntrain]-mean)/ntrain;V=a['eigenvectors'];ell=a['eigenvalues']
                 if not np.allclose(a['cov'],S,atol=1e-9) or not np.allclose(a['mean'],mean,atol=1e-9) or not np.allclose(V.T@V,np.eye(m.d),atol=1e-9) or not np.allclose(S@V,V*ell,atol=1e-8) or np.any(np.diff(ell)>1e-10):raise ValueError('saved eigensystem/covariance mismatch')
                 expected_Ap=V[:,:k]@V[:,:k].T;gains=np.where(ell[:k]>1,(ell[:k]-1)/np.where(ell[:k]>1,ell[:k],1),0);expected_As=(V[:,:k]*gains)@V[:,:k].T
+                if not close(row['proj_info'],{'sample_eigenvalues':ell[:k+1].tolist()}) or not close(row['shrink_info'],{'sample_eigenvalues':ell[:k].tolist(),'gains':gains.tolist(),'zero_gain_count':int(np.sum(gains==0))}):raise ValueError('baseline diagnostic metadata mismatch')
                 if not np.allclose(a['Ap'],expected_Ap,atol=1e-8) or not np.allclose(a['As'],expected_As,atol=1e-8):raise ValueError('rank/gain spectral selection mismatch')
                 for label,A,b in [('projector',a['Ap'],a['bp']),('shrinkage',a['As'],a['bs'])]:
                     mean=Y[:ntrain].mean(0);S=(Y[:ntrain]-mean).T@(Y[:ntrain]-mean)/ntrain
@@ -195,6 +211,8 @@ def audit(out,in_campaign=False,report=None):
                     if not np.isclose(R,row[name],rtol=1e-9,atol=1e-9):raise ValueError('affine risk mismatch')
                     if not np.allclose(A,A.T,atol=1e-9) or not np.allclose(A@S,S@A,atol=1e-8):raise ValueError('sample eigenmap certificate')
                 saved_baselines={key:a[key].copy() for key in a.files}
+            groups={name:science.diagnostics.group_sums(science.diagnostics.affine_per_coordinate(saved_baselines[ak],saved_baselines[bk],m),m,k) for name,ak,bk in [('projector','Ap','bp'),('shrinkage','As','bs')]}
+            if not close(groups,row['baseline_groups']):raise ValueError('baseline group attribution mismatch')
             ok=[]
             if len(row['restarts'])!=c['recipe']['restarts']:raise ValueError('restart count')
             X=m.physical(Y[:N]);Yev,Sev,_=science.data(pool,'evaluation',m)
@@ -207,6 +225,13 @@ def audit(out,in_campaign=False,report=None):
                 if rr['checkpoint']!=name:raise ValueError('checkpoint path mismatch')
                 required|={name,stem+f'_evaluation{r}.npz'};ae=science.load_model(torch,c,k,out/name)
                 val,grad=science.validation(torch,ae,X[ntrain:],m.Li,c['recipe']['batch']);fit=rr['fit'];history=fit['validation_history']
+                if not history or not np.isfinite(history).all():raise ValueError('nonfinite/empty validation trajectory')
+                bad=0;best=float('inf');early=False
+                for j,v in enumerate(history):
+                    bad=0 if v<best else bad+1;best=min(best,v)
+                    if bad>=c['recipe']['patience'] and j<len(history)-1:early=True
+                stop='patience' if bad>=c['recipe']['patience'] else 'max_epochs'
+                if early or fit['stopped']!=stop or (stop=='max_epochs' and len(history)!=c['recipe']['max_epochs']) or not np.isclose(val,fit['best_validation_loss'],rtol=1e-9,atol=1e-9):raise ValueError('selection loss/stop metadata mismatch')
                 if len(history)!=fit['epochs_run'] or fit['epochs_run']>c['recipe']['max_epochs'] or fit['best_epoch']!=int(np.argmin(history)) or not np.isclose(val,min(history),rtol=1e-9,atol=1e-9) or not np.isclose(grad,rr['validation_gradient_norm'],rtol=1e-8,atol=1e-9):raise ValueError('checkpoint/trajectory/gradient mismatch')
                 ev,per=science.evaluate(torch,ae,m,k,c,pool)
                 if not close(ev,rr['evaluation']):raise ValueError('saved restart evaluation mismatch')
@@ -228,7 +253,8 @@ def audit(out,in_campaign=False,report=None):
     actual={str(p.relative_to(out)) for p in out.rglob('*') if p.is_file() and p.name!='return.tgz'}
     if actual!=required:raise ValueError('complete receipt census mismatch')
     loaded_identity(start['sources']);no_cache()
-    if report is not None:write(report,{'accepted':True,'cells':len(rows),'restarts':sum(len(r['restarts']) for r in rows),'read_only_model_pool_re_evaluation':True,'seconds':time.monotonic()-audit_begin})
+    if timings is not None:timings.update(setup_seconds=setup_seconds,total_seconds=time.monotonic()-audit_begin)
+    if report is not None:write(report,{'setup_seconds':setup_seconds,'accepted':True,'cells':len(rows),'restarts':sum(len(r['restarts']) for r in rows),'read_only_model_pool_re_evaluation':True,'seconds':time.monotonic()-audit_begin})
     return rows
 
 def export(out):
@@ -268,9 +294,11 @@ def seal(out,code):
     write(out/'SUPERVISOR_EXIT.json',{'exit_code':code,'attempt_sha256':sha(out/'ATTEMPT.json'),'time':time.time()});export(out)
 
 def main():
-    a=argparse.ArgumentParser();a.add_argument('action',choices=['run','freeze','audit','seal']);a.add_argument('--mode',choices=['fixture','resource','confirmation']);a.add_argument('--out',required=True);a.add_argument('--freeze');a.add_argument('--acceptance');a.add_argument('--ledger');a.add_argument('--exit-code',type=int);x=a.parse_args()
+    a=argparse.ArgumentParser();a.add_argument('action',choices=['run','freeze','audit','seal']);a.add_argument('--mode',choices=['fixture','resource','confirmation']);a.add_argument('--out',required=True);a.add_argument('--freeze');a.add_argument('--qualification');a.add_argument('--acceptance');a.add_argument('--ledger');a.add_argument('--exit-code',type=int);x=a.parse_args()
     if x.action=='run':run(x.mode,x.out,x.freeze,x.acceptance,x.ledger)
-    elif x.action=='freeze':freeze(x.out)
+    elif x.action=='freeze':
+        if not x.qualification:raise ValueError('qualification report required')
+        freeze(x.out,x.qualification)
     elif x.action=='audit':verify_receipt(x.out);audit(x.out)
     else:
         if x.exit_code is None:raise ValueError('supervisor exit required')

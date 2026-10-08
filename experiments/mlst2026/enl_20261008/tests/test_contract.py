@@ -83,3 +83,11 @@ def test_unsafe_manifest_refuses_before_archive(tmp_path):
  with pytest.raises(ValueError):w.verify_receipt(out)
  link=out/'linked';link.symlink_to(out/'SHA256SUMS')
  with pytest.raises(ValueError,match='symlink'):w.verify_receipt(out)
+
+
+def test_closure_total_numerator_undefined_and_unclipped():
+ x=s.closure_values(10.,2.,5.,9.)
+ assert x['full_bayes']['value']==1.6 and x['sparse_oracle']['value']==8.
+ assert s.closure_values(10.,12.,5.,9.)['full_bayes']['value']==-.4
+ assert s.closure_values(10.,2.,10.,11.)['full_bayes']['value'] is None
+ assert s.closure_values(10.,2.,10.,11.)['sparse_oracle']['value'] is None

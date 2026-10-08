@@ -173,6 +173,8 @@ def reduce(c,rows):
     expected={(s,k,N,p) for s in c['seeds'] for k,N,p in locations(c)}
     indexed={(r['seed'],r['k'],r['N'],r['p']):r for r in rows}
     if len(indexed)!=len(rows) or set(indexed)!=expected:raise ValueError('complete unique seed/cell census required')
+    if len(c['seeds'])==1 and c['namespace']=='paper1-enl-dev/resource-full-20261008':
+        return {'kind':'ENGINEERING_ONLY','cells':len(rows),'restarts':sum(len(r['restarts']) for r in rows),'inferential_intervals':False,'scope':'Bounded resource measurement only; no scientific gate.'}
     summaries=[];primary=[]
     for k,N,p in locations(c):
         rs=[indexed[(s,k,N,p)] for s in c['seeds']]

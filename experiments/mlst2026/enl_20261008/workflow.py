@@ -104,6 +104,8 @@ def authorize(mode,c,out,freeze_path,acceptance,ledger):
     if a.get('registered') is not True or a.get('verdict')!='ACCEPTED' or a.get('namespace')!=c['namespace'] or a.get('freeze_sha256')!=sha(freeze_path):raise ValueError('registered independent acceptance mismatch')
     rp=Path(a.get('review_path',''))
     if not rp.is_file() or a.get('review_sha256')!=sha(rp):raise ValueError('independent review byte binding mismatch')
+    review=read(rp)
+    if review.get('verdict')!='ACCEPTED' or review.get('namespace')!=c['namespace'] or review.get('freeze_sha256')!=sha(freeze_path) or review.get('qualification_sha256')!=f['qualification_sha256']:raise ValueError('independent review does not accept exact freeze/qualification')
     import resource
     vmem=resource.getrlimit(resource.RLIMIT_AS)[0];cpu=resource.getrlimit(resource.RLIMIT_CPU)[0]
     if vmem<0 or vmem>c['budget']['virtual_memory_bytes'] or cpu<0 or cpu>c['budget']['campaign_seconds']:raise ValueError('required virtual-memory/CPU limits absent')
@@ -132,7 +134,7 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
         with os.fdopen(fd,'w') as f:json.dump({'namespace':c['namespace'],'freeze_sha256':sha(freeze_path),'acceptance_sha256':sha(acceptance),'review_sha256':binding[1]['review_sha256'],'out':str(out.resolve()),'supervisor':binding[2],'time':time.time()},f)
     out.mkdir(parents=True,exist_ok=False)
     if binding:
-        for name,path in [('FREEZE.json',freeze_path),('ACCEPTANCE.json',acceptance),('ATTEMPT.json',ledger)]: (out/name).write_bytes(Path(path).read_bytes())
+        for name,path in [('FREEZE.json',freeze_path),('ACCEPTANCE.json',acceptance),('ATTEMPT.json',ledger),('REVIEW.json',binding[1]['review_path']),('QUALIFICATION.json',binding[0]['qualification_path'])]: (out/name).write_bytes(Path(path).read_bytes())
     for rel in before:
         p=out/'source_snapshot'/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/rel).read_bytes())
     write(out/'START.json',{'mode':mode,'time':time.time(),'config':c,'sources':before,'environment':env,'cell_order':science.order(c)})
@@ -171,12 +173,14 @@ def audit(out,in_campaign=False,report=None,timings=None):
     if mode=='confirmation':
         f,a,attempt=read(out/'FREEZE.json'),read(out/'ACCEPTANCE.json'),read(out/'ATTEMPT.json')
         if f['config']!=c or f['sources']!=start['sources'] or f['environment']!=start['environment'] or a.get('registered') is not True or a.get('verdict')!='ACCEPTED' or a.get('freeze_sha256')!=sha(out/'FREEZE.json') or attempt.get('freeze_sha256')!=sha(out/'FREEZE.json') or attempt.get('acceptance_sha256')!=sha(out/'ACCEPTANCE.json') or a.get('namespace')!=c['namespace'] or attempt.get('namespace')!=c['namespace'] or attempt.get('review_sha256')!=a.get('review_sha256') or attempt.get('supervisor',{}).get('timeout_seconds')!=c['budget']['run_seconds']:raise ValueError('attempt/registration/supervision binding mismatch')
+        review=read(out/'REVIEW.json');q=read(out/'QUALIFICATION.json')
+        if sha(out/'REVIEW.json')!=a.get('review_sha256') or review.get('verdict')!='ACCEPTED' or review.get('freeze_sha256')!=sha(out/'FREEZE.json') or review.get('namespace')!=c['namespace'] or review.get('qualification_sha256')!=f.get('qualification_sha256') or sha(out/'QUALIFICATION.json')!=f.get('qualification_sha256') or q.get('qualified') is not True or q.get('source_sha256')!=start['sources'] or q.get('runtime')!=start['environment'] or q.get('config')!=c:raise ValueError('review/resource receipt binding mismatch')
         if not in_campaign:
             s=read(out/'SUPERVISOR_EXIT.json')
             if s.get('exit_code')!=0 or s.get('attempt_sha256')!=sha(out/'ATTEMPT.json'):raise ValueError('sealed supervisor exit mismatch')
     setup_seconds=time.monotonic()-audit_begin
     rows=[];required={'START.json','SUMMARY.json'}|{'source_snapshot/'+rel for rel in start['sources']}
-    if mode=='confirmation':required|={'FREEZE.json','ACCEPTANCE.json','ATTEMPT.json'}
+    if mode=='confirmation':required|={'FREEZE.json','ACCEPTANCE.json','ATTEMPT.json','REVIEW.json','QUALIFICATION.json'}
     if not in_campaign:required|={'EXIT.json','AUDIT.json','SHA256SUMS'}|({'SUPERVISOR_EXIT.json'} if mode=='confirmation' else set())
     for rel,h in start['sources'].items():
         if Path(rel).is_absolute() or '..' in Path(rel).parts or sha(out/'source_snapshot'/rel)!=h:raise ValueError('snapshot bytes mismatch')

@@ -91,3 +91,8 @@ def test_closure_total_numerator_undefined_and_unclipped():
  assert s.closure_values(10.,12.,5.,9.)['full_bayes']['value']==-.4
  assert s.closure_values(10.,2.,10.,11.)['full_bayes']['value'] is None
  assert s.closure_values(10.,2.,10.,11.)['sparse_oracle']['value'] is None
+
+
+def test_single_seed_resource_has_no_scientific_intervals():
+ c=w.config('resource');rows=[{'seed':seed,'k':k,'N':N,'p':p,'restarts':[{}]} for seed,k,N,p in s.order(c)]
+ v=s.reduce(c,rows);assert v['kind']=='ENGINEERING_ONLY' and v['cells']==2 and v['restarts']==2 and v['inferential_intervals'] is False

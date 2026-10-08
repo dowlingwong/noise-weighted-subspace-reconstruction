@@ -15,6 +15,8 @@ test ! -e "$ENL_OUTPUT"
 cd "$ENL_CHECKOUT"
 unset PYTHONPYCACHEPREFIX
 export PYTHONPATH=.:src PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+test ! -L experiments && test ! -L src
+if find experiments src -type l -print -quit | read -r linked; then exit 75; fi
 if find experiments src -name '*.pyc' -print -quit | read -r cached; then exit 75; fi
 ulimit -v 8388608
 ulimit -t 259200

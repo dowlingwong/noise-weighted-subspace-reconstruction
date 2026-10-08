@@ -97,3 +97,11 @@ def test_closure_total_numerator_undefined_and_unclipped():
 def test_single_seed_resource_has_no_scientific_intervals():
  c=w.config('resource');rows=[{'seed':seed,'k':k,'N':N,'p':p,'restarts':[{}]} for seed,k,N,p in s.order(c)]
  v=s.reduce(c,rows);assert v['kind']=='ENGINEERING_ONLY' and v['cells']==2 and v['restarts']==2 and v['inferential_intervals'] is False
+
+
+def test_symlinked_source_cache_tree_refused(tmp_path,monkeypatch):
+ root=tmp_path/'root';root.mkdir();outside=tmp_path/'outside';outside.mkdir()
+ (outside/'poison.pyc').write_bytes(b'engineered cache')
+ (root/'experiments').symlink_to(outside,target_is_directory=True)
+ monkeypatch.setattr(w,'ROOT',root)
+ with pytest.raises(ValueError,match='symlink'):w.no_cache()

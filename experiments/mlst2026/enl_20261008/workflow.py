@@ -29,6 +29,8 @@ def sources():
 def no_cache():
     if os.getenv('PYTHONPYCACHEPREFIX'):raise ValueError('external executable cache prefix refused')
     for folder in ['experiments','src']:
+        base=ROOT/folder
+        if base.is_symlink() or any(p.is_symlink() for p in base.rglob('*')):raise ValueError('repository source/cache symlink refused')
         if any((ROOT/folder).rglob('*.pyc')):raise ValueError('repository executable bytecode cache refused')
     if not sys.dont_write_bytecode:raise ValueError('bytecode writes must be disabled')
 

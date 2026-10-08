@@ -1,5 +1,5 @@
 """Source-only numerical imports and pre-import frozen executable verification."""
-import importlib.abc,importlib.machinery,importlib.metadata,sys,sysconfig
+import importlib.abc,importlib.machinery,importlib.metadata,os,sys,sysconfig
 from pathlib import Path
 BOUND=None
 
@@ -7,12 +7,15 @@ def executable_files(sha):
     paths=set()
     for distribution in importlib.metadata.distributions():
         for rel in distribution.files or []:
+            if not (Path(rel).suffix in ['.py','.so','.dylib','.dll'] or '.so.' in Path(rel).name):continue
             p=Path(distribution.locate_file(rel)).resolve()
-            if p.is_file() and (p.suffix in ['.py','.so','.dylib','.dll'] or '.so.' in p.name):paths.add(p)
+            if p.is_file():paths.add(p)
     base=Path(sysconfig.get_path('stdlib')).resolve()
-    for p in base.rglob('*'):
-        if 'site-packages' in p.parts:continue
-        if p.is_file() and (p.suffix in ['.py','.so'] or '.so.' in p.name):paths.add(p.resolve())
+    for directory,folders,names in os.walk(base):
+        folders[:]=[name for name in folders if name not in ['site-packages','__pycache__']]
+        for name in names:
+            p=Path(directory)/name
+            if p.suffix in ['.py','.so'] or '.so.' in p.name:paths.add(p.resolve())
     paths.add(Path(sys.executable).resolve())
     return {str(p):sha(p) for p in sorted(paths)}
 
@@ -38,6 +41,7 @@ class Finder(importlib.abc.MetaPathFinder):
             if not Path(spec.origin).resolve().is_relative_to(ROOT):
                 verify_file(spec.origin);spec.loader=SourceLoader(fullname,spec.origin)
         elif isinstance(spec.loader,importlib.machinery.ExtensionFileLoader):verify_file(spec.origin)
+        elif spec.loader is not None:raise ImportError('unbound executable loader refused: '+type(spec.loader).__name__)
         return spec
 
 def install(bound=None):

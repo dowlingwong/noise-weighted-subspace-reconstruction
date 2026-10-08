@@ -47,8 +47,10 @@ def environment():
     import torch, importlib.metadata
     env=base_environment();dist=importlib.metadata.distribution('torch');binaries={}
     for relative in dist.files or []:
+        rel=Path(relative)
+        if not ('.so' in rel.name or rel.suffix in ['.py','.dylib','.dll'] or rel.name in ['METADATA','RECORD']):continue
         p=Path(dist.locate_file(relative))
-        if p.is_file() and ('.so' in p.name or p.suffix in ['.py','.dylib','.dll'] or p.name in ['METADATA','RECORD']):binaries[str(p.resolve())]=sha(p)
+        if p.is_file():binaries[str(p.resolve())]=sha(p)
     from . import runtime
     env.update(executable_files=runtime.executable_files(sha),source_only_imports=True,torch=torch.__version__,torch_config=torch.__config__.show(),torch_threads=torch.get_num_threads(),torch_interop_threads=torch.get_num_interop_threads(),torch_dtype=str(torch.get_default_dtype()),torch_deterministic=torch.are_deterministic_algorithms_enabled(),torch_binaries=binaries)
     return env

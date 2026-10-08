@@ -1,7 +1,14 @@
 """Source-only numerical imports and pre-import frozen executable verification."""
-import importlib.abc,importlib.machinery,importlib.metadata,os,sys,sysconfig
+import hashlib,importlib.abc,importlib.machinery,importlib.metadata,os,sys,sysconfig
 from pathlib import Path
 BOUND=None
+ROOT=Path(__file__).resolve().parent.parents[2]
+
+def file_sha(path):
+    h=hashlib.sha256()
+    with Path(path).open('rb') as stream:
+        for block in iter(lambda:stream.read(1<<20),b''):h.update(block)
+    return h.hexdigest()
 
 def executable_files(sha,cached=None):
     paths=set()
@@ -22,9 +29,8 @@ def executable_files(sha,cached=None):
 
 def verify_file(path):
     if BOUND is None:return
-    from .workflow import sha
     p=str(Path(path).resolve())
-    if p not in BOUND or sha(p)!=BOUND[p]:raise ImportError('unbound/changed numerical runtime executable: '+p)
+    if p not in BOUND or file_sha(p)!=BOUND[p]:raise ImportError('unbound/changed numerical runtime executable: '+p)
 
 class SourceLoader(importlib.machinery.SourceFileLoader):
     def get_code(self,fullname):
@@ -38,7 +44,6 @@ class Finder(importlib.abc.MetaPathFinder):
         if isinstance(spec.loader,importlib.machinery.SourcelessFileLoader):raise ImportError('sourceless executable cache refused')
         if isinstance(spec.loader,importlib.machinery.SourceFileLoader):
             # Repository source is bound separately; numerical dependency source bypasses .pyc.
-            from .workflow import ROOT
             if not Path(spec.origin).resolve().is_relative_to(ROOT):
                 verify_file(spec.origin);spec.loader=SourceLoader(fullname,spec.origin)
         elif isinstance(spec.loader,importlib.machinery.ExtensionFileLoader):verify_file(spec.origin)

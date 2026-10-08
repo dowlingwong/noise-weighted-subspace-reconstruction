@@ -52,3 +52,11 @@ def test_validation_tie_chooses_first_restart(tmp_path,monkeypatch):
  monkeypatch.setattr(s.models,'train',fake)
  row=s.fit(c,c['seeds'][0],2,32,.1,pool,tmp_path)
  assert row['selected']==0 and row['restarts'][0]['fit']['best_validation_loss']==row['restarts'][1]['fit']['best_validation_loss']
+
+
+def test_clean_module_entrypoint_installs_runtime_without_recursive_import():
+ import os,subprocess,sys
+ script="import runpy; w=runpy.run_module('experiments.mlst2026.enl_20261008.workflow',run_name='enl_cli_fixture'); w['numerical'](); w['loaded_identity'](w['sources']()); print('CLI_NUMERICAL_OK')"
+ result=subprocess.run([sys.executable,'-B','-c',script],env=dict(os.environ),capture_output=True,text=True,timeout=120)
+ assert result.returncode==0,result.stderr
+ assert 'CLI_NUMERICAL_OK' in result.stdout

@@ -4,6 +4,7 @@ from pathlib import Path
 from . import workflow as w
 
 def coordinate(out):
+    w.no_cache()
     c=w.config('confirmation');out=Path(out).resolve();records=Path(str(out)+'.coordinator')
     if os.getenv('ENL_CONFIRMATION_AUTHORISED')!='yes':raise ValueError('confirmation not authorized')
     if out.exists() or records.exists() or Path(w.LEDGER).exists():raise ValueError('permanent output/coordinator/attempt occupied')

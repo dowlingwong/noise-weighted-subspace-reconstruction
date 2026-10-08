@@ -49,6 +49,7 @@ def test_independent_affine_risk_and_gaussian_bayes():
 
 def test_zero_se_undecided_and_bonferroni():
  assert s.interval([0.]*24,36,.05)['decision']=='undecided'
+ assert s.interval([.1]*24,36,.05)['zero_SE'] and s.interval([.1]*24,36,.05)['ci']==[.1,.1]
  assert s.interval([-1.]*24,36,.05)['decision']=='negative'
  assert s.interval([1.]*24,36,.05)['decision']=='positive'
  a=s.interval(np.arange(24),36,.05);b=s.interval(np.arange(24),1,.05)

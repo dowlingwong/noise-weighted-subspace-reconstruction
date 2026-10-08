@@ -158,7 +158,8 @@ def fit(c,seed,k,N,p,pool,out):
 def interval(values,family,alpha):
     values=np.array(values,dtype=float)
     if len(values)<2 or not np.isfinite(values).all():raise ValueError('invalid seed contrast')
-    mean=float(values.mean());sd=float(values.std(ddof=1));half=float(t.isf(alpha/(2*family),len(values)-1)*sd/np.sqrt(len(values)))
+    constant=bool(np.all(values==values[0]))
+    mean=float(values[0]) if constant else float(values.mean());sd=0. if constant else float(values.std(ddof=1));half=float(t.isf(alpha/(2*family),len(values)-1)*sd/np.sqrt(len(values)))
     lo,hi=mean-half,mean+half
     return {'mean':mean,'sd':sd,'ci':[lo,hi],'zero_SE':sd==0,'decision':'negative' if hi<0 else 'positive' if lo>0 else 'undecided','values':values.tolist(),'family_size':family,'df':len(values)-1}
 

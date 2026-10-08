@@ -45,14 +45,16 @@ def numerical():
 def environment():
     from experiments.mlst2026.tr09_20261007.workflow import environment as base_environment
     import torch, importlib.metadata
-    env=base_environment();dist=importlib.metadata.distribution('torch');binaries={}
+    from . import runtime
+    env=base_environment();dist=importlib.metadata.distribution('torch')
+    cached=dict(env['binary_metadata_sha256']);cached[env['executable']]=env['executable_sha256']
+    executable_files=runtime.executable_files(sha,cached);binaries={}
     for relative in dist.files or []:
         rel=Path(relative)
         if not ('.so' in rel.name or rel.suffix in ['.py','.dylib','.dll'] or rel.name in ['METADATA','RECORD']):continue
-        p=Path(dist.locate_file(relative))
-        if p.is_file():binaries[str(p.resolve())]=sha(p)
-    from . import runtime
-    env.update(executable_files=runtime.executable_files(sha),source_only_imports=True,torch=torch.__version__,torch_config=torch.__config__.show(),torch_threads=torch.get_num_threads(),torch_interop_threads=torch.get_num_interop_threads(),torch_dtype=str(torch.get_default_dtype()),torch_deterministic=torch.are_deterministic_algorithms_enabled(),torch_binaries=binaries)
+        p=Path(dist.locate_file(relative)).resolve();key=str(p)
+        if p.is_file():binaries[key]=executable_files[key] if key in executable_files else sha(p)
+    env.update(executable_files=executable_files,source_only_imports=True,torch=torch.__version__,torch_config=torch.__config__.show(),torch_threads=torch.get_num_threads(),torch_interop_threads=torch.get_num_interop_threads(),torch_dtype=str(torch.get_default_dtype()),torch_deterministic=torch.are_deterministic_algorithms_enabled(),torch_binaries=binaries)
     return env
 
 def loaded_identity(bound):
@@ -164,7 +166,9 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
         write(out/'EXIT.json',{'exit_code':0,'seconds':time.monotonic()-begin,'source_unchanged':before==sources()})
         if mode!='confirmation':export(out)
     except BaseException as error:
-        signal.alarm(0);write(out/'EXIT.json',{'exit_code':1,'seconds':time.monotonic()-begin,'error':repr(error),'source_unchanged':before==sources()});raise
+        signal.alarm(0)
+        failure_name='FAILURE.json' if (out/'EXIT.json').exists() else 'EXIT.json'
+        write(out/failure_name,{'exit_code':1,'seconds':time.monotonic()-begin,'error':repr(error),'source_unchanged':before==sources()});raise
 
 
 def audit(out,in_campaign=False,report=None,timings=None):

@@ -3,7 +3,7 @@ import importlib.abc,importlib.machinery,importlib.metadata,os,sys,sysconfig
 from pathlib import Path
 BOUND=None
 
-def executable_files(sha):
+def executable_files(sha,cached=None):
     paths=set()
     for distribution in importlib.metadata.distributions():
         for rel in distribution.files or []:
@@ -17,7 +17,8 @@ def executable_files(sha):
             p=Path(directory)/name
             if p.suffix in ['.py','.so'] or '.so.' in p.name:paths.add(p.resolve())
     paths.add(Path(sys.executable).resolve())
-    return {str(p):sha(p) for p in sorted(paths)}
+    cached=cached or {}
+    return {str(p):cached[str(p)] if str(p) in cached else sha(p) for p in sorted(paths)}
 
 def verify_file(path):
     if BOUND is None:return

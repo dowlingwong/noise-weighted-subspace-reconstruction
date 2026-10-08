@@ -126,7 +126,8 @@ def close(a,b):
     if isinstance(a,float):return isinstance(b,(float,int)) and bool(np.isclose(a,b,rtol=1e-9,atol=1e-9))
     return a==b
 
-def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
+def run(mode,out,freeze_path=None,acceptance=None,ledger=None,timings=None):
+    outer_begin=time.monotonic();pool_seconds=0.
     c=config(mode);validate(c,mode);no_cache();before=sources();binding=authorize(mode,c,out,freeze_path,acceptance,ledger)
     science,torch=numerical();env=environment();loaded_identity(before)
     if binding and binding[0]['environment']!=env:raise ValueError('frozen runtime mismatch')
@@ -142,17 +143,19 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
     for rel in before:
         p=out/'source_snapshot'/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((ROOT/rel).read_bytes())
     write(out/'START.json',{'mode':mode,'time':time.time(),'config':c,'sources':before,'environment':env,'cell_order':science.order(c)})
-    begin=time.monotonic();rows=[];pool=None;current_seed=None
+    begin=time.monotonic();setup_seconds=begin-outer_begin;rows=[];pool=None;current_seed=None
     def terminate(signum,frame):raise SystemExit(128+signum)
     signal.signal(signal.SIGTERM,terminate)
     try:
         for seed,k,N,p in science.order(c):
             if time.monotonic()-begin>c['budget']['run_seconds']:raise TimeoutError('campaign wall budget')
             if current_seed!=seed:
-                pool=science.raw_pools(c,seed);current_seed=seed
+                pool_begin=time.monotonic();pool=science.raw_pools(c,seed);current_seed=seed
                 import numpy as np
                 np.savez_compressed(out/f'pool_{seed}.npz',**pool)
                 write(out/f'pool_{seed}.json',{'seed':seed,'namespace':c['namespace'],'arrays':{key:{'shape':list(value.shape),'sha256':science.digest(value)} for key,value in pool.items()}})
+            if current_seed==seed and 'pool_begin' in locals():
+                pool_seconds+=time.monotonic()-pool_begin;del pool_begin
             def alarm(signum,frame):raise TimeoutError('cell time budget')
             signal.signal(signal.SIGALRM,alarm);signal.alarm(c['budget']['cell_seconds']);then=time.monotonic()
             row=science.fit(c,seed,k,N,p,pool,out);row['seconds']=time.monotonic()-then;signal.alarm(0)
@@ -161,10 +164,12 @@ def run(mode,out,freeze_path=None,acceptance=None,ledger=None):
             print(seed,k,N,p,round(row['seconds'],3),flush=True)
         if before!=sources():raise ValueError('source changed during campaign')
         write(out/'SUMMARY.json',science.reduce(c,rows))
-        audit(out,in_campaign=True,report=out/'AUDIT.json')
+        internal_audit_timing={};audit(out,in_campaign=True,report=out/'AUDIT.json',timings=internal_audit_timing)
         loaded_identity(before);no_cache()
         write(out/'EXIT.json',{'exit_code':0,'seconds':time.monotonic()-begin,'source_unchanged':before==sources()})
+        export_begin=time.monotonic()
         if mode!='confirmation':export(out)
+        if timings is not None:timings.update(setup_seconds=setup_seconds,pool_seconds=pool_seconds,internal_audit=internal_audit_timing,export_seconds=time.monotonic()-export_begin,total_seconds=time.monotonic()-outer_begin)
     except BaseException as error:
         signal.alarm(0)
         failure_name='FAILURE.json' if (out/'EXIT.json').exists() else 'EXIT.json'

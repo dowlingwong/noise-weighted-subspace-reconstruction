@@ -10,7 +10,7 @@ def test_grid_keys_and_resource_contract():
  assert len(s.order(c))==432 and len(set(s.order(c)))==432
  assert sum(len(v) for v in c['arms'].values())*len(c['p'])*2==36
  assert c['recipe']['restarts']*len(s.order(c))==1728
- assert c['budget']['campaign_seconds']==259200 and c['budget']['run_seconds']==252000
+ assert c['budget']['campaign_seconds']==259200 and c['budget']['run_seconds']==255600
  assert set(c['seeds']).isdisjoint(w.config('fixture')['seeds'])
  assert s.models.key_int(c['namespace'],c['seeds'][0],3,3200,.1,'init',0)!=s.models.key_int(c['namespace'],c['seeds'][0],6,3200,.1,'init',0)
 

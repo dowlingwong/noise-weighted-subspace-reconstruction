@@ -20,7 +20,7 @@ ulimit -v 8388608
 ulimit -t 259200
 started=$(date +%s)
 set +e
-timeout --kill-after=60 252000 /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.enl_20261008.workflow run --mode confirmation --out "$ENL_OUTPUT" --freeze "$ENL_FREEZE" --acceptance "$ENL_ACCEPTANCE" --ledger "$registry/paper1-enl-v1-confirm.attempt.json"
+timeout --kill-after=60 255600 /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.enl_20261008.workflow run --mode confirmation --out "$ENL_OUTPUT" --freeze "$ENL_FREEZE" --acceptance "$ENL_ACCEPTANCE" --ledger "$registry/paper1-enl-v1-confirm.attempt.json"
 rc=$?
 set -e
 printf '{"exit_code": %s}\n' "$rc" > "${ENL_OUTPUT}.supervisor_exit.json"

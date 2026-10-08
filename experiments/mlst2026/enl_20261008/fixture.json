@@ -1,0 +1,98 @@
+{
+  "activation": "silu",
+  "arms": {
+    "2": [
+      32,
+      64
+    ],
+    "3": [
+      64
+    ]
+  },
+  "budget": {
+    "campaign_seconds": 600,
+    "cell_seconds": 60,
+    "max_cells": 18,
+    "max_restarts": 36,
+    "retries": 0,
+    "run_seconds": 540,
+    "scratch_bytes": 134217728,
+    "virtual_memory_bytes": 8589934592
+  },
+  "design_review_sha256": "15d7ea81a67bdc9102b2c46191a303ba3218ba3b1bbaeaa6859adefc6a57cba9",
+  "eval_chunk": 64,
+  "eval_records": 128,
+  "geometry": {
+    "C": 3,
+    "T": 4,
+    "geometry_seed": 20260913,
+    "kc": 2,
+    "kt": 2,
+    "rho_c": 0.4,
+    "rho_t": 0.7,
+    "spectrum": {
+      "gap": 1.5,
+      "tail_min": 0.05,
+      "top": [
+        6.0,
+        5.0,
+        4.0,
+        3.0
+      ]
+    }
+  },
+  "hidden": [
+    8,
+    6
+  ],
+  "interference_amplitudes": [
+    -2.0,
+    -1.5,
+    -1.0,
+    -0.5,
+    0.5,
+    1.0,
+    1.5,
+    2.0
+  ],
+  "interference_threshold": 0.05,
+  "n_sparse": 4,
+  "namespace": "paper1-enl-dev/fixture",
+  "p": [
+    1.0,
+    0.3,
+    0.1
+  ],
+  "primary_family": 18,
+  "protocol_sha256": "fd34fb84e4decccaba9c7636c42a1c4eb5ecf28b3207e040e2191538ff8ab49d",
+  "recipe": {
+    "batch": 16,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "deterministic": true,
+    "dtype": "float64",
+    "eps": 1e-08,
+    "lr": 0.001,
+    "max_epochs": 2,
+    "optimizer": "adam",
+    "patience": 2,
+    "restarts": 2,
+    "threads": 1,
+    "validation_fraction": 0.2,
+    "weight_decay": 0.0
+  },
+  "recovery_threshold": 0.5,
+  "representation_records": 128,
+  "risk_alpha": 0.05,
+  "seeds": [
+    202610089901,
+    202610089902
+  ],
+  "signature_seeds": 2,
+  "theory_review_sha256": "216f5f214d2d206f40fea057be199be47c550ca0a3b4d501e9f35df44a94060a",
+  "theory_sha256": "6db33457331e7daed7c92d8d6f6313434f0be8c12dbbb1220b290432508843fc",
+  "theta": 0.25,
+  "version": "enl/fixture-v1"
+}

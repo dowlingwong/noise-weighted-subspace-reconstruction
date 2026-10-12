@@ -1,0 +1,260 @@
+{
+ "study": "Y19",
+ "version": "y19-v1",
+ "evidence_role": "CONFIRMATION",
+ "namespace": "y19-confirm-20261012",
+ "generator": {
+  "family": "y19-g2-pulse-shape-mixing",
+  "C": 6,
+  "T": 64,
+  "kc": 2,
+  "kt": 3,
+  "rho_c": 0.4,
+  "rho_t": 0.7,
+  "spectrum": {
+   "top_scale": 24.0,
+   "gap": 2.0,
+   "law": "lambda_i = top_scale/i (i <= k); lambda_j = (top_scale/k - gap)(k+1)/j (j > k)"
+  },
+  "pulses": {
+   "onset": 16.0,
+   "rise_decay": [
+    [
+     1.0,
+     6.0
+    ],
+    [
+     2.5,
+     15.0
+    ],
+    [
+     5.0,
+     35.0
+    ]
+   ],
+   "weights": [
+    1.0,
+    0.7,
+    0.45
+   ]
+  },
+  "channel_patterns": {
+   "forms": [
+    "exp(-(c-c0)^2/8)",
+    "(c-c0)/c0"
+   ],
+   "weights": [
+    1.0,
+    0.6
+   ]
+  },
+  "delays": "delta_c = c - (C-1)/2 samples per unit phi",
+  "geometry_key": "y19-confirm-20261012/geometry"
+ },
+ "metric": "oracle Sigma^{-1}",
+ "geometries": [
+  {
+   "label": "control",
+   "phi": 0.0,
+   "N_star_pred": null,
+   "N_star_interval": null,
+   "grid": [
+    302,
+    604,
+    729,
+    1208,
+    1458,
+    2415,
+    2917,
+    4830,
+    5834,
+    11668
+   ]
+  },
+  {
+   "label": "A",
+   "phi": 0.12,
+   "N_star_pred": 2916.9570767049163,
+   "N_star_interval": [
+    2916.9570767049163,
+    10904.804999675058
+   ],
+   "grid": [
+    729,
+    1458,
+    2917,
+    5834,
+    11668
+   ]
+  },
+  {
+   "label": "B",
+   "phi": 0.2,
+   "N_star_pred": 1207.5948373363196,
+   "N_star_interval": [
+    1207.5948373363196,
+    4572.712847677849
+   ],
+   "grid": [
+    302,
+    604,
+    1208,
+    2415,
+    4830
+   ]
+  }
+ ],
+ "factors": [
+  0.25,
+  0.5,
+  1.0,
+  2.0,
+  4.0
+ ],
+ "seeds": [
+  959802138199,
+  18897072601,
+  496240229432,
+  363773450724,
+  965493080408,
+  349685338516,
+  919081207948,
+  81141076893,
+  271021031565,
+  424904294449,
+  241849967962,
+  384862736654,
+  364381561011,
+  69970584488,
+  106132199180,
+  126372720843,
+  789649695323,
+  34926065892,
+  677392645504,
+  848718308257,
+  618563078037,
+  89233928013,
+  696126951953,
+  468718941593
+ ],
+ "learners": {
+  "records": "y19 generator.draw (t25.science.make_data streams, oracle arm, no calibration pool); one pool of max(grid) records per (geometry, seed); smaller N are prefixes",
+  "moments": "t25.science.moments (fitted mean, centred, divisor N)",
+  "unrestricted": "t25.science.unrestricted (EMPCA/CW-PCA population form: Sigma^{-1}-whitened top-k)",
+  "product": "t25.science.structured (NFPA, physical product Grassmannian, Sigma^{-1} metric); starts = t25.science.starts (HOSVD + 3 random; key (namespace, seed, phi, N))",
+  "affine_map": "t25.science.map_for(B, Sigma^{-1}); intercept b = (I - A) mean",
+  "scoring": "t25.science.risks(A, b, L K L, Sigma, Sigma^{-1})[\"clean\"]: exact expected clean risk on an independent record (closed form; evaluation size infinite, no evaluation sampling error)",
+  "max_iter": 6000,
+  "gradient_tolerance": 1e-08,
+  "restarts": 4
+ },
+ "contrast": "D = clean risk(product) - clean risk(unrestricted), both affine with fitted mean, per seed",
+ "optimization_limited": "record flagged if the selected NFPA restart is not stationary or the restart clean-risk spread >= |D| (t25.science.reduce_records rule); a cell (geometry, N) is optimization-limited if >= 1 of its records is flagged; flagged records and cells are kept, never dropped",
+ "inference": {
+  "unit": "seed-level mean of D over 24 seeds",
+  "interval": "approximate Bonferroni Student-t",
+  "alpha": 0.05,
+  "df": 23,
+  "family_size": 20,
+  "family": "every registered (geometry, N) class contrast: 5 (A) + 5 (B) + union grid (control)",
+  "decided_negative": "upper limit < 0",
+  "decided_positive": "lower limit > 0",
+  "zero_SE": "a cell whose seed SD is exactly 0 is undecided"
+ },
+ "reading_rule": {
+  "nonseparable": "MET iff decided negative at N*/4 and N*/2 AND decided positive at 2N* and 4N* (N* cell unconstrained); NOT MET otherwise, with the observed sign pattern reported",
+  "overall": "MET iff both nonseparable geometries (A and B) are MET",
+  "control": "MET iff no decided positive contrast at any control N",
+  "optimization_limited": "reported with each reading; if a deciding cell is optimization-limited the reading carries that flag"
+ },
+ "secondary_descriptive": [
+  "seed-mean contrast and interval at the N* cell of A and B (first order predicts approximately 0); OLS fit of seed-mean D(N) = alpha + beta/N over each 5-point grid, N*_fit = -beta/alpha",
+  "OLS fit of N * mean Delta_U(N) = c + e/N over all registered cells, Delta_U = R_K(fitted unrestricted projector) - R_K(P*_U) (the t25 \"signal\" term minus sum_{j>k} lambda_j); compare c with c_U"
+ ],
+ "exclusions": "none",
+ "deviations_after_freeze": "none permitted; a correction requires a new namespace",
+ "dependencies": {
+  "accepted_t25_identity": "01f2f82f9144dd1833e577bf1830707417197dd61c1c1580eba984c712304762",
+  "files": {
+   "experiments/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/mlst2026/__init__.py": "3c5c9c927099277ae56aac32fcb9f9d411cf4577ac4d83b1e979d3a7c6de1a40",
+   "experiments/mlst2026/p1nl_dev_20261006/__init__.py": "a310fcbfcda03a8462a981410c099f2389de6a92bb031b7d9254a0ff11d0e71e",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/core.py": "3112bd3f6f299a33e268356ffdd4d221ea77e867330b46174b240732450bb078",
+   "experiments/mlst2026/successor_20260913/__init__.py": "bd0f3a850a70702b4dbd5feb5995f563b745d5a6f7a024bdc7875b0d801ddc1e",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py": "1827bb13fb23c2788a82e23d30208e06e33de65c3da16b00fa8893c6ce2253a0",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py": "7aeb1a3f88401c226d650d86b587c9eaf37095c9c6989c9fc3e8226c94f2dcb9",
+   "experiments/mlst2026/t25_production_20260930/__init__.py": "274db46729cd4cbdc5277b3cdb91d4574990410789ab88091dd98597b23941d6",
+   "experiments/mlst2026/t25_production_20260930/science.py": "d0a3bfab2127a8b81ef53d0d87e3f059cbc24c8fb956eec918153ab67e8af502",
+   "experiments/mlst2026/upgrade_20260922/__init__.py": "34afc5cfd8bbcfd8c004fa7ae5998fed7ad23e0790ba08021886d057628bc7ce",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py": "ae6475ffe2c5fb1d798acb7988021c452b3116fbfc6ffd3e28e8f545dda6d00a",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py": "42c919458f18e449685fbf1f58cc27ea3de7660ca27a0244cc8d82db1db6a4b3",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py": "3c92e520835e99ff7a62c30f5d113ec87b0cfcf2e5887bd6d7ced273e1296340",
+   "experiments/paper1/__init__.py": "18cbb807afc2784c619b134f80cde9a2abcd41526c5080f82834cd0548214da8",
+   "experiments/paper1/t20_population_accounting.py": "848bfc58201d9bc15be8f875408ce8979aaa4c85cf24da736af5e0ae9a224b9b",
+   "experiments/synthetic/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/config.py": "98e6488a8ce71c05fb07ea950c36ce15258e942dea3d3af7f552ec1c02639fb1",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py": "54cced8ff46535b4439cad71309a69674c4488897931c4e20cff91281526454f",
+   "experiments/synthetic/nfpa_confirmatory/generator.py": "875bb95885b72ed7eeac852b3e1a4692976cbaeb39b98b63141c4abda6ecbd23",
+   "experiments/synthetic/nfpa_confirmatory/methods.py": "604d3f03378b2de37ad7b307955db1072117b9a6a79774ca9c4692fb4fa0911f",
+   "src/noise_geometry/__init__.py": "fd08e313af1981a582a3c04eae60cd01d5099e772fea0cfd7e3c5a0f7e4ee6c4",
+   "src/noise_geometry/filters/__init__.py": "8ec22e0a6f5d46c0064bffb60f32e0f323a9211d258edcbb2003fb13386ea63f",
+   "src/noise_geometry/filters/optimal.py": "f9f01577a799f11123e18c5f1f4678496982d4b694ffa199dc7639fea4877987",
+   "src/noise_geometry/metrics/__init__.py": "335aa0683be503e78b71888bff980b78074468bdd2a664ad92fcbf27473e8d91",
+   "src/noise_geometry/metrics/reconstruction.py": "afe7ebd21364efac1471be525e9e50cae52db483736154f3be5115fb6c5f035e",
+   "src/noise_geometry/noise/__init__.py": "bfb85c6d96992b837c1875d0d06299a3a8a1ed24b29ee02e24c828583fbc1759",
+   "src/noise_geometry/noise/covariance.py": "8256b31a42c3a3f3f3b1229f9a6c06979fa74fd85626ac7aad82def498d181f1",
+   "src/noise_geometry/noise/psd.py": "5961f09d7e98cce3412793d3a0d38719c3e8fccc21651d4a7afa76002fb77542",
+   "src/noise_geometry/noise/synthetic.py": "69941ba0a85a29c0901bfb0dc310a085999b5df8f7169c379c4ad632bfd0d72f",
+   "src/noise_geometry/noise/whitening.py": "9e83b9938e7969cbb68e8c93bc1f843e0eec201fb5bc0360b788e61d23720993",
+   "src/noise_geometry/subspace/__init__.py": "3d2fe1dbac1e8537579cfc4feaada4fb16e49ea21de5b44e939abb29eec266c6",
+   "src/noise_geometry/subspace/angles.py": "77509e0035d52237c3d96a091065240767ba7856e17c9a7ef9d6e62cf407446d",
+   "src/noise_geometry/subspace/pca.py": "f4b0d01cc4158bd449b30679ba1252372c7b7be16b09dcf164368fe4c5c0657d"
+  },
+  "in_accepted_t25_closure": [
+   "experiments/__init__.py",
+   "experiments/mlst2026/__init__.py",
+   "experiments/mlst2026/successor_20260913/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py",
+   "experiments/mlst2026/t25_production_20260930/__init__.py",
+   "experiments/mlst2026/t25_production_20260930/science.py",
+   "experiments/mlst2026/upgrade_20260922/__init__.py",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py",
+   "experiments/paper1/__init__.py",
+   "experiments/paper1/t20_population_accounting.py",
+   "experiments/synthetic/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/config.py",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py",
+   "experiments/synthetic/nfpa_confirmatory/generator.py",
+   "experiments/synthetic/nfpa_confirmatory/methods.py",
+   "src/noise_geometry/__init__.py",
+   "src/noise_geometry/filters/__init__.py",
+   "src/noise_geometry/filters/optimal.py",
+   "src/noise_geometry/metrics/__init__.py",
+   "src/noise_geometry/metrics/reconstruction.py",
+   "src/noise_geometry/noise/__init__.py",
+   "src/noise_geometry/noise/covariance.py",
+   "src/noise_geometry/noise/psd.py",
+   "src/noise_geometry/noise/synthetic.py",
+   "src/noise_geometry/noise/whitening.py",
+   "src/noise_geometry/subspace/__init__.py",
+   "src/noise_geometry/subspace/angles.py",
+   "src/noise_geometry/subspace/pca.py"
+  ],
+  "outside_closure": [
+   "experiments/mlst2026/p1nl_dev_20261006/__init__.py",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/__init__.py",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/core.py",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py"
+  ]
+ },
+ "budget": {
+  "threads_per_worker": 1,
+  "workers_default": 4,
+  "records": 480
+ }
+}

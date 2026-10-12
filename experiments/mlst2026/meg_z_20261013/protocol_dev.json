@@ -1,0 +1,517 @@
+{
+ "study": "WS-D MEG multichannel study (meg_z): semi-synthetic injection into measured ds000117 magnetometer noise",
+ "version": "megz-dev-2 (independent reviews 01 and 02 applied)",
+ "status": "DEV DEFAULTS - NOT FROZEN. Every value may change during development on the 4 dev subjects only and is finalised at D4 (design Part D, runbook 6.2-6.5). This file never authorises a confirmation run.",
+ "frozen": false,
+ "namespace": "megz-dev-20261013",
+ "namespace_confirmation": null,
+ "dataset": {
+  "id": "ds000117",
+  "snapshot": "2.0.0",
+  "license_in_snapshot": "CC0",
+  "doi": "10.18112/openneuro.ds000117.v2.0.0",
+  "citation": "Wakeman & Henson (2015) Sci. Data 2:150001, doi:10.1038/sdata.2015.1",
+  "license_note": "snapshot 2.0.0 dataset_description.json: \"License\": \"CC0\" (not CC BY 4.0); cite Wakeman & Henson (2015) and the snapshot DOI"
+ },
+ "subjects": {
+  "analysed": [
+   "sub-01",
+   "sub-02",
+   "sub-03",
+   "sub-04",
+   "sub-05",
+   "sub-06",
+   "sub-07",
+   "sub-08",
+   "sub-09",
+   "sub-10",
+   "sub-11",
+   "sub-12",
+   "sub-13",
+   "sub-14",
+   "sub-15",
+   "sub-16"
+  ],
+  "dev": [
+   "sub-01",
+   "sub-02",
+   "sub-03",
+   "sub-04"
+  ],
+  "confirmation": [
+   "sub-05",
+   "sub-06",
+   "sub-07",
+   "sub-08",
+   "sub-09",
+   "sub-10",
+   "sub-11",
+   "sub-12",
+   "sub-13",
+   "sub-14",
+   "sub-15",
+   "sub-16"
+  ],
+  "rule": "dev = 4 lowest-numbered analysed subjects; confirmation = other 12 (fixed before download)"
+ },
+ "preprocess": {
+  "channel_type": "mag",
+  "bads": "union of channels.tsv status=bad over the six runs (and info['bads'])",
+  "l_freq": 1.0,
+  "h_freq": 40.0,
+  "filter": {
+   "method": "fir",
+   "phase": "zero",
+   "fir_design": "firwin"
+  },
+  "decim": 12,
+  "trigger_delay_s": 0.0345,
+  "stimulus_codes": {
+   "face": [
+    5,
+    6,
+    7,
+    13,
+    14,
+    15
+   ],
+   "scrambled": [
+    17,
+    18,
+    19
+   ]
+  },
+  "response_codes": [
+   256,
+   4096
+  ],
+  "check_stim_channel": true,
+  "stim_mask": 255,
+  "C": 24,
+  "T": 20,
+  "baseline_s": [
+   -0.1,
+   0.0
+  ],
+  "selection": {
+   "runs": "reference partition",
+   "conditions": "faces",
+   "statistic": "RMS over the 0..T-1 sample post-onset window of the baseline-corrected evoked field"
+  },
+  "noise_windows": {
+   "after_onset_s": 1.2,
+   "before_next_s": 0.05,
+   "end_margin_s": 0.05,
+   "response_exclusion_s": [
+    -0.05,
+    0.5
+   ],
+   "note": "contiguous non-overlapping windows inside each gap (dependence measured at D2, F9); the gap may contain the circle/fixation transients of the trial (inter-stimulus activity, disclosed; G3 is an effect-size gate)"
+  },
+  "reference_stride": 1,
+  "partition": {
+   "reference": [
+    1,
+    2
+   ],
+   "training": [
+    3,
+    4
+   ],
+   "calibration": [
+    5
+   ],
+   "evaluation": [
+    6
+   ]
+  },
+  "sampling_note": "1100 Hz / 12 = 91.667 Hz; T = 20 samples = 218.2 ms window duration (samples at 0 ... 207.3 ms after the corrected onset); C = 24 magnetometers (review b/d, F2)",
+  "stim_check_rule": "refuse the subject unless every run has STI101, the same number of stimulus events in events.tsv and STI101 (mask 255), and every lag <= 1.5 raw samples (F8)"
+ },
+ "budget_requirements": {
+  "N_max": 1600,
+  "m_max": 768,
+  "n_eval": 500
+ },
+ "reference_metric": {
+  "kind": "ledoit_wolf_full",
+  "sensitivity_kind": "kronecker_flipflop",
+  "flipflop": {
+   "max_iter": 500,
+   "tol": 1e-10
+  },
+  "lw_effective_n": "number of non-overlapping (stride-T) reference windows (F14)",
+  "certificate": "B_dagger = lambda_min(Sigma_K^{1/2} Sigma_ref^{-1} Sigma_K^{1/2}) * B_cert(K_G), Sigma_K = flip-flop Kronecker fit of the same run 1-2 statistics, K_G = Sigma_K^{-1/2} R_s Sigma_K^{-1/2}; |B_cert(K_G)| <= 1e-10 x max(1, tr K_G) is set to exactly 0 (scale-relative cut; the raw residue is stored as B_cert_KG_raw)",
+  "note": "Ledoit-Wolf full Sigma_ref (runbook); the Kronecker reference is computed only as a descriptive sensitivity (protocol variant with kind = kronecker_flipflop)"
+ },
+ "gates": {
+  "G1": {
+   "proc_history_empty": true,
+   "max_condition_spatial": 1000000.0,
+   "max_condition_full": 10000000000.0,
+   "retest_drop_noisiest": "automatic, once, before E1 (F13)"
+  },
+  "G2": {
+   "band": [
+    0.8,
+    1.25
+   ],
+   "partition": "evaluation",
+   "statistics": [
+    "mean_whitened_eigenvalue",
+    "trace_ratio"
+   ],
+   "spread_ratio_max": 2.0,
+   "spread_rule": "max whitened eigenvalue <= spread_ratio_max x Marchenko-Pastur upper edge (1 + sqrt(d/n))^2 and min >= MP lower edge (1 - sqrt(d/n))^2 / spread_ratio_max; threshold set from dev only (F10)"
+  },
+  "G3": {
+   "effect_size_max_fraction_trK": 0.01,
+   "partitions": [
+    "training",
+    "calibration",
+    "evaluation"
+   ],
+   "alignments": [
+    "position",
+    "rposition"
+   ],
+   "min_windows_per_position": 30,
+   "rule": "gate: max over partitions, alignments (preceding / next onset) and tiling positions of the debiased whitened energy mu^T Sigma_ref^{-1} mu - tr(Sigma_ref^{-1} S)/n of the positional mean < 1% of trace_K_target; significance tests (max-t, Hotelling) on gap means are reported, not gating (F3, F9)",
+   "alignment_note": "rposition (aligned to the next onset) is accurate to within one window: slots are tiled from the preceding onset"
+  },
+  "G4": {
+   "descriptive": true
+  },
+  "G5": {
+   "descriptive": true,
+   "partition": "training"
+  },
+  "dependence": {
+   "descriptive": true,
+   "statistic": "whitened lag-one cross-covariance of consecutive windows of one gap (training)"
+  },
+  "E1": {
+   "exclude_if_failed": [
+    "G1",
+    "G2",
+    "G3"
+   ],
+   "min_confirmation_subjects": 10,
+   "budget_rule": "a confirmation subject whose training, calibration or evaluation pool is below the frozen grid need (4 N*_A,s <= training pool; m_hi <= calibration; n_eval <= evaluation), or without a theta_s root, or without restart agreement at theta_s, is excluded and counts toward the 10-subject minimum (F5, review c)"
+  }
+ },
+ "signal": {
+  "kc": 2,
+  "kt": 3,
+  "theta": [
+   0.0,
+   0.12,
+   0.25,
+   0.4
+  ],
+  "template_windows_s": [
+   [
+    0.08,
+    0.13
+   ],
+   [
+    0.14,
+    0.2
+   ]
+  ],
+  "max_template_cosine": 0.95,
+  "bump_centers_s": [
+   0.1,
+   0.17
+  ],
+  "bump_width_s": 0.02,
+  "latent_variances_l": [
+   1.0,
+   0.5,
+   0.25
+  ],
+  "source_weights_j": [
+   1.0,
+   1.0
+  ],
+  "trace_K_target": 206.604,
+  "theta_note": "fixed certificate grid for PZ1 only; the fitted geometries are theta = 0 (control) and the per-subject theta_A,s and theta_B,s of the population rule",
+  "trace_K_scale": "latent variances fixed per subject so that tr K = trace_K_target at theta = 0; NOT rescaled per theta (review c)"
+ },
+ "population": {
+  "n_random_starts": 62,
+  "zero_tol": 1e-09,
+  "path": "general (physical product class under Sigma_ref^{-1}); pinned Y19/TR09 path only for the Kronecker sensitivity",
+  "restart_agreement": "all starts reach the best value, or >= 75% of starts within 1e-9 of it",
+  "restart_agreement_fraction": 0.75
+ },
+ "grid": {
+  "factors": [
+   0.25,
+   0.5,
+   1.0,
+   2.0,
+   4.0
+  ],
+  "control_absolute": [
+   100,
+   200,
+   400,
+   800,
+   1600
+  ],
+  "n_min": 50
+ },
+ "arms": [
+  {
+   "name": "ref",
+   "estimator": "reference"
+  },
+  {
+   "name": "lw_lo",
+   "estimator": "lw",
+   "m": "lo"
+  },
+  {
+   "name": "lw_hi",
+   "estimator": "lw",
+   "m": "hi"
+  },
+  {
+   "name": "kron_lo",
+   "estimator": "kron",
+   "m": "lo"
+  },
+  {
+   "name": "kron_hi",
+   "estimator": "kron",
+   "m": "hi"
+  },
+  {
+   "name": "iso",
+   "estimator": "identity"
+  }
+ ],
+ "resamples": 20,
+ "n_eval": 500,
+ "learners": {
+  "recipe": "T25 science: moments (fitted mean, divisor N), starts (HOSVD + 3 random), structured (NFPA, physical product Grassmannian), unrestricted (EMPCA population form), map_for; intercept b = (I - A) mean",
+  "max_iter": 6000,
+  "gradient_tolerance": 1e-08,
+  "restarts": 4,
+  "flag_rule": {
+   "line_search_gradient_max": 1e-06,
+   "rule": "record optimization-limited iff the selected NFPA restart ended iteration_limit, OR ended line_search_stopped with normalised gradient norm > 1e-6 (100 x the recipe tolerance), OR the restart clean-risk spread >= |D|; the unchanged T25 rule (selected restart not stationary, or spread >= |D|) is recorded alongside as optimization_limited_t25_rule; the T25 optimizer is byte-identical"
+  },
+  "max_iter_rule": {
+   "threshold_fraction": 0.01,
+   "raised_max_iter": 12000,
+   "rule": "D4 decision rule: raise max_iter from 6000 to 12000 iff the dev pilot shows iteration_limit on more than 1% of selected restarts (all arms); otherwise keep 6000"
+  }
+ },
+ "scores": {
+  "primary": "clean_ref",
+  "all": [
+   "clean_ref",
+   "clean_ref_semi_analytic",
+   "clean_euclidean",
+   "readout_nmse_a11",
+   "readout_nmse_a21"
+  ],
+  "definitions": {
+   "clean_ref": "mean over the n_eval fixed evaluation records of (A x + b - s)^T Sigma_ref^{-1} (A x + b - s)",
+   "clean_ref_semi_analytic": "exact in the Gaussian signal law, empirical evaluation-noise mean and covariance (t25.science.risks)",
+   "clean_euclidean": "as clean_ref with the identity metric",
+   "readout": "GLS (Sigma_ref^{-1}) least-squares amplitudes of the reconstruction on the 6 templates; NMSE of alpha_11 and alpha_21"
+  }
+ },
+ "inference": {
+  "unit": "subject: mean over resamples of D = risk(F) - risk(U)",
+  "interval": "approximate simultaneous Bonferroni Student-t over subjects",
+  "alpha": 0.05,
+  "df": "n_subjects - 1",
+  "decided_negative": "upper limit < 0",
+  "decided_positive": "lower limit > 0",
+  "zero_SE": "undecided"
+ },
+ "reading_rules": {
+  "PZ1": "every included subject: B_dagger(theta = 0) = 0 exactly and B_dagger strictly increasing over the fixed theta grid {0, 0.12, 0.25, 0.40}; a_best(theta = 0) = 0 (tolerance zero_tol x max(1, tr K)) as a consistency check (predictions file)",
+  "PZ2": {
+   "arm": "ref",
+   "geometries": [
+    "A",
+    "B"
+   ],
+   "reference": "point_factors by registered grid factor",
+   "rule": "per geometry: the cells with grid factor <= 1/2 are below and >= 2 above (the relative grid is round(f N*_s), N* from a_best with restart agreement in every subject); a geometry is APPLICABLE iff it has >= 1 below and >= 1 above cell and every included subject has restart agreement; an applicable geometry is MET iff every below cell is decided negative and every above cell decided positive",
+   "overall": "MET iff both geometries A and B are applicable and MET; NOT APPLICABLE iff neither is applicable; otherwise NOT MET (the reason - a geometry not applicable or not met - is reported)",
+   "descriptive": "the B_dagger interval [N*, (c_U - c_F)/B_dagger - 1] per subject"
+  },
+  "PZ3": {
+   "arms": [
+    "ref"
+   ],
+   "geometry": "control",
+   "rule": "theta = 0 control (absolute grid): no decided positive class contrast at any N"
+  },
+  "PZ4": {
+   "estimators": [
+    "lw",
+    "kron"
+   ],
+   "aggregation": "cell_average",
+   "geometries": [
+    "A",
+    "B"
+   ],
+   "rule": "interaction I_m = D(est_m) - D(ref) averaged per subject over the A and B cells: decided negative at m_lo for both estimators and |mean I_hi| < |mean I_lo| for both",
+   "note": "estimators are LW / flip-flop MLE, not T25 estimate"
+  },
+  "PZ5": {
+   "arms": [
+    "iso",
+    "ref"
+   ],
+   "rule": "isotropic negative control: R_iso - R_ref (primary score), per class (U and F), averaged per subject over all cells of all geometries, decided positive for both classes (2 tests)",
+   "descriptive": "the class contrast under the isotropic metric is reported, not registered (review e)"
+  },
+  "family": "ref-arm cells of the control, A and B geometries (PZ2/PZ3) + 4 PZ4 tests + 2 PZ5 tests",
+  "descriptive": "every other arm/contrast/score with the same interval construction",
+  "prestated_reasons_for_a_PZ2_miss": [
+   "non-Gaussian noise (G5)",
+   "dependence of contiguous windows (D2 dependence statistic)"
+  ]
+ },
+ "power_rule": {
+  "n_confirmation": 12,
+  "rule": "expected half-width at the bracket-adjacent N < 1/2 |predicted contrast a + B/N|; else raise R (max 50) or narrow the family; never add subjects"
+ },
+ "secondary_d8": {
+  "train_runs": [
+   3,
+   4,
+   5
+  ],
+  "test_run": 6,
+  "rank": [
+   2,
+   3
+  ],
+  "descriptive_only": true
+ },
+ "budget": {
+  "threads_per_worker": 1
+ },
+ "dependencies": {
+  "accepted_t25_identity": "01f2f82f9144dd1833e577bf1830707417197dd61c1c1580eba984c712304762",
+  "files": {
+   "experiments/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/mlst2026/__init__.py": "3c5c9c927099277ae56aac32fcb9f9d411cf4577ac4d83b1e979d3a7c6de1a40",
+   "experiments/mlst2026/p1nl_dev_20261006/__init__.py": "a310fcbfcda03a8462a981410c099f2389de6a92bb031b7d9254a0ff11d0e71e",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/core.py": "3112bd3f6f299a33e268356ffdd4d221ea77e867330b46174b240732450bb078",
+   "experiments/mlst2026/successor_20260913/__init__.py": "bd0f3a850a70702b4dbd5feb5995f563b745d5a6f7a024bdc7875b0d801ddc1e",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py": "1827bb13fb23c2788a82e23d30208e06e33de65c3da16b00fa8893c6ce2253a0",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py": "7aeb1a3f88401c226d650d86b587c9eaf37095c9c6989c9fc3e8226c94f2dcb9",
+   "experiments/mlst2026/t24_cumulant/__init__.py": "b04b9bf9a148eebd93ec6bd340bcafb3925e9c0c2392bd829b2999771f11a21f",
+   "experiments/mlst2026/t24_cumulant/core.py": "cb8f199e5aa6189ab1a6669cda0b566d50ee862302364e66427f7cd643625575",
+   "experiments/mlst2026/t25_production_20260930/__init__.py": "274db46729cd4cbdc5277b3cdb91d4574990410789ab88091dd98597b23941d6",
+   "experiments/mlst2026/t25_production_20260930/science.py": "d0a3bfab2127a8b81ef53d0d87e3f059cbc24c8fb956eec918153ab67e8af502",
+   "experiments/mlst2026/upgrade_20260922/__init__.py": "34afc5cfd8bbcfd8c004fa7ae5998fed7ad23e0790ba08021886d057628bc7ce",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py": "ae6475ffe2c5fb1d798acb7988021c452b3116fbfc6ffd3e28e8f545dda6d00a",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py": "42c919458f18e449685fbf1f58cc27ea3de7660ca27a0244cc8d82db1db6a4b3",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py": "3c92e520835e99ff7a62c30f5d113ec87b0cfcf2e5887bd6d7ced273e1296340",
+   "experiments/mlst2026/y19_20261012/__init__.py": "ee2c870ca42c21ba51bb39e11bc6fd8fe7fde087d6d85fe625ef6ff112537d0b",
+   "experiments/mlst2026/y19_20261012/generator.py": "8ba71a8e051355fbdb4fbc5a0ad464017e7b7f3a28d9085920b440786d17614f",
+   "experiments/mlst2026/y19_20261012/predictions.py": "9321b1c992d99af1132e35eb44a31d91256bfec2448f4866221927a66779eaac",
+   "experiments/paper1/__init__.py": "18cbb807afc2784c619b134f80cde9a2abcd41526c5080f82834cd0548214da8",
+   "experiments/paper1/t20_population_accounting.py": "848bfc58201d9bc15be8f875408ce8979aaa4c85cf24da736af5e0ae9a224b9b",
+   "experiments/synthetic/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/config.py": "98e6488a8ce71c05fb07ea950c36ce15258e942dea3d3af7f552ec1c02639fb1",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py": "54cced8ff46535b4439cad71309a69674c4488897931c4e20cff91281526454f",
+   "experiments/synthetic/nfpa_confirmatory/generator.py": "875bb95885b72ed7eeac852b3e1a4692976cbaeb39b98b63141c4abda6ecbd23",
+   "experiments/synthetic/nfpa_confirmatory/methods.py": "604d3f03378b2de37ad7b307955db1072117b9a6a79774ca9c4692fb4fa0911f",
+   "src/noise_geometry/__init__.py": "fd08e313af1981a582a3c04eae60cd01d5099e772fea0cfd7e3c5a0f7e4ee6c4",
+   "src/noise_geometry/filters/__init__.py": "8ec22e0a6f5d46c0064bffb60f32e0f323a9211d258edcbb2003fb13386ea63f",
+   "src/noise_geometry/filters/optimal.py": "f9f01577a799f11123e18c5f1f4678496982d4b694ffa199dc7639fea4877987",
+   "src/noise_geometry/metrics/__init__.py": "335aa0683be503e78b71888bff980b78074468bdd2a664ad92fcbf27473e8d91",
+   "src/noise_geometry/metrics/reconstruction.py": "afe7ebd21364efac1471be525e9e50cae52db483736154f3be5115fb6c5f035e",
+   "src/noise_geometry/noise/__init__.py": "bfb85c6d96992b837c1875d0d06299a3a8a1ed24b29ee02e24c828583fbc1759",
+   "src/noise_geometry/noise/covariance.py": "8256b31a42c3a3f3f3b1229f9a6c06979fa74fd85626ac7aad82def498d181f1",
+   "src/noise_geometry/noise/psd.py": "5961f09d7e98cce3412793d3a0d38719c3e8fccc21651d4a7afa76002fb77542",
+   "src/noise_geometry/noise/synthetic.py": "69941ba0a85a29c0901bfb0dc310a085999b5df8f7169c379c4ad632bfd0d72f",
+   "src/noise_geometry/noise/whitening.py": "9e83b9938e7969cbb68e8c93bc1f843e0eec201fb5bc0360b788e61d23720993",
+   "src/noise_geometry/subspace/__init__.py": "3d2fe1dbac1e8537579cfc4feaada4fb16e49ea21de5b44e939abb29eec266c6",
+   "src/noise_geometry/subspace/angles.py": "77509e0035d52237c3d96a091065240767ba7856e17c9a7ef9d6e62cf407446d",
+   "src/noise_geometry/subspace/pca.py": "f4b0d01cc4158bd449b30679ba1252372c7b7be16b09dcf164368fe4c5c0657d"
+  },
+  "in_accepted_t25_closure": [
+   "experiments/__init__.py",
+   "experiments/mlst2026/__init__.py",
+   "experiments/mlst2026/successor_20260913/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py",
+   "experiments/mlst2026/t24_cumulant/__init__.py",
+   "experiments/mlst2026/t24_cumulant/core.py",
+   "experiments/mlst2026/t25_production_20260930/__init__.py",
+   "experiments/mlst2026/t25_production_20260930/science.py",
+   "experiments/mlst2026/upgrade_20260922/__init__.py",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py",
+   "experiments/paper1/__init__.py",
+   "experiments/paper1/t20_population_accounting.py",
+   "experiments/synthetic/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/config.py",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py",
+   "experiments/synthetic/nfpa_confirmatory/generator.py",
+   "experiments/synthetic/nfpa_confirmatory/methods.py",
+   "src/noise_geometry/__init__.py",
+   "src/noise_geometry/filters/__init__.py",
+   "src/noise_geometry/filters/optimal.py",
+   "src/noise_geometry/metrics/__init__.py",
+   "src/noise_geometry/metrics/reconstruction.py",
+   "src/noise_geometry/noise/__init__.py",
+   "src/noise_geometry/noise/covariance.py",
+   "src/noise_geometry/noise/psd.py",
+   "src/noise_geometry/noise/synthetic.py",
+   "src/noise_geometry/noise/whitening.py",
+   "src/noise_geometry/subspace/__init__.py",
+   "src/noise_geometry/subspace/angles.py",
+   "src/noise_geometry/subspace/pca.py"
+  ],
+  "outside_closure": [
+   "experiments/mlst2026/p1nl_dev_20261006/__init__.py",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/__init__.py",
+   "experiments/mlst2026/p1nl_dev_20261006/tr09_first_order/core.py",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py",
+   "experiments/mlst2026/y19_20261012/__init__.py",
+   "experiments/mlst2026/y19_20261012/generator.py",
+   "experiments/mlst2026/y19_20261012/predictions.py"
+  ]
+ },
+ "calibration": {
+  "m_lo": 256,
+  "m_hi": null,
+  "rule": "m_hi = 1024 if every dev subject has >= 1.1 x 1024 calibration windows, otherwise 768; fixed at D3 from the dev subjects and frozen at D4",
+  "candidates_hi": [
+   1024,
+   768
+  ],
+  "factor": 1.1
+ },
+ "theta_rule": {
+  "P": null,
+  "n_min": 50,
+  "theta_bracket": [
+   0.005,
+   0.8
+  ],
+  "xtol": 0.0001,
+  "search_random_starts": 6,
+  "rule": "P = smallest dev training pool (fixed at D3, frozen at D4); N*_A = floor(P/5), N*_B = max(5 n_min, N*_A/2); per subject theta_A,s and theta_B,s solve N*_pred,s(theta) = target by a 1-D root search (brentq on log N*) on population quantities only, before any fit; final constants at theta_s with all starts; relative grids {1/4, 1/2, 1, 2, 4} N*_s (round half up)"
+ },
+ "arms_note": "calibration-arm estimators are Ledoit-Wolf full and the Kronecker flip-flop MLE, NOT T25 science.estimate; the calibration interaction is therefore not byte-comparable with T25 (review f, Q8)",
+ "guards": "preprocess, gates, population and secondary_d8 refuse confirmation subjects unless the kit protocol.json exists, is frozen and equals the loaded protocol, and no --protocol file was given; the runner additionally requires --confirmation and --protocol-sha256"
+}

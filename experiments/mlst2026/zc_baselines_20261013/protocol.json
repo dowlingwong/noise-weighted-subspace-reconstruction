@@ -1,0 +1,645 @@
+{
+ "study": "ZC",
+ "version": "zc-v1",
+ "evidence_role": "CONFIRMATION",
+ "namespace": "zc-confirm-20261013",
+ "generator": {
+  "version": "t25/1",
+  "C": 8,
+  "T": 32,
+  "kc": 2,
+  "kt": 3,
+  "spectrum": {
+   "top": [
+    12.0,
+    11.0,
+    10.0,
+    9.0,
+    8.0,
+    7.0
+   ],
+   "gap": 4.0,
+   "tail_min": 0.02
+  },
+  "geometry_seed": 20260913,
+  "rho_c": 0.4,
+  "rho_t": 0.7
+ },
+ "generator_note": "t25_production_20260930 protocol BASE generator fields (FIXTURE for smoke); records drawn by t25.science.make_data(cfg, seed, theta) with cfg = generator | {namespace, N, m}; calibration pool keyed (namespace, seed), shared across theta; training pool of max(N) records keyed (namespace, seed, theta), smaller N are prefixes",
+ "theta": [
+  0.0,
+  0.12,
+  0.25,
+  0.4
+ ],
+ "N": [
+  400,
+  800,
+  1000,
+  1250,
+  1600,
+  3200
+ ],
+ "m": [
+  256,
+  1024
+ ],
+ "metrics": {
+  "all_methods": [
+   "oracle",
+   "kron256",
+   "kron1024"
+  ],
+  "cv_select_only": [
+   "full256",
+   "full1024"
+  ],
+  "definitions": {
+   "oracle": "W = inv(Sigma) (true noise covariance)",
+   "kron<m>": "W = inv(t25.estimate(calibration[:m], C, T)[\"kron\"]) (regularized separable moment estimate, T25)",
+   "full<m>": "W = inv(t25.estimate(calibration[:m], C, T)[\"full\"]) (regularized full sample covariance, T25)"
+  }
+ },
+ "seeds": [
+  321693902308,
+  368447506609,
+  787666718266,
+  213225480688,
+  915887555875,
+  31445630298,
+  641243291642,
+  784442617655,
+  676708823086,
+  764944915491,
+  897999937275,
+  648531581149,
+  713606163369,
+  98371579999,
+  442070276188,
+  903427745403,
+  817558477263,
+  376366351555,
+  286994346851,
+  510539397108,
+  836055521218,
+  628757681436,
+  187394115257,
+  657342093051
+ ],
+ "seed_derivation": "int.from_bytes(sha256(\"zc-confirm-20261013/seed/<i>\")[:8], \"little\") mod 10^12, i = 0..23",
+ "task": "(seed, theta, N, metric); one JSON record per task",
+ "learners": {
+  "moments": "t25.science.moments (fitted mean, centred, divisor N)",
+  "U": "t25.science.unrestricted(W, S, k)",
+  "F": "t25.science.structured(W, S, t25.science.starts(S, C, T, kc, kt, key), max_iter, tol); full-data key (namespace, seed, theta, N) as T25; CV fold j key (namespace, seed, theta, N, \"cv-fold\", j)",
+  "affine_map": "A = t25.map_for(B, W), b = (I - A) mean (fitted mean)",
+  "max_iter": 6000,
+  "gradient_tolerance": 1e-08,
+  "restarts": 4
+ },
+ "methods": {
+  "CV": "5-fold CV over {U, F}: folds = methods.folds(N, (namespace, seed, theta, N, \"cv-folds\"), 5) (same folds for every metric arm and for SHR); score = mean held-out observed weighted residual (x - A x - b)^T W (x - A x - b) in the supplied metric W over all N held-out records; choose the smaller (exact tie -> U); refit the chosen class on all N (= the full-data fit)",
+  "RULE": "N*-rule: product iff N < N*_pred(theta); N*_pred = None (theta = 0) -> product; the chosen full-data fit",
+  "SHR": "top-k eigenspace of K_lambda = (1 - lambda) S_w + lambda NKP(S_w), S_w = W^{1/2} S W^{1/2} (whitened centred sample second moment in the supplied metric), NKP = Van Loan-Pitsianis nearest Kronecker product in the T25 vec convention (both factors projected to PSD; nkp.py); basis W^{-1/2} Q as t25.unrestricted; lambda in the grid chosen by the same folds and score (tie -> smallest lambda), refitted on all N. lambda = 0 is bitwise U. lambda = 1 is NOT NFPA (top-k eigenvectors of A_t (x) A_c need not form a k_c x k_t grid): SHR is a third estimator, not an interpolation path between the hard classes. Run only on the all-methods metric arms (W^{1/2} Kronecker).",
+  "metric_caveat": "For a fixed affine map (A, b) and an independent record x = s + n, E||x - A x - b||_W^2 - E||s - A x - b||_W^2 = tr(W Sigma) - 2 tr(W A Sigma), which depends on the fitted map unless W = Sigma^{-1} (Prop. 2.1, where it equals d - 2k for every rank-k idempotent map). Hence only on the oracle arm do held-out residual differences equal clean-risk differences in expectation; on the estimated arms CV and the SHR lambda selection rank by the W-weighted observed (noisy-target) residual, which is neither the W-clean nor the Sigma^{-1}-clean risk, and their regret combines the data-split cost with this metric mismatch.",
+  "lambda_grid": [
+   0.0,
+   0.1,
+   0.2,
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7,
+   0.8,
+   0.9,
+   1.0
+  ],
+  "folds": 5
+ },
+ "nstar": {
+  "table": {
+   "0.0": null,
+   "0.12": 5240.955496920845,
+   "0.25": 1221.1624374563576,
+   "0.4": 488.05148312945164
+  },
+  "source": {
+   "MS_path": "evidence/data/y15_20261012/RESULT.json",
+   "kit_copy": "pinned/y15_RESULT_20261012.json",
+   "sha256": "e33551b9c077f11911768d9b78d1d1a00c58e5aded7f0b9cf3ceacdacb0beff7",
+   "rows": "T20-S"
+  },
+  "definition": "N*_pred = (c_U - c_F)/a - 1, supplement S4.3 first-order crossing (T20-S rows)"
+ },
+ "scoring": "t25.science.risks(A, b, L K L, Sigma, Sigma^{-1})[\"clean\"]: exact expected clean risk in the true Sigma^{-1} metric on an independent record (closed form), for every method and metric arm",
+ "regret": "per seed and cell: regret(X) = clean risk(X) - min(clean risk(U), clean risk(F)) (descriptive); also reported against the per-cell better class (smaller seed-mean risk)",
+ "optimization_limited": "full-data F fit flagged if the selected NFPA restart is not stationary or the restart clean-risk spread >= |R_F - R_U| (T25 reduce_records rule); CV fold F fits report non-stationary selected restarts; flagged records are kept, never dropped",
+ "inference": {
+  "unit": "seed-level contrast, mean over seeds",
+  "interval": "approximate simultaneous Bonferroni Student-t over each registered family",
+  "alpha": 0.05,
+  "df": 23,
+  "decided_negative": "upper limit < 0",
+  "decided_positive": "lower limit > 0",
+  "zero_SE": "a cell whose seed SD is exactly 0 is undecided"
+ },
+ "families": {
+  "R-C1": {
+   "metric": "oracle",
+   "cells": [
+    [
+     0.25,
+     400,
+     "oracle"
+    ],
+    [
+     0.25,
+     800,
+     "oracle"
+    ],
+    [
+     0.25,
+     1000,
+     "oracle"
+    ],
+    [
+     0.4,
+     400,
+     "oracle"
+    ]
+   ],
+   "contrast": "per seed: clean risk(N*-rule) - clean risk(CV-select)  (= regret(N*-rule) - regret(CV-select))",
+   "family_size": 4,
+   "alpha": 0.05
+  },
+  "R-C2": {
+   "cells": [
+    [
+     0.0,
+     400,
+     "oracle"
+    ],
+    [
+     0.0,
+     400,
+     "kron256"
+    ],
+    [
+     0.0,
+     400,
+     "kron1024"
+    ],
+    [
+     0.0,
+     800,
+     "oracle"
+    ],
+    [
+     0.0,
+     800,
+     "kron256"
+    ],
+    [
+     0.0,
+     800,
+     "kron1024"
+    ],
+    [
+     0.0,
+     1000,
+     "oracle"
+    ],
+    [
+     0.0,
+     1000,
+     "kron256"
+    ],
+    [
+     0.0,
+     1000,
+     "kron1024"
+    ],
+    [
+     0.0,
+     1250,
+     "oracle"
+    ],
+    [
+     0.0,
+     1250,
+     "kron256"
+    ],
+    [
+     0.0,
+     1250,
+     "kron1024"
+    ],
+    [
+     0.0,
+     1600,
+     "oracle"
+    ],
+    [
+     0.0,
+     1600,
+     "kron256"
+    ],
+    [
+     0.0,
+     1600,
+     "kron1024"
+    ],
+    [
+     0.0,
+     3200,
+     "oracle"
+    ],
+    [
+     0.0,
+     3200,
+     "kron256"
+    ],
+    [
+     0.0,
+     3200,
+     "kron1024"
+    ],
+    [
+     0.12,
+     400,
+     "oracle"
+    ],
+    [
+     0.12,
+     400,
+     "kron256"
+    ],
+    [
+     0.12,
+     400,
+     "kron1024"
+    ],
+    [
+     0.12,
+     800,
+     "oracle"
+    ],
+    [
+     0.12,
+     800,
+     "kron256"
+    ],
+    [
+     0.12,
+     800,
+     "kron1024"
+    ],
+    [
+     0.12,
+     1000,
+     "oracle"
+    ],
+    [
+     0.12,
+     1000,
+     "kron256"
+    ],
+    [
+     0.12,
+     1000,
+     "kron1024"
+    ],
+    [
+     0.12,
+     1250,
+     "oracle"
+    ],
+    [
+     0.12,
+     1250,
+     "kron256"
+    ],
+    [
+     0.12,
+     1250,
+     "kron1024"
+    ],
+    [
+     0.12,
+     1600,
+     "oracle"
+    ],
+    [
+     0.12,
+     1600,
+     "kron256"
+    ],
+    [
+     0.12,
+     1600,
+     "kron1024"
+    ],
+    [
+     0.12,
+     3200,
+     "oracle"
+    ],
+    [
+     0.12,
+     3200,
+     "kron256"
+    ],
+    [
+     0.12,
+     3200,
+     "kron1024"
+    ],
+    [
+     0.25,
+     400,
+     "oracle"
+    ],
+    [
+     0.25,
+     400,
+     "kron256"
+    ],
+    [
+     0.25,
+     400,
+     "kron1024"
+    ],
+    [
+     0.25,
+     800,
+     "oracle"
+    ],
+    [
+     0.25,
+     800,
+     "kron256"
+    ],
+    [
+     0.25,
+     800,
+     "kron1024"
+    ],
+    [
+     0.25,
+     1000,
+     "oracle"
+    ],
+    [
+     0.25,
+     1000,
+     "kron256"
+    ],
+    [
+     0.25,
+     1000,
+     "kron1024"
+    ],
+    [
+     0.25,
+     1250,
+     "oracle"
+    ],
+    [
+     0.25,
+     1250,
+     "kron256"
+    ],
+    [
+     0.25,
+     1250,
+     "kron1024"
+    ],
+    [
+     0.25,
+     1600,
+     "oracle"
+    ],
+    [
+     0.25,
+     1600,
+     "kron256"
+    ],
+    [
+     0.25,
+     1600,
+     "kron1024"
+    ],
+    [
+     0.25,
+     3200,
+     "oracle"
+    ],
+    [
+     0.25,
+     3200,
+     "kron256"
+    ],
+    [
+     0.25,
+     3200,
+     "kron1024"
+    ],
+    [
+     0.4,
+     400,
+     "oracle"
+    ],
+    [
+     0.4,
+     400,
+     "kron256"
+    ],
+    [
+     0.4,
+     400,
+     "kron1024"
+    ],
+    [
+     0.4,
+     800,
+     "oracle"
+    ],
+    [
+     0.4,
+     800,
+     "kron256"
+    ],
+    [
+     0.4,
+     800,
+     "kron1024"
+    ],
+    [
+     0.4,
+     1000,
+     "oracle"
+    ],
+    [
+     0.4,
+     1000,
+     "kron256"
+    ],
+    [
+     0.4,
+     1000,
+     "kron1024"
+    ],
+    [
+     0.4,
+     1250,
+     "oracle"
+    ],
+    [
+     0.4,
+     1250,
+     "kron256"
+    ],
+    [
+     0.4,
+     1250,
+     "kron1024"
+    ],
+    [
+     0.4,
+     1600,
+     "oracle"
+    ],
+    [
+     0.4,
+     1600,
+     "kron256"
+    ],
+    [
+     0.4,
+     1600,
+     "kron1024"
+    ],
+    [
+     0.4,
+     3200,
+     "oracle"
+    ],
+    [
+     0.4,
+     3200,
+     "kron256"
+    ],
+    [
+     0.4,
+     3200,
+     "kron1024"
+    ]
+   ],
+   "contrast": "per seed: clean risk(SHR(lambda_hat)) - clean risk(better hard class), better hard class = the class (U or F) with the smaller 24-seed mean clean risk in that (theta, N, metric) cell (ties -> U)",
+   "family_size": 72,
+   "alpha": 0.05
+  }
+ },
+ "reading_notes": {
+  "R-C1": "a cell where CV-select and the N*-rule chose the same class in every seed has contrast exactly 0 (zero SD) and is undecided, i.e. \"not larger\"; report it as \"CV and the rule chose the same class in all seeds\" (rows carry zero_SE and cv_choice_F)",
+  "R-C2": "the better hard class is chosen on the same seeds, which biases the reference low (conservative against SHR); with family size 72 a MET reading means \"no cell showed SHR decidedly worse than the better hard class (simultaneous Bonferroni-t over 72 cells)\", not \"SHR is safe\"; marginal unadjusted intervals and the largest positive seed-mean contrast are reported descriptively",
+  "full_arms": "the N*-rule is not recorded on the full-estimate arms (E1); its choice and regret there are exactly derivable from the recorded U and F clean risks"
+ },
+ "reading_rule": {
+  "R-C1": "MET iff no R-C1 cell is decided positive (undecided and decided negative both count as \"the N*-rule regret is not larger than CV-select regret\"); NOT MET otherwise, with the cells listed",
+  "R-C2": "MET iff no R-C2 cell is decided positive (\"safe interpolation\"); NOT MET otherwise, with the cells listed",
+  "optimization_limited": "reported with each reading; deciding cells with optimization-limited records carry a flag"
+ },
+ "descriptive": [
+  "per-cell seed-mean clean risk of U, F, CV, RULE, SHR",
+  "regret tables (vs per-seed min and vs per-cell better class) for CV, RULE, SHR",
+  "CV choice frequencies",
+  "lambda_hat distribution",
+  "CV-select regret on the full-estimate arms",
+  "SHR clean risk along the whole lambda path (full-data fits)"
+ ],
+ "exclusions": "none; every record is kept",
+ "dev_namespace": "zc-dev-20261013",
+ "dependencies": {
+  "accepted_t25_identity": "01f2f82f9144dd1833e577bf1830707417197dd61c1c1580eba984c712304762",
+  "files": {
+   "experiments/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/mlst2026/__init__.py": "3c5c9c927099277ae56aac32fcb9f9d411cf4577ac4d83b1e979d3a7c6de1a40",
+   "experiments/mlst2026/successor_20260913/__init__.py": "bd0f3a850a70702b4dbd5feb5995f563b745d5a6f7a024bdc7875b0d801ddc1e",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py": "1827bb13fb23c2788a82e23d30208e06e33de65c3da16b00fa8893c6ce2253a0",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py": "7aeb1a3f88401c226d650d86b587c9eaf37095c9c6989c9fc3e8226c94f2dcb9",
+   "experiments/mlst2026/t25_production_20260930/__init__.py": "274db46729cd4cbdc5277b3cdb91d4574990410789ab88091dd98597b23941d6",
+   "experiments/mlst2026/t25_production_20260930/protocol.py": "61b290a21508f702151658fafcde8f32c6a3f2379792f8d3b89d61542a9d1bdb",
+   "experiments/mlst2026/t25_production_20260930/science.py": "d0a3bfab2127a8b81ef53d0d87e3f059cbc24c8fb956eec918153ab67e8af502",
+   "experiments/mlst2026/upgrade_20260922/__init__.py": "34afc5cfd8bbcfd8c004fa7ae5998fed7ad23e0790ba08021886d057628bc7ce",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py": "ae6475ffe2c5fb1d798acb7988021c452b3116fbfc6ffd3e28e8f545dda6d00a",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py": "42c919458f18e449685fbf1f58cc27ea3de7660ca27a0244cc8d82db1db6a4b3",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py": "3c92e520835e99ff7a62c30f5d113ec87b0cfcf2e5887bd6d7ced273e1296340",
+   "experiments/mlst2026/y19_20261012/__init__.py": "ee2c870ca42c21ba51bb39e11bc6fd8fe7fde087d6d85fe625ef6ff112537d0b",
+   "experiments/mlst2026/y19_20261012/generator.py": "8ba71a8e051355fbdb4fbc5a0ad464017e7b7f3a28d9085920b440786d17614f",
+   "experiments/mlst2026/y19_20261012/runner.py": "3707e3332b798859d9a1038a4a2a5d8835d75ebe58ead888d23db7c9a49de0c3",
+   "experiments/paper1/__init__.py": "18cbb807afc2784c619b134f80cde9a2abcd41526c5080f82834cd0548214da8",
+   "experiments/paper1/t20_population_accounting.py": "848bfc58201d9bc15be8f875408ce8979aaa4c85cf24da736af5e0ae9a224b9b",
+   "experiments/synthetic/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "experiments/synthetic/nfpa_confirmatory/config.py": "98e6488a8ce71c05fb07ea950c36ce15258e942dea3d3af7f552ec1c02639fb1",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py": "54cced8ff46535b4439cad71309a69674c4488897931c4e20cff91281526454f",
+   "experiments/synthetic/nfpa_confirmatory/generator.py": "875bb95885b72ed7eeac852b3e1a4692976cbaeb39b98b63141c4abda6ecbd23",
+   "experiments/synthetic/nfpa_confirmatory/methods.py": "604d3f03378b2de37ad7b307955db1072117b9a6a79774ca9c4692fb4fa0911f",
+   "src/noise_geometry/__init__.py": "fd08e313af1981a582a3c04eae60cd01d5099e772fea0cfd7e3c5a0f7e4ee6c4",
+   "src/noise_geometry/filters/__init__.py": "8ec22e0a6f5d46c0064bffb60f32e0f323a9211d258edcbb2003fb13386ea63f",
+   "src/noise_geometry/filters/optimal.py": "f9f01577a799f11123e18c5f1f4678496982d4b694ffa199dc7639fea4877987",
+   "src/noise_geometry/metrics/__init__.py": "335aa0683be503e78b71888bff980b78074468bdd2a664ad92fcbf27473e8d91",
+   "src/noise_geometry/metrics/reconstruction.py": "afe7ebd21364efac1471be525e9e50cae52db483736154f3be5115fb6c5f035e",
+   "src/noise_geometry/noise/__init__.py": "bfb85c6d96992b837c1875d0d06299a3a8a1ed24b29ee02e24c828583fbc1759",
+   "src/noise_geometry/noise/covariance.py": "8256b31a42c3a3f3f3b1229f9a6c06979fa74fd85626ac7aad82def498d181f1",
+   "src/noise_geometry/noise/psd.py": "5961f09d7e98cce3412793d3a0d38719c3e8fccc21651d4a7afa76002fb77542",
+   "src/noise_geometry/noise/synthetic.py": "69941ba0a85a29c0901bfb0dc310a085999b5df8f7169c379c4ad632bfd0d72f",
+   "src/noise_geometry/noise/whitening.py": "9e83b9938e7969cbb68e8c93bc1f843e0eec201fb5bc0360b788e61d23720993",
+   "src/noise_geometry/subspace/__init__.py": "3d2fe1dbac1e8537579cfc4feaada4fb16e49ea21de5b44e939abb29eec266c6",
+   "src/noise_geometry/subspace/angles.py": "77509e0035d52237c3d96a091065240767ba7856e17c9a7ef9d6e62cf407446d",
+   "src/noise_geometry/subspace/pca.py": "f4b0d01cc4158bd449b30679ba1252372c7b7be16b09dcf164368fe4c5c0657d"
+  },
+  "in_accepted_t25_closure": [
+   "experiments/__init__.py",
+   "experiments/mlst2026/__init__.py",
+   "experiments/mlst2026/successor_20260913/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/__init__.py",
+   "experiments/mlst2026/successor_20260913/t20s/generator.py",
+   "experiments/mlst2026/t25_production_20260930/__init__.py",
+   "experiments/mlst2026/t25_production_20260930/protocol.py",
+   "experiments/mlst2026/t25_production_20260930/science.py",
+   "experiments/mlst2026/upgrade_20260922/__init__.py",
+   "experiments/mlst2026/upgrade_20260922/c1/__init__.py",
+   "experiments/paper1/__init__.py",
+   "experiments/paper1/t20_population_accounting.py",
+   "experiments/synthetic/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/__init__.py",
+   "experiments/synthetic/nfpa_confirmatory/config.py",
+   "experiments/synthetic/nfpa_confirmatory/covariance.py",
+   "experiments/synthetic/nfpa_confirmatory/generator.py",
+   "experiments/synthetic/nfpa_confirmatory/methods.py",
+   "src/noise_geometry/__init__.py",
+   "src/noise_geometry/filters/__init__.py",
+   "src/noise_geometry/filters/optimal.py",
+   "src/noise_geometry/metrics/__init__.py",
+   "src/noise_geometry/metrics/reconstruction.py",
+   "src/noise_geometry/noise/__init__.py",
+   "src/noise_geometry/noise/covariance.py",
+   "src/noise_geometry/noise/psd.py",
+   "src/noise_geometry/noise/synthetic.py",
+   "src/noise_geometry/noise/whitening.py",
+   "src/noise_geometry/subspace/__init__.py",
+   "src/noise_geometry/subspace/angles.py",
+   "src/noise_geometry/subspace/pca.py"
+  ],
+  "outside_closure": [
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/__init__.py",
+   "experiments/mlst2026/x3_nonlinear_metric_20261005/guard.py",
+   "experiments/mlst2026/y19_20261012/__init__.py",
+   "experiments/mlst2026/y19_20261012/generator.py",
+   "experiments/mlst2026/y19_20261012/runner.py"
+  ]
+ }
+}

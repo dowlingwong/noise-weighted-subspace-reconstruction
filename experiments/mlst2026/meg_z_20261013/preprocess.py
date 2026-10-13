@@ -7,10 +7,9 @@ Per subject, with the parameters of protocol['preprocess'] (dev defaults; frozen
     influence the channel set, which is accepted and stated);
  2. FIR band-pass l_freq-h_freq (zero phase), then decimation by ``decim`` (1100 Hz / 12 = 91.67 Hz since the
     review: decimation by 10 left the 45-55 Hz band empty and the temporal factor near-singular, F2);
- 3. stimulus onsets = events.tsv trigger onsets + trigger_delay_s (34.5 ms projector delay).  The events.tsv
-    stimulus onsets MUST agree with the STI101 trigger samples (same count, every lag <= 1.5 samples);
-    otherwise the subject is refused (F8: guards against a double correction if a snapshot's events.tsv
-    already contained the delay, or against missing events);
+ 3. stimulus onsets = raw stable STI101 sample / sfreq + trigger_delay_s (unchanged +34.5 ms).
+    Before any magnetometer read/filter, all six runs require ordered code/count/sample agreement under
+    the explicit snapshot +37 TSV convention, bound verified manifest, and audited F1 edge-pulse rules.
  4. channel subset: the C magnetometers with the largest RMS evoked field over the 0..T-1 sample window,
     from the reference runs (1-2) only (face trials, baseline-corrected);
  5. noise windows by the gap rule: windows of T samples lying entirely in [onset + after_onset_s,
@@ -38,7 +37,8 @@ from pathlib import Path
 
 import numpy as np
 
-from . import common, estimators
+from . import common, estimators, timing
+from .timing import TriggerCheckError, NotRawError
 from .common import vec
 
 
@@ -81,14 +81,6 @@ def read_events(events_tsv, cfg: dict) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------- raw loading
-class NotRawError(RuntimeError):
-    pass
-
-
-class TriggerCheckError(RuntimeError):
-    pass
-
-
 def refuse_unfrozen_confirmation(subjects, proto: dict, protocol_path=None) -> None:
     """F7 / delta D3: before the D4 freeze no confirmation subject is preprocessed, gated or analysed.  A
     confirmation subject is accepted only if the kit's own frozen ``protocol.json`` exists, no ``--protocol``
@@ -107,27 +99,10 @@ def refuse_unfrozen_confirmation(subjects, proto: dict, protocol_path=None) -> N
 def load_run(fif, events_tsv, channels_tsv, cfg: dict) -> dict:
     """One run: magnetometers (all of them; bads are reported, dropped later by the caller), filtered and
     decimated, plus events and a decimated BAD-annotation mask."""
-    import mne
-    try:
-        raw = mne.io.read_raw_fif(str(fif), preload=False, verbose='error')
-    except Exception as e:                                    # noqa: BLE001
-        if 'maxshield' in str(e).lower() or 'active shielding' in str(e).lower():
-            raise NotRawError(f'{fif}: MaxShield (IAS) recording; it needs SSS and cannot be used raw: STOP') from e
-        raise
-    if raw.info.get('proc_history'):
-        raise NotRawError(f'{fif}: proc_history present (SSS/MaxFilter applied); raw data required')
+    checked = timing.preflight_run(fif, events_tsv, cfg)
+    raw = timing.open_raw(fif)
     sfreq = float(raw.info['sfreq'])
-    ev = read_events(events_tsv, cfg)
-    stim_check = {'ok': False, 'reason': 'no STI101 channel'}
-    if cfg.get('check_stim_channel', True) and 'STI101' in raw.ch_names:
-        found = mne.find_events(raw, stim_channel='STI101', shortest_event=1, mask=cfg.get('stim_mask', 255),
-                                mask_type='and', consecutive=True, verbose='error')
-        codes = sorted(set(cfg['stimulus_codes']['face']) | set(cfg['stimulus_codes']['scrambled']))
-        st = (found[np.isin(found[:, 2], codes), 0] - raw.first_samp) / sfreq
-        lag = [float(np.min(np.abs(st - o))) if len(st) else float('inf') for o in ev['stim_onsets_trigger']]
-        stim_check = {'n_tsv': int(len(ev['stim_onsets_trigger'])), 'n_stim_channel': int(len(st)),
-                      'max_abs_lag_s': float(max(lag)) if lag else 0.0,
-                      'ok': bool(len(st) == len(lag) and ((not lag) or max(lag) <= 1.5 / sfreq))}
+    ev, stim_check = checked['events'], checked['stim_check']
     mags = [n for n, t in zip(raw.ch_names, raw.get_channel_types()) if t == 'mag']
     bads = sorted((read_bads(channels_tsv) | set(raw.info['bads'])) & set(mags))
     raw.pick(mags)
@@ -356,6 +331,9 @@ def update_derived_manifest(out_dir, summaries: list) -> dict:
     man = json.loads(path.read_text()) if path.is_file() else {'subjects': {}}
     for s in summaries:
         man['subjects'][s['subject']] = {k: s[k] for k in ('file', 'file_sha256', 'content_sha256', 'bytes', 'C', 'T', 'config_sha256')}
+        if 'timing_convention' in s:
+            man['subjects'][s['subject']]['timing_convention'] = s['timing_convention']
+            man['subjects'][s['subject']]['stim_checks'] = s['stim_checks']
     common.atomic_json(path, man)
     return man
 
@@ -371,18 +349,29 @@ def process_subject(bids_root, subject: str, cfg: dict, out_dir, drop_selected=(
     loader = runs_loader or load_run
     C, T = int(cfg['C']), int(cfg['T'])
     rule = cfg['noise_windows']
-    runs, sources = {}, {}
+    timing.validate_binding(cfg, data_manifest)
+    runs, sources, preflights, run_files = {}, {}, {}, {}
     for r in sorted({x for v in part.values() for x in v}):
         stem = bids_root / run_stem(subject, r)
         files = [Path(str(stem) + s) for s in ('_meg.fif', '_events.tsv', '_channels.tsv')]
-        runs[r] = loader(*files, cfg)
+        run_files[r] = files
         for p in files:
             rel = str(p.relative_to(bids_root))
             sources[rel] = {'bytes': p.stat().st_size if p.exists() else None}
-            if data_manifest and rel in data_manifest.get('files', {}):
+            if data_manifest:
+                if rel not in data_manifest.get('files', {}):
+                    raise TriggerCheckError(f'{rel}: missing from bound DATA_MANIFEST: STOP')
                 sources[rel]['sha256_from_DATA_MANIFEST'] = data_manifest['files'][rel]['sha256']
                 if sources[rel]['bytes'] != data_manifest['files'][rel]['size']:
                     raise ValueError(f'{rel}: size differs from DATA_MANIFEST')
+                if common.sha_file(p) != data_manifest['files'][rel]['sha256']:
+                    raise TriggerCheckError(f'{rel}: SHA-256 differs from bound DATA_MANIFEST: STOP')
+        preflights[r] = timing.preflight_run(files[0], files[1], cfg)
+    # All six source/header/trigger checks precede the first magnetometer load or filter.
+    for r, files in run_files.items():
+        runs[r] = loader(*files, cfg)
+        runs[r]['events'] = preflights[r]['events']
+        runs[r]['stim_check'] = preflights[r]['stim_check']
     bad_checks = {r: runs[r]['stim_check'] for r in runs if not (runs[r]['stim_check'] or {}).get('ok')}
     if bad_checks and cfg.get('check_stim_channel', True):
         raise TriggerCheckError(f'{subject}: events.tsv stimulus onsets disagree with STI101 (or STI101 missing): '
@@ -469,6 +458,7 @@ def process_subject(bids_root, subject: str, cfg: dict, out_dir, drop_selected=(
     summary = {'subject': subject, 'file': f'{subject}.h5', **h, 'C': C_eff, 'T': T, 'sfreq': fs, 'budget': budget,
                'channels': attrs['channels'], 'bads_dropped': bads, 'drop_selected': drop_selected,
                'stim_checks': attrs['stim_checks'], 'config_sha256': attrs['config_sha256'],
+               'timing_convention': cfg['timing_convention'],
                'created_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
     common.atomic_json(out_dir / f'{subject}_summary.json', summary)
     return summary

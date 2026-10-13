@@ -56,12 +56,28 @@ K=experiments.mlst2026.meg_z_20261013
 python -m $K.runner verify-kit
 python -m pytest experiments/mlst2026/meg_z_20261013/tests -q -p no:cacheprovider        # ~70 s
 python -m $K.runner smoke --out /tmp/megz_smoke --workers 4                               # synthetic, ~30 s
-# D0-D4 on the host: see the Deepthought prompt
+# D0-D4 on the host: see the independently reviewed version-3 resume instructions
+# DATA_MANIFEST must name the original verified D0 DATA_MANIFEST.json.
 python -m $K.data_manifest plan --target $RAW
-python -m $K.preprocess --bids-root $RAW --subject sub-01 --out $DERIVED
-python -m $K.gates --derived $DERIVED --subjects sub-01,sub-02,sub-03,sub-04 --bids-root $RAW --out gates.json
+python -m $K.preprocess --bids-root $RAW --subject sub-01 --out $DERIVED --data-manifest $DATA_MANIFEST
+python -m $K.gates --derived $DERIVED --subjects sub-01,sub-02,sub-03,sub-04 --bids-root $RAW --out gates.json --data-manifest $DATA_MANIFEST
 python -m $K.population --derived $DERIVED --subjects sub-01,sub-02,sub-03,sub-04 --gates gates.json --jobs 4 --out predictions_dev.json
 python -m $K.runner run --out $OUT --derived $DERIVED --predictions predictions_dev.json --gates gates.json --subjects dev --workers 32
 python -m $K.runner summarize --out $OUT
 ```
 Preparation only (changes the kit): `runner write-dependencies`, then `runner write-kit-hashes`.
+
+
+## Development version 3: explicit stimulus timing contract
+
+This development revision supersedes the version-2 assumption that snapshot 2.0.0 TSV stimulus onsets are uncorrected raw trigger times. The original kit commit `23ed9bf01cdad3bc2d1367dea5a4878db36cfb08`, identity `b277339a88b706e48ab6efd09aa4a9f95f2b479d46f7ce926c78c11e0eafa880`, and failed D1 attempt remain historical records. This revision authorizes no confirmation processing.
+
+The explicit `timing_convention` binds ds000117, snapshot 2.0.0, its DOI, 1100 Hz and the verified D0 manifest content SHA-256. Every run source is checked against that manifest's byte size and SHA-256 before magnetometer processing. For all six runs, header/STI101/TSV preflight must pass before the first magnetometer load/filter. MNE first_samp is excluded from the relative stimulus sample origin. TSV onset must agree with TSV sample/sfreq within 50 microseconds plus 1e-10 seconds for arithmetic, with an exact ordered code/count bijection and **TSV stimulus sample = stable raw relative stimulus sample + 37**. There is no auto-detection, nearest-event rematching, tolerance widening, or offset fallback.
+
+Physical onset is **stable raw relative STI101 sample / sfreq + 0.0345 seconds**. The positive delay is applied exactly once and is not rounded to 37 samples. TSV originals are retained in event metadata. The 37-sample TSV adjustment is empirically verified on development subjects; upstream converter code is available only on request, so its origin is not source-code verified. The primary Wakeman and Henson (2015) acquisition description reports a positive 34 ms projector delay; it does not independently establish 34.5 ms precision. Historical design wording “trigger −34.5 ms” is superseded by this explicit equation. Response exclusion times remain unchanged TSV times. Each derived manifest subject entry carries its explicit timing convention, manifest binding and all six run trigger checks; automatic G1 retest replaces these fields from the new subject summary rather than retaining stale diagnostics.
+
+Stable low-byte stimulus plateaus require at least two raw samples. Each removed stimulus-code plateau must be exactly one sample, adjoining a retained stable stimulus on one side and zero on the other, with intermediate bits a subset of the stable code. Every admitted edge intermediate is recorded with sample, code, length, neighboring codes/lengths and classification. Isolated pulses, chains, non-subset codes, transitions between two stable stimuli and unclassified removals STOP. Genuine two-sample stimuli remain. Overlapping response bits do not alter the low-byte stimulus plateau.
+
+Synthetic raw fixtures explicitly declare `synthetic-uncorrected-v1`, offset zero, without a dataset manifest. Their onsets lie on the raw sample grid. This is a distinct test contract, never a fallback for real snapshot data. Legacy trigger field aliases remain available. All scientific delay, preprocessing settings, run partitions, gap rules, thresholds, predictions, seeds and confirmation refusal remain unchanged.
+
+An accepted plan is not implementation approval. Candidate tests/hash and a host preflight require independent review before D1–D4 starts. Use fresh development attempt output/log paths, preserving all failed artifacts. Do not create protocol.json, tags or timestamps; do not preprocess, gate, predict or fit sub-05 through sub-16 before a later author freeze and independent review.

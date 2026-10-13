@@ -96,6 +96,8 @@ def test_subject_gates_and_e1_with_budget_rule(tmp_path):
 def _raw_cfg():
     cfg = Pp.preprocess_config(load_protocol())
     cfg.update(C=4, T=6, decim=40, h_freq=10.0)
+    cfg['timing_convention'] = {'name': 'synthetic-uncorrected-v1', 'bids_stimulus_sample_offset': 0,
+                                'min_stimulus_plateau_samples': 2, 'onset_sample_tolerance_s': 0.00005}
     return cfg
 
 

@@ -58,6 +58,8 @@ def raw_cfg():
     proto = load_protocol()
     cfg = P.preprocess_config(proto)
     cfg.update(C=4, T=6, decim=40, h_freq=10.0)
+    cfg['timing_convention'] = {'name': 'synthetic-uncorrected-v1', 'bids_stimulus_sample_offset': 0,
+                                'min_stimulus_plateau_samples': 2, 'onset_sample_tolerance_s': 0.00005}
     cfg['budget_requirements'] = {'N_max': 50, 'm_max': 20, 'n_eval': 20}
     return cfg
 

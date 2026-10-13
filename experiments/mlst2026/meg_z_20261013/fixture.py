@@ -140,6 +140,8 @@ def make_bids_raw(root, subject: str = 'sub-01', n_mag: int = 8, duration_s: flo
             data[ic] = data[ic] * 300.0 + 300.0 * noise_scale * gen.normal(size=n)
         data[n_mag] = noise_scale * gen.normal(size=n)
         onsets = np.arange(5.0, duration_s - 4.0, isi_s) + gen.uniform(0, 0.2, size=len(np.arange(5.0, duration_s - 4.0, isi_s)))
+        # Raw digital triggers and BIDS stimulus samples share exact sample-grid times.
+        onsets = np.round(onsets * sfreq) / sfreq
         values = np.array([codes[i % len(codes)] for i in range(len(onsets))])
         resp = onsets + response_delay_s
         t = np.arange(n) / sfreq

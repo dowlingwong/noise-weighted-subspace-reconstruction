@@ -1,6 +1,6 @@
 {
  "study": "WS-D MEG multichannel study (meg_z): semi-synthetic injection into measured ds000117 magnetometer noise",
- "version": "megz-dev-2 (independent reviews 01 and 02 applied)",
+ "version": "megz-dev-3 (reviewed trigger timing correction; not frozen)",
  "status": "DEV DEFAULTS - NOT FROZEN. Every value may change during development on the 4 dev subjects only and is finalised at D4 (design Part D, runbook 6.2-6.5). This file never authorises a confirmation run.",
  "frozen": false,
  "namespace": "megz-dev-20261013",
@@ -126,7 +126,21 @@
    ]
   },
   "sampling_note": "1100 Hz / 12 = 91.667 Hz; T = 20 samples = 218.2 ms window duration (samples at 0 ... 207.3 ms after the corrected onset); C = 24 magnetometers (review b/d, F2)",
-  "stim_check_rule": "refuse the subject unless every run has STI101, the same number of stimulus events in events.tsv and STI101 (mask 255), and every lag <= 1.5 raw samples (F8)"
+  "stim_check_rule": "six-run fail-closed preflight before magnetometer filtering; exact ordered code/count/sample offset37, manifest binding, F1 audited edge intermediates; physical onset raw stable STI101/sfreq + unchanged0.0345s",
+  "timing_convention": {
+   "name": "ds000117-2.0.0-stimulus-plus37-v1",
+   "dataset": "ds000117",
+   "snapshot": "2.0.0",
+   "snapshot_doi": "doi:10.18112/openneuro.ds000117.v2.0.0",
+   "bids_stimulus_sample_offset": 37,
+   "sfreq_raw": 1100,
+   "min_stimulus_plateau_samples": 2,
+   "onset_sample_tolerance_s": 5e-05,
+   "data_manifest_content_sha256": "66b7839b24e97d41977271197cf912af91d53d9b06e9259360331deaf9e85ac7",
+   "data_manifest_file_sha256": "212eecf4148b231f040c2fd1f824635d3a9f1b30fca816ef5092997a4edeef5b",
+   "physical_onset_source": "raw_stable_sti101",
+   "short_pulse_rule": "Only one-sample rising/falling bit-subset intermediates adjoining a stable stimulus and zero are admitted; every other short stimulus plateau stops."
+  }
  },
  "budget_requirements": {
   "N_max": 1600,

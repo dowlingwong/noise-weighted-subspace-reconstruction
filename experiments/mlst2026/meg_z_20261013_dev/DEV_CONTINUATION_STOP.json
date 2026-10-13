@@ -1,0 +1,156 @@
+{
+  "stage": "D1 preprocess sub-01",
+  "utc": "2026-10-13T11:54:04.676471+00:00",
+  "error": "Command '['/ceph/dwong/meg_env/bin/python', '-m', 'experiments.mlst2026.meg_z_20261013.preprocess', '--bids-root', '/ceph/dwong/meg_z/raw/ds000117', '--subject', 'sub-01', '--out', '/ceph/dwong/meg_z/derived', '--data-manifest', '/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013_dev/DATA_MANIFEST.json']' returned non-zero exit status 1.",
+  "traceback": "Traceback (most recent call last):\n  File \"/ceph/dwong/meg_z/logs/dev_continue_20261013.py\", line 158, in <module>\n    module('preprocess',['--bids-root',RAW,'--subject',s,'--out',DER,'--data-manifest',OUT/'DATA_MANIFEST.json'],'preprocess_'+s+'.txt')\n  File \"/ceph/dwong/meg_z/logs/dev_continue_20261013.py\", line 85, in module\n    return run([PY, '-m', KIT+'.'+mod] + list(map(str,args)), name)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/ceph/dwong/meg_z/logs/dev_continue_20261013.py\", line 81, in run\n    subprocess.run(args, cwd=HOST, env=env, stdout=f, stderr=subprocess.STDOUT, check=True)\n  File \"/home/dwong/anaconda3/lib/python3.12/subprocess.py\", line 571, in run\n    raise CalledProcessError(retcode, process.args,\nsubprocess.CalledProcessError: Command '['/ceph/dwong/meg_env/bin/python', '-m', 'experiments.mlst2026.meg_z_20261013.preprocess', '--bids-root', '/ceph/dwong/meg_z/raw/ds000117', '--subject', 'sub-01', '--out', '/ceph/dwong/meg_z/derived', '--data-manifest', '/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013_dev/DATA_MANIFEST.json']' returned non-zero exit status 1.\n",
+  "confirmation_processed": false,
+  "commands": [
+    {
+      "utc": "2026-10-13T11:50:24.074140+00:00",
+      "command": [
+        "git",
+        "add",
+        "--",
+        "experiments/mlst2026/meg_z_20261013_dev/ANNEX_EXPECTED.json",
+        "experiments/mlst2026/meg_z_20261013_dev/D0_REPORT.md",
+        "experiments/mlst2026/meg_z_20261013_dev/D0_VERIFICATION.json",
+        "experiments/mlst2026/meg_z_20261013_dev/DATA_MANIFEST.json",
+        "experiments/mlst2026/meg_z_20261013_dev/DOWNLOAD_PLAN.json",
+        "experiments/mlst2026/meg_z_20261013_dev/SPLIT.json"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_add_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:24.353180+00:00",
+      "command": [
+        "git",
+        "diff",
+        "--cached",
+        "--name-only"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_staged_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:24.361569+00:00",
+      "command": [
+        "git",
+        "commit",
+        "-m",
+        "WS-D D0: ds000117 2.0.0 verified SHA-256 and second-source manifest (dev only)"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_commit_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:24.747043+00:00",
+      "command": [
+        "git",
+        "push",
+        "origin",
+        "megz-dev-20261013"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_push_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:27.101451+00:00",
+      "command": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_head_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:27.106177+00:00",
+      "command": [
+        "git",
+        "ls-remote",
+        "origin",
+        "refs/heads/megz-dev-20261013"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_remote_d0.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:28.363594+00:00",
+      "command": [
+        "git",
+        "fetch",
+        "origin"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_fetch_stage2.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:30.222484+00:00",
+      "command": [
+        "git",
+        "merge",
+        "--no-edit",
+        "origin/main"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_merge_stage2.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:30.555825+00:00",
+      "command": [
+        "git",
+        "merge-base",
+        "--is-ancestor",
+        "23ed9bf01cdad3bc2d1367dea5a4878db36cfb08",
+        "HEAD"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_ancestry_stage2.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:30.562838+00:00",
+      "command": [
+        "git",
+        "diff",
+        "--quiet",
+        "23ed9bf01cdad3bc2d1367dea5a4878db36cfb08",
+        "HEAD",
+        "--",
+        "experiments/mlst2026/meg_z_20261013"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_kit_diff_stage2.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:30.569027+00:00",
+      "command": [
+        "/ceph/dwong/meg_env/bin/python",
+        "-m",
+        "experiments.mlst2026.meg_z_20261013.runner",
+        "verify-kit"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_verify_kit.txt"
+    },
+    {
+      "utc": "2026-10-13T11:50:31.783926+00:00",
+      "command": [
+        "/ceph/dwong/meg_env/bin/python",
+        "-m",
+        "pytest",
+        "experiments/mlst2026/meg_z_20261013/tests",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/dev_host_pytest.txt"
+    },
+    {
+      "utc": "2026-10-13T11:53:27.164692+00:00",
+      "command": [
+        "/ceph/dwong/meg_env/bin/python",
+        "-m",
+        "experiments.mlst2026.meg_z_20261013.preprocess",
+        "--bids-root",
+        "/ceph/dwong/meg_z/raw/ds000117",
+        "--subject",
+        "sub-01",
+        "--out",
+        "/ceph/dwong/meg_z/derived",
+        "--data-manifest",
+        "/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013_dev/DATA_MANIFEST.json"
+      ],
+      "log": "/ceph/dwong/meg_z/logs/preprocess_sub-01.txt"
+    }
+  ]
+}

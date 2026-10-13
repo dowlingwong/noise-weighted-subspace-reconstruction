@@ -1,0 +1,13 @@
+{
+  "stage": "D1 preprocess sub-01",
+  "failure_utc": "2026-10-13T11:54:04.676471+00:00",
+  "kit_commit": "23ed9bf01cdad3bc2d1367dea5a4878db36cfb08",
+  "kit_identity": "b277339a88b706e48ab6efd09aa4a9f95f2b479d46f7ce926c78c11e0eafa880",
+  "log_path": "/ceph/dwong/meg_z/logs/preprocess_sub-01.txt",
+  "log_sha256": "80cb3e02af2b32e221fac2cb4db558b3c9f77c4099bcc57d6a4d33414aa8a80c",
+  "log_verbatim": "Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013/preprocess.py\", line 505, in <module>\n    main()\n  File \"/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013/preprocess.py\", line 493, in main\n    sums.append(process_subject(a.bids_root, s, cfg, a.out, a.drop_selected, dm))\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/ceph/dwong/megz_host/experiments/mlst2026/meg_z_20261013/preprocess.py\", line 388, in process_subject\n    raise TriggerCheckError(f'{subject}: events.tsv stimulus onsets disagree with STI101 (or STI101 missing): '\nTriggerCheckError: sub-01: events.tsv stimulus onsets disagree with STI101 (or STI101 missing): {1: {'n_tsv': 146, 'n_stim_channel': 146, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}, 2: {'n_tsv': 148, 'n_stim_channel': 148, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}, 3: {'n_tsv': 150, 'n_stim_channel': 150, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}, 4: {'n_tsv': 147, 'n_stim_channel': 147, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}, 5: {'n_tsv': 148, 'n_stim_channel': 148, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}, 6: {'n_tsv': 148, 'n_stim_channel': 148, 'max_abs_lag_s': 0.03368181818183302, 'ok': False}}; possible double delay correction or missing events: STOP\n",
+  "host_tests": "65 passed in 174.51s",
+  "confirmation_processed": false,
+  "later_stages_started": false,
+  "action": "STOP preserved; no rerun, timing change, kit edit or failure bypass. Cause requires review; projector-delay correction is a possibility, not established by this log."
+}

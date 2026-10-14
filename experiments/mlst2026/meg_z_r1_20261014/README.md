@@ -13,7 +13,7 @@ The author explicitly authorized development events.tsv and recording-length
 metadata reads on 14 October 2026 after the initial input-geometry STOP. The
 metadata exporter reads FIF headers with `preload=False` only for n_times/sfreq,
 never signal samples, STI101, filtering or epochs. `DEV_GEOMETRY.json` retains
-exact rational sample origins, band lengths, response-excluded contiguous
+exact rational sample origins from `(TSV sample - 37)/1100 + 0.0345`, band lengths, response-excluded contiguous
 stretches and final gaps. BAD annotations are not applied to synthetic controls,
 matching the R0 upper-bound census convention. R3 applies the actual BAD mask.
 

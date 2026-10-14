@@ -13,7 +13,7 @@ from .windows import gap_geometry
 DEV=tuple(f'sub-{i:02}' for i in range(1,5))
 def export(raw_root,derived):
     root=Path(raw_root); out={'authorization':'dev event and run-length metadata only, 2026-10-14',
-        'clock':'exact rational, 1100/12 Hz, physical onset = trigger + 0.0345 s',
+        'clock':'exact rational, 1100/12 Hz, physical onset = (TSV sample - 37)/1100 + 0.0345 s',
         'BAD_annotations':'not applied; synthetic controls use events geometry', 'subjects':{}}
     for sub in DEV:
         runs=[]
@@ -24,7 +24,7 @@ def export(raw_root,derived):
             for row in rows:
                 try: code=int(float(row['value']))
                 except ValueError: continue
-                if code in (5,6,7,13,14,15,17,18,19): ons.append(F(row['onset'])+F(69,2000))
+                if code in (5,6,7,13,14,15,17,18,19): ons.append(F(int(row['sample'])-37,1100)+F(69,2000))
                 elif code in (256,4096): resp.append(F(row['onset']))
             raw=mne.io.read_raw_fif(str(stem)+'_meg.fif',preload=False,verbose='error')
             assert not raw.preload

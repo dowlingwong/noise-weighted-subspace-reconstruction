@@ -1,8 +1,12 @@
 """Record source-bound block-E unit checks. No signal, gates or controls run."""
-import json,re,subprocess,os
+import argparse,json,re,subprocess,os
+from pathlib import Path
 from .runner import PACKAGE,environment,verify_kit,census_check,atomic_json
 
-def main():
+def main(argv=None):
+    # R2-B F8: host evidence goes to an explicit new path; returned VALIDATION files are never overwritten.
+    ap=argparse.ArgumentParser();ap.add_argument('--out',required=True);out=Path(ap.parse_args(argv).out)
+    if out.exists():raise SystemExit(f'STOP {out} exists; write host validation to a new path')
     env=environment();cmd=['python','-m','pytest',str(PACKAGE/'tests'),'-q','-p','no:cacheprovider']
     test=subprocess.run(cmd,text=True,capture_output=True)
     output=test.stdout+test.stderr
@@ -14,5 +18,5 @@ def main():
     result={'environment':env,'git_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True,env=git_env).strip(),
         'pytest_count':count,'pytest_command':cmd,'pytest_output':output,'old_runner_verify':json.loads(old.stdout),
         'new_runner_verify':verify_kit(),'census':census_check(),'old_kit_git_diff':'unchanged from bfe1139','controls_not_run':True,'real_R3_not_run':True}
-    out=PACKAGE.parent/'meg_z_r1_20261014_preflight/VALIDATION.json';atomic_json(out,result);print(json.dumps(result,indent=1))
+    atomic_json(out,result);print(json.dumps(result,indent=1))
 if __name__=='__main__':main()

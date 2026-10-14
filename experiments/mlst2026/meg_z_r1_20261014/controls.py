@@ -129,15 +129,20 @@ def apply_cell(rec,Sref,shape,cell,gen):
         z=X.reshape(-1,10,C);z=z+(math.sqrt(8)-1)*(z@v)[:,:,None]*v;X=z.reshape(-1,d)
     elif cell in (7,8,9):
         u=gen.normal(size=d);u*=math.sqrt((2 if cell==8 else 4)*2.06604/np.sum((u@L)**2))
-        sel=meta['position']==0
-        if cell!=9:X[sel]+=u
+        if cell!=9:X[meta['position']==0]+=u
         else:
-            # C9: same physical CxT locked profile shifted by independent Uniform[0,.2] onset latency.
-            # Linear interpolation on the rational decimated clock, zero outside its support.
-            profile=u.reshape(10,C);times=np.arange(10)*12/1100
-            for i in np.flatnonzero(sel):
+            # C9 (DESIGN rev 2.3, RD-12e; R2-B F5): the same physical CxT locked profile is added to the continuous
+            # eval band stretch at band offset 0 + U[0, 0.2 s] (linear interpolation on the decimated clock, zero
+            # outside its support) before windows are cut, so delays spill into positions 1-2. Cutting is linear,
+            # so each fixed-grid window receives its slice of that stretch (offset = T * position, RD-12a).
+            # One delay per eval gap, drawn in (run, gap) order.
+            profile=u.reshape(10,C);dt=12/1100;times=np.arange(10)*dt;grid=np.arange(shape['L'])*dt
+            stretch={}
+            for key in sorted(set(zip(meta['run'].tolist(),meta['gap'].tolist()))):
                 delay=gen.uniform(0,.2)
-                X[i]+=np.stack([np.interp(times-delay,times,profile[:,c],left=0,right=0) for c in range(C)],1).reshape(-1)
+                stretch[key]=np.stack([np.interp(grid-delay,times,profile[:,c],left=0,right=0) for c in range(C)],1)
+            for i,(r,g,pos) in enumerate(zip(meta['run'].tolist(),meta['gap'].tolist(),meta['position'].tolist())):
+                X[i]+=stretch[(r,g)][10*pos:10*pos+10].reshape(-1)
     elif cell in (10,11):X=scale_group(X,Q[:,0:1] if cell==10 else Q[:,-1:],8)
     elif cell==12:
         # Loudest physical direction is the top eigenvector of generator population covariance.
@@ -169,11 +174,12 @@ def assess(rec,details=True,Sref=None):
     from .gates import retired_descriptives
     G2['retired_LW']=retired_descriptives(rec['ref'][0],rec['eval'][0],Sref,effective_reference_count(rec['ref'][1]))
     G3=g3({ro:v for ro,v in whitened.items() if ro!='ref'})
-    # Identical pooled-run means/covariance diagonals via sufficient sums;
-    # avoid six copies of the large stride-1 reference pool and its complement.
+    # Run-blocked descriptive (DESIGN rev 2.3, RD-12d; R2-B F4): run r vs all other runs, pooling train + cal + eval
+    # windows only (no reference, no guard), as gate_cli does in R3. Pooled-run moments via sufficient sums.
     run_drift={};d=Sref.shape[0]
     counts=np.zeros(6,dtype=int);zs=np.zeros((6,d));zss=np.zeros((6,d));xs=np.zeros((6,d));xss=np.zeros(6)
     for role,(X,meta) in rec.items():
+        if role=='ref':continue
         Z=whitened[role][0];runs,starts,n=np.unique(meta['run'],return_index=True,return_counts=True)
         idx=runs-1;counts[idx]+=n
         zs[idx]+=np.add.reduceat(Z,starts,axis=0);zss[idx]+=np.add.reduceat(Z*Z,starts,axis=0)

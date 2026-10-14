@@ -58,6 +58,8 @@ def budget_projection(controls_cpu,d3_cpu,complete=True):
         'status':'PASS' if control_ok and d3_ok else 'STOP'}
 
 def preflight(derived,gates,out,full_timing=False):
+    # R2-B F8: returned preflight evidence is never overwritten; each preflight goes to a new path.
+    if Path(out).exists():raise RuntimeError(f'STOP preflight output {out} exists; write to a new path')
     env=environment();identity=verify_kit();shapes,geometry,hashes=context(derived,gates)
     rows=[]
     # Bound all subject shapes with representative null/detection/drift/jitter cells.
@@ -122,9 +124,10 @@ def reviewed(commit,identity,review):
     import re
     if not re.search(r'(?im)^\s*\*{0,2}(?:Verdict|Status)\s*:\s*\*{0,2}ACCEPTED\b(?! WITH)',text) or commit not in text or identity not in text:raise RuntimeError('STOP R2-B ACCEPTED review with exact commit/identity required')
 
-def campaign(derived,gates,out,commit,identity,review):
+def campaign(derived,gates,out,commit,identity,review,preflight_path):
     reviewed(commit,identity,review)
-    pf=json.loads((PACKAGE.parent/'meg_z_r1_20261014_rd11/PREFLIGHT.json').read_text())
+    # R2-B F8: the controls-only preflight is named explicitly and must carry the reviewed identity.
+    pf=json.loads(Path(preflight_path).read_text())
     if pf.get('controls_status')!='PASS' or pf.get('kit_identity')!=identity or pf.get('projected_control_hours_4_workers',float('inf'))>load()['controls']['budget_hours']:raise RuntimeError('STOP reviewed identity needs a passing controls-only preflight')
     env=environment();shapes,geometry,hashes=context(derived,gates)
     out=Path(out)
@@ -153,12 +156,13 @@ def main(argv=None):
         if name=='preflight':p.add_argument('--full-timing',action='store_true',help='Measure all four complete D3-S rows even when the final projection will STOP')
         if name=='controls':
             p.add_argument('--reviewed-commit',required=True);p.add_argument('--reviewed-identity',required=True);p.add_argument('--review',required=True)
+            p.add_argument('--preflight',required=True,help='controls-only PREFLIGHT.json produced at the reviewed identity')
     p=sp.add_parser('summarize-controls');p.add_argument('--out',required=True)
     a=ap.parse_args(argv)
     if a.command=='verify-kit':r=verify_kit()
     elif a.command=='census-check':r=census_check()
     elif a.command=='preflight':r=preflight(a.derived,a.gates,a.out,a.full_timing)
-    elif a.command=='controls':r=campaign(a.derived,a.gates,a.out,a.reviewed_commit,a.reviewed_identity,a.review)
+    elif a.command=='controls':r=campaign(a.derived,a.gates,a.out,a.reviewed_commit,a.reviewed_identity,a.review,a.preflight)
     else:
         r=controls.summarize(json.loads((Path(a.out)/'records.json').read_text()));atomic_json(Path(a.out)/'claim_check.json',r)
     print(json.dumps(r,indent=1))

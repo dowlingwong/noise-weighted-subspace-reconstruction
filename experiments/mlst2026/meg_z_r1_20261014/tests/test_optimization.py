@@ -28,9 +28,13 @@ def test_seeded_generation_and_all_cells_equivalent(law):
         for key in got[role][1]:np.testing.assert_array_equal(got[role][1][key],want[role][1][key])
     Sref=c.reference(want['ref'][0])
     for cell in range(13):
+        # C9 (RD-12e) and the run-blocked pools (RD-12d) were redefined after the optimization pass (R2-B F4, F5);
+        # they are tested in test_r2b_fixes.py. Everything else stays equivalent to dffa807.
+        if cell==9:continue
         a,_=c.rng(law,cell,0,19);b,_=c.rng(law,cell,0,19)
         actual=c.assess(c.apply_cell(got,Sref,shape,cell,a),Sref=Sref)
         expected=baseline.assess(baseline.apply_cell(want,Sref,shape,cell,b),Sref=Sref)
+        actual.pop('run_blocked_G2S');expected.pop('run_blocked_G2S')
         assert a.bit_generator.state==b.bit_generator.state
         def compare(x,y):
             if isinstance(x,dict):

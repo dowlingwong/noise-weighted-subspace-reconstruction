@@ -38,5 +38,5 @@ def test_campaign_guard_uses_control_budget_only(tmp_path,monkeypatch,hours):
     out=tmp_path/'already_exists';out.mkdir()
     expected='campaign output exists' if hours<=6 else 'controls-only preflight'
     with pytest.raises(RuntimeError,match=expected):
-        runner.campaign(None,None,out,'commit','test','review')
+        runner.campaign(None,None,out,'commit','test','review',p/'PREFLIGHT.json')
     assert bool(calls)==(hours<=6)

@@ -32,10 +32,18 @@ def test_stride_contiguous_and_mirror():
         for r in plan[role]:assert r['rposition']==7-r['position']
         gg=plan[role][0]['gap'];offsets=[r['offset'] for r in plan[role] if r['gap']==gg];assert offsets==list(range(0,80,10))
 
-def test_tiling_restarts_at_allowed_stretch():
+def test_fixed_grid_drops_and_never_restarts():
+    """R2-B F1 / RD-12a: grid windows hitting an exclusion are dropped; the grid is never restarted."""
     geom=[{'gap':g,'start':100*g,'length':88,'stretches':[[17,88]]} for g in range(145)]
-    plan=w.window_plan(geom,1);assert plan['train'][0]['offset']==17
-    assert plan['train'][1]['offset']==27
+    plan=w.window_plan(geom,1);gg=plan['train'][0]['gap'];first=[r for r in plan['train'] if r['gap']==gg]
+    assert [r['offset'] for r in first]==[20,30,40,50,60,70] and [r['position'] for r in first]==[2,3,4,5,6,7]
+    assert [r['rposition'] for r in first]==[5,4,3,2,1,0]
+    geom=[{'gap':g,'start':100*g,'length':88,'stretches':[[0,25],[31,88]]} for g in range(145)]
+    plan=w.window_plan(geom,1)
+    for role in ('train','cal','eval'):
+        assert all(r['offset']==10*r['position'] for r in plan[role])
+        gg=plan[role][0]['gap'];assert [r['offset'] for r in plan[role] if r['gap']==gg]==[0,10,40,50,60,70]
+    gg=plan['ref'][0]['gap'];assert [r['offset'] for r in plan['ref'] if r['gap']==gg]==list(range(0,16))+list(range(31,79))
 
 def test_fir_equals_raw_filter_and_geometry():
     h=s.kernel();x=np.zeros((1,22001));x[0,11000]=1

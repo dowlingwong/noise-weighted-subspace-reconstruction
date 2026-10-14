@@ -60,11 +60,20 @@ def test_e1_dev_and_budget_rules():
     assert g.choose_m_hi(dict.fromkeys('abcd',600))==512
     with pytest.raises(ValueError):g.choose_m_hi(dict.fromkeys('abcd',500))
 
-def test_n_min_upper80_SD_rule_and_stop():
+def test_n_min_per_cell_upper80_SD_rule_and_no_pass_branch():
+    """R2-B F3 / RD-12c: registered power rule per ref-arm cell; remedies once, then STOP and route A."""
+    from scipy.stats import t
     assert g.sd_upper(1,3)==pytest.approx(2.117,abs=.002)
     assert g.sd_upper(1,4)==pytest.approx(1.728,abs=.002)
     r=g.n_min(.1,4,[3],1);assert r['n_min']==8 and r['pass']
-    assert g.n_min(10,4,[.001],35)['stop']
+    sd=np.array([.5,.9,.2]);pred=np.array([2.,2.6,1.]);F=3
+    want=next(n for n in range(8,13) if np.all(t.ppf(1-.05/(2*F),n-1)*sd*g.sd_multiplier(4)/np.sqrt(n)<.5*np.abs(pred)))
+    r=g.n_min(sd,4,pred,F);assert r['pass'] and r['n_min']==want and want>8
+    blocked=g.n_min([.1,5.],4,[3,3],2);assert not blocked['pass'] and blocked['failing_cells']==[1]
+    with pytest.raises(ValueError):g.n_min([.1,.2],4,[3],1)
+    first=g.n_min(10,4,[.001],35);assert not first['pass'] and not first['stop'] and 'remedy_required' in first
+    final=g.n_min(10,4,[.001],35,after_remedy=True)
+    assert final['stop'] and final['route']=='A for the confirmation stage' and final['confirmation_access'] is False
 
 def test_g4_compares_unshrunk_reference():
     S=np.kron(np.diag([1.,2.]),np.diag([3.,1.]));r=g.g4(S,2,2)

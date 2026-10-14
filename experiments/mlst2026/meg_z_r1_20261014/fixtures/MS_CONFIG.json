@@ -31,7 +31,7 @@
       -0.05,
       0.5
     ],
-    "tiling": "contiguous non-overlapping windows from the first admissible sample of each allowed stretch (train/cal/eval); stride 1 inside allowed stretches (reference)",
+    "tiling": "train/cal/eval: non-overlapping windows on the fixed grid of band offsets 0, T, 2T, ... from the gap's first band sample; a grid window that intersects a response exclusion or a BAD sample is dropped and the grid is not restarted, so each position is onset-locked (registered-kit convention, R2-B F1); reference: stride 1 inside allowed stretches",
     "replaces": {
       "after_onset_s": 1.2
     }
@@ -122,8 +122,9 @@
       "confirmation_min": "n_min = max(8, smallest n <= 12 at which the D4 power rule passes); frozen at D4",
       "power_rule_evaluated_at": "n = n_min (not 12)",
       "budget_rule": "m_hi = the largest c in [1024, 768, 512] with every dev calibration pool >= 1.1 c (census gives 768); P and m_hi over all four dev subjects, as the kit; n_eval 500; R2 unit test: census pools -> 768",
-      "n_min_sd": "the D4 power rule at n_min uses the pilot between-subject SD at its one-sided 80 % upper limit (chi-square, df = included dev subjects - 1)",
-      "motivation": "changed after R0 showed in-band run drift in sub-03/04, fixed before any gate value under the R1 rules (commit 40737cf precedes 9379425 and 696a2f7)"
+      "n_min_sd": "the D4 power rule is applied per ref-arm cell, as registered: half_c = t * sd_c_upper / sqrt(n) < 0.5 |pred_c| for every required cell, sd_c_upper = pilot between-subject SD of cell c at its one-sided 80 % upper limit (chi-square, df = included dev subjects - 1); n_min = max(8, smallest n <= 12 passing in every cell)",
+      "motivation": "changed after R0 showed in-band run drift in sub-03/04, fixed before any gate value under the R1 rules (commit 40737cf precedes 9379425 and 696a2f7)",
+      "n_min_no_pass": "if no n <= 12 passes: apply the registered remedies (raise R up to 50, or narrow the family), re-evaluate once; if still none passes, STOP before any confirmation access and report route A for the confirmation stage (R2-B F3)"
     }
   },
   "d3": {
@@ -136,7 +137,9 @@
     "D3S_descriptive": "reported with predictions.json before any fit, never a gate or reading: (1) delta = a_hat - D_W at population level; (2) N*_pred recomputed with M = K + N_sim through the general path; (3) simulated tr(N_sim)/d next to the observed m_train; 50 simulated reference estimates per subject from the control generator with the real stride-1 window geometry",
     "other": "trace_K_target unchanged in value over d = 240, so N* roughly scales with (d - k) relative to T = 20; the theta rule absorbs it. B_dagger is multiplied by lambda_min(Sigma_K^1/2 S_ref^-1 Sigma_K^1/2): PZ1 exact zero and monotonicity unaffected, the B_dagger interval widens. G4 compares the flip-flop Kronecker MLE with the unshrunk S_ref (descriptive). D8 secondary readout is not run for this submission.",
     "N_star_bracket": "reported beside N*_pred: (N*_pred + 1) x [1.013, 1.14] - 1",
-    "D3S_budget": "runs in R4 with content unchanged (50 estimates per subject, all rows); 16 workers, wall-clock budget 8 h (R2-A preflight projects about 96 CPU-h, about 6 h at 16 workers) (RD-11b)"
+    "D3S_budget": "runs in R4 with content unchanged (50 estimates per subject, all rows); 16 workers, wall-clock budget 8 h (R2-A preflight projects about 96 CPU-h, about 6 h at 16 workers) (RD-11b)",
+    "D3S_law": "the 50 reference estimates per subject are drawn under law L2 (reference shape, gap AR 0) of the control generator (R2-B F2)",
+    "R4_extension": "R4 needs an additive kit extension with its own implementation review before any R4 computation: predictions with general_row(ref_cov=S_ref), b_dagger with S_ref and its flip-flop factors, the D3-S runner, ref-arm fit and clean_ref scoring with metric S_ref (R2-B F2)"
   },
   "controls": {
     "generator": "source: the sealed UNSHRUNK all-window reference covariance of each dev subject (T = 20), as R0-e used it, rebuilt from the stored divisor-n moments; temporal factor: Toeplitz-averaged temporal partial trace, AR(10) by Yule-Walker on lags 0-10 (lags 11-19 reported as a fit check); spatial factor: spatial partial trace normalised to trace C; per gap, a stationary Gaussian process on that gap's band stretch aligned at the band start, response exclusions applied after generation; gap AR Y_g = a Y_(g-1) + sqrt(1-a^2) xi_g at equal offsets from the band start, reset at run starts; windows cut with the real gap counts, band, response gaps, interleaved roles and stride-1 reference; separable by construction (disclosed)",
@@ -164,7 +167,7 @@
       ],
       "descriptive": [
         "C8 locked mean 2x at position 0",
-        "C9 locked mean 4x with onset jitter uniform 0-200 ms",
+        "C9 locked mean 4x with onset jitter: the profile is added to the continuous eval band stretch at band offset 0 + U[0, 0.2 s] (linear interpolation on the decimated clock) before windows are cut, so delays spill into positions 1-2 as in R0 (R2-B F5)",
         "C10 single S_ref eigen-direction x8 (bottom)",
         "C11 single S_ref eigen-direction x8 (top)",
         "C12 loudest physical direction x1.5 (physical-trace sensitivity)"
@@ -214,8 +217,9 @@
     "estimated_cpu_hours": 2.5,
     "preflight": "required in R2 on Deepthought before the run; measures the control campaign against the cap and D3-S cost for planning; D3-S is not under the control cap (RD-11a)",
     "failure_rule": "if any of the 35 endpoint claims fails, R2 stops and returns to design; no threshold, law, cell or statistic is changed in response to a control outcome",
-    "budget_scope": "the 6 h x 4-worker cap applies to the R1-d control campaign only (RD-11a); R2-A measured 3.217 h",
-    "geometry_input": "exact per-gap band stretches and final-gap lengths exported from sub-01..04 events.tsv and FIF header (recording-length) metadata, no signal samples (RD-11c)"
+    "budget_scope": "the 6 h x 4-worker cap applies to the R1-d control campaign only (RD-11a); RD-11 preflight measured 3.474 h; a new preflight after the R2-B fixes is written to a new path",
+    "geometry_input": "exact per-gap band stretches and final-gap lengths exported from sub-01..04 events.tsv and FIF header (recording-length) metadata, no signal samples (RD-11c)",
+    "run_blocked_descriptive": "run r vs all other runs, pooling train + cal + eval role windows only (no ref, no guard), identical in controls and R3 (R2-B F4)"
   },
   "pre_R2_readonly_check_R0e": {
     "what": "stored T = 20 in-band records of runs 3-6, pseudo-roles from PARTITION_RULE.assign_roles with the real per-run gap counts; W = inverse of the sealed unshrunk all-window reference",
@@ -233,7 +237,8 @@
     "r1a": "14 Oct 2026: RD-9a clarifies G_r to include the last gap (to the end of the recording); no other change",
     "r2": "14 Oct 2026: answers reviews megz_r1_design_review_20261014_01 and _02; author decisions RD-10 (cluster-robust G3 debias; physical trace ratio kept as a fifth G2-S gate; D3 primary M = K + I with the c term disclosed and sized by D3-S). Band, partition, T, option (ii) unchanged",
     "r2_1": "14 Oct 2026: review megz_r1_design_review_20261014_03 F1 (option a), F2-F5 applied; no new author decision needed",
-    "r2_2": "14 Oct 2026 15:12: RD-11 (cap scope = controls only; D3-S budget in R4; dev events/metadata authorization recorded); no statistical change"
+    "r2_2": "14 Oct 2026 15:12: RD-11 (cap scope = controls only; D3-S budget in R4; dev events/metadata authorization recorded); no statistical change",
+    "r2_3": "14 Oct 2026 17:40: planning clarifications requested by R2-B review megz_r2_implementation_review_20261014_01 (F1 tiling, F2 D3-S law and R4 extension, F3 n_min per cell and no-pass branch, F4 run-blocked pools, F5 C9 definition, F10 budget text); no threshold, law, cell or statistic moved"
   },
   "partition": {
     "kind": "interleaved_blocks",

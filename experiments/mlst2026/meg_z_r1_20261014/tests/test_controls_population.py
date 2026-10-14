@@ -89,5 +89,5 @@ def test_B_dagger_unshrunk_metric():
 
 def test_campaign_requires_review_before_any_input(tmp_path):
     with pytest.raises((RuntimeError,FileNotFoundError,KeyError)):
-        runner.campaign('/no-data','/no-gates',tmp_path/'out','0'*40,'0'*64,tmp_path/'missing-review')
+        runner.campaign('/no-data','/no-gates',tmp_path/'out','0'*40,'0'*64,tmp_path/'missing-review',tmp_path/'missing-preflight.json')
     assert not (tmp_path/'out').exists()

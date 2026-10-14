@@ -13,7 +13,7 @@ def subject(path):
     sd=load_subject(path,cache=False);S=sd.ref.S
     G1=g1_spd(S,sd.C,sd.T,load()['gates']['G1']['unchanged_limits'],sd.attrs['proc_history_empty'])
     result={'G1':G1,'channels':sd.channels,'C':sd.C,'T':sd.T}
-    if not G1['pass']:result.update(excluded=True);return result
+    if not G1['pass']:result.update(excluded=True,derived_file_sha256=sha_file(path));return result
     result['G2']=role_g2(sd.records('training'),sd.records('evaluation'),S)
     result['G2_cal']=role_g2(sd.records('training'),sd.records('calibration'),S)
     from experiments.mlst2026.meg_z_20261013.estimators import ledoit_wolf_from_stats
@@ -44,8 +44,12 @@ def with_retest(derived,sub,raw,expected):
     sd=load_subject(path,cache=False)
     if sd.attrs.get('drop_selected'):first['G1_retest']={'status':'already performed; no second retest'};return first
     if raw is None:raise RuntimeError('STOP raw path needed for once-only G1 retest')
+    # R2-B F7: the retest rewrites <sub>.h5 and <sub>_summary.json; record the first files before they are replaced.
+    summary=Path(derived)/f'{sub}_summary.json'
+    first_files={'derived_file_sha256':sha_file(path),'summary_sha256':sha_file(summary) if summary.is_file() else None,
+                 'summary':json.loads(summary.read_text()) if summary.is_file() else None}
     drop=noisiest_channel(sd.ref.S,sd.C,sd.T,sd.channels)['channel'];process_subject(raw,sub,derived,expected,[drop]);second=subject(path)
-    second['G1_retest']={'first':first,'dropped':drop,'count':1};return second
+    second['G1_retest']={'first':first,'first_files':first_files,'dropped':drop,'count':1};return second
 
 def main(argv=None):
     ap=argparse.ArgumentParser();ap.add_argument('--derived',required=True);ap.add_argument('--subjects',required=True);ap.add_argument('--bids-root');ap.add_argument('--out',required=True);ap.add_argument('--protocol');a=ap.parse_args(argv)

@@ -80,17 +80,38 @@ def choose_m_hi(pools):
         if len(pools)==4 and all(v>=1.1*c for v in pools.values()):return c
     raise ValueError('no calibration budget meets 10% margin')
 
-def sd_upper(sd,n_dev):
+def sd_multiplier(n_dev):
+    """One-sided 80 % chi-square upper limit factor for a between-subject SD (df = n_dev - 1)."""
     if n_dev<3:raise ValueError('E1 needs >=3 dev')
-    return float(sd*np.sqrt((n_dev-1)/chi2.ppf(.2,n_dev-1)))
+    return float(np.sqrt((n_dev-1)/chi2.ppf(.2,n_dev-1)))
 
-def n_min(pilot_sd,n_dev,predicted,family,alpha=.05):
-    """Simultaneous power rule at the returned n, using one-sided 80% SD upper limit."""
-    upper=sd_upper(pilot_sd,n_dev)
+def sd_upper(sd,n_dev):
+    return float(sd*sd_multiplier(n_dev))
+
+def n_min(pilot_sd,n_dev,predicted,family,alpha=.05,after_remedy=False):
+    """Registered D4 power rule per ref-arm cell, evaluated at n = 8..12 (DESIGN rev 2.3 section 5, RD-12c).
+
+    pilot_sd[c] and predicted[c] belong to the same ref-arm cell c; every cell must satisfy
+    t_(1 - alpha/(2 family), n-1) * sd_c_upper / sqrt(n) < 0.5 |pred_c|, sd_c_upper = pilot SD at its one-sided 80 %
+    upper limit. n_min = max(8, smallest such n <= 12). If none passes, the registered remedies (raise R up to 50 or
+    narrow the family) are applied once by the caller and the rule re-evaluated with after_remedy=True; if it still
+    fails, STOP before any confirmation access and report route A for the confirmation stage.
+    """
+    sd=np.atleast_1d(np.asarray(pilot_sd,float));pred=np.atleast_1d(np.asarray(predicted,float))
+    if sd.shape!=pred.shape:raise ValueError('n_min needs one pilot SD per ref-arm cell')
+    upper=sd*sd_multiplier(n_dev)
     for n in range(8,13):
         half=t.ppf(1-alpha/(2*family),n-1)*upper/np.sqrt(n)
-        if np.all(half<.5*np.abs(predicted)):return {'n_min':n,'sd_upper':upper,'half_width':float(half),'pass':True}
-    return {'n_min':None,'sd_upper':upper,'pass':False,'stop':True}
+        if np.all(half<.5*np.abs(pred)):
+            return {'n_min':n,'sd_upper':upper.tolist(),'half_width':half.tolist(),'pass':True,'after_remedy':bool(after_remedy)}
+    half=t.ppf(1-alpha/(2*family),11)*upper/np.sqrt(12)
+    out={'n_min':None,'sd_upper':upper.tolist(),'half_width_n12':half.tolist(),'failing_cells':np.flatnonzero(~(half<.5*np.abs(pred))).tolist(),
+         'pass':False,'after_remedy':bool(after_remedy)}
+    if not after_remedy:
+        out.update(remedy_required='apply once: raise R (max 50) or narrow the family, then re-evaluate with after_remedy=True (RD-12c)',stop=False)
+    else:
+        out.update(stop=True,route='A for the confirmation stage',confirmation_access=False)
+    return out
 
 def budget_eval(n):return {'pass':n>=500,'excluded':n<500,'required':500}
 

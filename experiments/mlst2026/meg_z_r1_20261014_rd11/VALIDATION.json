@@ -1,0 +1,86 @@
+{
+ "MS_author_commit": "d5a5088",
+ "CONFIG_SHA256": "f7f33c32bedafcf404cdf250cfa806050e2f4d882c854ae2aa2143da7b14511d",
+ "source_head": "f393f825103e3e6b1424fb9ea856bf5521cf58e4",
+ "environment": {
+  "python": "3.12.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "mne": "1.8.0",
+  "threads": {
+   "OPENBLAS_NUM_THREADS": "1",
+   "OMP_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1"
+  },
+  "bytecode_disabled": true
+ },
+ "new_verify_kit": {
+  "kit_identity": "eb264edc79a7470bc2953f9791c0c565008632494ca3440d528353b3f72f2fcc",
+  "old_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+  "files": 30
+ },
+ "old_verify_kit": {
+  "kit_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+  "files": 27,
+  "dependencies": "ok",
+  "protocol": "protocol_dev.json (NOT FROZEN)"
+ },
+ "test_suites": {
+  "new": {
+   "command": [
+    "python",
+    "-m",
+    "pytest",
+    "experiments/mlst2026/meg_z_r1_20261014/tests",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+   ],
+   "passed": 256,
+   "seconds": 14.95
+  },
+  "old": {
+   "command": [
+    "python",
+    "-m",
+    "pytest",
+    "experiments/mlst2026/meg_z_20261013/tests",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+   ],
+   "passed": 95,
+   "seconds": 166.65
+  }
+ },
+ "census": {
+  "census": "exact",
+  "T": 10,
+  "m_hi": 768,
+  "calibration_pools": {
+   "sub-01": 1085,
+   "sub-02": 1081,
+   "sub-03": 1016,
+   "sub-04": 1004
+  },
+  "census_excludes_final_gaps": true
+ },
+ "unchanged_paths_vs_9bed772": [
+  "experiments/mlst2026/meg_z_r1_20261014/controls.py",
+  "experiments/mlst2026/meg_z_r1_20261014/gates.py",
+  "experiments/mlst2026/meg_z_r1_20261014/population.py",
+  "experiments/mlst2026/meg_z_r1_20261014/signal.py",
+  "experiments/mlst2026/meg_z_r1_20261014/fixtures/DEV_GEOMETRY.json",
+  "experiments/mlst2026/meg_z_20261013"
+ ],
+ "controls_not_run": true,
+ "real_R3_not_run": true,
+ "preflight_exit": 0,
+ "full_preflight_log": "D3-S timing sub-01; full_timing=True; cap deadline 329.143 s\nD3-S timing sub-02; full_timing=True; cap deadline 329.143 s\nD3-S timing sub-03; full_timing=True; cap deadline 329.143 s\nD3-S timing sub-04; full_timing=True; cap deadline 329.143 s\n{\n \"environment\": {\n  \"python\": \"3.12.2\",\n  \"numpy\": \"2.2.6\",\n  \"scipy\": \"1.15.3\",\n  \"mne\": \"1.8.0\",\n  \"threads\": {\n   \"OPENBLAS_NUM_THREADS\": \"1\",\n   \"OMP_NUM_THREADS\": \"1\",\n   \"MKL_NUM_THREADS\": \"1\"\n  },\n  \"bytecode_disabled\": true\n },\n \"kit_identity\": \"eb264edc79a7470bc2953f9791c0c565008632494ca3440d528353b3f72f2fcc\",\n \"old_identity\": \"f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb\",\n \"files\": 30,\n \"source_hashes\": {\n  \"sub-01\": {\n   \"before\": \"4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6\",\n   \"after\": \"4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6\",\n   \"sealed\": \"4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6\",\n   \"dataset\": \"reference/second_moment (centred divisor n)\"\n  },\n  \"sub-02\": {\n   \"before\": \"c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb\",\n   \"after\": \"c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb\",\n   \"sealed\": \"c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb\",\n   \"dataset\": \"reference/second_moment (centred divisor n)\"\n  },\n  \"sub-03\": {\n   \"before\": \"edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972\",\n   \"after\": \"edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972\",\n   \"sealed\": \"edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972\",\n   \"dataset\": \"reference/second_moment (centred divisor n)\"\n  },\n  \"sub-04\": {\n   \"before\": \"62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4\",\n   \"after\": \"62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4\",\n   \"sealed\": \"62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4\",\n   \"dataset\": \"reference/second_moment (centred divisor n)\"\n  }\n },\n \"geometry\": {\n  \"principal_cosines\": [\n   0.7237980582210813,\n   0.0866571065572269,\n   0.04639604095824988\n  ],\n  \"projected_norm\": 0.8170455203084105,\n  \"FIR_SHA256\": \"e093562c8cff0e3cef1ca78e11d7021b3ae3e56bb3c4ab8b6e230d237998fa5f\"\n },\n \"controls_timings\": [\n  {\n   \"subject\": \"sub-01\",\n   \"law\": 1,\n   \"cell\": 0,\n   \"seconds\": 0.5579093592241406\n  },\n  {\n   \"subject\": \"sub-01\",\n   \"law\": 2,\n   \"cell\": 0,\n   \"seconds\": 0.6225931541994214\n  },\n  {\n   \"subject\": \"sub-01\",\n   \"law\": 4,\n   \"cell\": 7,\n   \"seconds\": 0.6366366250440478\n  },\n  {\n   \"subject\": \"sub-01\",\n   \"law\": 6,\n   \"cell\": 2,\n   \"seconds\": 0.6728714723140001\n  },\n  {\n   \"subject\": \"sub-01\",\n   \"law\": 7,\n   \"cell\": 9,\n   \"seconds\": 0.6870717871934175\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"law\": 1,\n   \"cell\": 0,\n   \"seconds\": 0.5495780576020479\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"law\": 2,\n   \"cell\": 0,\n   \"seconds\": 0.5693623851984739\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"law\": 4,\n   \"cell\": 7,\n   \"seconds\": 0.5874801343306899\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"law\": 6,\n   \"cell\": 2,\n   \"seconds\": 0.6799928024411201\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"law\": 7,\n   \"cell\": 9,\n   \"seconds\": 0.6584083000198007\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"law\": 1,\n   \"cell\": 0,\n   \"seconds\": 0.5211101435124874\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"law\": 2,\n   \"cell\": 0,\n   \"seconds\": 0.5544297462329268\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"law\": 4,\n   \"cell\": 7,\n   \"seconds\": 0.5727136032655835\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"law\": 6,\n   \"cell\": 2,\n   \"seconds\": 0.6267714072018862\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"law\": 7,\n   \"cell\": 9,\n   \"seconds\": 0.6289097936823964\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"law\": 1,\n   \"cell\": 0,\n   \"seconds\": 0.5210767379030585\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"law\": 2,\n   \"cell\": 0,\n   \"seconds\": 0.5372049296274781\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"law\": 4,\n   \"cell\": 7,\n   \"seconds\": 0.5723592946305871\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"law\": 6,\n   \"cell\": 2,\n   \"seconds\": 0.6281700078397989\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"law\": 7,\n   \"cell\": 9,\n   \"seconds\": 0.6363163962960243\n  }\n ],\n \"seconds_per_replicate_bound\": 0.6870717871934175,\n \"D3S_timings\": [\n  {\n   \"subject\": \"sub-01\",\n   \"seconds_per_reference_and_general_row\": 205.59088951908052,\n   \"complete\": true\n  },\n  {\n   \"subject\": \"sub-02\",\n   \"seconds_per_reference_and_general_row\": 234.65939710475504,\n   \"complete\": true\n  },\n  {\n   \"subject\": \"sub-03\",\n   \"seconds_per_reference_and_general_row\": 217.35838737804443,\n   \"complete\": true\n  },\n  {\n   \"subject\": \"sub-04\",\n   \"seconds_per_reference_and_general_row\": 244.0554243233055,\n   \"complete\": true\n  }\n ],\n \"D3S_reference_estimates_per_subject\": 50,\n \"D3S_rows_per_estimate_bound\": 7,\n \"projected_control_CPU_seconds\": 50018.8261076808,\n \"projected_D3S_CPU_seconds\": 341677.5940526277,\n \"combined_projected_hours_4_workers_descriptive\": 27.20114028891031,\n \"projection_kind\": \"conservative worst-row projection; a censored row provides a lower bound on that projection\",\n \"projected_control_hours_4_workers\": 3.4735295908111663,\n \"controls_workers\": 4,\n \"controls_cap_hours\": 6,\n \"controls_status\": \"PASS\",\n \"projected_D3S_hours_16_workers\": 5.931902674524786,\n \"D3S_workers\": 16,\n \"D3S_cap_hours\": 8,\n \"D3S_status\": \"PASS\",\n \"D3S_budget_stage\": \"R4\",\n \"status\": \"PASS\",\n \"fit_checks\": {\n  \"sub-01\": {\n   \"order\": 10,\n   \"coefficients\": [\n    1.3578595127854427,\n    -0.8204256969265427,\n    0.16957512863914342,\n    0.05257465266754621,\n    0.1856621835707209,\n    -0.07301634695752113,\n    -0.03843044902130578,\n    0.09814116650986741,\n    -0.15977620728883843,\n    0.12416016142246956\n   ],\n   \"innovation_variance\": 6.867358646648976e-25,\n   \"max_root_modulus\": 0.9338132881196345,\n   \"lags_11_19\": [\n    11,\n    12,\n    13,\n    14,\n    15,\n    16,\n    17,\n    18,\n    19\n   ],\n   \"observed\": [\n    1.1604634461561559e-24,\n    1.4869715632404553e-24,\n    1.3019025840005406e-24,\n    7.576446227278727e-25,\n    3.74726048627805e-25,\n    4.161647357480857e-25,\n    6.441308369152148e-25,\n    6.1131347176408995e-25,\n    2.0472685427396964e-25\n   ],\n   \"fitted\": [\n    1.1216633166020122e-24,\n    1.4004977234749254e-24,\n    1.2146936723609028e-24,\n    7.439003581351308e-25,\n    4.0662571612580042e-25,\n    4.41616821171147e-25,\n    7.114191118238602e-25,\n    8.941510892926312e-25,\n    7.927895195389741e-25\n   ],\n   \"relative_errors\": [\n    -0.009916676584530566,\n    -0.022101294810900923,\n    -0.022289167122815257,\n    -0.003512808550503425,\n    0.008153031687439263,\n    0.00650513548389399,\n    0.01719777917929034,\n    0.07228865499162121,\n    0.15029916987087266\n   ],\n   \"source\": \"unshrunk all-window T20 moments; temporal Toeplitz partial trace; spatial partial trace trace C\"\n  },\n  \"sub-02\": {\n   \"order\": 10,\n   \"coefficients\": [\n    1.4530186067799247,\n    -0.881884790018005,\n    -0.001363608341963923,\n    0.35694289084047404,\n    -0.005395894697554644,\n    -0.08389808456759623,\n    -0.00036646340850395086,\n    0.2128116403958047,\n    -0.2986437732454437,\n    0.16596855116109316\n   ],\n   \"innovation_variance\": 6.657638874412697e-25,\n   \"max_root_modulus\": 0.9452456829303072,\n   \"lags_11_19\": [\n    11,\n    12,\n    13,\n    14,\n    15,\n    16,\n    17,\n    18,\n    19\n   ],\n   \"observed\": [\n    1.333919778073197e-24,\n    1.8299840117915737e-24,\n    1.86603359565562e-24,\n    1.3816912645988275e-24,\n    8.376974943110703e-25,\n    6.367951645048172e-25,\n    7.310873677969105e-25,\n    7.730624876050368e-25,\n    5.348463713494464e-25\n   ],\n   \"fitted\": [\n    1.3158577905974488e-24,\n    1.7779807889936415e-24,\n    1.8198571413342836e-24,\n    1.3990889364935847e-24,\n    8.813359839431897e-25,\n    6.6936158679004105e-25,\n    8.352843883652378e-25,\n    1.1326390867603165e-24,\n    1.2387815061917331e-24\n   ],\n   \"relative_errors\": [\n    -0.0037752518761134213,\n    -0.010869527215398819,\n    -0.009651636955399282,\n    0.003636399014719572,\n    0.009121160673797373,\n    0.006806916846536048,\n    0.021778887728395563,\n    0.07515741179591436,\n    0.14713399851725975\n   ],\n   \"source\": \"unshrunk all-window T20 moments; temporal Toeplitz partial trace; spatial partial trace trace C\"\n  },\n  \"sub-03\": {\n   \"order\": 10,\n   \"coefficients\": [\n    1.3440973698890855,\n    -0.7894880144689332,\n    0.14377442721618577,\n    0.14909320419211003,\n    0.05947905069337421,\n    0.016686440683896034,\n    -0.08574134345249573,\n    0.1526879451927648,\n    -0.18658671241387847,\n    0.09109119777245256\n   ],\n   \"innovation_variance\": 8.371993586591192e-25,\n   \"max_root_modulus\": 0.9181402542941162,\n   \"lags_11_19\": [\n    11,\n    12,\n    13,\n    14,\n    15,\n    16,\n    17,\n    18,\n    19\n   ],\n   \"observed\": [\n    1.2912593534661302e-24,\n    1.5857841305365258e-24,\n    1.4960114213227295e-24,\n    9.907145587157462e-25,\n    5.091636361374227e-25,\n    3.8690279650970637e-25,\n    5.424397440914502e-25,\n    5.5542383359045875e-25,\n    2.1465770673433404e-25\n   ],\n   \"fitted\": [\n    1.201092426611742e-24,\n    1.3750479036146733e-24,\n    1.2870906060902665e-24,\n    9.886971368481877e-25,\n    7.0567081545221415e-25,\n    6.1551005529906e-25,\n    6.903738728231598e-25,\n    7.799531985260795e-25,\n    7.553094217194627e-25\n   ],\n   \"relative_errors\": [\n    -0.019029235317674656,\n    -0.044474724735055635,\n    -0.04409159205613405,\n    -0.0004257658189325931,\n    0.041471762288543226,\n    0.04824630798226477,\n    0.031220686401977258,\n    0.04738569085300963,\n    0.11410157879696742\n   ],\n   \"source\": \"unshrunk all-window T20 moments; temporal Toeplitz partial trace; spatial partial trace trace C\"\n  },\n  \"sub-04\": {\n   \"order\": 10,\n   \"coefficients\": [\n    1.4842680390179284,\n    -0.9350302857889626,\n    0.10593226292103043,\n    0.28132603174094795,\n    -0.024117586837727127,\n    -0.002440926742209387,\n    -0.06310472821879104,\n    0.1890006690709626,\n    -0.2820909304144831,\n    0.14077206882705565\n   ],\n   \"innovation_variance\": 1.0607591454414989e-24,\n   \"max_root_modulus\": 0.9317064306250714,\n   \"lags_11_19\": [\n    11,\n    12,\n    13,\n    14,\n    15,\n    16,\n    17,\n    18,\n    19\n   ],\n   \"observed\": [\n    1.1924522954728883e-24,\n    2.0444174704845205e-24,\n    2.1810542081264436e-24,\n    1.4547083510554296e-24,\n    6.130042365847366e-25,\n    3.6892829065792965e-25,\n    6.681695357993862e-25,\n    9.482633670612637e-25,\n    8.0315113234770245e-25\n   ],\n   \"fitted\": [\n    1.1603070360082873e-24,\n    1.9713332062587e-24,\n    2.121128012235919e-24,\n    1.4659179428796085e-24,\n    5.756783274408e-25,\n    1.5797887340262492e-25,\n    4.126122567699091e-25,\n    9.681742555990902e-25,\n    1.2537541848350565e-24\n   ],\n   \"relative_errors\": [\n    -0.0042327969474684,\n    -0.009623529430947379,\n    -0.007890912167566606,\n    0.0014760473813565478,\n    -0.0049149702605425505,\n    -0.027777223276476515,\n    -0.03365106048593309,\n    0.0026218095491531107,\n    0.05933413687914964\n   ],\n   \"source\": \"unshrunk all-window T20 moments; temporal Toeplitz partial trace; spatial partial trace trace C\"\n  }\n },\n \"controls_not_run\": true\n}\n",
+ "test_outputs": {
+  "new": "........................................................................ [ 28%]\n........................................................................ [ 56%]\n........................................................................ [ 84%]\n........................................                                 [100%]\n256 passed in 14.95s\n",
+  "old": "........................................................................ [ 75%]\n.......................                                                  [100%]\n95 passed in 166.65s (0:02:46)\n"
+ },
+ "separate_projection_arithmetic_verified": true,
+ "preflight_full_timing": true
+}

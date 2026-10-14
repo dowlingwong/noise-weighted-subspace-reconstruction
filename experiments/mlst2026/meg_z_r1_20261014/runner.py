@@ -2,7 +2,7 @@
 
 R3 preprocess/gates delegate to additive modules. Never launches R3 during R2.
 """
-import argparse,json,os,platform,subprocess,time
+import argparse,json,os,platform,subprocess,time,signal,math
 from pathlib import Path
 import numpy as np
 from experiments.mlst2026.meg_z_20261013.common import sha_file,atomic_json,sha_json
@@ -55,24 +55,41 @@ def preflight(derived,gates,out):
     from .population import general_noise
     from experiments.mlst2026.meg_z_20261013.signal import SignalModel,orth
     B1,Cb,geom_check=temporal_bases();timings=[]
-    # Timed full 64-start D3-S general path and the actual stride-1 reference draw.
-    for si,s in enumerate(DEV):
-        gen,_=controls.rng(2,0,si,999);shape=shapes[s]
-        t0=time.perf_counter();rec=controls.generate(shape,geometry['subjects'][s]['runs'],2,gen);S=controls.reference(rec['ref'][0])
-        A=orth(gen.normal(size=(24,2)));v=np.kron([1.,1.],[1.,.5,.25]);m0=SignalModel(A,B1,Cb,0.,v)
-        v=v*(206.604/np.trace(np.linalg.solve(S,m0.second_moment())))
-        model=SignalModel(A,B1,Cb,.4,v);general_noise(model,S,shape['population'],gen,62)
-        timings.append({'subject':s,'seconds_per_reference_and_general_row':time.perf_counter()-t0})
-    per=max(r['seconds'] for r in rows);d3=max(r['seconds_per_reference_and_general_row'] for r in timings)
+    # Stop once the prescribed conservative projection cannot meet the cap.
+    control_bound=72800*max(r['seconds'] for r in rows)
+    row_limit=(6*4*3600-control_bound)/(4*50*7)
+    class CostLimitExceeded(Exception):pass
+    def cost_limit(signum,frame):raise CostLimitExceeded()
+    old_handler=signal.signal(signal.SIGALRM,cost_limit)
+    try:
+        for si,s in enumerate(DEV):
+            if row_limit<=0:break
+            gen,_=controls.rng(2,0,si,999);shape=shapes[s]
+            t0=time.perf_counter();signal.setitimer(signal.ITIMER_REAL,row_limit+.01)
+            print(f'D3-S timing {s}; per-row cap deadline {row_limit:.3f} s',flush=True)
+            try:
+                rec=controls.generate(shape,geometry['subjects'][s]['runs'],2,gen);S=controls.reference(rec['ref'][0])
+                A=orth(gen.normal(size=(24,2)));v=np.kron([1.,1.],[1.,.5,.25]);m0=SignalModel(A,B1,Cb,0.,v)
+                v=v*(206.604/np.trace(np.linalg.solve(S,m0.second_moment())))
+                model=SignalModel(A,B1,Cb,.4,v);general_noise(model,S,shape['population'],gen,62)
+                timings.append({'subject':s,'seconds_per_reference_and_general_row':time.perf_counter()-t0,'complete':True})
+            except CostLimitExceeded:
+                timings.append({'subject':s,'seconds_per_reference_and_general_row':time.perf_counter()-t0,'complete':False,'censored_lower_bound':True})
+                break
+            finally:signal.setitimer(signal.ITIMER_REAL,0)
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,old_handler)
+    per=max(r['seconds'] for r in rows);d3=max((r['seconds_per_reference_and_general_row'] for r in timings),default=0.)
     controls_cpu=72800*per
     # Four fixed theta rows and three fitted geometries: conservative shared-estimate bound.
     d3_cpu=4*50*7*d3
     projected=(controls_cpu+d3_cpu)/4/3600;report={'environment':env,**identity,'source_hashes':hashes,'geometry':geom_check,'controls_timings':rows,
         'seconds_per_replicate_bound':per,'D3S_timings':timings,'D3S_reference_estimates_per_subject':50,'D3S_rows_per_estimate_bound':7,
         'projected_control_CPU_seconds':controls_cpu,'projected_D3S_CPU_seconds':d3_cpu,'projected_hours_4_workers':projected,'cap_hours':6,
-        'status':'PASS' if projected<=6 else 'STOP','fit_checks':{s:z['fit'] for s,z in shapes.items()},'controls_not_run':True}
+        'projection_kind':'conservative worst-row projection; a censored row provides a lower bound on that projection',
+        'status':'PASS' if projected<=6 and len(timings)==4 and all(r['complete'] for r in timings) else 'STOP','fit_checks':{s:z['fit'] for s,z in shapes.items()},'controls_not_run':True}
     atomic_json(out,report)
-    if projected>6:raise SystemExit('STOP projected controls plus D3-S exceeds 6 h x 4-worker cap')
+    if report['status']=='STOP':raise SystemExit('STOP projected controls plus D3-S exceeds 6 h x 4-worker cap')
     return report
 
 _CTX=None

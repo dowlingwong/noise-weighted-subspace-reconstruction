@@ -111,6 +111,10 @@ exact stable stimulus samples. `metadata_census_audit.py` preserves all count
 differences. No historical census or budget is rewritten. Exact metadata
 geometry and every response/band boundary are tested.
 
+Preflight enforces a per-row deadline derived from the remaining six-hour cap
+and the stated conservative seven-row plan. It records a censored cost lower
+bound and STOP immediately, without changing statistical functions or starts.
+
 | CONFIG key | Code | Test |
 |---|---|---|
 | `candidate` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |

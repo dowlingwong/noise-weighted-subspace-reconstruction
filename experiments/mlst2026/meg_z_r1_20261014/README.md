@@ -64,8 +64,10 @@ signal factors with the sealed generator shapes and real window geometry.
   fabricated-data assembly/serialization tests; load_run is reserved for R3.
 - `common`: vec, symmetric, sha_file, atomic_json, sha_json.
 - `estimators`: moment_stats, Kronecker flip-flop from S, whitened_error,
-  nearest_kronecker; no old shrunk reference is used as the R1 metric.
-- `gates`: g1_spd and noisiest_channel (unchanged limits/once-only policy).
+  nearest_kronecker, MomentStats and ledoit_wolf_from_stats (retired
+  descriptives only); no old shrunk reference is used as the R1 metric.
+- `gates`: g1_spd, noisiest_channel, g2_stationarity (retired LW
+  descriptives), g5_mardia and lag_one_dependence (unchanged limits/once-only policy).
 - `signal`: orth, spatial_templates, base_variances and SignalModel. Temporal
   basis generation is new and independent of evoked_T.
 - `population`: general_row, spd_powers, GeneralProductClass, b_dagger and its

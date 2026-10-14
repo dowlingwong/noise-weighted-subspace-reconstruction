@@ -44,3 +44,12 @@ def test_fir_equals_raw_filter_and_geometry():
     B,C,info=s.temporal_bases();assert np.allclose(B.T@B,np.eye(3));assert np.allclose(B.T@C,0,atol=1e-12)
     assert np.allclose(info['principal_cosines'],[.7238,.0867,.0464],atol=1e-3);assert abs(info['projected_norm']-.817)<1e-3
     assert s.EVOKED_T==20 and B.shape==(10,3)
+
+def test_signal_T10_from_T20_templates_fixed_trace_and_latents():
+    evoked=np.zeros((24,20));evoked[0,9]=2.;evoked[1,16]=2.
+    m0,info=s.build(evoked,1100/12,np.eye(240),0.)
+    m1,_=s.build(evoked,1100/12,np.eye(240),.25)
+    assert m0.T==10 and m0.A.shape==(24,2)
+    assert np.trace(m0.second_moment())==pytest.approx(206.604)
+    assert np.array_equal(m0.variances,m1.variances)
+    assert info['template_peaks']==pytest.approx([9*12/1100,16*12/1100])

@@ -1,0 +1,296 @@
+{
+  "candidate": "megz-r1-steady-circle-v1 (revision 2.1: review 03 fixes)",
+  "status": "revision 2.1; review 03 ACCEPTED WITH CHANGES on revision 2, all findings applied (option (a) for F1); not frozen; development subjects only",
+  "base": {
+    "exp_source_commit": "bfe1139d3923f3b38915c3637696d7afbbf65641",
+    "kit_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+    "r0_evidence": "MS reviews/megz_rootcause_r0_20261013/ (46de2a8, spot check 0767aba)",
+    "decisions": "MS reviews/megz_rootcause_decisions_20261013/AUTHOR_DECISIONS.md"
+  },
+  "unchanged": [
+    "dataset/snapshot/timing convention",
+    "C = 24 and the selected channels",
+    "filter 1-40 Hz FIR zero-phase firwin, decim 12",
+    "subject split",
+    "G1 limits and once-only retest",
+    "trace_K_target 206.604",
+    "theta grid and theta_rule",
+    "learners, arms, scores, inference, PZ1-PZ5 equations",
+    "response exclusion [-0.05, 0.5] s",
+    "G3 estimand, strict threshold 0.01 x trace_K_target = 2.06604, min n 30 windows per slot, partitions = roles"
+  ],
+  "noise_windows": {
+    "band_s": [
+      1.5,
+      2.45
+    ],
+    "band_rule": "first-sample age >= 1.50 s and last-sample age <= 2.45 s after the previous physical onset",
+    "before_next_s": 0.05,
+    "end_margin_s": 0.05,
+    "response_exclusion_s": [
+      -0.05,
+      0.5
+    ],
+    "tiling": "contiguous non-overlapping windows from the first admissible sample of each allowed stretch (train/cal/eval); stride 1 inside allowed stretches (reference)",
+    "replaces": {
+      "after_onset_s": 1.2
+    }
+  },
+  "T": {
+    "value": 10,
+    "rule": "unchanged: largest T in {20,16,12,10} meeting all budgets in all four dev subjects with >= 10% margin, applied to the partition actually used (PARTITION_CENSUS.json)",
+    "d": 240,
+    "note": "T = 12 met the rule under the run-blocked partition but not under the interleaved one (sub-03/04 training 1743/1716 < 1760)"
+  },
+  "signal": {
+    "bump_centers_s": [
+      0.05,
+      0.085
+    ],
+    "bump_width_s": 0.01,
+    "scaling_rule": "original centres and width x T/20 = x 0.5",
+    "filter_basis": "generate the bump family on a 1100 Hz grid over [-2, 2] s, apply the identical preprocessing FIR (mne.filter.create_filter(None, 1100, 1.0, 40.0, method='fir', phase='zero', fir_design='firwin')), sample every 12th point from t = 0; R2 asserts the FIR hash equals the one raw.filter uses in /ceph/dwong/meg_env, and the basis geometry (principal cosines 0.7238/0.0867/0.0464, norm 0.817)",
+    "spatial_templates": "unchanged rule and template_windows_s [[0.08,0.13],[0.14,0.20]], computed from the evoked field over a fixed 20-sample window (evoked_T = 20), independent of T",
+    "channel_selection": "unchanged statistic over the fixed 20-sample window (evoked_T = 20), so the 24 channels are unchanged",
+    "kc": 2,
+    "kt": 3,
+    "latent_variances_l": [
+      1.0,
+      0.5,
+      0.25
+    ],
+    "source_weights_j": [
+      1.0,
+      1.0
+    ],
+    "filter_rationale": "pipeline consistency: the injected response is shaped and anti-aliased as a real response; NOT stop-band removal (filtered family keeps 1.39 % / 4.95 % of energy above 40 Hz)",
+    "channels_assert": "R2 asserts the selected channels equal the sealed D1 list per dev subject"
+  },
+  "reference_metric": {
+    "kind": "sample_full_unshrunk",
+    "definition": "divisor-n covariance of all stride-1 in-band windows of the ref-role gaps (all runs), centred at their mean; no shrinkage",
+    "role": "fit metric of the ref arm, scoring metric (clean_ref), G3 whitening, signal trace normalisation, D3 noise covariance (M = K + I with K = S_ref^-1/2 R_s S_ref^-1/2)",
+    "replaces": "ledoit_wolf_full"
+  },
+  "gates": {
+    "G1": {
+      "unchanged_limits": {
+        "max_condition_spatial": 1000000.0,
+        "max_condition_full": 10000000000.0
+      },
+      "applied_to": "reference_metric (unshrunk)",
+      "retest": "unchanged once-only automatic retest (drop the noisiest channel) runs on the unshrunk matrix before any E1 or route-A decision; a retest gives C = 23 (d = 230) for that subject, disclosed",
+      "failure": "a subject that still fails G1 after the retest is excluded under E1 (supersedes revision 1 \"route A on a G1 failure\"); no alternative metric or regularisation is searched"
+    },
+    "G2": {
+      "band": [
+        0.8,
+        1.25
+      ],
+      "metric": "W = S_ref^-1",
+      "G2R_reference_transport": "m_train = tr(W S_train)/d, S_train = covariance of train-role windows (all runs) centred at the train-role mean (divisor n); no inflation correction (null m_train 1.012 at a = 0, 1.018 at a = 0.5, 1.034 at a = 0.75)",
+      "G2S_stationarity": [
+        "m_eval/m_train",
+        "g_bottom50",
+        "g_middle40",
+        "g_top10",
+        "physical_trace_ratio = tr(S_eval)/tr(S_train)"
+      ],
+      "group_definition": "fixed eigenvector groups of the replicate's or subject's own S_ref (ascending variance, 50/40/10 % of d); g = tr(Q' W^(1/2) S_eval W^(1/2) Q)/tr(Q' W^(1/2) S_train W^(1/2) Q)",
+      "pass": "G2-R and all five G2-S statistics inside the band",
+      "replaces": "retired as gates: mean whitened eigenvalue and MP-spread criterion (spread_ratio_max 2) against the shrunk reference, both reported descriptively; the physical trace ratio is KEPT as a gate (eval vs train roles, RD-10b); g_top10 and the other group ratios are added, not substituted",
+      "descriptive": [
+        "MP edge ratios",
+        "generalised eigenvalue table S_eval vs S_ref, read against its expected null range (DESIGN \u00a73)",
+        "cal-role G2-S",
+        "run-blocked G2-S (cross-run transport)",
+        "group-wise train/ref ratios"
+      ],
+      "not_gated": "isotropy of the whitened noise: holds by construction up to the reference-estimation term (size reported by D3-S); group-wise train/ref ratios are biased by eigenvalue spreading at O(sqrt(d/n_eff)) and are descriptive"
+    },
+    "G3": {
+      "estimand_and_threshold": "unchanged: positional whitened mean energy, strict < 2.06604, min n 30",
+      "statistic": "E_cr = mu^T W mu - B/(B-1) * sum_b u_b^T W u_b / n^2, u_b = sum_{i in b}(x_i - mu); clusters b = (run, block) of the role; W = S_ref^-1 (RD-10a)",
+      "min_clusters": 8,
+      "slots": "one window per gap at each tiling position; 3 roles x 8 positions at T = 10; rposition identical to position under the band (computed, counted once)",
+      "naive_debias": "mu^T W mu - tr(W S_pos)/n reported descriptively for every slot",
+      "dependence_screen": "per subject f_hat = sum over eval and cal slots of the cluster variance term / sum of the naive term; f_hat > 2.64 (= f at gap AR 0.5) -> G3 not calibrated -> G3 failure under E1",
+      "calibrated_range": "slot statistic: null claimed for gap AR a <= 0.5 (endpoint through L4); a = 0.75 descriptive. Screen: 2.64 is f(0.5) for complete 11-gap blocks; with the real gap and response geometry f(0.5) is 2.53-2.65, so the screen flags no replicate at a <= 0.45, about half at a = 0.5 and all at a >= 0.55. Subject-level G3 (slot or screen, as E1 counts it) is calibrated for a <= 0.45; a subject with gap dependence near a = 0.5 or above is excluded by design"
+    },
+    "E1": {
+      "dev": "a dev subject failing G1, G2 or G3 is excluded; D3/D4 continue iff >= 3 of 4 dev subjects pass; otherwise STOP (route A)",
+      "confirmation_min": "n_min = max(8, smallest n <= 12 at which the D4 power rule passes); frozen at D4",
+      "power_rule_evaluated_at": "n = n_min (not 12)",
+      "budget_rule": "m_hi = the largest c in [1024, 768, 512] with every dev calibration pool >= 1.1 c (census gives 768); P and m_hi over all four dev subjects, as the kit; n_eval 500; R2 unit test: census pools -> 768",
+      "n_min_sd": "the D4 power rule at n_min uses the pilot between-subject SD at its one-sided 80 % upper limit (chi-square, df = included dev subjects - 1)",
+      "motivation": "changed after R0 showed in-band run drift in sub-03/04, fixed before any gate value under the R1 rules (commit 40737cf precedes 9379425 and 696a2f7)"
+    }
+  },
+  "d3": {
+    "noise_model": "primary: M = K + I in S_ref-whitened coordinates (option ii, RD-10c); the whitened noise scale c rescales the S4.3 constants (N*+1 proportional to c); expected c ~ 1.013 (stride-1, independent gaps; ~1.02 at gap AR 0.5), upper bracket 1.14 (stride-T)",
+    "prestated_reasons_for_a_PZ2_miss_added": [
+      "whitened noise scale c != 1 (N*+1 scales by c; expected c ~ 1.013)",
+      "reference-estimation tilt of the ref arm (learner maximises tr(P(K+N)), risk wants tr(P(K-N))), order d/n_eff, direction: larger N*",
+      "run-mixture non-Gaussianity of the pooled roles (G5 on the pooled training role)"
+    ],
+    "D3S_descriptive": "reported with predictions.json before any fit, never a gate or reading: (1) delta = a_hat - D_W at population level; (2) N*_pred recomputed with M = K + N_sim through the general path; (3) simulated tr(N_sim)/d next to the observed m_train; 50 simulated reference estimates per subject from the control generator with the real stride-1 window geometry",
+    "other": "trace_K_target unchanged in value over d = 240, so N* roughly scales with (d - k) relative to T = 20; the theta rule absorbs it. B_dagger is multiplied by lambda_min(Sigma_K^1/2 S_ref^-1 Sigma_K^1/2): PZ1 exact zero and monotonicity unaffected, the B_dagger interval widens. G4 compares the flip-flop Kronecker MLE with the unshrunk S_ref (descriptive). D8 secondary readout is not run for this submission.",
+    "N_star_bracket": "reported beside N*_pred: (N*_pred + 1) x [1.013, 1.14] - 1"
+  },
+  "controls": {
+    "generator": "source: the sealed UNSHRUNK all-window reference covariance of each dev subject (T = 20), as R0-e used it, rebuilt from the stored divisor-n moments; temporal factor: Toeplitz-averaged temporal partial trace, AR(10) by Yule-Walker on lags 0-10 (lags 11-19 reported as a fit check); spatial factor: spatial partial trace normalised to trace C; per gap, a stationary Gaussian process on that gap's band stretch aligned at the band start, response exclusions applied after generation; gap AR Y_g = a Y_(g-1) + sqrt(1-a^2) xi_g at equal offsets from the band start, reset at run starts; windows cut with the real gap counts, band, response gaps, interleaved roles and stride-1 reference; separable by construction (disclosed)",
+    "laws": {
+      "L1": "identity shape, IID gaps",
+      "L2": "reference shape, a = 0",
+      "L3": "reference shape, a = 0.25",
+      "L4": "reference shape, a = 0.5",
+      "L5": "reference shape, a = 0.75",
+      "L6": "L2 plus independent per-run lognormal factors (top-10 % group sd 0.2, global sd 0.1) along the generator's population eigenvectors of the top-10 % group (Kronecker product of the fitted temporal and spatial factors), in every window of every role, the stride-1 reference included",
+      "L7": "as L6 but per (run, block) with sd 0.1 on both targets"
+    },
+    "cells": {
+      "C0": "null",
+      "G2 detection (endpoints)": [
+        "C1 eval global x1.5",
+        "C2 eval top-10 % group x1.5 along the replicate's S_ref eigenvectors of that group (the groups G2-S uses), every eval window",
+        "C3 eval bottom-50 % group x1.5, same definition",
+        "C4 eval middle-40 % group x1.5, same definition",
+        "C5 smallest eigenvector of the ref-role spatial partial trace, variance x8 at every time sample of every eval window",
+        "C6 largest spatial eigenvector, same"
+      ],
+      "G3 detection (endpoint)": [
+        "C7 locked mean 4x threshold at eval position 0, unjittered"
+      ],
+      "descriptive": [
+        "C8 locked mean 2x at position 0",
+        "C9 locked mean 4x with onset jitter uniform 0-200 ms",
+        "C10 single S_ref eigen-direction x8 (bottom)",
+        "C11 single S_ref eigen-direction x8 (top)",
+        "C12 loudest physical direction x1.5 (physical-trace sensitivity)"
+      ]
+    },
+    "replicates": 200,
+    "subjects": 4,
+    "endpoint_unit": "law x cell, pooled over the four dev-subject shapes (800 replicates)",
+    "endpoints": {
+      "G2 null false exclusion": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5",
+        "L6"
+      ],
+      "G3 dependence-screen false flag": [
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "G2 detection C1-C6": [
+        "L1",
+        "L2",
+        "L4"
+      ],
+      "G3 detection C7": [
+        "L1",
+        "L2",
+        "L4"
+      ],
+      "G3 slot-statistic null exceedance (max E_cr over evaluated slots >= 2.06604; the screen is not counted)": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L6"
+      ]
+    },
+    "K": 35,
+    "alpha_per_claim": 0.0014285714285714286,
+    "rules": "one-sided Clopper-Pearson: null claims pass iff <= 22 of 800 fail (upper bound <= 0.05); detection claims pass iff >= 745 of 800 detect (lower bound >= 0.90)",
+    "descriptive_rates": "L5 and L7 for all gates; run-blocked G2-S detection of L6 (expected ~0.91 any run, ~0.36 run 6); dependence-screen flag rates under L4/L5; C8-C12; subject-level G3 exclusion (slot or screen) for every law; L2-L5 quantiles of the generalised-eigenvalue extremes (the reading range)",
+    "budget_hours": 6,
+    "workers": 4,
+    "estimated_cpu_hours": 2.5,
+    "preflight": "required in R2 on Deepthought before the run; includes D3-S (50 reference estimates per subject through the general path)",
+    "failure_rule": "if any of the 35 endpoint claims fails, R2 stops and returns to design; no threshold, law, cell or statistic is changed in response to a control outcome"
+  },
+  "pre_R2_readonly_check_R0e": {
+    "what": "stored T = 20 in-band records of runs 3-6, pseudo-roles from PARTITION_RULE.assign_roles with the real per-run gap counts; W = inverse of the sealed unshrunk all-window reference",
+    "G3_proxy": "R0-a computation under W on pseudo-role partitions train/cal/eval (runs 3-6); run-blocked stored partitions reported descriptively",
+    "G2S_proxy": "m_eval/m_train and the three group ratios between eval-role and train-role windows of runs 3-6 (role-mean centred, divisor n)",
+    "readings": {
+      "G3_any_subject_ge_threshold": "route A",
+      "fewer_than_3_dev_subjects_pass_G3_and_G2S_proxy": "route A",
+      "otherwise": "continue to R2"
+    },
+    "order": "run only after this CONFIG is committed; its hash is cited by the R0-e report"
+  },
+  "revision": {
+    "r1": "14 Oct 2026 00:40, author decision RD-9: run-blocked partition replaced by the interleaved block partition; T re-derived by the unchanged T rule (now 10); signal scaling and G2 definitions follow; nothing else changed",
+    "r1a": "14 Oct 2026: RD-9a clarifies G_r to include the last gap (to the end of the recording); no other change",
+    "r2": "14 Oct 2026: answers reviews megz_r1_design_review_20261014_01 and _02; author decisions RD-10 (cluster-robust G3 debias; physical trace ratio kept as a fifth G2-S gate; D3 primary M = K + I with the c term disclosed and sized by D3-S). Band, partition, T, option (ii) unchanged",
+    "r2_1": "14 Oct 2026: review megz_r1_design_review_20261014_03 F1 (option a), F2-F5 applied; no new author decision needed"
+  },
+  "partition": {
+    "kind": "interleaved_blocks",
+    "reference_implementation": "PARTITION_RULE.py (assign_roles); R2 reproduces it exactly and tests equality on the R0 gap counts",
+    "block_gaps": 12,
+    "cycle": [
+      "ref",
+      "train",
+      "ref",
+      "cal",
+      "train",
+      "eval"
+    ],
+    "run_offset": "block b of run r gets cycle[(b + r - 1) mod 6]",
+    "remainder": "appended to the last block of the run",
+    "guard": "first gap of every non-initial block is unused",
+    "inputs": "gap counts per run only (never data values). G_r = number of stimulus onsets in run r; gaps are 0..G_r-1 in chronological order and the last gap (G_r-1) runs from the last onset to the end of the recording, exactly as preprocess.noise_windows / the stored window metadata define them. Clarified 14 Oct (RD-9a) after the R0-e STOP: the R0-d per-gap lists cover only gaps with a next onset (0..G_r-2)",
+    "runs": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "replaces": {
+      "reference": [
+        1,
+        2
+      ],
+      "training": [
+        3,
+        4
+      ],
+      "calibration": [
+        5
+      ],
+      "evaluation": [
+        6
+      ]
+    },
+    "role_covariances": "each role pooled over its gaps from all runs, centred at the role mean, divisor n",
+    "evoked_selection_and_templates": "unchanged: face trials of runs 1-2, 0-207 ms post-onset (disjoint in time from the 1.50-2.45 s noise band)",
+    "descriptive": "run-blocked stationarity ratios (run r vs others) reported as a cross-run transport finding, never a gate",
+    "census": "PARTITION_CENSUS.json (upper bounds, BAD not applied): T=10 train 1993-2192, cal 1004-1085, eval 1010-1072, ref stride-T 2008-2160; the census omits each run's last gap. Adding it changes no block boundary and no existing role (checked for all 24 runs); at T = 12 the training role gains at most 14 windows (sub-03 <= 1757, sub-04 <= 1730 < 1760), so the T rule still gives 10"
+  },
+  "changed_vs_registered_kit": [
+    "noise windows: steady-circle band (R-D2)",
+    "partition: interleaved blocks (RD-9, RD-9a)",
+    "T = 10 by the unchanged T rule; d = 240",
+    "signal temporal basis: x0.5 scaling, passed through the preprocessing FIR (pipeline consistency)",
+    "reference metric: unshrunk sample covariance of ref-role windows (option ii)",
+    "G2: isotropy statistics and the MP-spread criterion (spread_ratio_max 2) retired; G2-R and five-statistic G2-S added",
+    "G3: variance term debiased cluster-robustly over role blocks (RD-10a); naive debias reported; dependence screen added",
+    "G3 alignments: rposition is a mirror of position under the band (8 slots per role at T = 10); both computed, counted once",
+    "E1: dev >= 3 of 4; confirmation n_min = max(8, power-rule n) (RD-8)",
+    "m_hi rule: largest c in [1024, 768, 512] with every dev calibration pool >= 1.1 c (RD-8)",
+    "D3: pre-stated miss reasons extended; D3-S descriptive",
+    "G2 physical trace ratio: comparator changed from the reference (tr S_eval / tr Sigma_ref) to the training role (tr S_eval / tr S_train); physical reference transport is not gated",
+    "D8 secondary readout not run for this submission (descriptive)",
+    "G4 comparator: flip-flop Kronecker MLE vs the unshrunk S_ref (descriptive)",
+    "D4 power rule evaluated at n_min with the pilot SD at its one-sided 80 % upper limit"
+  ]
+}

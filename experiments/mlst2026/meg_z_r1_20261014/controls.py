@@ -69,7 +69,7 @@ def cut_generated(Y,plans,T=10):
             view=sliding_window_view(yr,T,axis=1)
             xx.append(view[indices[:,0],indices[:,1]].transpose(0,2,1).reshape(len(rows),-1))
             for k in mm:mm[k].append(np.fromiter((w[k] for w in rows),dtype=int,count=len(rows)))
-        out[role]=(np.concatenate(xx) if xx else np.empty((0,T*Y['runs'][0].shape[2])),
+        out[role]=(np.concatenate(xx) if xx else np.asarray([]),
                    {k:np.concatenate(v) if v else np.empty(0,dtype=int) for k,v in mm.items()})
     return out
 
@@ -79,12 +79,14 @@ def temporal_draw(shape,xi):
     Preserve the initial ten stationary samples and all PCG64DXSM draws/order.
     Yule-Walker makes subsequent Cholesky rows the AR recursion, up to roundoff.
     """
+    if shape.get('fit',{}).get('law')=='identity IID':return xi
     if 'ar_coefficients' not in shape or xi.shape[1]<=10:
         return np.einsum('ij,gjc->gic',shape['Lt'],xi,optimize=True)
     den=np.r_[1.,-shape['ar_coefficients']]
     initial=np.einsum('ij,gjc->gic',shape['Lt'][:10,:10],xi[:,:10],optimize=True)
     forcing=xi*np.sqrt(shape['innovation_variance'])
-    forcing[:,:10]=lfilter(den,[1.],initial,axis=1)
+    boundary=toeplitz(den[:10],np.r_[1.,np.zeros(9)])
+    forcing[:,:10]=np.einsum('ij,gjc->gic',boundary,initial,optimize=True)
     return lfilter([1.],den,forcing,axis=1)
 
 def gap_filter(y,a):

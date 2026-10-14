@@ -16,8 +16,8 @@ def gap_geometry(n, onsets, responses=(), fs=F(1100,12), bad_mask=None):
     out=[]
     for g,on in enumerate(ons):
         lo=max(0,ceil((on+F(3,2))*fs))
-        hi=min(n-1, int((on+F(49,20))*fs),
-               int(((ons[g+1]-F(1,20)) if g+1<len(ons) else F(n-1)/fs-F(1,20))*fs))
+        hi=min(n-1, ((on+F(49,20))*fs).__floor__(),
+               (((ons[g+1]-F(1,20)) if g+1<len(ons) else F(n-1)/fs-F(1,20))*fs).__floor__())
         # floor, including for negative exact times
         hi=min(hi, ((on+F(49,20))*fs).__floor__())
         length=max(0,hi-lo+1)

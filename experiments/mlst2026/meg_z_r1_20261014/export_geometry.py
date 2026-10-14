@@ -29,7 +29,7 @@ def export(raw_root,derived):
             raw=mne.io.read_raw_fif(str(stem)+'_meg.fif',preload=False,verbose='error')
             assert not raw.preload
             assert raw.info['sfreq']==1100
-            n=(raw.n_times+11)//12
+            n=(int(raw.n_times)+11)//12
             geom=gap_geometry(n,sorted(ons),resp)
             runs.append({'run':run,'G':len(ons),'n_raw':int(raw.n_times),'n_decimated':n,
                 'events_sha256':hashlib.sha256(event.read_bytes()).hexdigest(),'gaps':geom})

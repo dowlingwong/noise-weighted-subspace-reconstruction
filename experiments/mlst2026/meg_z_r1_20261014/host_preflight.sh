@@ -7,4 +7,4 @@ unset PYTHONPYCACHEPREFIX
 exec python -m experiments.mlst2026.meg_z_r1_20261014.runner preflight \
   --derived /ceph/dwong/meg_z/derived_timingfix_20261013 \
   --gates experiments/mlst2026/meg_z_20261013_dev_timingfix/gates.json \
-  --out experiments/mlst2026/meg_z_r1_20261014_preflight/PREFLIGHT.json
+  --out experiments/mlst2026/meg_z_r1_20261014_rd11/PREFLIGHT.json

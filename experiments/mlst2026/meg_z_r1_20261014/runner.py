@@ -44,6 +44,19 @@ def context(derived,gates):
         maxL=max(g['length'] for R in geometry['subjects'][s]['runs'] for g in R['gaps']);shapes[s]=controls.ar_shape(sources[s],L=maxL)
     return shapes,geometry,hashes
 
+def budget_projection(controls_cpu,d3_cpu,complete=True):
+    """RD-11: controls only at 4 workers/6 h; R4 D3-S at 16 workers/8 h."""
+    cfg=load();workers=cfg['controls']['workers'];cap=cfg['controls']['budget_hours']
+    # Author-approved numeric values are in the pinned prose CONFIG field.
+    assert '16 workers' in cfg['d3']['D3S_budget'] and '8 h' in cfg['d3']['D3S_budget']
+    control_hours=controls_cpu/workers/3600;d3_hours=d3_cpu/16/3600
+    control_ok=control_hours<=cap;d3_ok=complete and d3_hours<=8
+    return {'projected_control_hours_4_workers':control_hours,'controls_workers':workers,
+        'controls_cap_hours':cap,'controls_status':'PASS' if control_ok else 'STOP',
+        'projected_D3S_hours_16_workers':d3_hours,'D3S_workers':16,'D3S_cap_hours':8,
+        'D3S_status':'PASS' if d3_ok else 'STOP','D3S_budget_stage':'R4',
+        'status':'PASS' if control_ok and d3_ok else 'STOP'}
+
 def preflight(derived,gates,out,full_timing=False):
     env=environment();identity=verify_kit();shapes,geometry,hashes=context(derived,gates)
     rows=[]
@@ -55,9 +68,8 @@ def preflight(derived,gates,out,full_timing=False):
     from .population import general_noise
     from experiments.mlst2026.meg_z_20261013.signal import SignalModel,orth
     B1,Cb,geom_check=temporal_bases();timings=[]
-    # Stop once the prescribed conservative projection cannot meet the cap.
-    control_bound=72800*max(r['seconds'] for r in rows)
-    row_limit=(6*4*3600-control_bound)/(4*50*7)
+    # D3-S has its own R4 wall budget; controls do not consume it (RD-11).
+    row_limit=8*16*3600/(4*50*7)
     class CostLimitExceeded(Exception):pass
     def cost_limit(signum,frame):raise CostLimitExceeded()
     old_handler=signal.signal(signal.SIGALRM,cost_limit)
@@ -86,11 +98,12 @@ def preflight(derived,gates,out,full_timing=False):
     d3_cpu=4*50*7*d3
     projected=(controls_cpu+d3_cpu)/4/3600;report={'environment':env,**identity,'source_hashes':hashes,'geometry':geom_check,'controls_timings':rows,
         'seconds_per_replicate_bound':per,'D3S_timings':timings,'D3S_reference_estimates_per_subject':50,'D3S_rows_per_estimate_bound':7,
-        'projected_control_CPU_seconds':controls_cpu,'projected_D3S_CPU_seconds':d3_cpu,'projected_hours_4_workers':projected,'cap_hours':6,
+        'projected_control_CPU_seconds':controls_cpu,'projected_D3S_CPU_seconds':d3_cpu,
+        'combined_projected_hours_4_workers_descriptive':projected,
         'projection_kind':'conservative worst-row projection; a censored row provides a lower bound on that projection',
-        'status':'PASS' if projected<=6 and len(timings)==4 and all(r['complete'] for r in timings) else 'STOP','fit_checks':{s:z['fit'] for s,z in shapes.items()},'controls_not_run':True}
+        **budget_projection(controls_cpu,d3_cpu,len(timings)==4 and all(r['complete'] for r in timings)),'fit_checks':{s:z['fit'] for s,z in shapes.items()},'controls_not_run':True}
     atomic_json(out,report)
-    if report['status']=='STOP':raise SystemExit('STOP projected controls plus D3-S exceeds 6 h x 4-worker cap')
+    if report['status']=='STOP':raise SystemExit('STOP separate controls or R4 D3-S budget failed, or D3-S timing incomplete')
     return report
 
 _CTX=None
@@ -111,8 +124,8 @@ def reviewed(commit,identity,review):
 
 def campaign(derived,gates,out,commit,identity,review):
     reviewed(commit,identity,review)
-    pf=json.loads((PACKAGE.parent/'meg_z_r1_20261014_preflight/PREFLIGHT.json').read_text())
-    if pf.get('status')!='PASS' or pf.get('kit_identity')!=identity or pf.get('projected_hours_4_workers',float('inf'))>6:raise RuntimeError('STOP reviewed identity needs a passing capped preflight')
+    pf=json.loads((PACKAGE.parent/'meg_z_r1_20261014_rd11/PREFLIGHT.json').read_text())
+    if pf.get('controls_status')!='PASS' or pf.get('kit_identity')!=identity or pf.get('projected_control_hours_4_workers',float('inf'))>load()['controls']['budget_hours']:raise RuntimeError('STOP reviewed identity needs a passing controls-only preflight')
     env=environment();shapes,geometry,hashes=context(derived,gates)
     out=Path(out)
     if out.exists():raise RuntimeError('STOP campaign output exists; no rerun/tuning')

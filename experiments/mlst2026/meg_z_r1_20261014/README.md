@@ -1,9 +1,9 @@
 # MEG R1 kit — R2-A implementation
 
 Additive EXP branch `codex/megz-r1-kit-20261014` from
-`bfe1139d3923f3b38915c3637696d7afbbf65641`. DESIGN rev 2.1 is encoded verbatim
+`bfe1139d3923f3b38915c3637696d7afbbf65641`. RD-11 CONFIG is encoded verbatim
 in `protocol_r1.json`; CONFIG SHA-256 is
-`da2e4de3777589ef5c204355461dce2cb1bb613823d5ce08c6035efa3c640c1b`.
+`f7f33c32bedafcf404cdf250cfa806050e2f4d882c854ae2aa2143da7b14511d`.
 This development kit is not a frozen confirmation protocol. R2-A never runs the
 controls or real-data preprocessing/gates/prediction/fits.
 
@@ -89,7 +89,7 @@ K=experiments.mlst2026.meg_z_r1_20261014
 python -m pytest experiments/mlst2026/meg_z_r1_20261014/tests -q -p no:cacheprovider
 python -m $K.runner verify-kit
 python -m $K.runner census-check
-python -m $K.runner preflight --derived /ceph/dwong/meg_z/derived_timingfix_20261013 --gates experiments/mlst2026/meg_z_20261013_dev_timingfix/gates.json --out experiments/mlst2026/meg_z_r1_20261014_preflight/PREFLIGHT.json
+python -m $K.runner preflight --derived /ceph/dwong/meg_z/derived_timingfix_20261013 --gates experiments/mlst2026/meg_z_20261013_dev_timingfix/gates.json --out experiments/mlst2026/meg_z_r1_20261014_rd11/PREFLIGHT.json
 ```
 
 R3 CLIs are `python -m $K.preprocess` and `python -m $K.gate_cli` (tested but
@@ -263,6 +263,10 @@ bound and STOP immediately, without changing statistical functions or starts.
 | `partition.descriptive` | `partition.py:19` | `tests/test_contract.py::test_partition_guards_final_gap_and_no_cross_role_adjacency` |
 | `partition.census` | `partition.py:19` | `tests/test_contract.py::test_partition_guards_final_gap_and_no_cross_role_adjacency` |
 | `changed_vs_registered_kit` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
+| `d3.D3S_budget` | `runner.py:47` | `tests/test_rd11.py::test_RD11_independent_budgets_and_exact_boundaries` |
+| `controls.budget_scope` | `runner.py:47` | `tests/test_rd11.py::test_RD11_independent_budgets_and_exact_boundaries` |
+| `controls.geometry_input` | `export_geometry.py:14` | `tests/test_contract.py::test_geometry_census_and_real_final_gaps` |
+| `revision.r2_2` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
 
 ## Optimization pass (14 October 2026)
 
@@ -278,7 +282,7 @@ bitwise equality of numerical samples is not claimed. Baseline source is preserv
 in tests/BASELINE_CONTROLS.txt. No statistical law, cell, threshold or scope changed.
 
 For the author-requested complete timing pass use runner preflight --full-timing:
-this measures all four full 64-start D3-S timing rows even if the projection
-already exceeds the cap. It still returns STOP above the unchanged 6 h / 4-worker
-cap. The requested engineering target is 4.8 h. Historical preflight evidence
+this measures all four full 64-start D3-S timing rows. RD-11 applies the 6 h /
+4-worker cap to controls only; D3-S retains all content and has a separate R4
+budget of 16 workers and 8 h wall. Each budget must pass independently. Historical preflight evidence
 is retained; optimization evidence uses a separate output directory.

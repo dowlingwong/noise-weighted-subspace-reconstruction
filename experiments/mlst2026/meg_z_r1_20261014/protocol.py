@@ -1,8 +1,8 @@
-"""Exact DESIGN rev 2.1 CONFIG contract and frozen-protocol confirmation guard."""
+"""Exact RD-11 CONFIG contract and frozen-protocol confirmation guard."""
 import json
 from pathlib import Path
 PACKAGE=Path(__file__).resolve().parent
-CONFIG_SHA='da2e4de3777589ef5c204355461dce2cb1bb613823d5ce08c6035efa3c640c1b'
+CONFIG_SHA='f7f33c32bedafcf404cdf250cfa806050e2f4d882c854ae2aa2143da7b14511d'
 PARTITION_SHA='809672165ee76d009f478eef0180478fe281834273aa01ef56f265d8e80fb8d7'
 DEV=tuple(f'sub-{i:02}' for i in range(1,5))
 def load(): return json.loads((PACKAGE/'protocol_r1.json').read_text())

@@ -31,7 +31,9 @@ def export(raw_root,derived):
             assert raw.info['sfreq']==1100
             n=(int(raw.n_times)+11)//12
             geom=gap_geometry(n,sorted(ons),resp)
+            for gap,onset in zip(geom,sorted(ons)):gap['physical_onset_rational_s']=str(onset)
             runs.append({'run':run,'G':len(ons),'n_raw':int(raw.n_times),'n_decimated':n,
+                'response_onsets_rational_s':[str(x) for x in resp],
                 'events_sha256':hashlib.sha256(event.read_bytes()).hexdigest(),'gaps':geom})
             raw.close()
         summary=json.loads((Path(derived)/f'{sub}_summary.json').read_text())

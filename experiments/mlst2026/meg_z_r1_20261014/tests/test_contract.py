@@ -42,16 +42,25 @@ def test_identity_mutation_detected(tmp_path,monkeypatch):
     with pytest.raises(RuntimeError):runner.verify_kit()
 
 def test_geometry_census_and_real_final_gaps():
+    from fractions import Fraction as F
+    from experiments.mlst2026.meg_z_r1_20261014.windows import gap_geometry,window_plan
     geom=json.loads((K/'fixtures/DEV_GEOMETRY.json').read_text());r0=json.loads((K/'fixtures/R0_EVIDENCE.json').read_text())
     for sub,subgeom in geom['subjects'].items():
         assert len(subgeom['sealed_channels'])==24
         for R in subgeom['runs']:
             pg=r0['subjects'][sub]['R0_d']['events']['10']['runs'][str(R['run'])]['per_gap']
             assert R['G']==len(pg)+1 and len(R['gaps'])==R['G']
-            for g,p in zip(R['gaps'][:-1],pg):
-                stretches=g['stretches'];assert sum(b-a for a,b in stretches)==p['allowed_samples']
-                assert sum((b-a)//10 for a,b in stretches)==p['stride_T']
-                assert sum(max(0,b-a-9) for a,b in stretches)==p['stride_1']
+            ons=[F(g['physical_onset_rational_s']) for g in R['gaps']];responses=list(map(F,R['response_onsets_rational_s']))
+            regenerated=gap_geometry(R['n_decimated'],ons,responses)
+            for exact,saved in zip(regenerated,R['gaps']):
+                assert exact=={k:v for k,v in saved.items() if k!='physical_onset_rational_s'}
+            plan=window_plan(R['gaps'],R['run'])
+            for role,rows in plan.items():
+                for row in rows:
+                    lo=F(row['start']*12,1100);hi=F((row['start']+9)*12,1100);on=ons[row['gap']]
+                    assert lo-on>=F(3,2) and hi-on<=F(49,20)
+                    assert hi<= (ons[row['gap']+1] if row['gap']+1<len(ons) else F((R['n_decimated']-1)*12,1100))-F(1,20)
+                    for response in responses:assert hi<response-F(1,20) or lo>response+F(1,2)
 
 def test_design_map_all_keys_valid_code_lines_and_tests():
     import ast

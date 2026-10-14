@@ -185,39 +185,39 @@ not executable rules. `DESIGN_TO_CODE.json` provides the same mapping for tools.
 | `d3.D3S_descriptive` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
 | `d3.other` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
 | `d3.N_star_bracket` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
-| `controls` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.generator` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L1` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L2` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L3` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L4` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L5` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L6` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L7` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.C0` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.G2 detection (endpoints)` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.G3 detection (endpoint)` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.descriptive` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.replicates` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.subjects` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoint_unit` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G2 null false exclusion` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 dependence-screen false flag` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G2 detection C1-C6` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 detection C7` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 slot-statistic null exceedance (max E_cr over evaluated slots >= 2.06604; the screen is not counted)` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.K` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.alpha_per_claim` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.rules` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.descriptive_rates` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.budget_hours` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.workers` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.estimated_cpu_hours` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.preflight` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.failure_rule` | `controls.py:142` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.generator` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L1` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L2` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L3` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L4` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L5` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L6` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L7` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.C0` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.G2 detection (endpoints)` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.G3 detection (endpoint)` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.descriptive` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.replicates` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.subjects` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoint_unit` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G2 null false exclusion` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 dependence-screen false flag` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G2 detection C1-C6` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 detection C7` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 slot-statistic null exceedance (max E_cr over evaluated slots >= 2.06604; the screen is not counted)` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.K` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.alpha_per_claim` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.rules` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.descriptive_rates` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.budget_hours` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.workers` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.estimated_cpu_hours` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.preflight` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.failure_rule` | `controls.py:153` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
 | `pre_R2_readonly_check_R0e` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
 | `pre_R2_readonly_check_R0e.what` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
 | `pre_R2_readonly_check_R0e.G3_proxy` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |

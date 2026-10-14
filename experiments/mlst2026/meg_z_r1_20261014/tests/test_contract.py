@@ -52,3 +52,16 @@ def test_geometry_census_and_real_final_gaps():
                 stretches=g['stretches'];assert sum(b-a for a,b in stretches)==p['allowed_samples']
                 assert sum((b-a)//10 for a,b in stretches)==p['stride_T']
                 assert sum(max(0,b-a-9) for a,b in stretches)==p['stride_1']
+
+def test_design_map_all_keys_valid_code_lines_and_tests():
+    import ast
+    mapping=json.loads((K/'DESIGN_TO_CODE.json').read_text());keys=[]
+    def walk(obj,prefix=''):
+        if isinstance(obj,dict):
+            for key,value in obj.items():
+                path=prefix+'.'+key if prefix else key;keys.append(path);walk(value,path)
+    walk(protocol.load());assert set(keys)==set(mapping)
+    for v in mapping.values():
+        file,line=v['code'].split(':');nodes=ast.parse((K/file).read_text()).body
+        assert any(isinstance(n,ast.FunctionDef) and n.name==v['function'] and n.lineno==int(line) for n in nodes)
+        file,test=v['test'].split('::');assert f'def {test}(' in (K/file).read_text()

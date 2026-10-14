@@ -1,0 +1,60 @@
+{
+ "source_head": "09ebdd7974f52adbad10a55d7afa7baed2a6bc00",
+ "environment": {
+  "python": "3.12.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "mne": "1.8.0",
+  "threads": {
+   "OPENBLAS_NUM_THREADS": "1",
+   "OMP_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1"
+  },
+  "bytecode_disabled": true
+ },
+ "identity": {
+  "kit_identity": "b2ec275c44a87ea629d797955d0643211a3f675e95b811888015b7ab7ddad52a",
+  "old_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+  "files": 29
+ },
+ "test_suites": {
+  "new": {
+   "passed": 252,
+   "seconds": 13.57,
+   "log": "PYTEST.log"
+  },
+  "old": {
+   "passed": 95,
+   "seconds": 170.79,
+   "log": "OLD_PYTEST.log"
+  }
+ },
+ "unchanged_paths_vs_dffa807": [
+  "experiments/mlst2026/meg_z_20261013",
+  "experiments/mlst2026/meg_z_r1_20261014/protocol_r1.json",
+  "experiments/mlst2026/meg_z_r1_20261014/gates.py",
+  "experiments/mlst2026/meg_z_r1_20261014/population.py",
+  "experiments/mlst2026/meg_z_r1_20261014/signal.py",
+  "experiments/mlst2026/meg_z_r1_20261014/fixtures"
+ ],
+ "census": {
+  "census": "exact",
+  "T": 10,
+  "m_hi": 768,
+  "calibration_pools": {
+   "sub-01": 1085,
+   "sub-02": 1081,
+   "sub-03": 1016,
+   "sub-04": 1004
+  },
+  "census_excludes_final_gaps": true
+ },
+ "requested_target_hours_4_workers": 4.8,
+ "cap_hours_4_workers": 6,
+ "full_preflight_command": "python -m experiments.mlst2026.meg_z_r1_20261014.runner preflight --full-timing --derived /ceph/dwong/meg_z/derived_timingfix_20261013 --gates experiments/mlst2026/meg_z_20261013_dev_timingfix/gates.json --out experiments/mlst2026/meg_z_r1_20261014_optimization/PREFLIGHT.json",
+ "control_campaign_not_run": true,
+ "full_preflight_exit": 1,
+ "full_preflight_log": "D3-S timing sub-01; full_timing=True; cap deadline 28.625 s\nD3-S timing sub-02; full_timing=True; cap deadline 28.625 s\nD3-S timing sub-03; full_timing=True; cap deadline 28.625 s\nD3-S timing sub-04; full_timing=True; cap deadline 28.625 s\nSTOP projected controls plus D3-S exceeds 6 h x 4-worker cap\n",
+ "full_preflight_complete_D3S_rows": 4,
+ "full_preflight_projection_arithmetic_verified": true
+}

@@ -1,0 +1,68 @@
+{
+ "source_head": "09ebdd7974f52adbad10a55d7afa7baed2a6bc00",
+ "environment": {
+  "python": "3.12.2",
+  "numpy": "2.2.6",
+  "scipy": "1.15.3",
+  "mne": "1.8.0",
+  "threads": {
+   "OPENBLAS_NUM_THREADS": "1",
+   "OMP_NUM_THREADS": "1",
+   "MKL_NUM_THREADS": "1"
+  },
+  "bytecode_disabled": true
+ },
+ "identity": {
+  "kit_identity": "b2ec275c44a87ea629d797955d0643211a3f675e95b811888015b7ab7ddad52a",
+  "old_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+  "files": 29
+ },
+ "baseline_source": "dffa807",
+ "profiles": {
+  "baseline": "         302660 function calls (302658 primitive calls) in 1.322 seconds\n\n   Ordered by: cumulative time\n   List reduced from 213 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.004    0.004    1.322    1.322 <string>:155(replicate)\n        1    0.758    0.758    1.016    1.016 <string>:127(assess)\n        1    0.040    0.040    0.220    0.220 <string>:69(generate)\n      300    0.126    0.000    0.126    0.000 {method 'reduce' of 'numpy.ufunc' objects}\n        1    0.050    0.050    0.116    0.116 <string>:58(cut_generated)\n      134    0.002    0.000    0.099    0.001 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/_methods.py:118(_mean)\n        2    0.070    0.035    0.078    0.039 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_20261013/estimators.py:41(moment_stats)\n        1    0.000    0.000    0.074    0.074 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:8(reference)\n      100    0.000    0.000    0.072    0.001 {method 'mean' of 'numpy.ndarray' objects}\n        1    0.034    0.034    0.063    0.063 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:102(retired_descriptives)\n        6    0.030    0.005    0.044    0.007 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/windows.py:34(window_plan)\n   206344    0.032    0.000    0.032    0.000 {method 'append' of 'list' objects}\n       94    0.000    0.000    0.030    0.000 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:69(_wrapreduction)\n       70    0.000    0.000    0.030    0.000 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:2338(sum)\n       51    0.028    0.001    0.028    0.001 {built-in method numpy.asarray}\n       34    0.000    0.000    0.027    0.001 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/fromnumeric.py:3735(mean)\n        1    0.003    0.003    0.026    0.026 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:49(g3)\n        2    0.014    0.007    0.025    0.013 <string>:132(compare)\n       24    0.003    0.000    0.023    0.001 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:40(cluster_energy)\n       10    0.000    0.000    0.023    0.002 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/einsumfunc.py:1057(einsum)\n        1    0.015    0.015    0.023    0.023 <string>:119(effective_reference_count)\n        3    0.019    0.006    0.019    0.006 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/linalg/_linalg.py:1485(eigh)\n        6    0.015    0.002    0.018    0.003 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/numeric.py:968(tensordot)\n        1    0.002    0.002    0.017    0.017 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_20261013/gates.py:85(g2_stationarity)\n    25658    0.014    0.000    0.014    0.000 {method 'reshape' of 'numpy.ndarray' objects}\n\n\n",
+  "optimized": "         253121 function calls in 0.661 seconds\n\n   Ordered by: cumulative time\n   List reduced from 241 to 25 due to restriction <25>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.002    0.002    0.661    0.661 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:193(replicate)\n        1    0.126    0.126    0.342    0.342 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:156(assess)\n        1    0.032    0.032    0.232    0.232 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:99(generate)\n        1    0.038    0.038    0.084    0.084 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:60(cut_generated)\n        2    0.073    0.036    0.081    0.041 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_20261013/estimators.py:41(moment_stats)\n        1    0.000    0.000    0.076    0.076 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:8(reference)\n        1    0.035    0.035    0.068    0.068 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:102(retired_descriptives)\n        6    0.046    0.008    0.062    0.010 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/windows.py:34(window_plan)\n       16    0.055    0.003    0.055    0.003 {method 'reduceat' of 'numpy.ufunc' objects}\n       12    0.000    0.000    0.048    0.004 /ceph/dwong/meg_env/lib/python3.12/site-packages/scipy/signal/_signaltools.py:1980(lfilter)\n       12    0.047    0.004    0.047    0.004 {built-in method scipy.signal._sigtools._linear_filter}\n      144    0.022    0.000    0.038    0.000 {built-in method numpy.fromiter}\n        6    0.002    0.000    0.030    0.005 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:76(temporal_draw)\n        1    0.003    0.003    0.028    0.028 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:49(g3)\n      310    0.028    0.000    0.028    0.000 {method 'reduce' of 'numpy.ufunc' objects}\n        1    0.016    0.016    0.026    0.026 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:148(effective_reference_count)\n       24    0.003    0.000    0.025    0.001 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/gates.py:40(cluster_energy)\n        6    0.001    0.000    0.024    0.004 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:92(gap_filter)\n        2    0.011    0.006    0.024    0.012 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:161(compare)\n        3    0.019    0.006    0.019    0.006 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/linalg/_linalg.py:1485(eigh)\n        1    0.002    0.002    0.018    0.018 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_20261013/gates.py:85(g2_stationarity)\n       86    0.001    0.000    0.018    0.000 /ceph/dwong/meg_env/lib/python3.12/site-packages/numpy/_core/_methods.py:118(_mean)\n       76    0.000    0.000    0.017    0.000 {method 'mean' of 'numpy.ndarray' objects}\n   153690    0.016    0.000    0.016    0.000 /ceph/dwong/megz_r1_host_20261014/experiments/mlst2026/meg_z_r1_20261014/controls.py:71(<genexpr>)\n       24    0.014    0.001    0.014    0.001 {method 'at' of 'numpy.ufunc' objects}\n\n\n"
+ },
+ "profiled_seconds": {
+  "baseline": 1.3222582200542092,
+  "optimized": 0.6606227066367865
+ },
+ "sealed_shape_AR05_max_error_over_RMS": {
+  "sub-01": 1.082260323926746e-14,
+  "sub-02": 1.4415814252242938e-14,
+  "sub-03": 1.2744405329926428e-14,
+  "sub-04": 1.5370946130884768e-14
+ },
+ "sealed_shape_C7_max_output_error_scaled_by_max1_abs": {
+  "sub-01": 4.482130222527303e-10,
+  "sub-02": 3.119344782476219e-10,
+  "sub-03": 1.9067147860596378e-10,
+  "sub-04": 2.0087709273752807e-10
+ },
+ "source_hashes": {
+  "sub-01": {
+   "before": "4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6",
+   "after": "4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6",
+   "sealed": "4e9d359939157fff1382eb7d4308c31290aae2048703f55fda8c6a74740aaad6",
+   "dataset": "reference/second_moment (centred divisor n)"
+  },
+  "sub-02": {
+   "before": "c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb",
+   "after": "c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb",
+   "sealed": "c77aacda9b3a3a288d3a1043934ee5df15a6a3eb173d18ccfc1244828b04cabb",
+   "dataset": "reference/second_moment (centred divisor n)"
+  },
+  "sub-03": {
+   "before": "edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972",
+   "after": "edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972",
+   "sealed": "edfa4e599df9b12a303c735d50ff935c53c9e11ec99171f70410c9a51e191972",
+   "dataset": "reference/second_moment (centred divisor n)"
+  },
+  "sub-04": {
+   "before": "62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4",
+   "after": "62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4",
+   "sealed": "62999794247dc82d0fb65051aefd2d4105f8d608c422d5fa0cd2bbfd21d64bc4",
+   "dataset": "reference/second_moment (centred divisor n)"
+  }
+ },
+ "controls_campaign_not_run": true
+}

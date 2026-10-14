@@ -35,7 +35,8 @@ def assemble(runs,cfg,expected_channels,subject,drop=()):
             windows[ro].append(old.cut(v['data'][chosen],[w['start'] for w in plan],10))
             for k in mm[ro]:mm[ro][k].extend(w[k] for w in plan)
     windows={ro:np.concatenate(x) for ro,x in windows.items()};mm={ro:{k:np.asarray(v,dtype=int) for k,v in meta.items()} for ro,meta in mm.items()}
-    ref=estimators.moment_stats(vec(windows['ref']));ref.n_eff=sum(len(x) for ro,x in windows.items() if ro=='ref')
+    ref=estimators.moment_stats(vec(windows['ref']));from .controls import effective_reference_count
+    ref.n_eff=effective_reference_count(mm['ref'])
     long={'train':'training','cal':'calibration','eval':'evaluation'}
     payload=old.subject_payload({long[ro]:windows[ro] for ro in long},{long[ro]:mm[ro] for ro in long},ref,evoked,{})
     for ro in long:payload['windows'][long[ro]]['block']=mm[ro]['block']

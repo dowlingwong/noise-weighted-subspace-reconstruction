@@ -16,6 +16,20 @@ def subject(path):
     if not G1['pass']:result.update(excluded=True);return result
     result['G2']=role_g2(sd.records('training'),sd.records('evaluation'),S)
     result['G2_cal']=role_g2(sd.records('training'),sd.records('calibration'),S)
+    from experiments.mlst2026.meg_z_20261013.estimators import ledoit_wolf_from_stats
+    from experiments.mlst2026.meg_z_20261013.gates import g2_stationarity,g5_mardia,lag_one_dependence
+    lw,lwi=ledoit_wolf_from_stats(sd.ref)
+    retired=g2_stationarity(lw,sd.records('evaluation'),[.8,1.25],2.)
+    result['G2_retired_LW']={'descriptive':True,'mean_whitened_eigenvalue':retired['mean_whitened_eigenvalue'],
+        'MP_edge_ratios':[retired['mp_lower_over_min'],retired['max_over_mp_upper']],'shrinkage':lwi['shrinkage']}
+    allX=np.concatenate([sd.records(ro) for ro in ('training','calibration','evaluation')])
+    allrun=np.concatenate([sd.window_meta[ro]['run'] for ro in ('training','calibration','evaluation')]);blocked={}
+    for run in sorted(set(allrun)):
+        sel=allrun==run;r=role_g2(allX[~sel],allX[sel],S,details=False)
+        r['G2S_pass']=all(.8<=r[k]<=1.25 for k in ('m_eval/m_train','g_bottom50','g_middle40','g_top10','physical_trace_ratio'))
+        blocked[str(int(run))]=r
+    result['run_blocked_G2S']=blocked
+    result['G5']=g5_mardia(sd.records('training'));result['dependence']=lag_one_dependence(sd,np.linalg.inv(S))
     _,_,L=coordinates(S);roles={}
     with h5py.File(path,'r') as h:
         for role,long in [('train','training'),('cal','calibration'),('eval','evaluation')]:

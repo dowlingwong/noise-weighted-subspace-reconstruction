@@ -92,7 +92,10 @@ def reviewed(commit,identity,review):
     if not re.search(r'(?im)^\s*\*{0,2}(?:Verdict|Status)\s*:\s*\*{0,2}ACCEPTED\b(?! WITH)',text) or commit not in text or identity not in text:raise RuntimeError('STOP R2-B ACCEPTED review with exact commit/identity required')
 
 def campaign(derived,gates,out,commit,identity,review):
-    reviewed(commit,identity,review);env=environment();shapes,geometry,hashes=context(derived,gates)
+    reviewed(commit,identity,review)
+    pf=json.loads((PACKAGE.parent/'meg_z_r1_20261014_preflight/PREFLIGHT.json').read_text())
+    if pf.get('status')!='PASS' or pf.get('kit_identity')!=identity or pf.get('projected_hours_4_workers',float('inf'))>6:raise RuntimeError('STOP reviewed identity needs a passing capped preflight')
+    env=environment();shapes,geometry,hashes=context(derived,gates)
     out=Path(out)
     if out.exists():raise RuntimeError('STOP campaign output exists; no rerun/tuning')
     out.mkdir(parents=True);t0=time.perf_counter()

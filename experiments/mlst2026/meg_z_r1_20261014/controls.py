@@ -148,7 +148,9 @@ def assess(rec,details=True,Sref=None):
         r=g2_diagonal(np.mean(Z*Z,axis=0),np.mean(V*V,axis=0),float(np.mean(np.sum((X-X.mean(0))**2,axis=1))),float(np.mean(np.sum((Y-Y.mean(0))**2,axis=1))),details=False)
         r['G2S_pass']=all(.8<=r[k]<=1.25 for k in ('m_eval/m_train','g_bottom50','g_middle40','g_top10','physical_trace_ratio'))
         run_drift[str(run)]=r
-    return {'G2':G2,'G2_cal':G2cal,'G3':G3,'run_blocked_G2S':run_drift,'reference_n':len(rec['ref'][0])}
+    from .gates import g1_spd
+    G1=g1_spd(Sref,rec['ref'][0].shape[1]//10,10,load()['gates']['G1']['unchanged_limits'])
+    return {'G1':G1,'G2':G2,'G2_cal':G2cal,'G3':G3,'run_blocked_G2S':run_drift,'reference_n':len(rec['ref'][0])}
 
 def replicate(law,cell,subject_index,replicate_index,shapes,geometry,details=True):
     gen,entropy=rng(law,cell,subject_index,replicate_index);sub=DEV[subject_index]
@@ -187,7 +189,7 @@ def summarize(rows):
     for l in range(1,8):
         for c in range(13):
             rr=[r for r in rows if r['law']==l and r['cell']==c]
-            item={'n':800,'G2_exclusion_rate':sum(not r['G2']['pass'] for r in rr)/800,
+            item={'n':800,'G1_limit_failure_rate':sum(not r['G1']['pass'] for r in rr)/800,'G2_exclusion_rate':sum(not r['G2']['pass'] for r in rr)/800,
                 'G3_slot_exceedance_rate':sum(r['G3']['slot_fail'] for r in rr)/800,
                 'G3_screen_flag_rate':sum(r['G3']['screen_flag'] for r in rr)/800,
                 'G3_subject_exclusion_rate':sum(not r['G3']['pass'] for r in rr)/800,

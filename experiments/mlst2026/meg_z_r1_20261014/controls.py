@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 from scipy.linalg import toeplitz,solve_toeplitz
 from scipy.stats import beta
+from scipy.signal import lfilter
+from numpy.lib.stride_tricks import sliding_window_view
 from experiments.mlst2026.meg_z_20261013.common import sha_file,atomic_json
 from .protocol import PACKAGE,DEV,load
 from .windows import window_plan
@@ -47,7 +49,7 @@ def ar_shape(S,C=24,T=20,L=88):
     for lag in range(11,len(r)):r[lag]=sum(a[j-1]*r[lag-j] for j in range(1,11))
     cov_t=toeplitz(r[:L]);Lt=np.linalg.cholesky(cov_t);Lc=np.linalg.cholesky(Sc)
     pop=np.kron(toeplitz(r[:10]),Sc);ev,V=np.linalg.eigh(pop)
-    return {'Lt':Lt,'Lc':Lc,'population':pop,'population_Q':V,'C':C,'L':L,
+    return {'Lt':Lt,'Lc':Lc,'ar_coefficients':a,'innovation_variance':innovation,'population':pop,'population_Q':V,'C':C,'L':L,
         'fit':{'order':10,'coefficients':a.tolist(),'innovation_variance':innovation,'max_root_modulus':float(np.max(np.abs(roots))),
         'lags_11_19':list(range(11,20)),'observed':empirical[11:20].tolist(),'fitted':r[11:20].tolist(),
         'relative_errors':((r[11:20]-empirical[11:20])/empirical[0]).tolist(),'source':'unshrunk all-window T20 moments; temporal Toeplitz partial trace; spatial partial trace trace C'}}
@@ -59,20 +61,45 @@ def cut_generated(Y,plans,T=10):
     out={}
     for role in ('ref','train','cal','eval'):
         xx=[];mm={k:[] for k in ('position','rposition','run','block','gap','start')}
-        for R,yr,plan in zip(Y['geometry'],Y['runs'],plans):
-            for w in plan[role]:
-                xx.append(yr[w['gap'],w['offset']:w['offset']+T].reshape(-1))
-                for k in mm:mm[k].append(w[k])
-        out[role]=(np.asarray(xx),{k:np.asarray(v,dtype=int) for k,v in mm.items()})
+        for yr,plan in zip(Y['runs'],plans):
+            rows=plan[role]
+            if not rows:continue
+            indices=np.asarray([[w['gap'],w['offset']] for w in rows],dtype=int)
+            # View axes are gap, offset, channel, time; preserve time-major vec.
+            view=sliding_window_view(yr,T,axis=1)
+            xx.append(view[indices[:,0],indices[:,1]].transpose(0,2,1).reshape(len(rows),-1))
+            for k in mm:mm[k].append(np.fromiter((w[k] for w in rows),dtype=int,count=len(rows)))
+        out[role]=(np.concatenate(xx) if xx else np.empty((0,T*Y['runs'][0].shape[2])),
+                   {k:np.concatenate(v) if v else np.empty(0,dtype=int) for k,v in mm.items()})
     return out
+
+def temporal_draw(shape,xi):
+    """Same stationary Cholesky coupling, then exact AR(10) innovations.
+
+    Preserve the initial ten stationary samples and all PCG64DXSM draws/order.
+    Yule-Walker makes subsequent Cholesky rows the AR recursion, up to roundoff.
+    """
+    if 'ar_coefficients' not in shape or xi.shape[1]<=10:
+        return np.einsum('ij,gjc->gic',shape['Lt'],xi,optimize=True)
+    den=np.r_[1.,-shape['ar_coefficients']]
+    initial=np.einsum('ij,gjc->gic',shape['Lt'][:10,:10],xi[:,:10],optimize=True)
+    forcing=xi*np.sqrt(shape['innovation_variance'])
+    forcing[:,:10]=lfilter(den,[1.],initial,axis=1)
+    return lfilter([1.],den,forcing,axis=1)
+
+def gap_filter(y,a):
+    if a==0:return y
+    scale=math.sqrt(1-a*a)
+    forcing=y*scale
+    forcing[0]=y[0]  # stationary run start, not a zero-state attenuated draw
+    return lfilter([1.],[1.,-a],forcing,axis=0)
 
 def generate(shape,geometry,law,gen):
     a={1:0.,2:0.,3:.25,4:.5,5:.75,6:0.,7:0.}[law];ys=[]
     for R in geometry:
         # Stationary AR(10) covariance at each gap, independently drawn before gap AR.
         xi=gen.normal(size=(R['G'],shape['L'],shape['C']))
-        y=np.einsum('ij,gjc->gic',shape['Lt'],xi,optimize=True)@shape['Lc'].T
-        for g in range(1,R['G']):y[g]=a*y[g-1]+math.sqrt(1-a*a)*y[g]
+        y=gap_filter(temporal_draw(shape,xi)@shape['Lc'].T,a)
         ys.append(y)
     plans=[window_plan(R['gaps'],R['run']) for R in geometry]
     rec=cut_generated({'geometry':geometry,'runs':ys},plans)
@@ -140,12 +167,21 @@ def assess(rec,details=True,Sref=None):
     from .gates import retired_descriptives
     G2['retired_LW']=retired_descriptives(rec['ref'][0],rec['eval'][0],Sref,effective_reference_count(rec['ref'][1]))
     G3=g3({ro:v for ro,v in whitened.items() if ro!='ref'})
-    allX=np.concatenate([v[0] for v in rec.values()]);allZ=np.concatenate([v[0] for v in whitened.values()]);allrun=np.concatenate([v[1]['run'] for v in rec.values()])
-    run_drift={}
+    # Identical pooled-run means/covariance diagonals via sufficient sums;
+    # avoid six copies of the large stride-1 reference pool and its complement.
+    run_drift={};d=Sref.shape[0]
+    counts=np.zeros(6,dtype=int);zs=np.zeros((6,d));zss=np.zeros((6,d));xs=np.zeros((6,d));xss=np.zeros(6)
+    for role,(X,meta) in rec.items():
+        Z=whitened[role][0];runs,starts,n=np.unique(meta['run'],return_index=True,return_counts=True)
+        idx=runs-1;counts[idx]+=n
+        zs[idx]+=np.add.reduceat(Z,starts,axis=0);zss[idx]+=np.add.reduceat(Z*Z,starts,axis=0)
+        xs[idx]+=np.add.reduceat(X,starts,axis=0);xss[idx]+=np.add.reduceat(np.sum(X*X,axis=1),starts)
     for run in range(1,7):
-        sel=allrun==run;Z=allZ[~sel];V=allZ[sel];Z=Z-Z.mean(0);V=V-V.mean(0)
-        X=allX[~sel];Y=allX[sel]
-        r=g2_diagonal(np.mean(Z*Z,axis=0),np.mean(V*V,axis=0),float(np.mean(np.sum((X-X.mean(0))**2,axis=1))),float(np.mean(np.sum((Y-Y.mean(0))**2,axis=1))),details=False)
+        i=run-1;nt=int(counts.sum()-counts[i]);ne=int(counts[i])
+        ts=zs.sum(0)-zs[i];tss=zss.sum(0)-zss[i];tx=xs.sum(0)-xs[i];txss=xss.sum()-xss[i]
+        qt=tss/nt-(ts/nt)**2;qe=zss[i]/ne-(zs[i]/ne)**2
+        pt=txss/nt-np.sum((tx/nt)**2);pe=xss[i]/ne-np.sum((xs[i]/ne)**2)
+        r=g2_diagonal(qt,qe,float(pt),float(pe),details=False)
         r['G2S_pass']=all(.8<=r[k]<=1.25 for k in ('m_eval/m_train','g_bottom50','g_middle40','g_top10','physical_trace_ratio'))
         run_drift[str(run)]=r
     from .gates import g1_spd

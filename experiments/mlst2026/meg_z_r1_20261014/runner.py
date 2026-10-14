@@ -44,7 +44,7 @@ def context(derived,gates):
         maxL=max(g['length'] for R in geometry['subjects'][s]['runs'] for g in R['gaps']);shapes[s]=controls.ar_shape(sources[s],L=maxL)
     return shapes,geometry,hashes
 
-def preflight(derived,gates,out):
+def preflight(derived,gates,out,full_timing=False):
     env=environment();identity=verify_kit();shapes,geometry,hashes=context(derived,gates)
     rows=[]
     # Bound all subject shapes with representative null/detection/drift/jitter cells.
@@ -63,10 +63,11 @@ def preflight(derived,gates,out):
     old_handler=signal.signal(signal.SIGALRM,cost_limit)
     try:
         for si,s in enumerate(DEV):
-            if row_limit<=0:break
+            if row_limit<=0 and not full_timing:break
             gen,_=controls.rng(2,0,si,999);shape=shapes[s]
-            t0=time.perf_counter();signal.setitimer(signal.ITIMER_REAL,row_limit+.01)
-            print(f'D3-S timing {s}; per-row cap deadline {row_limit:.3f} s',flush=True)
+            t0=time.perf_counter();
+            if not full_timing:signal.setitimer(signal.ITIMER_REAL,row_limit+.01)
+            print(f'D3-S timing {s}; full_timing={full_timing}; cap deadline {row_limit:.3f} s',flush=True)
             try:
                 rec=controls.generate(shape,geometry['subjects'][s]['runs'],2,gen);S=controls.reference(rec['ref'][0])
                 A=orth(gen.normal(size=(24,2)));v=np.kron([1.,1.],[1.,.5,.25]);m0=SignalModel(A,B1,Cb,0.,v)
@@ -136,13 +137,14 @@ def main(argv=None):
     for name in ('verify-kit','census-check'):sp.add_parser(name)
     for name in ('preflight','controls'):
         p=sp.add_parser(name);p.add_argument('--derived',required=True);p.add_argument('--gates',required=True);p.add_argument('--out',required=True)
+        if name=='preflight':p.add_argument('--full-timing',action='store_true',help='Measure all four complete D3-S rows even when the final projection will STOP')
         if name=='controls':
             p.add_argument('--reviewed-commit',required=True);p.add_argument('--reviewed-identity',required=True);p.add_argument('--review',required=True)
     p=sp.add_parser('summarize-controls');p.add_argument('--out',required=True)
     a=ap.parse_args(argv)
     if a.command=='verify-kit':r=verify_kit()
     elif a.command=='census-check':r=census_check()
-    elif a.command=='preflight':r=preflight(a.derived,a.gates,a.out)
+    elif a.command=='preflight':r=preflight(a.derived,a.gates,a.out,a.full_timing)
     elif a.command=='controls':r=campaign(a.derived,a.gates,a.out,a.reviewed_commit,a.reviewed_identity,a.review)
     else:
         r=controls.summarize(json.loads((Path(a.out)/'records.json').read_text()));atomic_json(Path(a.out)/'claim_check.json',r)

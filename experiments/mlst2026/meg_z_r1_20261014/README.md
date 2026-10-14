@@ -196,39 +196,39 @@ bound and STOP immediately, without changing statistical functions or starts.
 | `d3.D3S_descriptive` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
 | `d3.other` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
 | `d3.N_star_bracket` | `population.py:13` | `tests/test_controls_population.py::test_primary_general_noise_identity_and_bracket` |
-| `controls` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.generator` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L1` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L2` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L3` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L4` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L5` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L6` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.laws.L7` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.C0` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.G2 detection (endpoints)` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.G3 detection (endpoint)` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.cells.descriptive` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.replicates` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.subjects` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoint_unit` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G2 null false exclusion` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 dependence-screen false flag` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G2 detection C1-C6` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 detection C7` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.endpoints.G3 slot-statistic null exceedance (max E_cr over evaluated slots >= 2.06604; the screen is not counted)` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.K` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.alpha_per_claim` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.rules` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.descriptive_rates` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.budget_hours` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.workers` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.estimated_cpu_hours` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.preflight` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
-| `controls.failure_rule` | `controls.py:155` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.generator` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L1` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L2` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L3` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L4` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L5` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L6` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.laws.L7` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.C0` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.G2 detection (endpoints)` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.G3 detection (endpoint)` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.cells.descriptive` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.replicates` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.subjects` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoint_unit` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G2 null false exclusion` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 dependence-screen false flag` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G2 detection C1-C6` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 detection C7` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.endpoints.G3 slot-statistic null exceedance (max E_cr over evaluated slots >= 2.06604; the screen is not counted)` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.K` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.alpha_per_claim` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.rules` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.descriptive_rates` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.budget_hours` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.workers` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.estimated_cpu_hours` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.preflight` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
+| `controls.failure_rule` | `controls.py:191` | `tests/test_controls_population.py::test_35_claims_exact_and_CP_thresholds` |
 | `pre_R2_readonly_check_R0e` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
 | `pre_R2_readonly_check_R0e.what` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
 | `pre_R2_readonly_check_R0e.G3_proxy` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
@@ -263,3 +263,22 @@ bound and STOP immediately, without changing statistical functions or starts.
 | `partition.descriptive` | `partition.py:19` | `tests/test_contract.py::test_partition_guards_final_gap_and_no_cross_role_adjacency` |
 | `partition.census` | `partition.py:19` | `tests/test_contract.py::test_partition_guards_final_gap_and_no_cross_role_adjacency` |
 | `changed_vs_registered_kit` | `protocol.py:8` | `tests/test_contract.py::test_config_equals_sha_pinned_MS` |
+
+## Optimization pass (14 October 2026)
+
+AR(10) draws retain the dense implementation's stationary first ten samples, then
+apply the identical innovation recursion with scipy.signal.lfilter. Gap AR uses
+lfilter along gaps, preserving the unattenuated independent run-start draw.
+Window extraction gathers from stride views, preserving role/run/gap/window order.
+Run descriptives use identical divisor-n formulas from per-run sufficient sums.
+PCG64DXSM draw shape, draw order and final RNG state remain unchanged; numerical
+equivalence is tested against the dffa807 implementation for all seven laws and
+all thirteen cells. Floating-point reassociation is allowed by those tests;
+bitwise equality of numerical samples is not claimed. Baseline source is preserved
+in tests/BASELINE_CONTROLS.txt. No statistical law, cell, threshold or scope changed.
+
+For the author-requested complete timing pass use runner preflight --full-timing:
+this measures all four full 64-start D3-S timing rows even if the projection
+already exceeds the cap. It still returns STOP above the unchanged 6 h / 4-worker
+cap. The requested engineering target is 4.8 h. Historical preflight evidence
+is retained; optimization evidence uses a separate output directory.

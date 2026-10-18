@@ -1,0 +1,57 @@
+{
+ "anomalies": [
+  "First D2 launcher wrote START_D2 then exited before running gate_cli because DER was unbound in the launch script; no gate_cli process started and no output file was produced. The script was corrected (DER defined) and D2 was launched once at 19:29:57Z; this is a pre-computation launcher fix, not a rerun."
+ ],
+ "bytecode_disabled": true,
+ "census": {
+  "T": 10,
+  "calibration_pools": {
+   "sub-01": 1085,
+   "sub-02": 1081,
+   "sub-03": 1016,
+   "sub-04": 1004
+  },
+  "census": "exact",
+  "census_excludes_final_gaps": true,
+  "m_hi": 768
+ },
+ "d1_command": "python -m experiments.mlst2026.meg_z_r1_20261014.preprocess --bids-root /ceph/dwong/meg_z/raw/ds000117 --subject <sub-01..04> --out /ceph/dwong/meg_z/derived_r1_20261018",
+ "d1_done_utc": "DONE 2026-10-18T19:29:12Z",
+ "d1_launch_utc": "2026-10-18T19:26:18Z",
+ "d2_command": "python -m experiments.mlst2026.meg_z_r1_20261014.gate_cli --derived /ceph/dwong/meg_z/derived_r1_20261018 --subjects sub-01,sub-02,sub-03,sub-04 --bids-root /ceph/dwong/meg_z/raw/ds000117 --out experiments/mlst2026/meg_z_r1_20261014_dev/gates_r1.json",
+ "d2_done_utc": "DONE",
+ "d2_launch_utc": "2026-10-18T19:29:57Z",
+ "data_manifest": {
+  "note": "D0 manifest is the full 449-file/84.7 GB dataset manifest including confirmation subjects; its verify step would hash sub-05..16 and was not run. Dev raw files were hashed directly; the 24 FIF + 24 events TSV matched the dev-only R0 ARTIFACT_SHA256.json.",
+  "path": "experiments/mlst2026/meg_z_20261013_dev/DATA_MANIFEST.json",
+  "present": true
+ },
+ "date_utc": "2026-10-18",
+ "git_head": "2f650bc56d65098f1190d4d6ea2e0ccc7ba2c374",
+ "git_origin_head": "2f650bc56d65098f1190d4d6ea2e0ccc7ba2c374",
+ "host": "deepthought",
+ "kit_identity": "a1825db94366eb67677818fdeb5e43219de6dd4bfc27acbcafd4472feed45ccf",
+ "mne": "1.8.0",
+ "nothing_tuned": "No kit file, flag, seed, threshold, path or worker count was changed; no rerun, resume or partial repeat.",
+ "numpy": "2.2.6",
+ "old_kit_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+ "protocol_r1_sha256": "35a892276b298cc349434b0907bc3e79ab962a3038f9b0ea178c42bde56d1c47",
+ "pytest": "264 passed in 20.21s",
+ "python": "3.12.2",
+ "review_files": {
+  "r2b_recheck": "/ceph/dwong/megz_r1_host_20261014/reviews/megz_r2b_recheck_20261015_01/REPORT.md",
+  "r2c_receiving": "/ceph/dwong/megz_r1_host_20261014/reviews/megz_r2c_receiving_review_20261018_01/INDEPENDENT_REVIEW.md"
+ },
+ "scipy": "1.15.3",
+ "threads": {
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1"
+ },
+ "tmux_sessions": [
+  "r1-preflight (stale from 2026-10-14, untouched)",
+  "r3-d1",
+  "r3-d2"
+ ],
+ "user": "dwong"
+}

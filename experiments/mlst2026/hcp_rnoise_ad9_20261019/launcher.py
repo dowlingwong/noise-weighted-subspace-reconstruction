@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import subprocess
 import tempfile
 from urllib.parse import urlparse
@@ -314,6 +315,18 @@ class Runtime:
         return build(Sref, theta)
 
 
+def start_record(evidence, out):
+    """Distinct ownership even in same-path clones with identical Git clocks.
+
+    This token affects only the access ledger, never study seeds or numerics.
+    publish() verifies the complete token-bearing blob on origin/main. Without
+    it, identical commits could make a second push idempotently succeed.
+    """
+    return {**evidence, 'status': 'STARTED', 'no_restart': True,
+            'run_token': secrets.token_hex(32), 'output': str(Path(out).absolute()),
+            'all60': True, 'resamples': 50, 'n_min': 18}
+
+
 def run(ms, registration_record, registered_bundle, output, *, backend=None):
     """Once-only orchestration; there is deliberately no restart/resume API."""
     backend = Runtime() if backend is None else backend
@@ -325,8 +338,7 @@ def run(ms, registration_record, registered_bundle, output, *, backend=None):
     # The immutable checksum bundle, rather than an output name or tag date,
     # identifies the once-only run across different clones and authorizations.
     public = 'reviews/hcp_rnoise_confirmation_' + registered_bundle
-    start = {**evidence, 'status': 'STARTED', 'no_restart': True,
-             'output': str(out.absolute()), 'all60': True, 'resamples': 50, 'n_min': 18}
+    start = start_record(evidence, out)
     qualification, details, predictions, records = {}, {}, {}, []
     current_date = None
     started_public = False
@@ -413,12 +425,14 @@ def run(ms, registration_record, registered_bundle, output, *, backend=None):
                             records.append(record)
         result = summarize(records, predictions, qualification)
         write_new(out / 'SUMMARY.json', encoded(result))
-        terminal = {'status': 'COMPLETE', 'cohort': selection, 'fits': len(records), 'no_restart': True}
+        terminal = {'status': 'COMPLETE', 'cohort': selection, 'fits': len(records), 'no_restart': True,
+                    'run_token': start['run_token'], 'bundle_sha256': registered_bundle}
         backend.publish(ms, public + '/COMPLETED.json', encoded(terminal), 'HCP confirmation completion')
         write_new(out / 'COMPLETED.json', encoded(terminal))
         return result
     except BaseException as exc:
         stop = {'status': 'STOP', 'no_restart': True, 'confirmatory_claim_allowed': False,
+                'run_token': start['run_token'], 'bundle_sha256': registered_bundle,
                 'date': current_date, 'exception': type(exc).__name__, 'reason': str(exc),
                 'qualification': qualification, 'unprocessed_dates': [d for d in protocol.load()['access']['confirmation_analysis_dates'] if d not in qualification],
                 'completed_fits': len(records), 'outcomes': {f'PZ{i}': unavailable('run STOP: ' + str(exc)) for i in range(1, 6)}}

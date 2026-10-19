@@ -192,6 +192,22 @@ def test_public_once_only_blocks_different_output(tmp_path):
     assert len([c for c in b.calls if isinstance(c, tuple) and c[0] == 'decode']) == 1
     assert json.loads((tmp_path / 'first' / 'STOP.json').read_bytes())['no_restart']
     assert (tmp_path / 'second' / 'STOP.json').is_file()
+    start = json.loads((tmp_path / 'first' / 'STARTED.json').read_bytes())
+    stop = json.loads((tmp_path / 'first' / 'STOP.json').read_bytes())
+    assert stop['run_token'] == start['run_token']
+
+
+def test_same_path_same_clock_start_ownership_is_unique(tmp_path):
+    evidence = {'tag': 'hcp-rnoise-registration-20261020', 'bundle_sha256': 'a' * 64}
+    # Independent hosts/clones can use the same absolute output name, Git user
+    # and second. The payload must still differ before Git object construction.
+    a = launcher.start_record(evidence, tmp_path / 'identical')
+    b = launcher.start_record(evidence, tmp_path / 'identical')
+    assert len(a['run_token']) == len(b['run_token']) == 64
+    assert a['run_token'] != b['run_token']
+    assert launcher.digest(launcher.encoded(a)) != launcher.digest(launcher.encoded(b))
+    a.pop('run_token'); b.pop('run_token')
+    assert a == b
 
 
 @pytest.mark.parametrize('failure', ['decode', 'fit'])
@@ -374,3 +390,57 @@ def test_prediction_wrapper_calls_unchanged_kernel(monkeypatch):
     assert len(result['fixed']) == 4 and set(result['adaptive']) == {'A', 'B'}
     assert all(r['n_starts'] == 64 for r in result['fixed'])
     assert result['Sref_sha256_f64le'] == prediction.sref_hash(S)
+
+
+def test_concurrent_identical_path_clones_have_one_start_owner(tmp_path, monkeypatch):
+    base = 'a' * 40
+    evidence = {'tag': 'hcp-rnoise-registration-20261020', 'bundle_sha256': 'b' * 64}
+    # Same absolute output string, base, author/committer second and message.
+    payloads = [launcher.encoded(launcher.start_record(evidence, '/identical/output')) for _ in range(2)]
+    relative = 'reviews/hcp_rnoise_confirmation_' + 'b' * 64 + '/STARTED.json'
+    clones = {}; remote = {'tip': base, 'owners': []}
+    def fake(ms, *args, **kw):
+        state = clones.setdefault(str(ms), {})
+        op = args[0]
+        if op == 'rev-parse': return base.encode()  # intentionally stale same base
+        if op == 'ls-tree': return b''
+        if op == 'hash-object':
+            state['raw'] = kw['data']
+            state['object'] = hashlib.sha1(state['raw']).hexdigest()
+            return state['object'].encode()
+        if op == 'write-tree': return hashlib.sha1(state['object'].encode()).hexdigest().encode()
+        if op == 'commit-tree':
+            state['commit'] = hashlib.sha1((args[1] + base + 'fixed-author-time').encode() + kw['data']).hexdigest()
+            return state['commit'].encode()
+        if op == 'push':
+            commit = args[-1].split(':', 1)[0]
+            # Model normal Git: same-commit up-to-date pushes succeed too.
+            if remote['tip'] not in (base, commit):
+                raise subprocess.CalledProcessError(1, args, b'non-fast-forward')
+            remote.update(tip=commit, raw=state['raw'])
+            remote['owners'].append(str(ms))
+            return b''
+        if op == 'show': return remote['raw']
+        return b''
+    monkeypatch.setattr(guard, 'git', fake)
+    monkeypatch.setattr(launcher, 'git_run', fake)
+    launcher.publish(tmp_path / 'clone1', relative, payloads[0], 'HCP confirmation: once-only START')
+    with pytest.raises(subprocess.CalledProcessError):
+        launcher.publish(tmp_path / 'clone2', relative, payloads[1], 'HCP confirmation: once-only START')
+    assert len(remote['owners']) == 1
+    assert json.loads(remote['raw'])['run_token'] == json.loads(payloads[0])['run_token']
+
+
+def test_start_publication_verifies_exact_owner_blob(tmp_path, monkeypatch):
+    raw = launcher.encoded(launcher.start_record({'tag': 'hcp-rnoise-registration-20261020'}, '/same/output'))
+    other = json.loads(raw); other['run_token'] = 'other-owner'
+    def fake(ms, *args, **kw):
+        if args[0] == 'rev-parse': return b'a' * 40
+        if args[0] == 'ls-tree': return b''
+        if args[0] in ('hash-object', 'write-tree', 'commit-tree'): return b'b' * 40
+        if args[0] == 'show': return launcher.encoded(other)
+        return b''
+    monkeypatch.setattr(guard, 'git', fake)
+    monkeypatch.setattr(launcher, 'git_run', fake)
+    with pytest.raises(PermissionError, match='exact bytes'):
+        launcher.publish(tmp_path, 'reviews/fabricated/STARTED.json', raw, 'fixture')

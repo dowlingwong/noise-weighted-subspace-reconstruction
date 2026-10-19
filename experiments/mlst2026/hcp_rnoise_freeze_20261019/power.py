@@ -5,8 +5,11 @@ import numpy as np
 from scipy.stats import chi2,t
 from experiments.mlst2026.hcp_rnoise_20261019.gates import n_min
 from experiments.mlst2026.hcp_rnoise_dev_20261019.pipeline import new_file
-from .prediction import PUB
+from .prediction import PUB,MS,committed
 from .summary import FAMILY
+
+AD8_SHA='557f584083588c96f32e3b9938b5a3a9349d6077fc3ccc65a3fa2635efed1e66'
+AD8_COMMIT='4fa00e700a104aea7fa0f79d7cb98e8d7dc55cc8'
 
 EXPECTED=[f'{g}/{i}/reference' for g in ('control','A','B') for i in range(5)]
 
@@ -19,7 +22,7 @@ def compute(summary,after_remedy=False):
         raise ValueError('STOP exact nine-date pilot required')
     if summary['resamples']!=(50 if after_remedy else 20):raise ValueError('STOP R20 then one R50 remedy only')
     if [c['cell'] for c in cells]!=EXPECTED:raise ValueError('STOP complete ordered fifteen reference cells required')
-    sd=[];pred=[]
+    sd=[];pred=[];required=[];selection=[]
     for c in cells:
         if set(c['date_means'])!=set(dates) or set(c['predicted_by_date'])!=set(dates):
             raise ValueError('STOP incomplete date means/predictions')
@@ -29,8 +32,20 @@ def compute(summary,after_remedy=False):
         s=float(np.std(vals,ddof=1));p=float(np.mean(pv))
         if s!=c['between_date_sd'] or p!=c['predicted_contrast']:
             raise ValueError('STOP pilot SD/prediction aggregate differs')
-        sd.append(s);pred.append(p)
-    result=n_min(sd,9,pred,FAMILY,after_remedy=after_remedy,cell_ids=EXPECTED,expected_cells=EXPECTED)
+        if c['geometry']=='control':
+            region='theta0 control';needed=True
+        else:
+            cert=c['certificate_by_date']
+            if set(cert)!=set(dates) or any(v is None or len(v)!=2 or not np.isfinite(v).all() or v[0]>v[1] for v in cert.values()):
+                raise ValueError('STOP complete finite prediction certificates required for AD8 selection')
+            below=all(c['N']<cert[d][0] for d in dates)
+            above=all(c['N']>cert[d][1] for d in dates)
+            needed=bool(below or above)
+            region='below every certificate' if below else 'above every certificate' if above else 'inside/overlapping certificate family; no sign claim'
+        selection.append({'cell':c['cell'],'N':c['N'],'required':needed,'region':region,'predicted_contrast':p})
+        if needed:
+            sd.append(s);pred.append(p);required.append(c['cell'])
+    result=n_min(sd,9,pred,FAMILY,after_remedy=after_remedy,cell_ids=required,expected_cells=required)
     upper=np.asarray(sd)*np.sqrt(8/chi2.ppf(.2,8));target=.5*np.abs(pred)
     trials=[]
     for n in range(8,13):
@@ -39,14 +54,17 @@ def compute(summary,after_remedy=False):
                        'cells':[{'cell':key,'pilot_sd':sd[i],'pilot_sd_upper80':float(upper[i]),
                                  'prediction':pred[i],'half_abs_prediction':float(target[i]),
                                  'simultaneous_half_width':float(half[i]),'pass':bool(half[i]<target[i])}
-                                for i,key in enumerate(EXPECTED)]})
-    return {'label':'DEV PILOT POWER; not confirmation evidence','rule':'strict t_(1-.05/(2*family),n-1)*SD_upper80/sqrt(n) < .5*abs(mean prediction a_best+B/N), every reference cell; n=8..12',
+                                for i,key in enumerate(required)]})
+    return {'label':'DEV PILOT POWER; not confirmation evidence','rule':'strict t_(1-.05/(2*family),n-1)*SD_upper80/sqrt(n) < .5*abs(mean prediction a_best+B/N), every AD8-required reference sign-claim cell, all15 reference cells retained in family34; n=8..12',
             'family_size':FAMILY,'alpha':.05,'n_dev':9,'SD_upper_confidence':.8,'SD_upper_df':8,
             'SD_upper_multiplier':float(np.sqrt(8/chi2.ppf(.2,8))),
-            'resamples':summary['resamples'],'required_cells':EXPECTED,'trials':trials,**result}
+            'resamples':summary['resamples'],'required_cells':required,'AD8_selection':selection,'AD8_sha256':AD8_SHA,'AD8_commit':AD8_COMMIT,'trials':trials,**result}
 
 
 def publish(final=False):
+    ad8=MS/'reviews/hcp_rnoise_author_decisions_20261019/AD8_POWER_CELLS.md'
+    if committed(ad8,MS,AD8_COMMIT,remote=True)!=AD8_SHA:
+        raise PermissionError('STOP signed AD8 identity mismatch')
     p20=PUB/'PILOT_SUMMARY.json';s20=json.loads(p20.read_text());initial=compute(s20)
     initial['pilot_sha256']=hashlib.sha256(p20.read_bytes()).hexdigest()
     if not final:

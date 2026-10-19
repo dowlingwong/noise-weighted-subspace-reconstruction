@@ -63,6 +63,7 @@ def aggregate(records,dates,pred,R=20,reference_only=False):
                         pc[d]=rr['a_best']+rr['B']/N
                     power.append({'cell':cell,'geometry':g,'N':N,'date_means':ci['date_means'],
                                   'between_date_sd':ci['sd'],'predicted_by_date':pc,
+                                  'certificate_by_date':{d:pred['units'][d]['geometries'][g]['row']['N_star_interval'] for d in dates},
                                   'predicted_contrast':float(np.mean(list(pc.values())))})
     out={'label':'DEV PILOT; not confirmatory','dates':dates,'n_dev':len(dates),'resamples':R,
          'reference_only':reference_only,'family_size':FAMILY,'family_alpha':.05,

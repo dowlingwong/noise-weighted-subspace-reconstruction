@@ -34,6 +34,6 @@ date/geometry/N/arm/replicate key set before any reading. It reports date means,
 paired interactions, restart flags, population Hessian diagnostics and all SDs.
 The prospective family34 and once-only reference R50 pilot extension are recorded
 in MS PILOT_PLAN.md before learning. `power.py` calls unchanged HCP/R1 n_min and
-also tabulates every cell at every n8…12, with strict inequalities and one-sided
+also tabulates every required sign-claim cell at every n8…12 (signed AD8, commit4fa00e7; all15 reference cells stay in family34), with strict inequalities and one-sided
 80% chi-square SD upper limits. Failure after R50 stops before F5. No optimiser
 iteration-limit adaptation is performed: the inherited T25 recipe stays fixed.

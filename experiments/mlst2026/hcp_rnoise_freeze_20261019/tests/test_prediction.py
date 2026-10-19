@@ -68,7 +68,8 @@ def test_registration_evidence_guard(monkeypatch,failure):
     sums=(digest(frozen)+'  '+g.FREEZE+'/protocol_frozen.json\n').encode()
     record=f'OSF URL: https://osf.io/abc12/\nGit tag: hcp-rnoise-registration-20261020\nTagged commit: abc\nBundle SHA-256: {digest(sums)}\nOTS SHA-256: {digest(b"ots")}\n'
     auth=f'OSF URL: https://osf.io/abc12/\nGit tag: hcp-rnoise-registration-20261020\nOTS SHA-256: {digest(b"ots")}\nAuthor signature: Dowling Wong; 2026-10-20\n'
-    blobs={path:record.encode(),str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md'):auth.encode(),g.FREEZE+'/REGISTRATION_SHA256SUMS':sums,g.FREEZE+'/REGISTRATION_SHA256SUMS.ots':b'ots',g.FREEZE+'/protocol_frozen.json':frozen}
+    monkeypatch.setattr(g,'verify',lambda expected:expected)
+    blobs={g.FREEZE+'/FREEZE_KIT_SHA256.json':b'{}',path:record.encode(),str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md'):auth.encode(),g.FREEZE+'/REGISTRATION_SHA256SUMS':sums,g.FREEZE+'/REGISTRATION_SHA256SUMS.ots':b'ots',g.FREEZE+'/protocol_frozen.json':frozen}
     def fake(ms,*args):
         if args[0]=='rev-parse':return b'abc\n'
         if args[0]=='merge-base':return b''
@@ -89,3 +90,15 @@ def test_registration_evidence_guard(monkeypatch,failure):
     elif failure=='signature':blobs[str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md')]=auth.replace('Dowling Wong;','UNSIGNED;').encode()
     elif failure=='auth':blobs[str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md')]=auth.replace('https://osf.io/abc12/','https://osf.io/different/').encode()
     with pytest.raises(PermissionError):g.registration('x',path)
+
+
+def test_identity_mismatch_and_registered_identity(monkeypatch,tmp_path):
+    from experiments.mlst2026.hcp_rnoise_freeze_20261019 import identity as i
+    monkeypatch.setattr(i,'PACKAGE',tmp_path)
+    monkeypatch.setattr(i,'kit_hashes',lambda p:{'kit_identity':'actual'})
+    monkeypatch.setattr(i,'dev_verify',lambda:None)
+    (tmp_path/'KIT_SHA256.json').write_text('{"kit_identity":"actual"}')
+    assert i.verify({'kit_identity':'actual'})['kit_identity']=='actual'
+    with pytest.raises(PermissionError):i.verify({'kit_identity':'changed'})
+    (tmp_path/'KIT_SHA256.json').write_text('{"kit_identity":"changed"}')
+    with pytest.raises(PermissionError):i.verify()

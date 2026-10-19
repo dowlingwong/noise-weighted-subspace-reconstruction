@@ -8,6 +8,7 @@ import subprocess
 from urllib.parse import urlparse
 from experiments.mlst2026.hcp_rnoise_20261019.protocol import load
 from .prediction import committed
+from .identity import verify
 
 FREEZE='reviews/hcp_rnoise_freeze_20261019'
 
@@ -56,6 +57,8 @@ def registration(ms,record):
                 raise PermissionError('STOP registered file differs: '+path)
         frozen=json.loads(git(ms,'show','origin/main:'+FREEZE+'/protocol_frozen.json'))
         if frozen.get('frozen') is not True: raise PermissionError('STOP protocol not frozen')
+        registered_kit=json.loads(git(ms,'show','origin/main:'+FREEZE+'/FREEZE_KIT_SHA256.json'))
+        verify(registered_kit)
         auth=git(ms,'show','origin/main:'+str(Path(record).parent/'CONFIRMATION_AUTHORIZATION.md')).decode()
         for key,value in (('OSF URL',url),('Git tag',tag),('OTS SHA-256',field(text,'OTS SHA-256'))):
             if field(auth,key)!=value:raise PermissionError('STOP authorization mismatch')

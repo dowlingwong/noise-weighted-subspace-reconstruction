@@ -1,0 +1,124 @@
+"""Read-only Git evidence gates. Never constructs a recording path."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+from urllib.parse import urlparse
+from .protocol import load, verify, PACKAGE
+from experiments.mlst2026.hcp_rnoise_freeze_20261019.prediction import committed
+
+FREEZE='reviews/hcp_rnoise_freeze_20261019'
+
+
+def git(ms,*args):
+    return subprocess.check_output(['git','-C',str(ms),*args],env=dict(os.environ,GIT_OPTIONAL_LOCKS='0'))
+
+
+def field(text,name):
+    match=re.search(r'^'+re.escape(name)+r':\s*(\S.*?)\s*$',text,re.M)
+    if not match: raise PermissionError('STOP missing registration field: '+name)
+    return match.group(1)
+
+
+def registration(ms,record):
+    """Require published OSF, tag, bundle and OTS identities plus author authorization."""
+    if not re.fullmatch(r'reviews/hcp_rnoise_registration_\d{8}/REGISTRATION.md',record):
+        raise PermissionError('STOP registration record path')
+    try:
+        text=git(ms,'show','origin/main:'+record).decode()
+        url=field(text,'OSF URL');parsed=urlparse(url)
+        if parsed.scheme!='https' or parsed.hostname!='osf.io' or parsed.path in ('','/'):
+            raise PermissionError('STOP OSF registration URL required')
+        tag=field(text,'Git tag')
+        if not re.fullmatch(r'hcp-rnoise-registration-[0-9]{8}',tag):
+            raise PermissionError('STOP registration tag name')
+        tagged=git(ms,'rev-parse',f'refs/tags/{tag}^{{commit}}').decode().strip()
+        if tagged!=field(text,'Tagged commit'): raise PermissionError('STOP tag commit mismatch')
+        git(ms,'merge-base','--is-ancestor',tagged,'origin/main')
+        sums=git(ms,'show',tagged+':'+FREEZE+'/REGISTRATION_SHA256SUMS')
+        sums_main=git(ms,'show','origin/main:'+FREEZE+'/REGISTRATION_SHA256SUMS')
+        if sums!=sums_main or hashlib.sha256(sums).hexdigest()!=field(text,'Bundle SHA-256'):
+            raise PermissionError('STOP registered checksum bundle changed')
+        # OTS upgrades may change receipt bytes; the current origin/main receipt must
+        # match the current registration and authorization hashes. Tag binds original.
+        git(ms,'show',tagged+':'+FREEZE+'/REGISTRATION_SHA256SUMS.ots')
+        ots=git(ms,'show','origin/main:'+FREEZE+'/REGISTRATION_SHA256SUMS.ots')
+        if not ots or hashlib.sha256(ots).hexdigest()!=field(text,'OTS SHA-256'):
+            raise PermissionError('STOP OTS receipt identity')
+        entries = [line.split('  ', 1)[1] for line in sums.decode().splitlines()]
+        required = {FREEZE+'/'+n for n in ('PROTOCOL_FROZEN.md', 'protocol_frozen.json', 'FREEZE_KIT_SHA256.json', 'POWER_AD9.json', 'DEV_PREDICTIONS.json', 'PILOT_SUMMARY.json', 'PILOT_R50_REF_SUMMARY.json', 'CONFIRMATION_RUN_CLI.md', 'CONFIRMATION_AUTHORIZATION_TEMPLATE.md')}
+        if len(entries) != len(set(entries)) or not required.issubset(entries):
+            raise PermissionError('STOP incomplete or duplicate registration checksum set')
+        for line in sums.decode().splitlines():
+            digest,path=line.split('  ',1)
+            if not re.fullmatch(r'[0-9a-f]{64}',digest) or Path(path).is_absolute() or '..' in Path(path).parts:
+                raise PermissionError('STOP invalid checksum entry')
+            blob=git(ms,'show','origin/main:'+path)
+            if hashlib.sha256(blob).hexdigest()!=digest:
+                raise PermissionError('STOP registered file differs: '+path)
+        frozen=json.loads(git(ms,'show','origin/main:'+FREEZE+'/protocol_frozen.json'))
+        if frozen != load() or frozen.get('frozen') is not True:
+            raise PermissionError('STOP registered protocol differs from exact AD9 freeze')
+        registered_kit=json.loads(git(ms,'show','origin/main:'+FREEZE+'/FREEZE_KIT_SHA256.json'))
+        verify(registered_kit)
+        auth=git(ms,'show','origin/main:'+str(Path(record).parent/'CONFIRMATION_AUTHORIZATION.md')).decode()
+        for key,value in (('OSF URL',url),('Git tag',tag),('OTS SHA-256',field(text,'OTS SHA-256'))):
+            if field(auth,key)!=value:raise PermissionError('STOP authorization mismatch')
+        if not field(auth,'Author signature').startswith('Dowling Wong;'):
+            raise PermissionError('STOP unsigned author authorization')
+        return {'OSF_URL':url,'tag':tag,'tagged_commit':tagged,'record':record,'status':'PASS'}
+    except (subprocess.CalledProcessError,ValueError,KeyError,IndexError,TypeError,UnicodeDecodeError) as exc:
+        raise PermissionError('STOP complete registration must exist on origin/main') from exc
+
+
+def before_fit(ms,registration_record,date,prediction_path,prediction_commit):
+    """Mandatory public order gate, called before any confirmation learning kernel."""
+    if date not in load()['access']['confirmation_analysis_dates']:
+        raise PermissionError('STOP outside fixed 60 confirmation dates')
+    reg=registration(ms,registration_record)
+    try:
+        resolved=git(ms,'rev-parse',f'{prediction_commit}^{{commit}}').decode().strip()
+        if resolved==reg['tagged_commit']:
+            raise PermissionError('STOP predictions must be committed after registration tag')
+        git(ms,'merge-base','--is-ancestor',reg['tagged_commit'],resolved)
+    except subprocess.CalledProcessError as exc:
+        raise PermissionError('STOP prediction commit must follow registered tag') from exc
+    sha=committed(prediction_path,ms,resolved,remote=True)
+    record=json.loads(Path(prediction_path).read_text())
+    if record.get('date')!=date or record.get('pre_fit') is not True:
+        raise PermissionError('STOP prediction is not for this unit before fitting')
+    return {**reg,'prediction_sha256':sha,'prediction_commit':resolved}
+
+
+def fit_confirmation(roles,model,Sref,N,m,arm,date_index,replicate_index,*,
+                     ms,registration_record,date,prediction_path,prediction_commit):
+    """Array API only. Recording access needs a separately authorized future launcher."""
+    before_fit(ms,registration_record,date,prediction_path,prediction_commit)
+    dates=load()['access']['confirmation_analysis_dates']
+    if type(date_index) is not int or date_index != 12 + dates.index(date):
+        raise PermissionError('STOP confirmation seed index must be 12 + fixed cohort index')
+    if type(replicate_index) is not int or not 0 <= replicate_index < 50:
+        raise PermissionError('STOP confirmation uses exactly R50 indices 0..49')
+    from experiments.mlst2026.hcp_rnoise_20261019.learning import fit_cell
+    return fit_cell(roles,model,Sref,N,m,arm,date_index,replicate_index)
+
+
+def main(argv=None):
+    """Metadata-only registration preflight. Never opens a recording."""
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--ms', required=True)
+    parser.add_argument('--registration-record', required=True)
+    args = parser.parse_args(argv)
+    try:
+        result = registration(args.ms, args.registration_record)
+    except PermissionError as exc:
+        parser.exit(2, str(exc) + '\n')
+    print(json.dumps(result, sort_keys=True))
+    return result
+
+
+if __name__ == '__main__':
+    main()

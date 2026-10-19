@@ -1,0 +1,650 @@
+{
+  "access": {
+    "confirmation_analysis_dates": [
+      "2013-06-24",
+      "2013-07-24",
+      "2013-07-29",
+      "2013-08-02",
+      "2013-08-09",
+      "2013-08-10",
+      "2013-09-03",
+      "2013-09-20",
+      "2013-09-21",
+      "2013-10-22",
+      "2013-11-07",
+      "2013-11-22"
+    ],
+    "confirmation_enabled": false,
+    "confirmation_pool_dates": [
+      "2013-06-24",
+      "2013-07-24",
+      "2013-07-29",
+      "2013-08-02",
+      "2013-08-09",
+      "2013-08-10",
+      "2013-09-03",
+      "2013-09-20",
+      "2013-09-21",
+      "2013-10-22",
+      "2013-11-07",
+      "2013-11-22",
+      "2013-12-30",
+      "2014-01-23",
+      "2014-03-29",
+      "2014-05-16",
+      "2014-05-21",
+      "2014-05-29",
+      "2014-05-30",
+      "2014-06-03",
+      "2014-06-06",
+      "2014-06-09",
+      "2014-06-10",
+      "2014-06-23",
+      "2014-06-24",
+      "2014-06-25",
+      "2014-06-26",
+      "2014-06-27",
+      "2014-06-30",
+      "2014-07-01",
+      "2014-07-02",
+      "2014-07-03",
+      "2014-07-08",
+      "2014-07-10",
+      "2014-07-19",
+      "2014-07-24",
+      "2014-07-25",
+      "2014-07-31",
+      "2014-08-02",
+      "2014-08-05",
+      "2014-08-08",
+      "2014-08-09",
+      "2014-08-12",
+      "2014-08-21",
+      "2014-08-28",
+      "2014-08-29",
+      "2014-10-14",
+      "2014-10-24",
+      "2014-10-27",
+      "2014-11-04",
+      "2014-11-25",
+      "2014-12-05",
+      "2014-12-09",
+      "2014-12-11",
+      "2014-12-15",
+      "2015-01-07",
+      "2015-01-10",
+      "2015-01-12",
+      "2015-01-16",
+      "2015-01-28"
+    ],
+    "data_root": "/ceph/dwong/hcp_meg/rnoise",
+    "dev_dates": [
+      "2013-07-22",
+      "2013-12-18",
+      "2014-06-04",
+      "2014-06-21",
+      "2014-07-18",
+      "2014-10-25",
+      "2014-11-24",
+      "2014-12-17",
+      "2014-12-20",
+      "2014-12-29",
+      "2014-12-30",
+      "2015-01-24"
+    ],
+    "header_source_subject": "177746",
+    "real_data_enabled": false,
+    "unused_confirmation_dates": [
+      "2013-12-30",
+      "2014-01-23",
+      "2014-03-29",
+      "2014-05-16",
+      "2014-05-21",
+      "2014-05-29",
+      "2014-05-30",
+      "2014-06-03",
+      "2014-06-06",
+      "2014-06-09",
+      "2014-06-10",
+      "2014-06-23",
+      "2014-06-24",
+      "2014-06-25",
+      "2014-06-26",
+      "2014-06-27",
+      "2014-06-30",
+      "2014-07-01",
+      "2014-07-02",
+      "2014-07-03",
+      "2014-07-08",
+      "2014-07-10",
+      "2014-07-19",
+      "2014-07-24",
+      "2014-07-25",
+      "2014-07-31",
+      "2014-08-02",
+      "2014-08-05",
+      "2014-08-08",
+      "2014-08-09",
+      "2014-08-12",
+      "2014-08-21",
+      "2014-08-28",
+      "2014-08-29",
+      "2014-10-14",
+      "2014-10-24",
+      "2014-10-27",
+      "2014-11-04",
+      "2014-11-25",
+      "2014-12-05",
+      "2014-12-09",
+      "2014-12-11",
+      "2014-12-15",
+      "2015-01-07",
+      "2015-01-10",
+      "2015-01-12",
+      "2015-01-16",
+      "2015-01-28"
+    ]
+  },
+  "author_decisions_pending": [
+    "AD1: Exclude G1 failures directly instead of R1 data-driven channel-drop retest, preserving fixed geometry.",
+    "AD2: Absolute artifact screen (500 pT amplitude,50 pT native sample step,any exceedance excludes); new thresholds require author adoption before decoding.",
+    "AD3: E1 >=9/12 and confirmation target first12 ascending eligible confirmation dates; minimum8 with R1 power rule, no replacement or expansion.",
+    "AD4: Whole full-block-without-replacement learning/calibration sampling, independent uniform cyclic rotation per selected block; wrapped partial draws are two observed segments; nominal IID PZ2 retains dependence limitation.",
+    "AD5: Continuous N ceiling floor(P/1.1)=1010, A-grid maximum888, mhi512; PZ4 high-m change; preserve10% margins instead of R1 training1600.",
+    "AD6: Continuous-scan controls use 10s block AR and scan-thirds instead of stimulus gaps and runs; no G3 claims; artifact screen is operational and has no calibrated false-exclusion claim.",
+    "AD7: C12,T6 and scaled filtered bases change dimensions/time support; keep fixed theta/SNR instead of searching a more favourable setting."
+  ],
+  "base": {
+    "exp_commit": "f8d7545f6fbbb3fa265963f6eaf86b0c1c175260",
+    "old_identity": "f121776c80c3cd424f1bd14dc1360e8c7930de6f840b34140190f1108e8acdfb",
+    "r1_identity": "a1825db94366eb67677818fdeb5e43219de6dd4bfc27acbcafd4472feed45ccf"
+  },
+  "budgets": {
+    "N_factors": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      4.0
+    ],
+    "N_max": 1010,
+    "N_max_rule": "floor(P / 1.1), continuous count ceiling, not a discrete N-candidate",
+    "N_min_grid": 20,
+    "P_rule": "minimum training pool across all 12 dev units before gates; Nstar_A=floor(P/5), Nstar_B=max(5*N_min_grid,Nstar_A/2)",
+    "evaluation": 500,
+    "m_high_candidates": [
+      1024,
+      768,
+      512
+    ],
+    "m_low": 256,
+    "margin": 1.1,
+    "reference_effective_count_label": "stride-T count is an arithmetic heuristic, not an estimated independent count",
+    "rounding": "round half up; de-duplicate; omit out-of-budget N, never move a predicted crossing into range"
+  },
+  "controls": {
+    "D3S_budget_hours_16_workers": 8.0,
+    "alpha_per_claim": 0.0020833333333333333,
+    "bit_generator": "PCG64DXSM",
+    "budget_hours_4_workers": 6.0,
+    "cell_definitions": {
+      "0": "null",
+      "1": "eval global variance x1.5",
+      "10": "eval smallest full Sref eigenmode variance x8, descriptive",
+      "11": "eval largest full Sref eigenmode variance x8, descriptive",
+      "12": "eval top population full eigenmode variance x1.5, descriptive",
+      "2": "eval own Sref top10 variance x1.5",
+      "3": "eval own Sref bottom50 variance x1.5",
+      "4": "eval own Sref middle40 variance x1.5",
+      "5": "eval smallest spatial Sref eigenmode variance x8 at every time",
+      "6": "eval largest spatial Sref eigenmode variance x8 at every time"
+    },
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      10,
+      11,
+      12
+    ],
+    "claim_rules": "G2 null L1..L6 C0: CP upper <=.05 (6 claims), G1/singular failure counts as exclusion; G2 detection L1,L2,L4 C1..C6: CP lower >=.90 (18), success requires G1 pass AND G2 failure, G1/singular failure is NON-DETECTION; full n2400, no deletions; L5/C0 is null endpoint; L7 entirely descriptive",
+    "claim_tuples": [
+      {
+        "cell": 0,
+        "law": 1,
+        "type": "null"
+      },
+      {
+        "cell": 0,
+        "law": 2,
+        "type": "null"
+      },
+      {
+        "cell": 0,
+        "law": 3,
+        "type": "null"
+      },
+      {
+        "cell": 0,
+        "law": 4,
+        "type": "null"
+      },
+      {
+        "cell": 0,
+        "law": 5,
+        "type": "null"
+      },
+      {
+        "cell": 0,
+        "law": 6,
+        "type": "null"
+      },
+      {
+        "cell": 1,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 2,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 3,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 4,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 5,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 6,
+        "law": 1,
+        "type": "detection"
+      },
+      {
+        "cell": 1,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 2,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 3,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 4,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 5,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 6,
+        "law": 2,
+        "type": "detection"
+      },
+      {
+        "cell": 1,
+        "law": 4,
+        "type": "detection"
+      },
+      {
+        "cell": 2,
+        "law": 4,
+        "type": "detection"
+      },
+      {
+        "cell": 3,
+        "law": 4,
+        "type": "detection"
+      },
+      {
+        "cell": 4,
+        "law": 4,
+        "type": "detection"
+      },
+      {
+        "cell": 5,
+        "law": 4,
+        "type": "detection"
+      },
+      {
+        "cell": 6,
+        "law": 4,
+        "type": "detection"
+      }
+    ],
+    "claims": 24,
+    "detection_lower_min": 0.9,
+    "failure_rule": "any endpoint fails -> STOP and return to design; no tuning, rerun or selective pooling",
+    "family_alpha": 0.05,
+    "fit": "AR10 Yule-Walker from ref-role native-to-decimated lag moments 0..19 within active ref blocks only; spatial partial trace trace C; stable positive innovation required, otherwise STOP; no model search",
+    "law_definitions": {
+      "1": "identity IID samples and blocks",
+      "2": "fitted spatial factor and stationary AR10 within each full block, independent blocks",
+      "3": "L2 plus equal-offset block AR .25",
+      "4": "L2 plus equal-offset block AR .5",
+      "5": "L2 plus equal-offset block AR .75; C0 G2 null endpoint, all detection cells/other diagnostics descriptive",
+      "6": "L2 plus chronological scan-third lognormal variance factors: top population 10% sd .2 and global sd .1",
+      "7": "L2 plus block lognormal variance factors: both sd .1, descriptive"
+    },
+    "laws": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "null_upper_max": 0.05,
+    "pooled_n": 2400,
+    "replicates_per_shape": 200,
+    "seed_entropy": [
+      20261019,
+      "law",
+      "cell",
+      "date_index_sorted_dev",
+      "replicate"
+    ],
+    "shapes": 12
+  },
+  "frozen": false,
+  "gates": {
+    "E1": {
+      "confirmation_n_min_floor": 8,
+      "confirmation_target": 12,
+      "criteria": [
+        "G1",
+        "G2",
+        "artifact",
+        "budget"
+      ],
+      "dev_minimum": 9,
+      "dev_total": 12,
+      "no_replacements": true,
+      "power_max_n": 12,
+      "power_rule": "R1 n_min per ref-arm cell, simultaneous t half-width < .5 abs prediction; one-sided 80% pilot SD upper bound; R20, remedy once R<=50 or narrower family; else STOP before confirmation"
+    },
+    "G1": {
+      "failure": "exclude unit; do not change fixed geometry",
+      "max_condition_full": 10000000000.0,
+      "max_condition_spatial": 1000000.0,
+      "retest": false
+    },
+    "G2": {
+      "band": [
+        0.8,
+        1.25
+      ],
+      "cal_role": "descriptive only",
+      "groups": "ascending eigenvalues of own Sref: [0:d//2], [d//2:int(.9*d)], [int(.9*d):d]",
+      "no_inflation_correction": true,
+      "statistics": [
+        "m_train",
+        "m_eval/m_train",
+        "g_bottom50",
+        "g_middle40",
+        "g_top10",
+        "physical_trace_ratio"
+      ]
+    },
+    "G3": {
+      "applicable": false,
+      "reason": "no stimulus"
+    },
+    "G4": "R1 g4: Kronecker flip-flop vs unshrunk Sref, descriptive",
+    "G5": "old g5_mardia on pooled training windows, descriptive; IID z is not inferential",
+    "artifact": {
+      "exceedance_rule": "any >= threshold or any nonfinite -> exclude whole unit; counts reported; no window repair",
+      "max_abs_tesla": 5e-10,
+      "max_step_tesla": 5e-11,
+      "nonfinite_limit": 0,
+      "stage": "selected magnetometers at native rate before filtering, entire scan"
+    }
+  },
+  "geometry": {
+    "C": 12,
+    "C_candidates": [
+      24,
+      16,
+      12,
+      8
+    ],
+    "coordinate_frame": 1,
+    "location_match_atol_m": 1e-06,
+    "reference_stride_T_per_d_min": 8.0,
+    "rule": "nearest Euclidean sensor centres to target in MNE device frame (FIFF 1), ties by channel name; retain 12, order names lexically; pinned dev header geometry only",
+    "selected_channels": [
+      "MEG 001",
+      "MEG 002",
+      "MEG 010",
+      "MEG 011",
+      "MEG 012",
+      "MEG 013",
+      "MEG 014",
+      "MEG 026",
+      "MEG 027",
+      "MEG 028",
+      "MEG 029",
+      "MEG 030"
+    ],
+    "target_device_m": [
+      0.0,
+      0.0,
+      0.12
+    ]
+  },
+  "inference": {
+    "D8": false,
+    "PZ1": "B_dagger zero at theta0 and monotone over fixed theta grid, numerical tolerance 1e-9; analytic per unit",
+    "PZ2": "reference contrast negative below and positive above in-range Nstar interval with decided intervals; no claim for out-of-grid crossing",
+    "PZ3": "theta0 no decided positive reference contrast",
+    "PZ4": "estimated-minus-reference contrast negative at m256 for both estimators, point estimate nearer zero at mhi",
+    "PZ5": "isotropic arm no decided negative contrast",
+    "contrast": "product clean risk minus unrestricted clean risk",
+    "family_alpha": 0.05,
+    "interval": "Bonferroni simultaneous Student t across date means, df included dates minus 1; within-unit resampling whole blocks only",
+    "maximum_resamples": 50,
+    "metrics": [
+      "reference",
+      "shrunk_full_m256",
+      "shrunk_full_mhi",
+      "kronecker_m256",
+      "kronecker_mhi",
+      "isotropic"
+    ],
+    "miss_reasons": [
+      "whitened noise scale !=1",
+      "reference estimation tilt",
+      "serial dependence changes IID S4.3 coefficients",
+      "non-Gaussianity or scan-third mixture",
+      "fixed point-coil forward recipe only approximates physical fields"
+    ],
+    "resamples": 20,
+    "scores": [
+      "clean_ref",
+      "clean_euclidean",
+      "amplitude_error"
+    ],
+    "unit": "recording date"
+  },
+  "inputs": {
+    "geometry_sha256": "4c35dd5dcf55655d30e292e55b33b972d825bf8a19352712ed4b69f231e4ba9c",
+    "inventory_sha256": "14e3a5de3d04dbc5be9ce5b9062d88a5c0bdb15acb903c56f770e2900328b65e",
+    "split_sha256": "e5f29d518d9ebdd6421b6db9750e48f1a8672ffe3009a23b3326b0baf52b445a"
+  },
+  "planning_defaults_author_to_confirm": [
+    "PD1: Full 10 s blocks only, 4 s guards, 2 s edges and ref/train/cal/eval/train cycle; 6 blocks per sparse role and11 full train blocks; discard incomplete terminal block.",
+    "PD2: Extend T candidates to 8 and 6; choose T6, C12 by largest feasible T and ref stride-T >=8d heuristic; physical duration about59 ms.",
+    "PD3: Fixed device-coordinate sphere and two point-dipole templates; nearest vertex patch, no regression or source localization claim.",
+    "PD4: Reuse R1 population optimizers (64 total starts), two adaptive theta targets A/B plus four fixed theta rows; 50 D3-S references x6 rows.",
+    "PD5: 12 dev shapes x200 controls per law/cell; 24 claims at alpha .05/24, 168000 replicates; caps 6h at4 workers and8h at16 for D3-S.",
+    "PD6: SeedSequence([20261019,law,cell,sorted-dev-index,replicate]); separate cells90 D3-S and99 timing."
+  ],
+  "preprocessing": {
+    "FIR_sha256_f64le": "c173d8ddd85b7252428e6d88deefa007c4a501af62155625c33c23584d18abca",
+    "FIR_taps": 6715,
+    "decimation_factor": 20,
+    "edge_seconds": 2.0,
+    "filter": {
+      "fir_design": "firwin",
+      "h_freq": 40.0,
+      "l_freq": 1.0,
+      "method": "fir",
+      "phase": "zero"
+    },
+    "magnetometers_only": true,
+    "native_sfreq_hz": 2034.5101318359375,
+    "reader": {
+      "convert": true,
+      "head_shape_fname": null,
+      "preload": false,
+      "rename_channels": true,
+      "rotation_x": 0.0,
+      "sort_by_ch_name": true,
+      "translation": [
+        0.0,
+        0.02,
+        0.11
+      ]
+    },
+    "reference_regression": false,
+    "sfreq_hz": 101.72550659179687
+  },
+  "reference": {
+    "D3S_definition": "R1 general_noise with same fixed physical signal and each simulated Sref; report delta=a_hat-D_W, Nstar under M=K+N_sim, trace(N_sim)/d next to observed m_train; descriptive only",
+    "D3S_estimates": 50,
+    "D3S_law": 2,
+    "D3S_reference_seed_cell": 90,
+    "D3S_rows_per_estimate": 6,
+    "inflation_bracket": "no borrowed numeric R1 bracket: report simulated quantiles from D3-S, and stride-T Wishart heuristic separately; neither adjusts primary prediction",
+    "kind": "unshrunk divisor-n ref-role covariance centred at ref mean; no shrinkage or ridge",
+    "primary_M": "K + I",
+    "score": "clean_ref"
+  },
+  "signal": {
+    "adaptive_failure": "report unavailable; no new signal or geometry search",
+    "adaptive_targets": [
+      "A",
+      "B"
+    ],
+    "basis_rule": "R1 filtered g,gprime,gsecond; native grid centred at t=0 over +/- 4 s, native 1-40 FIR, take t=0,20,...,100 original samples; QR sign fixed; source 2 raw family projected off source 1 then QR",
+    "bump_centers_s": [
+      0.03,
+      0.051
+    ],
+    "bump_width_s": 0.006,
+    "forward": {
+      "dipole_orientations": [
+        [
+          0.0,
+          1.0,
+          0.0
+        ],
+        [
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "dipole_positions_device_m": [
+        [
+          -0.03,
+          0.0,
+          0.04
+        ],
+        [
+          0.03,
+          0.015,
+          0.04
+        ]
+      ],
+      "maximum_abs_cosine": 0.95,
+      "model": "Sarvas homogeneous sphere, point magnetometers; sensor centres and loc[9:12] normals in device coordinates, no reference coils",
+      "normalization": "each spatial field unit norm; fix largest absolute entry positive; no orthogonalization",
+      "sphere_center_device_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sphere_radius_m": 0.09
+    },
+    "kc": 2,
+    "kt": 3,
+    "latent_variances_l": [
+      1.0,
+      0.5,
+      0.25
+    ],
+    "population_random_starts": 62,
+    "source_weights_j": [
+      1.0,
+      1.0
+    ],
+    "theta_grid": [
+      0.0,
+      0.12,
+      0.25,
+      0.4
+    ],
+    "theta_search_bracket": [
+      0.0001,
+      1.2
+    ],
+    "theta_search_random_starts": 6,
+    "theta_search_xtol": 1e-06,
+    "trace_K_target": 206.604,
+    "trace_normalization": "one variance scale at theta=0 per unit; unchanged across theta"
+  },
+  "status": "CANDIDATE_NOT_REGISTERED_H0_H3_ONLY",
+  "study": "hcp-rnoise-20261019",
+  "windows": {
+    "T": 6,
+    "T_candidates": [
+      20,
+      16,
+      12,
+      10,
+      8,
+      6
+    ],
+    "block_samples_rule": "floor(block_seconds * fs); first ceil(guard_seconds * fs) samples of EVERY full block discarded; incomplete terminal block discarded entirely",
+    "block_seconds": 10.0,
+    "cycle": [
+      "ref",
+      "train",
+      "cal",
+      "eval",
+      "train"
+    ],
+    "d": 72,
+    "edge_samples_rule": "ceil(edge_seconds * fs) removed at each end",
+    "grid": "each active block starts at block_start + guard; never restart the grid",
+    "guard_seconds": 4.0,
+    "minimum_role_blocks": 6,
+    "other_stride": "T",
+    "reference_stride": 1,
+    "resampling": "equal-length full active role blocks only; uniform block permutation without replacement, independent uniform cyclic rotation of each block windows; concatenate and truncate final rotated block; wrapped partial draws are two observed segments, not physically contiguous; all eval windows fixed"
+  }
+}

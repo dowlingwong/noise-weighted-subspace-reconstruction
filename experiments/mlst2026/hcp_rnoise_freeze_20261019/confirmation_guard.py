@@ -74,11 +74,18 @@ def before_fit(ms,registration_record,date,prediction_path,prediction_commit):
     if date not in load()['access']['confirmation_analysis_dates']:
         raise PermissionError('STOP outside fixed 12 confirmation dates')
     reg=registration(ms,registration_record)
-    sha=committed(prediction_path,ms,prediction_commit,remote=True)
+    try:
+        resolved=git(ms,'rev-parse',f'{prediction_commit}^{{commit}}').decode().strip()
+        if resolved==reg['tagged_commit']:
+            raise PermissionError('STOP predictions must be committed after registration tag')
+        git(ms,'merge-base','--is-ancestor',reg['tagged_commit'],resolved)
+    except subprocess.CalledProcessError as exc:
+        raise PermissionError('STOP prediction commit must follow registered tag') from exc
+    sha=committed(prediction_path,ms,resolved,remote=True)
     record=json.loads(Path(prediction_path).read_text())
     if record.get('date')!=date or record.get('pre_fit') is not True:
         raise PermissionError('STOP prediction is not for this unit before fitting')
-    return {**reg,'prediction_sha256':sha,'prediction_commit':prediction_commit}
+    return {**reg,'prediction_sha256':sha,'prediction_commit':resolved}
 
 
 def fit_confirmation(roles,model,Sref,N,m,arm,date_index,replicate_index,*,

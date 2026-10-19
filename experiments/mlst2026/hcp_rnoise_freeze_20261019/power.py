@@ -80,7 +80,7 @@ def publish(final=False):
     result={'status':'PASS' if remedy['pass'] else 'STOP','n_min':remedy['n_min'],
             'initial':initial,'remedy':remedy,'remedy_applied':True,
             'remedy_kind':'R50; reference pilot extended from R20 with new replicates20..49; unchanged family',
-            'protocol_frozen':bool(remedy['pass']),'confirmation_access':False,
+            'freeze_eligible':bool(remedy['pass']),'confirmation_access':False,
             'next_action':'F5 freeze bundle' if remedy['pass'] else 'STOP F4; report; no protocol freeze or registration'}
     new_file(PUB/'POWER.json',result)
     return result

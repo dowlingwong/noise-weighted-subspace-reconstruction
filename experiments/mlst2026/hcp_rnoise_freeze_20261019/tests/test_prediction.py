@@ -48,7 +48,8 @@ def test_confirmation_refuses_before_fit(tmp_path,monkeypatch):
 
 def test_before_fit_requires_remote_commit(monkeypatch,tmp_path):
     from experiments.mlst2026.hcp_rnoise_freeze_20261019 import confirmation_guard as g
-    monkeypatch.setattr(g,'registration',lambda *a:{'status':'PASS'})
+    monkeypatch.setattr(g,'registration',lambda *a:{'status':'PASS','tagged_commit':'registered'})
+    monkeypatch.setattr(g,'git',lambda ms,*args:b'after-registration' if args[0]=='rev-parse' else b'')
     calls=[]
     def commit(*a,**k):calls.append(k);return 'sha'
     monkeypatch.setattr(g,'committed',commit)
@@ -102,3 +103,19 @@ def test_identity_mismatch_and_registered_identity(monkeypatch,tmp_path):
     with pytest.raises(PermissionError):i.verify({'kit_identity':'changed'})
     (tmp_path/'KIT_SHA256.json').write_text('{"kit_identity":"changed"}')
     with pytest.raises(PermissionError):i.verify()
+
+
+def test_prediction_commit_cannot_precede_or_equal_registration(monkeypatch,tmp_path):
+    import subprocess
+    from experiments.mlst2026.hcp_rnoise_freeze_20261019 import confirmation_guard as g
+    monkeypatch.setattr(g,'registration',lambda *a:{'status':'PASS','tagged_commit':'registered'})
+    monkeypatch.setattr(g,'committed',lambda *a,**k:pytest.fail('earlier prediction reached'))
+    monkeypatch.setattr(g,'git',lambda *a:b'registered')
+    with pytest.raises(PermissionError,match='after registration'):
+        g.before_fit(tmp_path,'r','2013-06-24',tmp_path/'missing','registered')
+    def older(ms,*args):
+        if args[0]=='rev-parse':return b'before-registration'
+        raise subprocess.CalledProcessError(1,args)
+    monkeypatch.setattr(g,'git',older)
+    with pytest.raises(PermissionError,match='follow registered tag'):
+        g.before_fit(tmp_path,'r','2013-06-24',tmp_path/'missing','old')

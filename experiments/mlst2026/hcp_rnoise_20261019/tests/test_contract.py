@@ -175,8 +175,8 @@ def test_m_hi_e1_and_power():
     assert gates.e1(results)['pass'] is True
     results[dates[8]]['G2']['pass']=False
     assert gates.e1(results)['status']=='STOP'
-    assert gates.n_min([.001],9,[1.],1)['n_min']==8
-    assert gates.n_min([100.],9,[.1],1,after_remedy=True)['confirmation_access'] is False
+    assert gates.n_min([.001],9,[1.],1,cell_ids=['c'],expected_cells=['c'])['n_min']==8
+    assert gates.n_min([100.],9,[.1],1,after_remedy=True,cell_ids=['c'],expected_cells=['c'])['confirmation_access'] is False
 
 
 def test_shape_ar_and_ref_lags_ignore_guards(dev):
@@ -240,7 +240,7 @@ def test_summary_claim_set_and_complete_campaign_contract():
     cfg=protocol.load()['controls'];tuples={(r['type'],r['law'],r['cell']) for r in cfg['claim_tuples']}
     assert len(tuples)==24 and ('null',5,0) in tuples and not any(l==7 for _,l,_ in tuples)
     # Fabricated outcomes only: no generator, campaign, or data loader is run.
-    rows=[{'law':l,'cell':c,'date_index':d,'replicate':r,'G1':{'pass':True},'G2':{'pass':c==0}}
+    rows=[{'law':l,'cell':c,'date_index':d,'replicate':r,'G1':{'pass':True},'G2':{'pass':c==0,'extremes':[.2,3.]},'G2_cal':{'G2S_pass':False},'scan_third_transport':{'0':{'G2S_pass':True},'1':{'G2S_pass':False},'2':{'G2S_pass':True}}}
           for l in cfg['laws'] for c in cfg['cells'] for d in range(12) for r in range(200)]
     result=controls.summarize(rows)
     assert result['status']=='PASS'
@@ -251,16 +251,22 @@ def test_summary_claim_set_and_complete_campaign_contract():
         controls.summarize(rows+[rows[0]])
 
 
+def _complete_interval(mean,spread=.01,R=20):
+    dates=[str(d) for d in range(8)]
+    rec=[{'date':str(d),'replicate':r,'D':mean+(d-3.5)*spread+r*.0001} for d in range(8) for r in range(R)]
+    return {**readings.date_interval(rec,4,expected_dates=dates,resamples=R),'cell':'cell'}
+
+
 def test_date_means_and_pz_signs():
-    rec=[{'date':str(d),'D':d+r*.1} for d in range(8) for r in range(20)]
-    interval=readings.date_interval(rec,4)
-    assert interval['n']==8 and len(interval['date_means'])==8
-    assert readings.pz1([{'theta':0,'B_cert':0},{'theta':.12,'B_cert':1},{'theta':.25,'B_cert':1}])['met']
-    neg={'decision':'negative','mean':-1};pos={'decision':'positive','mean':1};small={'decision':'undecided','mean':-.1}
+    neg=_complete_interval(-1);pos=_complete_interval(1);small=_complete_interval(-.1,.5)
+    assert neg['n']==8 and len(neg['date_means'])==8
+    assert readings.pz1([{'theta':t,'B_cert':v} for t,v in zip([0,.12,.25,.4],[0,1,1,2])])['met']
     assert readings.pz2(neg,pos,True)['met'] and not readings.pz2(neg,pos,False)['met']
-    assert readings.pz3([neg])['met'] and not readings.pz3([pos])['met']
-    assert readings.pz4([neg,neg],[small,small])['met']
-    assert not readings.pz5([neg])['met']
+    assert readings.pz3([neg],['cell'])['met'] and not readings.pz3([pos],['cell'])['met']
+    assert readings.pz4({'lw':neg,'kron':neg},{'lw':small,'kron':small})['met']
+    assert not readings.pz5([neg],['cell'])['met']
+    assert readings.pz3([small],['cell'])['met'] and readings.pz5([small],['cell'])['met']
+
 
 def test_stationarity_gate_detects_eval_scale():
     gen=np.random.default_rng(1919)

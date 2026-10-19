@@ -114,15 +114,16 @@ def apply_cell(rec, Sref, shape, cell):
     out=dict(rec); out['eval']=(X,meta); return out
 
 
-def replicate(shape, unit_metadata, law, cell, date_index, replicate_index, *, details=False, timing=False):
+def replicate(shape, unit_metadata, law, cell, date_index, replicate_index, *, details=True, timing=False):
     gen,entropy=rng(law,99 if timing else cell,date_index,replicate_index)
     actual=identity_shape() if law==1 else shape
     rec=generate(actual,unit_metadata,law,gen)
     try:
         S=reference(rec['ref'][0]); changed=apply_cell(rec,S,actual,cell)
-        result=assess(changed,details=details)
+        result=assess(changed,details=details,qualification=False)
     except np.linalg.LinAlgError as exc:
         result={'G1':{'pass':False},'G2':{'pass':False,'evaluated':False},'numerical_failure':type(exc).__name__}
+    result.get('G2',{}).pop('generalised_eigenvalues',None)
     return {**result,'law':law,'cell':cell,'date_index':date_index,'replicate':replicate_index,
             'seed_entropy':entropy,'bit_generator':'PCG64DXSM'}
 
@@ -137,7 +138,8 @@ def event(row, claim_type):
 
 def claim_bound(count, n, claim_type):
     cfg=load()['controls']; a=cfg['alpha_per_claim']
-    if not 0<=count<=n or n<=0:
+    if (not isinstance(count,(int,np.integer)) or not isinstance(n,(int,np.integer))
+            or isinstance(count,(bool,np.bool_)) or isinstance(n,(bool,np.bool_)) or not 0<=count<=n or n<=0):
         raise ValueError('invalid CP counts')
     if claim_type=='null':
         bound=1. if count==n else float(beta.ppf(1-a,count+1,n-count))
@@ -162,8 +164,45 @@ def summarize(rows):
     for claim in cfg['claim_tuples']:
         selected=groups_[(claim['law'],claim['cell'])]
         claims.append({**claim,**claim_bound(sum(event(row,claim['type']) for row in selected),len(selected),claim['type'])})
-    desc={f'L{l}/C{c}':{'n':len(rr),'G1_failure_count':sum(v['G1']['pass'] is not True for v in rr),
-                           'G2_exclusion_count':sum(event(v,'null') for v in rr),
-                           'G2_detection_count':sum(event(v,'detection') for v in rr)} for (l,c),rr in groups_.items()}
-    return {'status':'PASS' if all(c['pass'] for c in claims) else 'STOP','claims':claims,'descriptive':desc,
+    desc={};missing_total=0
+    for (l,c),rr in groups_.items():
+        valid=[];causes={}
+        for row in rr:
+            if row['G1']['pass'] is not True:
+                cause=row.get('numerical_failure','G1_failure')
+                causes[cause]=causes.get(cause,0)+1
+                continue
+            try:
+                ev=np.asarray(row['G2']['extremes'],float)
+                ok=(ev.shape==(2,) and np.isfinite(ev).all()
+                    and isinstance(row['G2_cal']['G2S_pass'],bool)
+                    and set(row['scan_third_transport'])=={'0','1','2'}
+                    and all(isinstance(v['G2S_pass'],bool) for v in row['scan_third_transport'].values()))
+            except (KeyError,TypeError,ValueError):
+                ok=False
+            if ok:valid.append(row)
+            else:
+                causes['missing_required_diagnostics']=causes.get('missing_required_diagnostics',0)+1
+                missing_total+=1
+        nv=len(valid)
+        item={'n':len(rr),'G1_failure_count':sum(v['G1']['pass'] is not True for v in rr),
+              'G2_exclusion_count':sum(event(v,'null') for v in rr),
+              'G2_detection_count':sum(event(v,'detection') for v in rr),
+              'diagnostics_n_valid':nv,'diagnostics_n_unavailable':len(rr)-nv,
+              'unavailable_reason_counts':causes,
+              'cal_G2S_exclusion_count':sum(not v['G2_cal']['G2S_pass'] for v in valid),
+              'scan_third_G2S_any_exclusion_count':sum(any(not z['G2S_pass'] for z in v['scan_third_transport'].values()) for v in valid),
+              'scan_third_G2S_exclusion_counts':{t:sum(not v['scan_third_transport'][t]['G2S_pass'] for v in valid) for t in ('0','1','2')},
+              'transport_denominator':nv,'transport_rates_conditional_on_valid_reference':True}
+        item['cal_G2S_exclusion_rate']=item['cal_G2S_exclusion_count']/nv if nv else None
+        item['scan_third_G2S_any_exclusion_rate']=item['scan_third_G2S_any_exclusion_count']/nv if nv else None
+        item['scan_third_G2S_exclusion_rates']={t:n/nv if nv else None for t,n in item['scan_third_G2S_exclusion_counts'].items()}
+        if c==0 and l in (2,3,4,5):
+            item['generalised_extreme_quantiles_025_50_975']=np.quantile([v['G2']['extremes'] for v in valid],[.025,.5,.975],axis=0).tolist() if nv else None
+            item['generalised_extremes_n_valid']=nv
+        desc[f'L{l}/C{c}']=item
+    endpoint_pass=all(c['pass'] for c in claims)
+    return {'status':'PASS' if endpoint_pass and missing_total==0 else 'STOP',
+            'endpoint_status':'PASS' if endpoint_pass else 'STOP',
+            'required_diagnostics_missing':missing_total,'claims':claims,'descriptive':desc,
             'failure_rule':cfg['failure_rule']}

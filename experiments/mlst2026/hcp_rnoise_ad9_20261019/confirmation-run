@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+"""Registered confirmation entry point; use the pinned meg_env with threads1."""
+from pathlib import Path
+import sys
+root = Path(__file__).resolve().parents[3]
+sys.path[:0] = [str(root), str(root / 'src')]
+from experiments.mlst2026.hcp_rnoise_ad9_20261019.launcher import main
+main()

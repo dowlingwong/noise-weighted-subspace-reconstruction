@@ -14,7 +14,11 @@ OSF. Author verification/maturation of the timestamp remains required.
 
 `protocol.py` binds all 60 qualification outcomes, excludes without replacement,
 and returns STOP/no claim below 18. `readings.py` uses R50, 18..60 included dates
-and family34. It retains the earlier zero-SE/undecided and PZ1–PZ5 rules.
+and family34. It constructs paired10-cell PZ4 interactions, enforces the canonical
+five/fifteen PZ3/PZ5 cells and a common cohort, and retains the earlier
+zero-SE/undecided and PZ1–PZ5 scientific rules. `prediction.py` wraps the unchanged
+kernel with complete-record/Sref validation; fitting binds that record to the
+actual reference covariance, signal model, fixed grids and arm/m settings.
 `build_bundle.py` publishes only new MS files, checks committed source bytes,
 and writes sorted, indented JSON with a final newline and no runtime timestamps.
 Every earlier file is checked against MS e58f315 and retained byte-for-byte.

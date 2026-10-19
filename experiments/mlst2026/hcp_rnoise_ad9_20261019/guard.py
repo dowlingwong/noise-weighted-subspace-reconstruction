@@ -8,6 +8,7 @@ import subprocess
 from urllib.parse import urlparse
 from .protocol import load, verify, PACKAGE
 from experiments.mlst2026.hcp_rnoise_freeze_20261019.prediction import committed
+from .prediction import validate_record, validate_fit
 
 FREEZE='reviews/hcp_rnoise_freeze_20261019'
 
@@ -87,20 +88,16 @@ def before_fit(ms,registration_record,date,prediction_path,prediction_commit):
         raise PermissionError('STOP prediction commit must follow registered tag') from exc
     sha=committed(prediction_path,ms,resolved,remote=True)
     record=json.loads(Path(prediction_path).read_text())
-    if record.get('date')!=date or record.get('pre_fit') is not True:
-        raise PermissionError('STOP prediction is not for this unit before fitting')
-    return {**reg,'prediction_sha256':sha,'prediction_commit':resolved}
+    validate_record(record, date)
+    return {**reg,'prediction_sha256':sha,'prediction_commit':resolved, 'prediction_record':record}
 
 
 def fit_confirmation(roles,model,Sref,N,m,arm,date_index,replicate_index,*,
-                     ms,registration_record,date,prediction_path,prediction_commit):
+                     ms,registration_record,date,prediction_path,prediction_commit,geometry):
     """Array API only. Recording access needs a separately authorized future launcher."""
-    before_fit(ms,registration_record,date,prediction_path,prediction_commit)
-    dates=load()['access']['confirmation_analysis_dates']
-    if type(date_index) is not int or date_index != 12 + dates.index(date):
-        raise PermissionError('STOP confirmation seed index must be 12 + fixed cohort index')
-    if type(replicate_index) is not int or not 0 <= replicate_index < 50:
-        raise PermissionError('STOP confirmation uses exactly R50 indices 0..49')
+    evidence=before_fit(ms,registration_record,date,prediction_path,prediction_commit)
+    validate_fit(evidence['prediction_record'], roles, model, Sref, N, m, arm,
+                 geometry, date_index, replicate_index)
     from experiments.mlst2026.hcp_rnoise_20261019.learning import fit_cell
     return fit_cell(roles,model,Sref,N,m,arm,date_index,replicate_index)
 

@@ -22,6 +22,9 @@ def new(path, raw):
 
 def make_config(base, patch, split, disclosure):
     cfg = copy.deepcopy(base)
+    cfg['historical_candidate_pending_decisions'] = {k: copy.deepcopy(v) for k,v in cfg.items() if k.endswith('_pending')}
+    for key in cfg['historical_candidate_pending_decisions']:
+        cfg[key] = []
     cfg['gates']['artifact'].update(patch['gates']['artifact'])
     cfg['access']['confirmation_analysis_dates'] = split['confirmation_dates']
     cfg['access']['unused_confirmation_dates'] = []
@@ -127,7 +130,9 @@ no PZ2 claim there. Fixed rows remain regardless of adaptive availability.
 Commit and push each date's exact pre_fit predictions on MS origin/main strictly
 after the registration tag and **before any learning fit for that date**. The new
 array API enforces registration, cohort membership, prediction commit ancestry,
-published prediction bytes and date/pre_fit identity. Dev predictions are historical
+published complete prediction bytes, date/index/pre_fit and Sref identity. The fit
+wrapper binds the reference-role covariance, model theta/templates/variances,
+geometry/N grid and six arm/m settings to the published record. Dev predictions are historical
 evidence, never a substitute for future per-confirmation-date predictions.
 
 ## Arms, resampling, estimands and decisions
@@ -268,10 +273,17 @@ STOP/no confirmatory claim. No automatic restart after decode or fit failure.
 Per passing date: unchanged AD2/preprocessing/gates; compute all fixed/adaptive
 predictions with inherited prediction.predict_unit; publish exact date/pre_fit
 JSON on MS origin/main strictly after the registration tag; use guard.before_fit
-or guard.fit_confirmation before each learning kernel. The array-fit API requires
-date_index12+sorted60-index and replicate indices0..49. Qualification, prediction
+or guard.fit_confirmation before each learning kernel. Use prediction.prediction_record
+to wrap the inherited kernel, preserving all four fixed and both adaptive rows,
+date/index/pre_fit, exact Sref f64le hash and fixed grids. Metadata-only JSON refuses.
+The array-fit API requires an explicit geometry, date_index12+sorted60-index and
+replicate indices0..49, and binds reference-role covariance, Sref, model theta,
+templates/variances, N and arm/m to that record. Qualification, prediction
 and learning must use the same Sref and immutable fixed geometry/grids. Use R50 for
 every arm and date; require complete included-date x50 ledgers with readings.py.
+Use readings.paired_interactions for all four PZ4 estimands from the complete paired
+ten-A/B-cell x5-arm xR50 ledger. PZ3/PZ5 enforce five/fifteen canonical cells and
+shared included cohorts internally; caller subsets cannot shrink the family.
 Use the protocol's PZ1–PZ5 paired estimands/family34; report all outcomes and flags.
 The frozen CLI spec does not authorize building or launching the recording runner.
 

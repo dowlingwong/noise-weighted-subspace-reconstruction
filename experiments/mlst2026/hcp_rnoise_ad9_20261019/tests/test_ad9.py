@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 import numpy as np
 import pytest
-from experiments.mlst2026.hcp_rnoise_ad9_20261019 import power, protocol, guard, readings
+from experiments.mlst2026.hcp_rnoise_ad9_20261019 import power, protocol, guard, readings, prediction
 from experiments.mlst2026.hcp_rnoise_ad9_20261019.build_bundle import make_config, encoded, new
 
 
@@ -122,28 +122,78 @@ def fakeconfig(monkeypatch):
     monkeypatch.setattr(protocol, 'load', config)
     monkeypatch.setattr(readings, 'load', config)
     monkeypatch.setattr(guard, 'load', config)
+    monkeypatch.setattr(prediction, 'load', config)
+
+
+def cell_ci(n, g='control', i=0, arm='reference', positive=False):
+    rows=ledger(n)
+    for r in rows:
+        r['theta']=g; r['N']=prediction.GRIDS[g][i]; r['arm']=arm
+        if positive: r['D'] += 4
+    return readings.date_interval(rows,34,expected_dates=config()['access']['confirmation_analysis_dates'][:n], qualification=qualification(n))
+
+
+def paired_ledger(n):
+    rows=[]
+    for d in range(n):
+        for r in range(50):
+            for g in ('A','B'):
+                for N in prediction.GRIDS[g]:
+                    for arm,m in [('reference',None),('lw',256),('lw',512),('kron',256),('kron',512)]:
+                        v=d/200+r/1000 if arm=='reference' else (-2 if m==256 else -.4)+d/100+r/1000
+                        rows.append(dict(date=f'c{d:02}',replicate=r,theta=g,N=N,arm=arm,m=m,D=v))
+    return rows
 
 
 def test_intervals_and_pz_rules(fakeconfig):
-    dates = config()['access']['confirmation_analysis_dates']
-    for n in (18, 60):
-        ci = readings.date_interval(ledger(n), 34, expected_dates=dates[:n], qualification=qualification(n))
-        ci['cell'] = 'one'
-        assert ci['n'] == n and ci['resamples'] == 50 and ci['decision'] == 'negative'
-        assert readings.pz3([ci], ['one'])['met']
-        assert not readings.pz5([ci], ['one'])['met']
-        pos = {**ci, 'ci': [1., 2.], 'decision': 'positive', 'mean': 1.5}
-        assert readings.pz2(ci, pos, True)['met']
-        assert not readings.pz2(ci, pos, False)['met']
-        hi = {**ci, 'mean': -.1}
-        assert readings.pz4(dict(lw=ci, kron=ci), dict(lw=hi, kron=hi))['met']
-        assert not readings.pz3([pos], ['one'])['met']
-        assert readings.pz5([pos], ['one'])['met']
-        assert not readings.pz5([pos, pos], ['one'])['available']
-    rows = [{'theta': v, 'B_cert': i} for i, v in enumerate([0., .12, .25, .4])]
+    for n in (18,60):
+        controls=[cell_ci(n,i=i) for i in range(5)]
+        iso=[cell_ci(n,g=g,i=i,arm='isotropic',positive=True) for g in prediction.GRIDS for i in range(5)]
+        assert readings.pz3(controls)['met']
+        assert readings.pz5(iso)['met']
+        assert not readings.pz3(controls[:1],[controls[0]['cell']])['available']
+        assert not readings.pz5(iso[:1],[iso[0]['cell']])['available']
+        assert not readings.pz5(iso+[iso[0]])['available']
+        lo=cell_ci(n,g='A',i=0);hi=cell_ci(n,g='A',i=4,positive=True)
+        assert readings.pz2(lo,hi,True)['met']
+        assert not readings.pz2(lo,hi,False)['met']
+    rows=[{'theta':v,'B_cert':i} for i,v in enumerate([0.,.12,.25,.4])]
     assert readings.pz1(rows)['met']
-    rows[-1]['B_cert'] = 0
+    rows[-1]['B_cert']=0
     assert not readings.pz1(rows)['met']
+
+
+def test_canonical_families_and_shared_cohort(fakeconfig):
+    controls=[cell_ci(18,i=i) for i in range(5)]
+    iso=[cell_ci(18,g=g,i=i,arm='isotropic',positive=True) for g in prediction.GRIDS for i in range(5)]
+    controls[-1]=cell_ci(19,i=4)
+    iso[-1]=cell_ci(19,g='B',i=4,arm='isotropic',positive=True)
+    assert not readings.pz3(controls)['available']
+    assert not readings.pz5(iso)['available']
+    assert not readings.pz3([cell_ci(18,g='A',i=i) for i in range(5)])['available']
+    assert not readings.pz2(cell_ci(18,g='A',i=0),cell_ci(19,g='A',i=4,positive=True),True)['available']
+
+
+def test_complete_paired_pz4(fakeconfig):
+    out=readings.paired_interactions(paired_ledger(18),qualification=qualification(18))
+    low={e:out[e+'_m256'] for e in ('lw','kron')};high={e:out[e+'_m512'] for e in ('lw','kron')}
+    assert readings.pz4(low,high)['met']
+    assert out['lw_m256']['mean'] == pytest.approx(-2+np.mean(np.arange(18))/200)
+    high['lw']=cell_ci(18,g='A',i=0)
+    assert not readings.pz4(low,high)['available']
+    out19=readings.paired_interactions(paired_ledger(19),qualification=qualification(19))
+    assert not readings.pz4(low,{e:out19[e+'_m512'] for e in ('lw','kron')})['available']
+
+
+@pytest.mark.parametrize('bad',['missing_pair','missing_cell','duplicate','nonfinite','R20','below18'])
+def test_paired_pz4_rejects_incomplete_evidence(fakeconfig,bad):
+    n=17 if bad=='below18' else 18;rows=paired_ledger(n)
+    if bad=='missing_pair':rows.pop()
+    if bad=='missing_cell':rows=[r for r in rows if not(r['theta']=='A' and r['N']==56)]
+    if bad=='duplicate':rows.append(rows[0])
+    if bad=='nonfinite':rows[0]['D']=float('nan')
+    if bad=='R20':rows=[r for r in rows if r['replicate']<20]
+    with pytest.raises(ValueError): readings.paired_interactions(rows,qualification=qualification(n))
 
 
 @pytest.mark.parametrize('bad', ['below18', 'R20', 'missing', 'duplicate', 'mixed', 'nonfinite', 'family', 'omitted_date'])
@@ -228,12 +278,28 @@ def test_cli_refuses_without_registration(tmp_path, capsys):
     assert error.value.code == 2 and 'STOP' in capsys.readouterr().err
 
 
+def complete_prediction(date='c59'):
+    row={k:0. for k in prediction.ROW_KEYS}
+    row.update(theta=0.,n_starts=64,checks={'H':True},N_star_pred=222.,N_star_interval=[222.,1000.],
+        restart_agreement=True,B_dagger=dict.fromkeys(('B_dagger','lambda_min','B_cert_KG','B_cert_KG_raw','zero_cut','Delta_k_KG'),0.))
+    fixed=[prediction.annotate({**row,'theta':t},sorted(set(prediction.GRIDS['A']+prediction.GRIDS['B']))) for t in (0.,.12,.25,.4)]
+    adaptive={g:dict(root=True,available=True,theta=.2,row=prediction.annotate({**row,'theta':.2},prediction.GRIDS[g])) for g in ('A','B')}
+    return dict(date=date,date_index=12+config()['access']['confirmation_analysis_dates'].index(date),pre_fit=True,
+        Sref_sha256_f64le=prediction.sref_hash(np.eye(72)),
+        fixed=fixed,adaptive=adaptive,PZ1=prediction.inherited_pz1(fixed),
+        grids={'P':1111,'A_grid':prediction.GRIDS['A'],'B_grid':prediction.GRIDS['B']},
+        geometries={'control':{'theta':0.,'row':fixed[0],'grid':prediction.GRIDS['control']},
+            **{g:dict(available=True,theta=.2,row=adaptive[g]['row'],grid=prediction.GRIDS[g]) for g in ('A','B')}})
+
+
 def test_prediction_order_and_membership(fakeconfig, monkeypatch, tmp_path):
     monkeypatch.setattr(guard, 'registration', lambda *a: {'tagged_commit': 'registered'})
     monkeypatch.setattr(guard, 'git', lambda ms, *a: b'after' if a[0] == 'rev-parse' else b'')
     monkeypatch.setattr(guard, 'committed', lambda *a, **kw: 'hash' if kw['remote'] else pytest.fail('not published'))
-    p = tmp_path/'prediction.json'; p.write_text('{"date":"c59","pre_fit":true}')
+    p = tmp_path/'prediction.json'; p.write_text(json.dumps(complete_prediction()))
     assert guard.before_fit(tmp_path, 'r', 'c59', p, 'after')['prediction_sha256'] == 'hash'
+    p.write_text('{"date":"c59","pre_fit":true}')
+    with pytest.raises(PermissionError): guard.before_fit(tmp_path, 'r', 'c59', p, 'after')
     with pytest.raises(PermissionError): guard.before_fit(tmp_path, 'r', 'dev', p, 'after')
     monkeypatch.setattr(guard, 'git', lambda *a: b'registered')
     with pytest.raises(PermissionError): guard.before_fit(tmp_path, 'r', 'c59', p, 'registered')
@@ -244,16 +310,69 @@ def test_prediction_order_and_membership(fakeconfig, monkeypatch, tmp_path):
     with pytest.raises(PermissionError): guard.before_fit(tmp_path, 'r', 'c59', p, 'older')
 
 
-def test_array_fit_checks_R50_seed_index_and_order(fakeconfig, monkeypatch):
-    from experiments.mlst2026.hcp_rnoise_20261019 import learning
-    calls = []
-    monkeypatch.setattr(guard, 'before_fit', lambda *a: calls.append('guard'))
-    monkeypatch.setattr(learning, 'fit_cell', lambda *a: calls.append('fit'))
-    kw = dict(ms='fixture', registration_record='r', date='c59', prediction_path='p', prediction_commit='c')
-    guard.fit_confirmation(None, None, None, 56, 256, 'reference', 71, 49, **kw)
-    assert calls == ['guard', 'fit']
-    for idx, rep in [(59, 0), (71, 50), (71, -1), (True, 0)]:
-        with pytest.raises(PermissionError): guard.fit_confirmation(None, None, None, 56, 256, 'reference', idx, rep, **kw)
+@pytest.mark.parametrize('bad',['metadata','date_index','hash','fixed','adaptive','row','grid','theta','certificate','diagnostics'])
+def test_prediction_record_rejects_incomplete_or_inconsistent(fakeconfig,monkeypatch,bad):
+    monkeypatch.setattr(prediction,'load',config)
+    p=complete_prediction()
+    if bad=='metadata':p={'date':'c59','pre_fit':True}
+    if bad=='date_index':p['date_index']=0
+    if bad=='hash':p['Sref_sha256_f64le']='placeholder'
+    if bad=='fixed':p['fixed'].pop()
+    if bad=='adaptive':p['adaptive'].pop('B')
+    if bad=='row':p['fixed'][1].pop('a_best')
+    if bad=='grid':p['geometries']['A']['grid']=[]
+    if bad=='theta':p['geometries']['A']['theta']=.3
+    if bad=='certificate':p['fixed'][1]['N_star_interval']=[2.,1.]
+    if bad=='diagnostics':p['fixed'][1]['n_starts']=1
+    with pytest.raises(PermissionError):prediction.validate_record(p,'c59')
+
+
+def test_prediction_adapter_and_explicit_unavailable(fakeconfig,monkeypatch):
+    monkeypatch.setattr(prediction,'load',config)
+    p=complete_prediction()
+    payload={k:v for k,v in p.items() if k not in ('date','date_index','Sref_sha256_f64le')}
+    monkeypatch.setattr(prediction,'predict_unit',lambda S,P,i:payload)
+    assert prediction.prediction_record(np.eye(72),'c59')['date_index']==71
+    for g in ('A','B'):
+        p['adaptive'][g]=dict(root=False,available=False,reason='no root')
+        p['geometries'][g].update(available=False,theta=None,row=None,reason='no root')
+    assert prediction.validate_record(p,'c59')
+    p['geometries']['A']['reason']=None
+    with pytest.raises(PermissionError):prediction.validate_record(p,'c59')
+
+
+def test_array_fit_checks_binding_and_order(fakeconfig, monkeypatch):
+    from experiments.mlst2026.hcp_rnoise_20261019 import learning,gates,signal
+    from types import SimpleNamespace
+    record=complete_prediction()
+    monkeypatch.setattr(prediction,'load',config)
+    calls=[]
+    def gate(*args):calls.append('guard');return {'prediction_record':record}
+    monkeypatch.setattr(guard,'before_fit',gate)
+    monkeypatch.setattr(learning,'fit_cell',lambda *a:calls.append('fit'))
+    monkeypatch.setattr(gates,'reference',lambda X:np.eye(72))
+    model=SimpleNamespace(C=12,T=6,theta=.2,variances=np.ones((2,3)),templates=lambda:np.ones((72,6)))
+    expected=SimpleNamespace(variances=np.ones((2,3)),templates=lambda:np.ones((72,6)))
+    monkeypatch.setattr(signal,'build',lambda S,t:expected)
+    kw=dict(ms='fixture',registration_record='r',date='c59',prediction_path='p',prediction_commit='c',geometry='A')
+    roles={'ref':(np.zeros((100,72)),None)}
+    guard.fit_confirmation(roles,model,np.eye(72),56,256,'lw',71,49,**kw)
+    assert calls==['guard','fit']
+    for idx,rep,N,m,arm,S in [(59,0,56,256,'lw',np.eye(72)),(71,50,56,256,'lw',np.eye(72)),
+        (71,0,1,256,'lw',np.eye(72)),(71,0,56,1024,'lw',np.eye(72)),
+        (71,0,56,256,'reference',np.eye(72)),(71,0,56,256,'lw',np.eye(72)*2)]:
+        with pytest.raises(PermissionError):guard.fit_confirmation(roles,model,S,N,m,arm,idx,rep,**kw)
+    model.theta=.3
+    with pytest.raises(PermissionError):guard.fit_confirmation(roles,model,np.eye(72),56,256,'lw',71,0,**kw)
+    model.theta=.2
+    model.templates=lambda:np.zeros((72,6))
+    with pytest.raises(PermissionError):guard.fit_confirmation(roles,model,np.eye(72),56,256,'lw',71,0,**kw)
+    model.templates=expected.templates
+    model.variances=np.ones((2,3))*2
+    with pytest.raises(PermissionError):guard.fit_confirmation(roles,model,np.eye(72),56,256,'lw',71,0,**kw)
+    model.variances=expected.variances
+    monkeypatch.setattr(gates,'reference',lambda X:np.eye(72)*2)
+    with pytest.raises(PermissionError):guard.fit_confirmation(roles,model,np.eye(72),56,256,'lw',71,0,**kw)
 
 
 def test_identity_chain(monkeypatch, tmp_path):

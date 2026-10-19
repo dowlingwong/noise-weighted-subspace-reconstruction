@@ -284,6 +284,12 @@ every arm and date; require complete included-date x50 ledgers with readings.py.
 Use readings.paired_interactions for all four PZ4 estimands from the complete paired
 ten-A/B-cell x5-arm xR50 ledger. PZ3/PZ5 enforce five/fifteen canonical cells and
 shared included cohorts internally; caller subsets cannot shrink the family.
+Use readings.pz2 with all15 reference intervals, complete per-included-date
+prediction records and all60 qualification outcomes. It derives A/B availability,
+in-range status and every below/above sign cell from the certificates in every
+included date. There is no caller in_range flag or favorable-pair API. Strict
+certificate-boundary/interior cells retain no sign requirement; unavailable or
+out-of-grid geometries retain explicit no-claim outcomes.
 Use the protocol's PZ1–PZ5 paired estimands/family34; report all outcomes and flags.
 The frozen CLI spec does not authorize building or launching the recording runner.
 

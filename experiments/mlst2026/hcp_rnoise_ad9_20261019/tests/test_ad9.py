@@ -154,9 +154,6 @@ def test_intervals_and_pz_rules(fakeconfig):
         assert not readings.pz3(controls[:1],[controls[0]['cell']])['available']
         assert not readings.pz5(iso[:1],[iso[0]['cell']])['available']
         assert not readings.pz5(iso+[iso[0]])['available']
-        lo=cell_ci(n,g='A',i=0);hi=cell_ci(n,g='A',i=4,positive=True)
-        assert readings.pz2(lo,hi,True)['met']
-        assert not readings.pz2(lo,hi,False)['met']
     rows=[{'theta':v,'B_cert':i} for i,v in enumerate([0.,.12,.25,.4])]
     assert readings.pz1(rows)['met']
     rows[-1]['B_cert']=0
@@ -171,7 +168,6 @@ def test_canonical_families_and_shared_cohort(fakeconfig):
     assert not readings.pz3(controls)['available']
     assert not readings.pz5(iso)['available']
     assert not readings.pz3([cell_ci(18,g='A',i=i) for i in range(5)])['available']
-    assert not readings.pz2(cell_ci(18,g='A',i=0),cell_ci(19,g='A',i=4,positive=True),True)['available']
 
 
 def test_complete_paired_pz4(fakeconfig):
@@ -325,6 +321,77 @@ def test_prediction_record_rejects_incomplete_or_inconsistent(fakeconfig,monkeyp
     if bad=='certificate':p['fixed'][1]['N_star_interval']=[2.,1.]
     if bad=='diagnostics':p['fixed'][1]['n_starts']=1
     with pytest.raises(PermissionError):prediction.validate_record(p,'c59')
+
+
+def crossing_predictions(n, *, boundary=False):
+    out={}
+    for d in config()['access']['confirmation_analysis_dates'][:n]:
+        p=complete_prediction(d)
+        for g,bounds in [('A',[111.,444.] if boundary else [150.,300.]),('B',[56.,222.] if boundary else [100.,200.])]:
+            row=p['adaptive'][g]['row']
+            row.update(N_star_pred=float(np.mean(bounds)),N_star_interval=bounds)
+            row=prediction.annotate(row,prediction.GRIDS[g])
+            p['adaptive'][g]['row']=row
+            p['geometries'][g]['row']=row
+        out[d]=p
+    return out
+
+
+def crossing_reference_rows(n, *, boundary=False):
+    return [cell_ci(n,g=g,i=i,positive=(g!='control' and i>= (4 if boundary else 3)))
+            for g in prediction.GRIDS for i in range(5)]
+
+
+def test_pz2_all_certificates_and_all_sign_cells(fakeconfig):
+    n=18;rows=crossing_reference_rows(n);pred=crossing_predictions(n)
+    out=readings.pz2(rows,predictions=pred,qualification=qualification(n))
+    assert out['available'] and out['met'] and out['reading']=='MET'
+    assert out['geometries']['A']['below']==['A/0/reference','A/1/reference']
+    assert out['geometries']['A']['above']==['A/3/reference','A/4/reference']
+    boundary=readings.pz2(crossing_reference_rows(n,boundary=True),predictions=crossing_predictions(n,boundary=True),qualification=qualification(n))
+    assert boundary['met']
+    assert boundary['geometries']['A']['below']==['A/0/reference']
+    assert boundary['geometries']['A']['above']==['A/4/reference']
+    # Boundary/interior cells are retained, but have no sign requirement.
+    assert 'A/1/reference' not in boundary['geometries']['A']['below']
+    assert 'A/3/reference' not in boundary['geometries']['A']['above']
+
+
+@pytest.mark.parametrize('bad',['reversed_signs','theta0_only','missing_sign_cell','wrong_date',
+    'missing_prediction','unavailable','out_of_grid','unequal_cohort','one_date_certificate_change'])
+def test_pz2_refuses_false_crossing_claims(fakeconfig,bad):
+    n=18;rows=crossing_reference_rows(n);pred=crossing_predictions(n)
+    if bad=='reversed_signs':
+        rows=[cell_ci(n,g=g,i=i,positive=(g!='control' and i<2)) for g in prediction.GRIDS for i in range(5)]
+    if bad=='theta0_only':rows=rows[:5]
+    if bad=='missing_sign_cell':rows=[r for r in rows if r['cell']!='A/1/reference']
+    if bad=='wrong_date':pred['c00']['date']='c59'
+    if bad=='missing_prediction':pred.pop('c00')
+    if bad=='unequal_cohort':rows[0]=cell_ci(19)
+    if bad in ('unavailable','out_of_grid','one_date_certificate_change'):
+        for d in (['c00'] if bad=='one_date_certificate_change' else list(pred)):
+            for g in ('A','B'):
+                p=pred[d]
+                if bad=='unavailable':
+                    p['adaptive'][g]=dict(root=False,available=False,reason='no root')
+                    p['geometries'][g].update(available=False,theta=None,row=None,reason='no root')
+                else:
+                    row=p['adaptive'][g]['row']
+                    row.update(N_star_interval=[1500.,3000.],N_star_pred=2000.)
+                    row=prediction.annotate(row,prediction.GRIDS[g])
+                    p['adaptive'][g]['row']=row;p['geometries'][g]['row']=row
+    out=readings.pz2(rows,predictions=pred,qualification=qualification(n))
+    assert not out['met']
+    if bad in ('unavailable','out_of_grid','one_date_certificate_change'):
+        assert not out['applicable'] and out['reading']=='NOT APPLICABLE'
+
+
+def test_pz2_missing_or_wrong_sign_nonselected_cell_cannot_hide(fakeconfig):
+    rows=crossing_reference_rows(18)
+    # A/1 is required by the certificates even when a favorable A/0 pair exists.
+    rows=[cell_ci(18,g='A',i=1,positive=True) if r['cell']=='A/1/reference' else r for r in rows]
+    out=readings.pz2(rows,predictions=crossing_predictions(18),qualification=qualification(18))
+    assert not out['met'] and not out['geometries']['A']['met']
 
 
 def test_prediction_adapter_and_explicit_unavailable(fakeconfig,monkeypatch):

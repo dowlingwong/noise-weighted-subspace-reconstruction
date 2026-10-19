@@ -8,6 +8,7 @@ from .protocol import load
 from .prediction import GRIDS
 
 PZ3_CELLS = [f'control/{i}/reference' for i in range(5)]
+REFERENCE_CELLS = [f'{g}/{i}/reference' for g in GRIDS for i in range(5)]
 PZ5_CELLS = [f'{g}/{i}/isotropic' for g in GRIDS for i in range(5)]
 PAIRED_CELLS = [f'{g}/{i}' for g in ('A', 'B') for i in range(5)]
 
@@ -116,13 +117,50 @@ def _family(rows, expected_cells):
             and all(_valid_interval(r) for r in rows) and _same_cohort(rows))
 
 
-def pz2(below,above,in_range):
-    valid=bool(in_range and _valid_interval(below) and _valid_interval(above)
-               and _same_cohort([below,above]) and below.get('cell','').endswith('/reference')
-               and above.get('cell','').endswith('/reference') and below['cell'] != above['cell']
-               and below['cell'].split('/')[0] == above['cell'].split('/')[0])
-    return {'applicable':bool(in_range),'available':valid,
-            'met':bool(valid and below['decision']=='negative' and above['decision']=='positive')}
+def pz2(reference_rows, *, predictions, qualification):
+    """Derive every A/B sign claim from all included per-date certificates.
+
+    There is no caller-supplied in_range flag or favorable-pair selection. Even
+    certificate-boundary/interior cells are retained in the complete family,
+    while carrying no sign requirement. Theta0 is never a PZ2 geometry.
+    """
+    from .protocol import cohort
+    from .prediction import validate_record
+    unavailable={'applicable':False,'available':False,'met':False,
+                 'reading':'UNAVAILABLE','geometries':{}}
+    try:
+        selection=cohort(qualification)
+        dates=selection['included']
+        if (selection['status'] != 'PASS' or not _family(reference_rows,REFERENCE_CELLS)
+                or reference_rows[0]['expected_dates'] != dates or set(predictions) != set(dates)):
+            return {**unavailable,'reason':'complete common-cohort reference family and prediction records required'}
+        for d in dates:
+            validate_record(predictions[d],d)
+        rows={r['cell']:r for r in reference_rows}
+        result={}
+        for g in ('A','B'):
+            geos=[predictions[d]['geometries'][g] for d in dates]
+            valid=all(geo['available'] and geo['row']['PZ2']['available'] for geo in geos)
+            in_range=valid and all(geo['row']['PZ2']['in_range'] for geo in geos)
+            below=[];above=[]
+            if valid:
+                intervals=[geo['row']['N_star_interval'] for geo in geos]
+                below=[f'{g}/{i}/reference' for i,N in enumerate(GRIDS[g])
+                       if all(N<bounds[0] for bounds in intervals)]
+                above=[f'{g}/{i}/reference' for i,N in enumerate(GRIDS[g])
+                       if all(N>bounds[1] for bounds in intervals)]
+            applicable=bool(in_range and below and above)
+            met=bool(applicable and all(rows[c]['decision']=='negative' for c in below)
+                     and all(rows[c]['decision']=='positive' for c in above))
+            result[g]={'applicable':applicable,'available':bool(valid),'below':below,'above':above,
+                'met':met,'reason':None if applicable else 'unavailable or out-of-grid crossing/certificate in an included date; no PZ2 claim'}
+        applicable=[r for r in result.values() if r['applicable']]
+        met=bool(applicable and all(r['met'] for r in result.values()))
+        return {'available':True,'applicable':bool(applicable),'met':met,'geometries':result,
+                'reading':'NOT APPLICABLE' if not applicable else 'MET' if met else 'NOT MET',
+                'reason':None,'expected_dates':dates}
+    except (PermissionError,KeyError,TypeError,ValueError):
+        return {**unavailable,'reason':'invalid qualification, interval or per-date prediction evidence'}
 
 
 def pz3(reference_theta0, expected_cells=None):

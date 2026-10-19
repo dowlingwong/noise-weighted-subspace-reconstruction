@@ -116,6 +116,7 @@ def summarize(remedy=False):
     if not (OUT/'PILOT_COMPLETED.json').is_file():raise RuntimeError('STOP incomplete pilot campaign')
     if remedy and not (OUT/'REMEDY_COMPLETED.json').is_file():raise RuntimeError('STOP incomplete remedy campaign')
     rows=[];manifest={}
+    original_manifest=json.loads((PUB/'PILOT_RECORD_SHA256.json').read_text()) if remedy else None
     for d in dates:
         for g in GEOMS:
             for r in range(50 if remedy else 20):
@@ -123,6 +124,8 @@ def summarize(remedy=False):
                 b=path.read_bytes();record=json.loads(b)
                 if (record['date'],record['geometry'],record['replicate'])!=(d,g,r):raise ValueError('group identity mismatch')
                 manifest[str(path)]={'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+                if remedy and r<20 and original_manifest.get(str(path))!=manifest[str(path)]:
+                    raise RuntimeError('STOP R20 bytes changed before remedy summary')
                 rows.extend(v for v in record['records'] if not remedy or v['arm_id']=='reference')
     result=aggregate(rows,dates,pred,50 if remedy else 20,remedy)
     result['DEV_PREDICTIONS_sha256']=hashlib.sha256((PUB/'DEV_PREDICTIONS.json').read_bytes()).hexdigest()

@@ -25,3 +25,15 @@ guide. This kit does not tag, stamp, register or access confirmation recordings.
 
 Run fabricated tests with meg_env, PYTHONPATH=src, PYTHONDONTWRITEBYTECODE=1,
 and OPENBLAS/OMP/MKL/NUMEXPR_NUM_THREADS=1. Long jobs run under tmux -L paper1hcp.
+
+`pilot.py` reads only the nine E1-passing dates' previously saved decimated dev
+arrays after exact source hashes and sealed Sref equality checks. Every pilot
+fit calls the inherited `learning.fit_cell`, including original sorted12 date
+indices and learning law8/cells100–102. `summary.py` requires the complete exact
+date/geometry/N/arm/replicate key set before any reading. It reports date means,
+paired interactions, restart flags, population Hessian diagnostics and all SDs.
+The prospective family34 and once-only reference R50 pilot extension are recorded
+in MS PILOT_PLAN.md before learning. `power.py` calls unchanged HCP/R1 n_min and
+also tabulates every cell at every n8…12, with strict inequalities and one-sided
+80% chi-square SD upper limits. Failure after R50 stops before F5. No optimiser
+iteration-limit adaptation is performed: the inherited T25 recipe stays fixed.

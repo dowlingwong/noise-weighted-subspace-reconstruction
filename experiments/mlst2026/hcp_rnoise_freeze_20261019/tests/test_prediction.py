@@ -35,3 +35,57 @@ def test_committed_bytes(tmp_path):
     c=git('rev-parse','HEAD').decode().strip(); assert p.committed(f,tmp_path,c)
     f.write_text('{"changed":true}')
     with pytest.raises(PermissionError):p.committed(f,tmp_path,c)
+
+def test_confirmation_refuses_before_fit(tmp_path,monkeypatch):
+    from experiments.mlst2026.hcp_rnoise_freeze_20261019 import confirmation_guard as g
+    from experiments.mlst2026.hcp_rnoise_20261019 import learning
+    monkeypatch.setattr(learning,'fit_cell',lambda *a,**k:pytest.fail('fit reached before authority'))
+    with pytest.raises(PermissionError):
+        g.fit_confirmation(None,None,None,56,256,'reference',0,0,ms=tmp_path,
+            registration_record='reviews/hcp_rnoise_registration_20261020/REGISTRATION.md',date='2013-06-24',
+            prediction_path=tmp_path/'missing.json',prediction_commit='HEAD')
+    with pytest.raises(PermissionError):g.before_fit(tmp_path,'bad','2014-01-23',tmp_path/'x','HEAD')
+
+def test_before_fit_requires_remote_commit(monkeypatch,tmp_path):
+    from experiments.mlst2026.hcp_rnoise_freeze_20261019 import confirmation_guard as g
+    monkeypatch.setattr(g,'registration',lambda *a:{'status':'PASS'})
+    calls=[]
+    def commit(*a,**k):calls.append(k);return 'sha'
+    monkeypatch.setattr(g,'committed',commit)
+    f=tmp_path/'p.json';f.write_text(json.dumps({'date':'2013-06-24','pre_fit':True}))
+    assert g.before_fit(tmp_path,'r','2013-06-24',f,'abc')['prediction_sha256']=='sha'
+    assert calls==[{'remote':True}]
+    f.write_text('{}')
+    with pytest.raises(PermissionError):g.before_fit(tmp_path,'r','2013-06-24',f,'abc')
+
+@pytest.mark.parametrize('failure',['url','tag','tag_commit','sums','ots','entry','frozen','signature','auth'])
+def test_registration_evidence_guard(monkeypatch,failure):
+    import hashlib
+    from experiments.mlst2026.hcp_rnoise_freeze_20261019 import confirmation_guard as g
+    path='reviews/hcp_rnoise_registration_20261020/REGISTRATION.md'
+    frozen=b'{"frozen":true}'
+    digest=lambda b:hashlib.sha256(b).hexdigest()
+    sums=(digest(frozen)+'  '+g.FREEZE+'/protocol_frozen.json\n').encode()
+    record=f'OSF URL: https://osf.io/abc12/\nGit tag: hcp-rnoise-registration-20261020\nTagged commit: abc\nBundle SHA-256: {digest(sums)}\nOTS SHA-256: {digest(b"ots")}\n'
+    auth=f'OSF URL: https://osf.io/abc12/\nGit tag: hcp-rnoise-registration-20261020\nOTS SHA-256: {digest(b"ots")}\nAuthor signature: Dowling Wong; 2026-10-20\n'
+    blobs={path:record.encode(),str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md'):auth.encode(),g.FREEZE+'/REGISTRATION_SHA256SUMS':sums,g.FREEZE+'/REGISTRATION_SHA256SUMS.ots':b'ots',g.FREEZE+'/protocol_frozen.json':frozen}
+    def fake(ms,*args):
+        if args[0]=='rev-parse':return b'abc\n'
+        if args[0]=='merge-base':return b''
+        return blobs[args[1].split(':',1)[1]]
+    monkeypatch.setattr(g,'git',fake)
+    assert g.registration('x',path)['status']=='PASS'
+    if failure=='url':blobs[path]=record.replace('https://osf.io/abc12/','https://example.org/x').encode()
+    elif failure=='tag':blobs[path]=record.replace('Git tag: hcp-rnoise-registration-20261020','Git tag: HEAD').encode()
+    elif failure=='tag_commit':blobs[path]=record.replace('Tagged commit: abc','Tagged commit: def').encode()
+    elif failure=='sums':blobs[path]=record.replace(digest(sums),'0'*64).encode()
+    elif failure=='ots':blobs[g.FREEZE+'/REGISTRATION_SHA256SUMS.ots']=b'changed'
+    elif failure=='entry':blobs[g.FREEZE+'/protocol_frozen.json']=b'changed'
+    elif failure=='frozen':
+        blobs[g.FREEZE+'/protocol_frozen.json']=b'{"frozen":false}'
+        newsums=(digest(blobs[g.FREEZE+'/protocol_frozen.json'])+'  '+g.FREEZE+'/protocol_frozen.json\n').encode()
+        blobs[g.FREEZE+'/REGISTRATION_SHA256SUMS']=newsums
+        blobs[path]=record.replace(digest(sums),digest(newsums)).encode()
+    elif failure=='signature':blobs[str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md')]=auth.replace('Dowling Wong;','UNSIGNED;').encode()
+    elif failure=='auth':blobs[str(__import__('pathlib').Path(path).parent/'CONFIRMATION_AUTHORIZATION.md')]=auth.replace('https://osf.io/abc12/','https://osf.io/different/').encode()
+    with pytest.raises(PermissionError):g.registration('x',path)

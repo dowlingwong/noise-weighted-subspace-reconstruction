@@ -43,7 +43,10 @@ def aggregate(records,dates,pred,R=20,reference_only=False):
                   'scores':{k:float(np.mean([r['D_scores'][k] for r in rows])) for k in rows[0]['D_scores']},
                   'optimization_limited':sum(r['optimization_limited'] for r in rows),
                   'restart_spread_max':max(r['restart_spread'] for r in rows),
-                  'selected_gradient_norm_max':max(r['selected_gradient_norm'] for r in rows)}
+                  'selected_gradient_norm_max':max(r['selected_gradient_norm'] for r in rows),
+                  'resample_records':[{k:r[k] for k in ('replicate','D','selected_status','selected_gradient_norm',
+                      'optimization_limited','optimization_limited_t25_rule','restart_spread','restarts')}
+                      for r in sorted(rows,key=lambda r:r['replicate'])]}
     table=[];power=[]
     for g in GEOMS:
         grid=pred['units'][dates[0]]['geometries'][g]['grid']

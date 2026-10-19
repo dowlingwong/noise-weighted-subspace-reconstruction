@@ -28,6 +28,8 @@ def test_complete_pilot_aggregation():
     rows,dates,pred=fixture();o=s.aggregate(rows,dates,pred)
     assert o['record_count']==16200 and len(o['cells'])==90 and len(o['power_cells'])==15
     assert len(o['PZ_readings']['PZ4']['interactions'])==4
+    assert len(o['cells'][0]['per_date']['d0']['resample_records'])==20
+    assert [r['replicate'] for r in o['cells'][0]['per_date']['d0']['resample_records']]==list(range(20))
     assert o['PZ_readings']['PZ2']['reading']=='MET'
     assert o['PZ_readings']['PZ5']['met']
     v=o['power_cells'][0]

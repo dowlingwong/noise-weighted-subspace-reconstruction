@@ -61,7 +61,7 @@ def main(n_rows=20, seed=20261106):
     with open(select.ROOT + "/out/0d_timing.json", 'w') as fh:
         json.dump(summary, fh, indent=2, sort_keys=True)
         fh.write('\n')
-    print('wrote /ceph/dwong/hcp_xopt_20261106/out/0d_timing.json')
+    print('wrote', select.ROOT + '/out/0d_timing.json')
 
 
 if __name__ == '__main__':

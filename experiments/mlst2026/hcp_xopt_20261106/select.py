@@ -5,7 +5,8 @@ import json
 
 import numpy as np
 
-IN_DEFAULT = '/ceph/dwong/hcp_xopt_20261106/inputs/hcp_confirmation_20261020'
+from .config import ROOT
+IN_DEFAULT = ROOT + "/inputs/hcp_confirmation_20261020"
 
 
 def scan(fits_path, wanted=None):

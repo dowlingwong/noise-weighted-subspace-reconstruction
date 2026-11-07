@@ -27,7 +27,8 @@ import numpy as np
 from . import kernel, select
 from experiments.mlst2026.hcp_rnoise_20261019.signal import build
 
-W_ROOT = '/ceph/dwong/hcp_xopt_20261106'
+from .config import ROOT
+W_ROOT = ROOT
 IN = W_ROOT + '/inputs/hcp_confirmation_20261020'
 FITS = IN + '/FITS.jsonl'
 FITS_SHA256 = 'c83198ea7f2b51fabb992ad5030997796b5abb9fb9a3663d88b785f7e645aa69'

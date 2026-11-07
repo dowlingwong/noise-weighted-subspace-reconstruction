@@ -7,7 +7,8 @@ Run from EXP with PYTHONPATH=$EXP:$EXP/src and OPENBLAS_CORETYPE=Haswell:
 import json, sys, time
 import numpy as np
 
-W = '/ceph/dwong/hcp_xopt_20261106'
+from .config import ROOT
+W = ROOT
 IN = W + '/inputs/hcp_confirmation_20261020'
 sys.path.insert(0, W + '/EXP')
 sys.path.insert(1, W + '/EXP/src')

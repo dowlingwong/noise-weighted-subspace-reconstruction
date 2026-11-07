@@ -16,7 +16,8 @@ import numpy as np
 from . import family
 from experiments.mlst2026.hcp_rnoise_ad9_20261019.prediction import GRIDS
 
-W = '/ceph/dwong/hcp_xopt_20261106'
+from .config import ROOT
+W = ROOT
 IN = W + '/inputs/hcp_confirmation_20261020'
 
 

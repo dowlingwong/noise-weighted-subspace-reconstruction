@@ -58,7 +58,7 @@ def main(n_rows=20, seed=20261106):
     print(json.dumps({k: summary[k] for k in ('stage', 'n_rows', 'mean_row_seconds',
                                               'median_row_seconds', 'max_row_seconds', 'route_seconds_sum')},
                      indent=2))
-    with open('/ceph/dwong/hcp_xopt_20261106/out/0d_timing.json', 'w') as fh:
+    with open(select.ROOT + "/out/0d_timing.json", 'w') as fh:
         json.dump(summary, fh, indent=2, sort_keys=True)
         fh.write('\n')
     print('wrote /ceph/dwong/hcp_xopt_20261106/out/0d_timing.json')

@@ -67,10 +67,15 @@ def load_deltas(path, expected_rows=None):
                 raise family.IncompleteLedger(f'duplicate identity {key}')
             if not _finite(r.get('D')):
                 raise family.IncompleteLedger(f'non-finite D at {key}')
-            delta = r.get('delta') or {}
+            delta = r.get('delta')
+            if not isinstance(delta, dict) or 'D' not in delta or 'objective' not in delta:
+                raise family.IncompleteLedger(f'missing delta at {key}')
             for name in ('D', 'objective'):
-                if name in delta and not _finite(delta[name]):
-                    raise family.IncompleteLedger(f'non-finite delta.{name} at {key}')
+                if not _finite(delta[name]):
+                    raise family.IncompleteLedger(f'non-finite or missing delta.{name} at {key}')
+            original = r.get('original')
+            if not isinstance(original, dict) or not _finite(original.get('D')):
+                raise family.IncompleteLedger(f'missing original at {key}')
             rows[key] = r
     if skipped:
         raise family.IncompleteLedger(f'{skipped} non-ok row(s) in the X-OPT ledger')
@@ -246,9 +251,15 @@ def main(xopt_path=None, out_path=None, scope=None):
     evidence['scope_detail'] = dict(expected_rows=PLANNED_ROWS[scope], loaded_rows=len(rows),
                                     dates=len(dates), refit_cells=list(family.refit_cells(scope)),
                                     n_refit_cells=len(family.refit_cells(scope)))
-    evidence['reproducibility'] = reproducibility(rows)
-    evidence['route_statistics'] = route_statistics(rows)
-    evidence['per_cell_arm_mean_delta_D'] = per_cell_arm_delta(rows)
+    try:
+        evidence['reproducibility'] = reproducibility(rows)
+        evidence['route_statistics'] = route_statistics(rows)
+        evidence['per_cell_arm_mean_delta_D'] = per_cell_arm_delta(rows)
+    except (KeyError, TypeError, IndexError, ValueError) as exc:
+        evidence['outcome'] = dict(family='INCOMPLETE',
+                                   reason=f'malformed row in the diagnostic readouts: {exc!r}')
+        _write(evidence, out_path)
+        return evidence
 
     D_x = {k: r['D'] for k, r in rows.items()}
     D_reg = family.ledger_from_fits(IN + '/FITS.jsonl')

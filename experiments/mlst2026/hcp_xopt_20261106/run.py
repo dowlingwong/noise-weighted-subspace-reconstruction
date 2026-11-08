@@ -10,6 +10,9 @@ Modes
               COMPLETED.json / PARTIAL.json / STOP.json.
   seal        archive results/claims/logs into sealed/ per addendum A2.d, verify, delete the
               loose copies, make sealed read-only.
+  supervise   autonomous, agent-free supervisor for one host (run under tmux): hourly progress
+              snapshots, worker-pool relaunch, quota guard, graceful-stop, and merge+seal when
+              no chunk remains.
   status      append a progress snapshot (entries, bytes, quota) and print queue status.
 
 Selection is by training objective only; no clean-risk quantity is an input to selection.
@@ -464,6 +467,18 @@ def _quota_guard(qdir, manifest, host, pid):
     return True, usage
 
 
+def record_done(qdir, cid, host, n_failed):
+    """Append one line to the single done_index.jsonl (used by the supervisor snapshots)."""
+    line = json.dumps(dict(chunk=cid, host=host, failed=int(n_failed), time=time.time()),
+                      sort_keys=True) + '\n'
+    os.makedirs(os.path.join(qdir, 'logs'), exist_ok=True)
+    fd = os.open(os.path.join(qdir, 'logs', 'done_index.jsonl'), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    try:
+        os.write(fd, line.encode())
+    finally:
+        os.close(fd)
+
+
 def run_chunk(args, qdir, cid, host, pid, deadline, manifest):
     rows = claim.load_chunk_rows(qdir, cid, manifest)
     date_roles, date_model = {}, {}
@@ -517,6 +532,7 @@ def run_chunk(args, qdir, cid, host, pid, deadline, manifest):
     if not claim.still_owner(qdir, cid, host, pid):
         return 'done'
     claim.publish(qdir, cid, records, manifest)
+    record_done(qdir, cid, host, sum(1 for r in records if r.get('status') != 'ok'))
     return 'done'
 
 
@@ -579,6 +595,145 @@ def worker(args):
         rcs.append(p.returncode)
     print(json.dumps(dict(host=host, workers=args.host_workers, rcs=rcs), indent=2))
     return 0
+
+
+
+# --------------------------------------------------------------------------- supervisor
+def _done_index(qdir):
+    out = {}
+    p = os.path.join(qdir, 'logs', 'done_index.jsonl')
+    if os.path.exists(p):
+        with open(p) as fh:
+            for line in fh:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                d = out.setdefault(r.get('host', '?'), dict(chunks=0, failed_rows=0))
+                d['chunks'] += 1
+                d['failed_rows'] += int(r.get('failed', 0))
+    return out
+
+
+def _reclaim_lines(qdir):
+    p = os.path.join(qdir, 'reclaims.log')
+    return sum(1 for _ in open(p)) if os.path.exists(p) else 0
+
+
+def progress_snapshot(qdir, started, manifest, tag='supervisor'):
+    """Append one progress snapshot to PROGRESS (records/resume4/progress.log)."""
+    usage = ceph_usage()
+    st = claim.status(qdir, manifest)
+    w2_bytes = getfattr_value('ceph.dir.rbytes', W_ROOT)
+    maxb = usage.get('max_bytes') or 0
+    rbytes = usage.get('rbytes')
+    snap = dict(tag=tag, time=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                host=socket.gethostname(), scope=started.get('scope'),
+                chunks_planned=manifest['n_chunks'], done=st['done'], claimed=st['claimed'],
+                remaining=st['remaining'], done_per_host=_done_index(qdir),
+                reclaims=_reclaim_lines(qdir),
+                loadavg=open('/proc/loadavg').read().split()[:3],
+                w2_entries=usage.get('w2_rentries'),
+                w2_bytes=int(w2_bytes) if w2_bytes else None,
+                ceph_rentries=usage.get('rentries'), ceph_max_files=usage.get('max_files'),
+                free_entries=usage.get('free_entries'), ceph_rbytes=rbytes,
+                ceph_max_bytes=maxb,
+                free_bytes=(int(maxb) - int(rbytes)) if maxb and rbytes else None,
+                result_bytes=st.get('result_bytes'))
+    os.makedirs(os.path.dirname(PROGRESS), exist_ok=True)
+    with open(PROGRESS, 'a') as fh:
+        fh.write(json.dumps(snap, sort_keys=True) + '\n')
+    return snap
+
+
+def _spawn_local_pool(args):
+    """Spawn this host's worker pool (N claim-workers) as a child process."""
+    qdir = _queue(args)
+    logs = os.path.join(qdir, 'logs')
+    os.makedirs(logs, exist_ok=True)
+    cmd = [sys.executable, '-m', 'experiments.mlst2026.hcp_xopt_20261106.run',
+           '--mode', 'worker', '--queue', qdir, '--host-workers', str(args.host_workers),
+           '--kernel', args.kernel]
+    log = open(os.path.join(logs, f'supervisor_pool_{socket.gethostname()}.log'), 'ab')
+    env = dict(os.environ, OPENBLAS_CORETYPE=args.kernel, **JOB_ENV)
+    return subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT,
+                            preexec_fn=lambda: os.nice(10))
+
+
+def _acquire_merge_lock(qdir):
+    try:
+        os.mkdir(os.path.join(qdir, '.merge.lock'))
+        return True
+    except FileExistsError:
+        return False
+
+
+def finalize(args):
+    """Merge, then seal, exactly once (guarded by an atomic mkdir lock)."""
+    qdir = _queue(args)
+    if not _acquire_merge_lock(qdir):
+        return None
+    rc = merge(args)
+    try:
+        seal.archive_run(qdir)
+        seal.freeze_sealed(qdir)
+    except seal.SealError as exc:
+        print('SEAL ERROR:', exc, file=sys.stderr)
+        return rc
+    print('SEALED:', os.path.join(qdir, seal.SEALED), file=sys.stderr)
+    return rc
+
+
+def supervise(args):
+    """Autonomous, agent-free supervisor for one host (run under tmux).
+
+    (i) appends a progress snapshot every --interval seconds (default 900 s, <= 1 h) to
+        W2/records/resume4/progress.log;
+    (ii) keeps this host's worker pool alive, relaunching it if it dies before the deadline
+        (the workers themselves apply the 2 h stale-claim rule);
+    (iii) applies the A2.e quota guard before relaunching;
+    (iv) stops claiming at the graceful-stop threshold and lets the current chunk finish;
+    (v) once no chunk remains, merges and seals exactly once via an atomic lock.
+    """
+    qdir = _queue(args)
+    if not os.path.exists(os.path.join(qdir, 'STARTED.json')):
+        return stop(qdir, 'supervisor started without STARTED.json')
+    started = _load_started(qdir)
+    manifest = claim.load_manifest(qdir)
+    deadline = started['deadline_epoch']
+    interval = max(30.0, float(args.interval))
+    pool = None
+    last = None
+    while True:
+        now = time.time()
+        if last is None or now - last >= interval:
+            progress_snapshot(qdir, started, manifest)
+            last = now
+        flags = _claim_flags(qdir)
+        if 'STOP_FLAG.json' in flags or 'QUOTA_STOP.json' in flags:
+            break
+        st = claim.status(qdir, manifest)
+        if st['remaining'] == 0:
+            break
+        if now > deadline:
+            _write_flag(qdir, 'TIME_STOP.json', dict(host=socket.gethostname(), time=now,
+                                                     reason='graceful stop threshold reached'))
+            break
+        ok, _usage = _quota_guard(qdir, manifest, socket.gethostname(), os.getpid())
+        if not ok:
+            break
+        if pool is None or pool.poll() is not None:
+            pool = _spawn_local_pool(args)
+        time.sleep(min(60.0, interval))
+    if pool is not None and pool.poll() is None:
+        t0 = time.time()
+        while pool.poll() is None and time.time() - t0 < 1800:
+            time.sleep(10)
+        if pool.poll() is None:
+            pool.terminate()
+    progress_snapshot(qdir, started, manifest, tag='final')
+    rc = finalize(args)
+    return 0 if rc in (None, 0) else rc
 
 
 # --------------------------------------------------------------------------- merge / seal
@@ -644,7 +799,8 @@ def status(args):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--mode', default='prepare',
-                    choices=['prepare', 'worker', 'worker-child', 'merge', 'seal', 'status'])
+                    choices=['prepare', 'worker', 'worker-child', 'merge', 'seal', 'supervise',
+                             'status'])
     ap.add_argument('--scope', default='full', choices=['full', 'primary', 'core',
                                                         'S_full', 'S_primary', 'S_core'])
     ap.add_argument('--queue', default=None)
@@ -654,6 +810,8 @@ def main(argv=None):
     ap.add_argument('--p-dt2', type=int, default=None)
     ap.add_argument('--estimate-seconds', type=float, default=None)
     ap.add_argument('--chunk-size', type=int, default=None)
+    ap.add_argument('--interval', type=float, default=900.0,
+                    help='supervisor progress-snapshot interval seconds (<= 3600)')
     ap.add_argument('--kernel', default='Haswell')
     ap.add_argument('--limit', type=int, default=None)
     ap.add_argument('--dry-run', action='store_true')
@@ -664,7 +822,7 @@ def main(argv=None):
             raise SystemExit('--estimate-seconds must be positive (the graceful stop depends on it)')
         return prepare(args)
     return {'worker': worker, 'worker-child': worker_child, 'merge': merge,
-            'seal': seal_run, 'status': status}[args.mode](args)
+            'seal': seal_run, 'supervise': supervise, 'status': status}[args.mode](args)
 
 
 if __name__ == '__main__':

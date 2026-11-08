@@ -1,13 +1,21 @@
-"""X-OPT production runner: one post-hoc strength pass over the frozen HCP Rnoise fits.
+"""X-OPT resume-4 production runner: two hosts, one shared claim queue on /ceph.
 
 Modes
-  --dry-run   verify freeze/inputs, print the plan, touch no result file.
-  --worker ID internal: process one shard (launched by the driver).
-  default     driver: verify, write STARTED.json, spawn workers, monitor, merge shards,
-              write COMPLETED.json (only if complete and clean) or PARTIAL.json / STOP.json.
+  prepare     verify freeze + sealed inputs, build the scoped row list, split it into fixed
+              chunks (200 rows by default), write the queue and STARTED.json (before the
+              first fit), exit.
+  worker      on one host: spawn N claim-workers (subprocesses), wait, report.
+  worker-child  internal: loop over the queue claiming chunks, process, publish, exit.
+  merge       validate exactly-once across chunk files, merge the ledger, write
+              COMPLETED.json / PARTIAL.json / STOP.json.
+  seal        archive results/claims/logs into sealed/ per addendum A2.d, verify, delete the
+              loose copies, make sealed read-only.
+  status      append a progress snapshot (entries, bytes, quota) and print queue status.
 
 Selection is by training objective only; no clean-risk quantity is an input to selection.
 No silent retries: a failing row is written as failed with the hash of its traceback.
+Invariant: a non-finite, missing, duplicated or failed value produces only a counted
+failure / PARTIAL / STOP -- never an 'ok' row.
 """
 from __future__ import annotations
 
@@ -15,8 +23,7 @@ import argparse
 import hashlib
 import json
 import os
-import re
-import signal
+import socket
 import subprocess
 import sys
 import time
@@ -24,7 +31,7 @@ import traceback
 
 import numpy as np
 
-from . import kernel, select
+from . import claim, kernel, scopes, seal, select
 from experiments.mlst2026.hcp_rnoise_20261019.signal import build
 
 from .config import ROOT
@@ -33,19 +40,25 @@ IN = W_ROOT + '/inputs/hcp_confirmation_20261020'
 FITS = IN + '/FITS.jsonl'
 FITS_SHA256 = 'c83198ea7f2b51fabb992ad5030997796b5abb9fb9a3663d88b785f7e645aa69'
 SEAL_FILES = W_ROOT + '/inputs/SEAL_FILES.sha256'
-FREEZE_RECORD = W_ROOT + '/MS/plan/onthefly/XOPT_FREEZE_2026-11-06.md'
 FREEZE_JSON = W_ROOT + '/out-freeze/FREEZE.json'
 PACKAGE = 'experiments/mlst2026/hcp_xopt_20261106'
 KIT = 'experiments/mlst2026/hcp_rnoise_ad9_20261019'
 KIT_IDENTITY = 'f01ed14caf682a3391edf5fd6e93566bd234e42b527d3077c4d79c684fe0596f'
-EXPECTED = {'full': 135000, 'primary': 54000}
-SCOPE_FRACTION = 0.10
-SCOPE_SEED = 20261106
-THREAD_ENV = {'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1',
-              'NUMEXPR_NUM_THREADS': '1', 'VECLIB_MAXIMUM_THREADS': '1', 'BLIS_NUM_THREADS': '1',
-              'PYTHONDONTWRITEBYTECODE': '1'}
+PLANNED = {'full': 135000, 'primary': 54000, 'core': 31500}
+QDIR = W_ROOT + '/run_20261108'
+PROGRESS = W_ROOT + '/records/resume4/progress.log'
+CEPH_ROOT = '/ceph/dwong'
+CEPH_MAX_FILES = 500000
+CHUNK = 200
+JOB_ENV = {'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1',
+           'NUMEXPR_NUM_THREADS': '1', 'VECLIB_MAXIMUM_THREADS': '1', 'BLIS_NUM_THREADS': '1',
+           'PYTHONDONTWRITEBYTECODE': '1',
+           'PYTHONPYCACHEPREFIX': f'/tmp/xopt_pycache_{os.environ.get("USER", "dwong")}',
+           'MPLCONFIGDIR': f'/tmp/xopt_mpl_{os.environ.get("USER", "dwong")}',
+           'TMPDIR': '/tmp'}
 REPLAY_OBJ_REL = 1e-9
 REPLAY_D_FACTOR = 5.0
+REQUIRED_FREEZE_KEYS = ('exp_commit', 'tag', 'ms_commit', 'protocol_sha256', 'package_sha256')
 
 
 def sha256_bytes(b):
@@ -60,18 +73,23 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+def _source_names(directory):
+    out = []
+    for name in sorted(os.listdir(directory)):
+        p = os.path.join(directory, name)
+        if name.startswith('.') or not os.path.isfile(p) or not name.endswith('.py'):
+            continue
+        out.append(name)
+    return out
+
+
 def package_sha256():
     root = os.path.join(W_ROOT, 'EXP', PACKAGE)
-    parts = []
-    for name in sorted(os.listdir(root)):
-        p = os.path.join(root, name)
-        if os.path.isfile(p) and name.endswith('.py'):
-            parts.append(f'{name}:{sha256_file(p)}')
+    parts = [f'{name}:{sha256_file(os.path.join(root, name))}' for name in _source_names(root)]
     tests = os.path.join(root, 'tests')
     if os.path.isdir(tests):
-        for name in sorted(os.listdir(tests)):
-            if name.endswith('.py'):
-                parts.append(f'tests/{name}:{sha256_file(os.path.join(tests, name))}')
+        parts += [f'tests/{name}:{sha256_file(os.path.join(tests, name))}'
+                  for name in _source_names(tests)]
     return sha256_bytes('\n'.join(parts).encode())
 
 
@@ -84,28 +102,57 @@ def openblas_build():
         return f'UNREADABLE:{exc}'
 
 
-def stop(outdir, reason, detail=None):
-    record = dict(stage='STOP', reason=reason, detail=detail,
+def _freeze_path(args):
+    return getattr(args, 'freeze_json', None) or FREEZE_JSON
+
+
+def _queue(args):
+    return getattr(args, 'queue', None) or QDIR
+
+
+def stop(qdir, reason, detail=None, status='STOP'):
+    os.makedirs(qdir, exist_ok=True)
+    record = dict(stage=status, reason=reason, detail=detail,
                   time=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-    os.makedirs(outdir, exist_ok=True)
-    with open(os.path.join(outdir, 'STOP.json'), 'w') as fh:
+    name = 'STOP.json' if status == 'STOP' else 'PARTIAL.json'
+    with open(os.path.join(qdir, name), 'w') as fh:
         json.dump(record, fh, indent=2, sort_keys=True)
         fh.write('\n')
-    print('STOP:', reason, json.dumps(detail)[:400], file=sys.stderr)
-    return 8
+    print(status + ':', reason, json.dumps(detail, default=str)[:400], file=sys.stderr)
+    return 8 if status == 'STOP' else 5
 
 
 def git(*args):
     return subprocess.run(['git', '-C', *args], capture_output=True, text=True)
 
 
+def kit_identity():
+    import pathlib
+    root = pathlib.Path(W_ROOT, 'EXP', KIT)
+    with open(root / 'KIT_SHA256.json') as fh:
+        mani = json.load(fh)
+    for rel in sorted(mani['files']):
+        if hashlib.sha256((root / rel).read_bytes()).hexdigest() != mani['files'][rel]:
+            return f'MISMATCH:{rel}'
+    return mani['kit_identity']
+
+
 def verify_freeze(args):
-    """Verify the frozen identity and a clean tree.  Returns (ok, detail)."""
     detail = {}
-    if not os.path.exists(FREEZE_JSON):
-        return False, {'error': 'FREEZE.json missing: the freeze must precede the first fit'}
-    with open(FREEZE_JSON) as fh:
-        freeze = json.load(fh)
+    path = _freeze_path(args)
+    if not os.path.exists(path):
+        return False, {'error': 'FREEZE.json missing: the freeze must precede the first fit',
+                       'path': path}
+    try:
+        with open(path) as fh:
+            freeze = json.load(fh)
+    except (OSError, ValueError) as exc:
+        return False, {'error': 'FREEZE.json is not valid JSON', 'path': path, 'detail': str(exc)}
+    if not isinstance(freeze, dict):
+        return False, {'error': 'FREEZE.json schema invalid: not an object', 'path': path}
+    missing = [k for k in REQUIRED_FREEZE_KEYS if k not in freeze]
+    if missing:
+        return False, {'error': 'FREEZE.json schema invalid', 'missing': missing, 'path': path}
     detail['freeze'] = freeze
     ms, exp = os.path.join(W_ROOT, 'MS'), os.path.join(W_ROOT, 'EXP')
     r = git(exp, 'rev-parse', 'HEAD')
@@ -115,6 +162,11 @@ def verify_freeze(args):
     r = git(exp, 'describe', '--tags', '--exact-match')
     if r.returncode or r.stdout.strip() != freeze['tag']:
         return False, {'error': 'EXP HEAD is not exactly at the freeze tag', 'describe': r.stdout.strip()}
+    tag_type = git(exp, 'cat-file', '-t', freeze['tag']).stdout.strip()
+    detail['tag_object_type'] = tag_type
+    if tag_type != 'tag':
+        return False, {'error': 'freeze tag is not an annotated tag object', 'type': tag_type}
+    detail['tag_object'] = git(exp, 'rev-parse', freeze['tag']).stdout.strip()
     r = git(ms, 'merge-base', '--is-ancestor', freeze['ms_commit'], 'HEAD')
     if r.returncode:
         return False, {'error': 'frozen MS commit is not an ancestor of MS HEAD'}
@@ -127,31 +179,19 @@ def verify_freeze(args):
     if detail['package_sha256'] != freeze['package_sha256']:
         return False, {'error': 'code bytes differ from the freeze record',
                        'got': detail['package_sha256'], 'frozen': freeze['package_sha256']}
-    for name, path in (('EXP', exp), ('MS', ms)):
-        dirty = git(path, 'status', '--porcelain').stdout.strip()
+    for name, path_ in (('EXP', exp), ('MS', ms)):
+        dirty = git(path_, 'status', '--porcelain').stdout.strip()
         if dirty:
             return False, {'error': f'{name} working tree is dirty', 'lines': dirty.splitlines()[:10]}
     detail['kit_identity'] = kit_identity()
     if detail['kit_identity'] != KIT_IDENTITY:
         return False, {'error': 'frozen kit identity mismatch', 'got': detail['kit_identity']}
     detail['openblas'] = openblas_build()
-    detail['tag_object'] = git(exp, 'rev-parse', freeze['tag']).stdout.strip()
+    detail['ots_status'] = freeze.get('ots_status', 'not-recorded')
     return True, detail
 
 
-def kit_identity():
-    import pathlib
-    root = pathlib.Path(W_ROOT, 'EXP', KIT)
-    mani = json.load(open(root / 'KIT_SHA256.json'))
-    for rel, want in sorted(mani['files'].items()):
-        got = hashlib.sha256((root / rel).read_bytes()).hexdigest()
-        if got != want:
-            return f'MISMATCH:{rel}'
-    return mani['kit_identity']
-
-
 def verify_inputs():
-    """Verify the sealed, already-derived inputs before any fit."""
     if sha256_file(FITS) != FITS_SHA256:
         return False, {'error': 'FITS.jsonl sha256 mismatch', 'got': sha256_file(FITS)}
     n_dates = 0
@@ -165,50 +205,79 @@ def verify_inputs():
                 return False, {'error': f'missing array file {name}/{role}'}
     if n_dates != 30:
         return False, {'error': f'expected 30 date array directories, found {n_dates}'}
-    if os.path.exists(SEAL_FILES):
-        r = subprocess.run(['sha256sum', '-c', SEAL_FILES], cwd=IN, capture_output=True, text=True)
-        if r.returncode != 0:
-            return False, {'error': 'SEAL_FILES.sha256 check failed', 'tail': r.stdout.strip().splitlines()[-3:]}
-        ok_lines = sum(1 for ln in r.stdout.splitlines() if ln.endswith(': OK'))
-        return True, {'fits_sha256': FITS_SHA256, 'arrays_dates': n_dates, 'seal_files_ok': ok_lines}
-    return True, {'fits_sha256': FITS_SHA256, 'arrays_dates': n_dates, 'seal_files_ok': 'not available'}
+    manifest = SEAL_FILES
+    if not os.path.exists(manifest):
+        manifest = os.path.join(W_ROOT, 'MS/reviews/hcp_rnoise_confirmation_seal_20261027/SEAL_FILES.sha256')
+    if not os.path.exists(manifest):
+        return False, {'error': 'no SEAL_FILES.sha256 manifest available'}
+    r = subprocess.run(['sha256sum', '-c', manifest], cwd=IN, capture_output=True, text=True)
+    if r.returncode != 0:
+        return False, {'error': 'SEAL_FILES.sha256 check failed',
+                       'tail': r.stdout.strip().splitlines()[-3:]}
+    ok_lines = sum(1 for ln in r.stdout.splitlines() if ln.endswith(': OK'))
+    if ok_lines != 248:
+        return False, {'error': f'seal file count {ok_lines} != 248'}
+    return True, {'fits_sha256': FITS_SHA256, 'arrays_dates': n_dates, 'seal_files_ok': ok_lines,
+                  'seal_manifest': manifest}
 
 
-def replicate_stratum(meta):
-    key = f"{SCOPE_SEED}/{meta['date']}/{meta['geometry']}/{meta['N']}/{meta['arm']}/{meta['m']}"
-    gen = np.random.default_rng(int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], 'little'))
-    return set(gen.choice(50, int(round(SCOPE_FRACTION * 50)), replace=False).tolist())
+def getfattr_value(attr, path):
+    r = subprocess.run(['getfattr', '--only-values', '-n', attr, path],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        return None
+    return r.stdout.strip()
 
 
-def in_scope(meta, scope):
+def ceph_usage():
+    ent = getfattr_value('ceph.dir.rentries', CEPH_ROOT)
+    bts = getfattr_value('ceph.dir.rbytes', CEPH_ROOT)
+    maxf = getfattr_value('ceph.quota.max_files', CEPH_ROOT)
+    maxb = getfattr_value('ceph.quota.max_bytes', CEPH_ROOT)
+    w2 = getfattr_value('ceph.dir.rentries', W_ROOT)
+    try:
+        ent_i = int(ent) if ent is not None else None
+        maxf_i = int(maxf) if maxf else None
+    except (TypeError, ValueError):
+        ent_i = maxf_i = None
+    free = None if ent_i is None or maxf_i is None else maxf_i - ent_i
+    return dict(rentries=ent_i, max_files=maxf_i, free_entries=free,
+                rbytes=int(bts) if bts else None, max_bytes=int(maxb) if maxb else None,
+                w2_rentries=int(w2) if w2 else None)
+
+
+def build_scope_rows(scope):
     if scope == 'full':
-        return True
-    if meta['arm'] in ('reference', 'isotropic'):
-        return True
-    return meta['replicate'] in replicate_stratum(meta)
+        rows = [{k: meta[k] for k in ('offset', 'date', 'geometry', 'N', 'arm', 'm',
+                                      'replicate', 'date_index', 'theta')}
+                for meta in select.scan(FITS)]
+        rows.sort(key=lambda r: r['offset'])
+        return rows
+    mapping = {'primary': 'S_primary', 'core': 'S_core'}
+    return scopes.rows_for_scope(mapping[scope], FITS)
 
 
-def build_index(scope, path):
-    n = 0
-    with open(path, 'w') as fh:
-        for meta in select.scan(FITS, wanted=lambda r: in_scope(r, scope)):
-            fh.write(json.dumps(meta, sort_keys=True) + '\n')
-            n += 1
-    return n
+def row_base(meta):
+    return dict(date=meta['date'], geometry=meta['geometry'], theta=meta['theta'], N=meta['N'],
+                arm=meta['arm'], m=meta['m'], replicate=meta['replicate'],
+                date_index=meta['date_index'], offset=meta['offset'])
 
 
 def row_record(meta, original, result):
-    return dict(
-        date=meta['date'], geometry=meta['geometry'], theta=meta['theta'], N=meta['N'],
-        arm=meta['arm'], m=meta['m'], replicate=meta['replicate'], date_index=meta['date_index'],
-        original=dict(D=float(original['D']),
-                      objective=float(original['kernel']['restarts'][original['kernel']['selected']]['objective']),
-                      selected=int(original['kernel']['selected']),
-                      status=original['kernel']['selected_status'],
-                      optimization_limited=bool(original['kernel']['optimization_limited']),
-                      optimization_limited_t25_rule=bool(original['kernel']['optimization_limited_t25_rule']),
-                      restart_spread=float(original['kernel']['restart_spread'])),
-        **result)
+    rec = row_base(meta)
+    rec.update(original=dict(D=float(original['D']),
+                             objective=float(original['kernel']['restarts'][original['kernel']['selected']]['objective']),
+                             selected=int(original['kernel']['selected']),
+                             status=original['kernel']['selected_status'],
+                             optimization_limited=bool(original['kernel']['optimization_limited']),
+                             optimization_limited_t25_rule=bool(original['kernel']['optimization_limited_t25_rule']),
+                             restart_spread=float(original['kernel']['restart_spread'])))
+    rec.update(result)
+    return rec
+
+
+def _all_finite(values):
+    return all(isinstance(v, (int, float)) and np.isfinite(float(v)) for v in values)
 
 
 def process_row(meta, original, roles, Sref, model):
@@ -228,12 +297,18 @@ def process_row(meta, original, roles, Sref, model):
     t_scores = time.time() - t0
     spread = float(max(tied_risks) - min(tied_risks)) if len(tied_risks) > 1 else 0.0
     D = float(win_scores['clean_ref'] - frozen['U']['clean_ref'])
+    obj_replay = float(frozen['restarts'][frozen['selected']]['objective'])
+    if not _all_finite([D, float(frozen['D']), obj_replay, spread]):
+        raise ValueError('non-finite value in the strengthened result')
+    if not _all_finite(list(win_scores.values())) or not _all_finite(tied_risks):
+        raise ValueError('non-finite clean-risk score')
     flags = kernel.flags_for(out['selected_status'], out['selected_gradient_norm'], tied_risks, D, spread)
     obj_stored = float(original['kernel']['restarts'][original['kernel']['selected']]['objective'])
-    obj_replay = float(frozen['restarts'][frozen['selected']]['objective'])
     replay_obj_rel = abs(obj_replay - obj_stored) / abs(obj_stored) if obj_stored else abs(obj_replay - obj_stored)
     replay_D_abs = abs(float(frozen['D']) - original['D'])
     spread_stored = float(original['kernel']['restart_spread'])
+    if not _all_finite([replay_obj_rel, replay_D_abs, spread_stored]):
+        raise ValueError('non-finite replication diagnostic')
     return dict(
         frozen=dict(objective=obj_replay, D=float(frozen['D']), selected=int(frozen['selected']),
                     status=frozen['selected_status'],
@@ -247,9 +322,7 @@ def process_row(meta, original, roles, Sref, model):
                           tied_clean_risks=tied_risks, tied_spread=spread,
                           s2_seed_key=out.get('s2_seed_key'), s3=out.get('S3')),
         replay=dict(obj_rel=replay_obj_rel, D_abs=replay_D_abs,
-                    D_over_spread=replay_D_abs / spread_stored if spread_stored else None,
-                    obj_ok=replay_obj_rel <= REPLAY_OBJ_REL,
-                    D_ok=(spread_stored > 0 and replay_D_abs <= REPLAY_D_FACTOR * spread_stored)),
+                    D_over_spread=replay_D_abs / spread_stored if spread_stored else None),
         D=D, D_scores={k: float(v) for k, v in win_scores.items()},
         U=frozen['U'], F={k: float(v) for k, v in win_scores.items()},
         delta=dict(D=float(D - frozen['D']), objective=float(out['objective'] - obj_replay)),
@@ -257,172 +330,341 @@ def process_row(meta, original, roles, Sref, model):
         seconds=dict(frozen=t_frozen, routes=t_routes, scores=t_scores))
 
 
-def worker_main(worker, n_workers, scope, outdir, estimate_seconds, index_path, deadline):
-    shard = os.path.join(outdir, 'shards', f'shard_{worker:02d}.jsonl')
-    os.makedirs(os.path.dirname(shard), exist_ok=True)
-    n_done = n_fail = 0
-    date_roles, date_model = {}, {}
-    with open(shard, 'w') as fh:
-        with open(index_path) as idx:
-            for line in idx:
-                meta = json.loads(line)
-                if int(hashlib.sha256(meta['date'].encode()).hexdigest()[:8], 16) % n_workers != worker:
-                    continue
-                if time.time() > deadline:
-                    fh.write(json.dumps(dict(status='stopped', worker=worker, rows=n_done), sort_keys=True) + '\n')
-                    return 3
-                try:
-                    original = select.read_row(FITS, meta['offset'])
-                    if meta['date'] not in date_roles:
-                        date_roles.clear()
-                        date_model.clear()
-                        date_roles[meta['date']] = select.load_inputs(meta['date'])
-                    roles, Sref = date_roles[meta['date']]
-                    key = float(meta['theta'])
-                    if key not in date_model:
-                        date_model[key] = build(Sref, key)
-                    res = process_row(meta, original, roles, Sref, date_model[key])
-                    rec = row_record(meta, original, res)
-                    rec['status'] = 'ok'
-                    n_done += 1
-                    if not res['replay']['obj_ok'] or (res['replay']['D_over_spread'] or 0) > REPLAY_D_FACTOR:
-                        return 6      # replication guard -> driver writes STOP.json
-                except Exception:
-                    tb = traceback.format_exc()
-                    rec = row_record(meta, original, dict(
-                        error=dict(type=tb.splitlines()[-1][:300], traceback_sha256=sha256_bytes(tb.encode())),
-                        D=float('nan')))
-                    rec['status'] = 'failed'
-                    n_fail += 1
-                fh.write(json.dumps(rec, sort_keys=True, allow_nan=True) + '\n')
-                fh.flush()
-                os.fsync(fh.fileno())
-    return 0 if n_fail == 0 else 4
+def _replay_breach(res):
+    rep = res['replay']
+    obj = rep['obj_rel']
+    if not isinstance(obj, (int, float)) or not np.isfinite(obj):
+        return 'non-finite replay objective'
+    if obj > REPLAY_OBJ_REL:
+        return f'replay objective rel {obj:.3e} > {REPLAY_OBJ_REL:g}'
+    d_abs = rep['D_abs']
+    if not isinstance(d_abs, (int, float)) or not np.isfinite(d_abs):
+        return 'non-finite replay D'
+    d = rep['D_over_spread']
+    if d is None:
+        return None
+    if not np.isfinite(d):
+        return 'non-finite replay D/spread'
+    if d > REPLAY_D_FACTOR:
+        return f'replay D/spread {d:.3f} > {REPLAY_D_FACTOR:g}'
+    return None
 
 
-def driver(args):
-    outdir = args.out
-    os.makedirs(os.path.join(outdir, 'shards'), exist_ok=True)
-    if os.path.exists(os.path.join(outdir, 'STARTED.json')):
-        return stop(outdir, 'output directory already started; no restart permitted')
-    ok, detail = verify_freeze(args)
-    if not ok:
-        return stop(outdir, 'frozen identity check failed', detail)
-    ok, inputs = verify_inputs()
-    if not ok:
-        return stop(outdir, 'sealed input verification failed', inputs)
-    print(f'frozen identity OK: {json.dumps(detail)[:600]}', flush=True)
-    print(f'inputs OK: {json.dumps(inputs)}', flush=True)
-    index_path = os.path.join(outdir, 'scope_index.jsonl')
-    temp_index = index_path + '.tmp'
-    n_plan = build_index(args.scope, temp_index)
-    expected = EXPECTED[args.scope]
+# --------------------------------------------------------------------------- prepare
+def prepare(args):
+    qdir = _queue(args)
+    os.makedirs(qdir, exist_ok=True)
+    if os.path.exists(os.path.join(qdir, 'STARTED.json')):
+        return stop(qdir, 'output directory already started; no restart permitted')
+    scratch = bool(getattr(args, 'scratch', False))
+    if scratch:
+        detail = dict(scratch=True, note='scratch run: freeze/input checks bypassed by '
+                                        'explicit --scratch; output is discarded')
+        inputs = dict(scratch=True)
+        print('SCRATCH MODE: freeze/input checks bypassed (discarded run)', file=sys.stderr)
+    else:
+        ok, detail = verify_freeze(args)
+        if not ok:
+            return stop(qdir, 'frozen identity check failed', detail)
+        ok, inputs = verify_inputs()
+        if not ok:
+            return stop(qdir, 'sealed input verification failed', inputs)
+    final_scope = {'S_full': 'full', 'S_primary': 'primary', 'S_core': 'core'}.get(
+        getattr(args, 'scope', 'full'), getattr(args, 'scope', 'full'))
+    rows = build_scope_rows(final_scope)
     if args.limit:
-        keep = []
-        with open(temp_index) as fh:
-            for i, line in enumerate(fh):
-                if i >= args.limit:
-                    break
-                keep.append(line)
-        with open(temp_index, 'w') as fh:
-            fh.writelines(keep)
-        n_plan = len(keep)
-        expected = n_plan
-    if n_plan != expected:
-        os.unlink(temp_index)
-        return stop(outdir, f'scope census {n_plan} != expected {expected}', {'scope': args.scope})
-    os.replace(temp_index, index_path)
-    if args.dry_run:
-        os.unlink(index_path)
-        print(f'DRY RUN OK: scope={args.scope} planned_rows={n_plan}; no result file touched.')
-        return 0
+        rows = rows[:args.limit]
+    expected = PLANNED[final_scope]
+    if args.limit is None and len(rows) != expected:
+        return stop(qdir, f'scope census {len(rows)} != expected {expected}', {'scope': final_scope})
+    chunk_size = getattr(args, 'chunk_size', None) or CHUNK
+    manifest = claim.prepare(qdir, final_scope, rows, chunk_size=chunk_size)
+    projected = manifest['n_chunks'] * 3 + 60 + manifest['n_chunks'] * 0  # claim dir+claim.json+result
     estimate = args.estimate_seconds
-    started = dict(stage='STARTED', scope=args.scope, planned_rows=n_plan, workers=args.workers,
+    usage = ceph_usage()
+    started = dict(stage='STARTED', scope=final_scope, planned_rows=manifest['planned_rows'],
+                   chunks=manifest['n_chunks'], chunk_size=manifest['chunk_size'],
+                   row_list_sha256=manifest['row_list_sha256'],
                    limit=args.limit, estimate_seconds=estimate,
                    graceful_stop_seconds=1.5 * estimate,
+                   deadline_epoch=time.time() + 1.5 * estimate,
                    start_time=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                    freeze=detail, inputs=inputs, kernel=args.kernel,
-                   thread_env={k: os.environ.get(k) for k in THREAD_ENV},
-                   openblas=detail.get('openblas'), host=os.uname().nodename,
-                   python=sys.version.split()[0], numpy=np.__version__,
-                   scope_index_sha256=sha256_file(index_path))
-    with open(os.path.join(outdir, 'STARTED.json'), 'w') as fh:
+                   thread_env=dict(JOB_ENV), openblas=(detail or {}).get('openblas'),
+                   host=os.uname().nodename, python=sys.version.split()[0],
+                   numpy=np.__version__,
+                   p_dt=getattr(args, 'p_dt', None), p_dt2=getattr(args, 'p_dt2', None),
+                   p_total=None if getattr(args, 'p_dt', None) is None else
+                   (args.p_dt + (args.p_dt2 or 0)),
+                   projected_peak_entries=projected, quota_at_start=usage,
+                   scratch=scratch, scope_index_sha256=manifest['row_list_sha256'])
+    if args.dry_run:
+        print(json.dumps({k: started[k] for k in ('scope', 'planned_rows', 'chunks', 'chunk_size',
+                                                  'row_list_sha256', 'projected_peak_entries')},
+                         indent=2))
+        print('DRY RUN OK: no STARTED.json written, no result file touched.')
+        return 0
+    with open(os.path.join(qdir, 'STARTED.json'), 'w') as fh:
         json.dump(started, fh, indent=2, sort_keys=True)
         fh.write('\n')
-    deadline = time.time() + 1.5 * estimate
-    env = dict(os.environ, OPENBLAS_CORETYPE=args.kernel, **THREAD_ENV)
+    print(json.dumps({k: started[k] for k in ('scope', 'planned_rows', 'chunks', 'chunk_size',
+                                              'row_list_sha256', 'graceful_stop_seconds',
+                                              'kernel', 'projected_peak_entries')}, indent=2))
+    return 0
+
+
+# --------------------------------------------------------------------------- workers
+def _load_started(qdir):
+    with open(os.path.join(qdir, 'STARTED.json')) as fh:
+        return json.load(fh)
+
+
+def _claim_flags(qdir):
+    out = {}
+    for name in ('STOP_FLAG.json', 'TIME_STOP.json', 'QUOTA_STOP.json'):
+        p = os.path.join(qdir, name)
+        if os.path.exists(p):
+            with open(p) as fh:
+                out[name] = json.load(fh)
+    return out
+
+
+def _write_flag(qdir, name, payload):
+    p = os.path.join(qdir, name)
+    tmp = p + '.tmp'
+    with open(tmp, 'w') as fh:
+        json.dump(payload, fh, indent=2, sort_keys=True)
+        fh.write('\n')
+    os.replace(tmp, p)
+
+
+def _claim_next(qdir, chunks, host, pid):
+    for cid in chunks:
+        if claim.is_done(qdir, cid):
+            continue
+        res = claim.claim(qdir, cid, host, pid)
+        if res['action'] in ('claimed', 'reclaimed'):
+            return cid
+    return None
+
+
+def _quota_guard(qdir, manifest, host, pid):
+    """A2.e: stop claiming when free entries < 1.5 x projected remaining entries."""
+    usage = ceph_usage()
+    st = claim.status(qdir, manifest)
+    remaining = st['remaining']
+    projected = remaining * 3 + 60
+    free = usage.get('free_entries')
+    if free is not None and free < 1.5 * projected:
+        _write_flag(qdir, 'QUOTA_STOP.json',
+                    dict(host=host, pid=pid, free_entries=free, projected=projected,
+                         usage=usage, time=time.time(),
+                         reason='free entries < 1.5 x projected remaining entries'))
+        return False, usage
+    return True, usage
+
+
+def run_chunk(args, qdir, cid, host, pid, deadline, manifest):
+    rows = claim.load_chunk_rows(qdir, cid, manifest)
+    date_roles, date_model = {}, {}
+    records = []
+    last_hb = time.time()
+    for meta in rows:
+        now = time.time()
+        if now > deadline:
+            _write_flag(qdir, 'TIME_STOP.json', dict(chunk=cid, host=host, pid=pid,
+                                                     rows=len(records), time=now))
+            return 'time_stop'
+        if now - last_hb > claim.HEARTBEAT_SECONDS:
+            if not claim.still_owner(qdir, cid, host, pid):
+                return 'done'
+            claim.heartbeat(qdir, cid, host, pid)
+            last_hb = now
+        try:
+            original = select.read_row(FITS, meta['offset'])
+            if meta['date'] not in date_roles:
+                date_roles.clear()
+                date_model.clear()
+                date_roles[meta['date']] = select.load_inputs(meta['date'])
+            roles, Sref = date_roles[meta['date']]
+            model_key = float(meta['theta'])
+            if model_key not in date_model:
+                date_model[model_key] = build(Sref, model_key)
+            res = process_row(meta, original, roles, Sref, date_model[model_key])
+            rec = row_record(meta, original, res)
+            rec['status'] = 'ok'
+            if not _all_finite([rec['D'], rec['delta']['D'], rec['delta']['objective']]):
+                raise ValueError('non-finite D/delta in a row that would otherwise be ok')
+            breach = _replay_breach(res)
+            if breach:
+                _write_flag(qdir, 'STOP_FLAG.json', dict(chunk=cid, host=host, pid=pid,
+                                                         reason='replication guard: ' + breach,
+                                                         meta=meta))
+                return 'guard'
+        except Exception:
+            tb = traceback.format_exc()
+            rec = row_base(meta)
+            rec['original'] = None
+            rec['status'] = 'failed'
+            rec['D'] = None
+            rec['error'] = dict(type=tb.splitlines()[-1][:300],
+                                traceback_sha256=sha256_bytes(tb.encode()))
+        rec['host'] = host
+        rec['chunk_id'] = cid
+        rec['worker_pid'] = pid
+        rec['openblas_coretype'] = os.environ.get('OPENBLAS_CORETYPE', args.kernel)
+        records.append(rec)
+    if not claim.still_owner(qdir, cid, host, pid):
+        return 'done'
+    claim.publish(qdir, cid, records, manifest)
+    return 'done'
+
+
+def worker_child(args):
+    qdir = _queue(args)
+    manifest = claim.load_manifest(qdir)
+    started = _load_started(qdir)
+    deadline = started['deadline_epoch']
+    host = socket.gethostname()
+    pid = os.getpid()
+    last_quota = 0.0
+    while True:
+        flags = _claim_flags(qdir)
+        if 'STOP_FLAG.json' in flags:
+            return 6
+        if 'QUOTA_STOP.json' in flags:
+            return 5
+        if time.time() > deadline:
+            _write_flag(qdir, 'TIME_STOP.json', dict(host=host, pid=pid, time=time.time(),
+                                                     reason='graceful stop threshold reached'))
+            return 3
+        if time.time() - last_quota > 60:
+            ok, usage = _quota_guard(qdir, manifest, host, pid)
+            last_quota = time.time()
+            if not ok:
+                return 5
+        cid = _claim_next(qdir, claim.chunk_ids(manifest), host, pid)
+        if cid is None:
+            if claim.status(qdir, manifest)['remaining'] == 0:
+                return 0
+            time.sleep(20)
+            continue
+        rc = run_chunk(args, qdir, cid, host, pid, deadline, manifest)
+        if rc == 'guard':
+            return 6
+        if rc == 'time_stop':
+            return 3
+
+
+def worker(args):
+    qdir = _queue(args)
+    if not os.path.exists(os.path.join(qdir, 'STARTED.json')):
+        return stop(qdir, 'worker started without STARTED.json')
+    host = socket.gethostname()
+    env = dict(os.environ, OPENBLAS_CORETYPE=args.kernel, **JOB_ENV)
+    logs = os.path.join(qdir, 'logs')
+    os.makedirs(logs, exist_ok=True)
     procs = []
-    for w in range(args.workers):
+    for w in range(args.host_workers):
         cmd = [sys.executable, '-m', 'experiments.mlst2026.hcp_xopt_20261106.run',
-               '--worker', str(w), '--workers', str(args.workers), '--scope', args.scope,
-               '--out', outdir, '--estimate-seconds', str(estimate), '--kernel', args.kernel]
-        log = open(os.path.join(W_ROOT, 'logs', f'xopt_worker_{w:02d}.log'), 'ab')
+               '--mode', 'worker-child', '--queue', qdir, '--kernel', args.kernel,
+               '--host-workers', str(args.host_workers)]
+        log = open(os.path.join(logs, f'worker_{host}_{w:03d}.log'), 'ab')
         procs.append((subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT,
                                        preexec_fn=lambda: os.nice(10)), log))
     rcs = []
-    try:
-        for p, log in procs:
-            p.wait()
-            log.close()
-            rcs.append(p.returncode)
-    except KeyboardInterrupt:
-        for p, _ in procs:
-            p.send_signal(signal.SIGTERM)
-        rcs = [130]
-    shards = sorted(os.path.join(outdir, 'shards', f) for f in os.listdir(os.path.join(outdir, 'shards')))
-    merged = os.path.join(outdir, 'XOPT_FITS.jsonl')
-    n_rows = n_ok = n_fail = n_stop = 0
-    with open(merged, 'wb') as out:
-        for s in shards:
-            with open(s, 'rb') as fh:
-                for line in fh:
-                    rec = json.loads(line)
-                    if rec.get('status') == 'stopped':
-                        n_stop += 1
-                        continue
-                    n_rows += 1
-                    n_ok += rec.get('status') == 'ok'
-                    n_fail += rec.get('status') == 'failed'
-                    out.write(line)
-    base = dict(scope=args.scope, planned_rows=n_plan, rows=n_rows, ok=n_ok, failed=n_fail,
-                stopped_workers=n_stop, workers=args.workers, kernel=args.kernel,
+    for p, log in procs:
+        p.wait()
+        log.close()
+        rcs.append(p.returncode)
+    print(json.dumps(dict(host=host, workers=args.host_workers, rcs=rcs), indent=2))
+    return 0
+
+
+# --------------------------------------------------------------------------- merge / seal
+def merge(args):
+    qdir = _queue(args)
+    if not os.path.exists(os.path.join(qdir, 'STARTED.json')):
+        return stop(qdir, 'merge started without STARTED.json')
+    started = _load_started(qdir)
+    summary = claim.merge(qdir)
+    stopped = _claim_flags(qdir)
+    base = dict(scope=started['scope'], planned_rows=started['planned_rows'],
+                chunks=started['chunks'], chunk_size=started['chunk_size'],
+                row_list_sha256=started['row_list_sha256'],
+                rows=summary['rows'], ok=summary['ok'], failed=summary['failed'],
+                done_chunks=summary['done_chunks'], kernel=started.get('kernel'),
                 end_time=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
-                xopt_fits_sha256=sha256_file(merged))
-    if 6 in rcs:
-        return stop(outdir, 'replication guard triggered: a scoped row was not reproduced', base)
-    if rcs and all(rc == 0 for rc in rcs) and n_rows == n_plan and n_fail == 0:
+                xopt_fits_path=summary['merged_path'],
+                xopt_fits_sha256=summary['merged_sha256'], problems=summary['problems'],
+                stop_flags=stopped)
+    if 'STOP_FLAG.json' in stopped:
+        return stop(qdir, 'replication guard triggered: a scoped row was not reproduced',
+                    base, status='STOP')
+    if summary['complete'] and summary['failed'] == 0:
         base['stage'] = 'COMPLETED'
-        name = 'COMPLETED.json'
+        name, rc = 'COMPLETED.json', 0
     else:
         base['stage'] = 'PARTIAL'
-        base['partial_reason'] = ('time_stop' if n_stop or any(rc == 3 for rc in rcs)
-                                  else 'row_failures' if n_fail else f'worker_rc={rcs}')
-        name = 'PARTIAL.json'
-    with open(os.path.join(outdir, name), 'w') as fh:
+        base['partial_reason'] = ('time_stop' if 'TIME_STOP.json' in stopped else
+                                  'quota_stop' if 'QUOTA_STOP.json' in stopped else
+                                  'row_failures' if summary['failed'] else 'incomplete_chunks')
+        name, rc = 'PARTIAL.json', 5
+    with open(os.path.join(qdir, name), 'w') as fh:
         json.dump(base, fh, indent=2, sort_keys=True)
         fh.write('\n')
     print(json.dumps(base, indent=2, sort_keys=True))
-    return 0 if name == 'COMPLETED.json' else 5
+    return rc
+
+
+def seal_run(args):
+    qdir = _queue(args)
+    rec = seal.archive_run(qdir)
+    seal.freeze_sealed(qdir)
+    print(json.dumps({k: rec[k] for k in ('scope', 'merged_rows', 'chunk_count', 'n_members')},
+                     indent=2))
+    return 0
+
+
+def status(args):
+    qdir = _queue(args)
+    manifest = claim.load_manifest(qdir)
+    st = claim.status(qdir, manifest)
+    usage = ceph_usage()
+    snap = dict(time=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                host=socket.gethostname(), **st, quota=usage,
+                entries_under_run=claim.count_entries(qdir))
+    os.makedirs(os.path.dirname(PROGRESS), exist_ok=True)
+    with open(PROGRESS, 'a') as fh:
+        fh.write(json.dumps(snap, sort_keys=True) + '\n')
+    print(json.dumps(snap, indent=2, sort_keys=True))
+    return 0
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--dry-run', action='store_true')
-    ap.add_argument('--scope', default='full', choices=['full', 'primary'])
-    ap.add_argument('--workers', type=int, default=8)
-    ap.add_argument('--out', default=W_ROOT + '/out')
-    ap.add_argument('--estimate-seconds', type=float, required=True)
+    ap.add_argument('--mode', default='prepare',
+                    choices=['prepare', 'worker', 'worker-child', 'merge', 'seal', 'status'])
+    ap.add_argument('--scope', default='full', choices=['full', 'primary', 'core',
+                                                        'S_full', 'S_primary', 'S_core'])
+    ap.add_argument('--queue', default=None)
+    ap.add_argument('--freeze-json', default=None)
+    ap.add_argument('--host-workers', type=int, default=8)
+    ap.add_argument('--p-dt', type=int, default=None)
+    ap.add_argument('--p-dt2', type=int, default=None)
+    ap.add_argument('--estimate-seconds', type=float, default=None)
+    ap.add_argument('--chunk-size', type=int, default=None)
     ap.add_argument('--kernel', default='Haswell')
-    ap.add_argument('--worker', type=int, default=None)
     ap.add_argument('--limit', type=int, default=None)
+    ap.add_argument('--dry-run', action='store_true')
+    ap.add_argument('--scratch', action='store_true')
     args = ap.parse_args(argv)
-    if args.estimate_seconds <= 0:
-        raise SystemExit('--estimate-seconds must be positive (the graceful stop depends on it)')
-    if args.worker is not None:
-        deadline = time.time() + 1.5 * args.estimate_seconds
-        return worker_main(args.worker, args.workers, args.scope, args.out, args.estimate_seconds,
-                           os.path.join(args.out, 'scope_index.jsonl'), deadline)
-    return driver(args)
+    if args.mode == 'prepare':
+        if args.estimate_seconds is None or args.estimate_seconds <= 0:
+            raise SystemExit('--estimate-seconds must be positive (the graceful stop depends on it)')
+        return prepare(args)
+    return {'worker': worker, 'worker-child': worker_child, 'merge': merge,
+            'seal': seal_run, 'status': status}[args.mode](args)
 
 
 if __name__ == '__main__':

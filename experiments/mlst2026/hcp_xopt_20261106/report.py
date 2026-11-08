@@ -1,9 +1,15 @@
-"""X-OPT reduction: registered family-34 recomputation, decision changes and readouts.
+"""X-OPT reduction: scope-aware verdict, decision changes and readouts.
 
-Reads W/out/XOPT_FITS.jsonl, the sealed FITS.jsonl (registered control) and the published
-prediction records; writes XOPT_EVIDENCE.json (compact, paper-facing, sorted keys, two-space
-indent, final newline).  Descriptive only: it never re-scores a registered reading, and an
-incomplete or failed ledger is reported as UNAVAILABLE, never as "undecided".
+Reads W2/out/resume4/XOPT_FITS.jsonl (or a given ledger), the sealed FITS.jsonl (registered
+control) and the published prediction records; writes XOPT_EVIDENCE.json.
+
+The invariant enforced here: a non-finite, missing, duplicated or failed value can only
+produce a counted failure and the label INCOMPLETE -- never a decision, a verdict label or an
+interval.  Only **refit cells** (cells whose rows are fully in scope) enter the verdict;
+sampled cells are reported descriptively with an explicit "sample-based, not a family-34
+recomputation" label and never enter the verdict.
+
+Descriptive only: it never re-scores a registered reading.
 """
 from __future__ import annotations
 
@@ -20,10 +26,34 @@ from .config import ROOT
 W = ROOT
 IN = W + '/inputs/hcp_confirmation_20261020'
 
+PLANNED_ROWS = {'full': 135000, 'primary': 54000, 'core': 31500}
+SCOPE_ALIAS = {'S_full': 'full', 'S_primary': 'primary', 'S_core': 'core',
+               'full': 'full', 'primary': 'primary', 'core': 'core'}
+
+
+def normalize_scope(scope):
+    if scope is None:
+        return 'full'
+    try:
+        return SCOPE_ALIAS[scope]
+    except KeyError:
+        raise ValueError(f'unknown scope {scope!r}')
+
 
 # --------------------------------------------------------------------------- inputs
-def load_deltas(path):
-    """Per-row join with the stored values, flags and route.  Only status=='ok' rows."""
+def _finite(x):
+    try:
+        return bool(np.isfinite(float(x)))
+    except (TypeError, ValueError):
+        return False
+
+
+def load_deltas(path, expected_rows=None):
+    """Strict ingestion: only status=='ok' rows with finite D and finite deltas.
+
+    Rejects a duplicate identity, a non-finite D/Delta, any non-ok row, and a row census
+    that is not the planned count, by raising `family.IncompleteLedger`.
+    """
     rows = {}
     skipped = 0
     with open(path) as fh:
@@ -33,15 +63,28 @@ def load_deltas(path):
                 skipped += 1
                 continue
             key = (r['date'], r['replicate'], r['geometry'], r['N'], r['arm'], r['m'])
+            if key in rows:
+                raise family.IncompleteLedger(f'duplicate identity {key}')
+            if not _finite(r.get('D')):
+                raise family.IncompleteLedger(f'non-finite D at {key}')
+            delta = r.get('delta') or {}
+            for name in ('D', 'objective'):
+                if name in delta and not _finite(delta[name]):
+                    raise family.IncompleteLedger(f'non-finite delta.{name} at {key}')
             rows[key] = r
-    return rows, skipped
+    if skipped:
+        raise family.IncompleteLedger(f'{skipped} non-ok row(s) in the X-OPT ledger')
+    if expected_rows is not None and len(rows) != expected_rows:
+        raise family.IncompleteLedger(f'row census {len(rows)} != planned {expected_rows}')
+    return rows
 
 
 def n_star_targets(dates):
     """Committed per-date N_star_pred by geometry.  The value lives under ['row']."""
     out = {}
     for d in dates:
-        rec = json.loads(open(f'{IN}/attic_launcher_local/predictions/{d}.json', 'rb').read())
+        with open(f'{IN}/attic_launcher_local/predictions/{d}.json', 'rb') as fh:
+            rec = json.loads(fh.read())
         out[d] = {}
         for g in ('A', 'B'):
             geo = rec['geometries'][g]
@@ -64,18 +107,12 @@ def nearest_grid(geometry, target):
 
 # --------------------------------------------------------------------------- readouts
 def sign_pattern(cells_x, dates, targets, multiples=(0.25, 0.5, 1.0, 2.0, 4.0)):
-    """Reference-arm decisions at N*/4, N*/2, N*, 2N*, 4N* for A and B.
-
-    Targets use the date-median committed N* and are read from the nearest fixed grid cell
-    (clipped at the grid ends; a target that clips onto a cell already used is reported as a
-    duplicate rather than counted twice).  Per-date counts at N* and 2N* use each date's own
-    committed N* and report both the mapped cell decision and the sign of that date's mean D.
-    """
+    """Reference-arm decisions at N*/4 .. 4N* for A and B, and per-date counts at N*, 2N*."""
     by_cell = {c['cell']: c for c in cells_x}
     out = {'targets': {}, 'per_date_counts': {}}
     for g in ('A', 'B'):
         vals = [t[g] for t in targets.values() if g in t]
-        if not vals:
+        if not vals or not any(c.startswith(f'{g}/') for c in by_cell):
             out['targets'][g] = {'available': False}
             continue
         med = float(np.median(vals))
@@ -85,6 +122,10 @@ def sign_pattern(cells_x, dates, targets, multiples=(0.25, 0.5, 1.0, 2.0, 4.0)):
             target = med * mult
             N = nearest_grid(g, target)
             cell = f'{g}/{GRIDS[g].index(N)}/reference'
+            if cell not in by_cell:
+                rows.append(dict(multiple=mult, target_N=target, grid_N=N, cell=cell,
+                                 available=False))
+                continue
             c = by_cell[cell]
             rows.append(dict(multiple=mult, target_N=target, grid_N=N, cell=cell,
                              duplicate_of_grid_N=None if N not in seen else True,
@@ -112,15 +153,21 @@ def per_cell_arm_delta(rows):
     for (d, r, g, N, arm, m), rec in rows.items():
         groups.setdefault((g, N, arm, m), []).append(rec['delta']['D'])
     out = []
-    for (g, N, arm, m), vals in sorted(groups.items(), key=lambda kv: (kv[0][0], kv[0][1], kv[0][2], str(kv[0][3]))):
-        out.append(dict(geometry=g, N=N, arm=arm, m=m, n=len(vals), mean_delta_D=float(np.mean(vals)),
+    for (g, N, arm, m), vals in sorted(groups.items(),
+                                       key=lambda kv: (kv[0][0], kv[0][1], kv[0][2], str(kv[0][3]))):
+        out.append(dict(geometry=g, N=N, arm=arm, m=m, n=len(vals),
+                        mean_delta_D=float(np.mean(vals)),
                         max_abs_delta_D=float(max(abs(v) for v in vals))))
     return out
 
 
 def pz4_pz5(cells_x):
-    """Registered-style descriptive verdicts from the recomputed intervals."""
+    """Registered-style descriptive verdicts; available only when the PZ4 cells are refit."""
     by = {c['cell']: c for c in cells_x}
+    if not all(k in by for k in list(family.PZ4_CELLS) + list(family.ISOTROPIC_CELLS)):
+        return dict(available=False,
+                    reason='PZ4/PZ5 cells are not refit cells in this scope; '
+                           'sampled summaries only')
     pz4 = {}
     for est in ('lw', 'kron'):
         low, high = by[f'{est}_m256'], by[f'{est}_m512']
@@ -134,7 +181,9 @@ def pz4_pz5(cells_x):
     pz5 = dict(decisions={c['cell']: c['decision'] for c in iso},
                decided_negative=[c['cell'] for c in iso if c['decision'] == 'negative'],
                met=not any(c['decision'] == 'negative' for c in iso))
-    return dict(pz4=dict(estimators=pz4, met=pz4_met, rule='m256 negative and |m512 mean| < |m256 mean|'),
+    return dict(available=True,
+                pz4=dict(estimators=pz4, met=pz4_met,
+                         rule='m256 negative and |m512 mean| < |m256 mean|'),
                 pz5=dict(**pz5, rule='no decided negative isotropic contrast'))
 
 
@@ -171,46 +220,70 @@ def route_statistics(rows):
                      'cleared_at_s1_tol is reported only to make that explicit')
 
 
+def _skipped_diagnostics(rows):
+    return {}
+
+
 # --------------------------------------------------------------------------- main
-def main(xopt_path=None, out_path=None):
-    xopt_path = xopt_path or os.path.join(W, 'out', 'XOPT_FITS.jsonl')
-    out_path = out_path or os.path.join(W, 'out', 'XOPT_EVIDENCE.json')
-    summary = json.load(open(IN + '/SUMMARY.json'))
+def main(xopt_path=None, out_path=None, scope=None):
+    scope = normalize_scope(scope)
+    out_path = out_path or os.path.join(W, 'out', 'resume4', 'XOPT_EVIDENCE.json')
+    xopt_path = xopt_path or os.path.join(W, 'out', 'resume4', 'XOPT_FITS.jsonl')
+    with open(IN + '/SUMMARY.json') as fh:
+        summary = json.load(fh)
     dates = summary['cohort']['included']
-    rows, skipped = load_deltas(xopt_path)
-    evidence = dict(study='X-OPT',
-                    status_label='post hoc sensitivity analysis; not a registered reading',
-                    scope=dict(rows=len(rows), failed_rows_skipped=skipped, dates=len(dates),
-                               geometry_N_cells=15, arm_m_settings=6, replicates_per_cell=50),
-                    reproducibility=reproducibility(rows),
-                    route_statistics=route_statistics(rows),
-                    per_cell_arm_mean_delta_D=per_cell_arm_delta(rows),
-                    delta=dict(max_abs_delta_D=float(max(abs(r['delta']['D']) for r in rows.values())),
-                               max_abs_relative_delta_D=float(max(abs(r['delta']['D']) / abs(r['original']['D'])
-                                                                  for r in rows.values() if r['original']['D'])),
-                               n_positive_delta=int(sum(1 for r in rows.values() if r['delta']['D'] > 0)),
-                               n_negative_delta=int(sum(1 for r in rows.values() if r['delta']['D'] < 0))))
-    D_x = {k: r['D'] for k, r in rows.items()}
-    D_reg = family.ledger_from_fits(IN + '/FITS.jsonl')
+    evidence = dict(study='X-OPT', status_label='post hoc sensitivity analysis; '
+                               'not a registered reading', scope=scope)
+
     try:
-        cells_x = family.family34(D_x, dates)
-        cells_reg = family.family34(D_reg, dates)
+        rows = load_deltas(xopt_path, expected_rows=PLANNED_ROWS[scope])
     except family.IncompleteLedger as exc:
-        evidence['outcome'] = dict(family='UNAVAILABLE', reason=str(exc))
+        evidence['outcome'] = dict(family='INCOMPLETE', reason=str(exc))
+        evidence['scope_detail'] = dict(expected_rows=PLANNED_ROWS[scope], loaded_rows=None)
         _write(evidence, out_path)
         return evidence
-    changes = family.classify_changes(cells_x, cells_reg)
+
+    evidence['scope_detail'] = dict(expected_rows=PLANNED_ROWS[scope], loaded_rows=len(rows),
+                                    dates=len(dates), refit_cells=list(family.refit_cells(scope)),
+                                    n_refit_cells=len(family.refit_cells(scope)))
+    evidence['reproducibility'] = reproducibility(rows)
+    evidence['route_statistics'] = route_statistics(rows)
+    evidence['per_cell_arm_mean_delta_D'] = per_cell_arm_delta(rows)
+
+    D_x = {k: r['D'] for k, r in rows.items()}
+    D_reg = family.ledger_from_fits(IN + '/FITS.jsonl')
+    refit = family.refit_cells(scope)
+    try:
+        cells_x = family.compute_cells(D_x, dates, refit)
+        cells_reg = family.compute_cells(D_reg, dates, refit)
+        changes = family.classify_changes(cells_x, cells_reg)
+    except family.IncompleteLedger as exc:
+        evidence['outcome'] = dict(family='INCOMPLETE', reason=str(exc))
+        _write(evidence, out_path)
+        return evidence
+
+    delta_D = [float(r['delta']['D']) for r in rows.values()]
+    delta_obj = [float(r['delta']['objective']) for r in rows.values()]
     evidence.update(
         outcome=dict(family='ROBUST' if changes['n'] == 0 else 'SENSITIVE', **changes),
-        family34=dict(xopt=cells_x, registered_control=cells_reg),
+        refit_cells_note='only these cells enter the verdict; sampled cells never do',
+        family34_refit=dict(xopt=cells_x, registered_control=cells_reg),
         pz4_pz5=pz4_pz5(cells_x),
         sign_pattern=sign_pattern(cells_x, dates, n_star_targets(dates)),
         min_margin=family.min_margin(cells_reg),
+        sampled_cells=family.sampled_summaries(rows, set(refit), cells_reg),
+        delta=dict(max_abs_delta_D=float(max(abs(v) for v in delta_D)),
+                   n_positive_delta=int(sum(1 for v in delta_D if v > 0)),
+                   n_negative_delta=int(sum(1 for v in delta_D if v < 0)),
+                   max_abs_delta_objective=float(max(abs(v) for v in delta_obj))),
         ratio_definitions=dict(
-            per_row_abs_dD_over_cell_half_width=family.per_row_abs_dD_over_halfwidth(
+            per_row_abs_deltaD_over_cell_half_width=family.per_row_abs_dD_over_halfwidth(
                 {k: r['delta']['D'] for k, r in rows.items()}, cells_reg),
-            cell_mean_shift_over_registered_half_width=family.cell_mean_shift_over_halfwidth(cells_x, cells_reg)[0]
-            if cells_x else None),
+            cell_mean_shift_over_registered_half_width=family.cell_mean_shift_over_halfwidth(
+                cells_x, cells_reg)[0] if cells_x else None,
+            per_row_label='per-row |X-OPT D - replayed frozen D| / registered half-width '
+                          '(delta is against the replayed frozen D, computed in the same '
+                          'process; NOT against the stored D)'),
         decision_rule_note='a change is any label difference; sign reversals and '
                            'decided<->undecided transitions are counted separately',
     )
@@ -219,15 +292,21 @@ def main(xopt_path=None, out_path=None):
 
 
 def _write(evidence, out_path):
+    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     with open(out_path, 'w') as fh:
-        json.dump(evidence, fh, indent=2, sort_keys=True)
+        json.dump(evidence, fh, indent=2, sort_keys=True, allow_nan=False)
         fh.write('\n')
     print(json.dumps({'outcome': evidence.get('outcome'),
                       'reproducibility': evidence.get('reproducibility'),
-                      'route_statistics': evidence.get('route_statistics'),
                       'min_margin': (evidence.get('min_margin') or [None])[0]}, indent=2))
     print('wrote', out_path)
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else None, sys.argv[2] if len(sys.argv) > 2 else None)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('ledger', nargs='?', default=None)
+    ap.add_argument('out', nargs='?', default=None)
+    ap.add_argument('--scope', default='full')
+    args = ap.parse_args()
+    main(args.ledger, args.out, args.scope)

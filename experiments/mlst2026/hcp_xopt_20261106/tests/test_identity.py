@@ -21,7 +21,7 @@ def check(n_rows=3):
     for meta in metas:
         roles, Sref = select.load_inputs(meta['date'])
         model = build(Sref, float(meta['theta']))
-        _, cap_s, cap_m = kernel.frozen_route(roles, model, Sref, meta['N'], meta['m'], meta['arm'],
+        frozen, cap_s, cap_m = kernel.frozen_route(roles, model, Sref, meta['N'], meta['m'], meta['arm'],
                                               int(meta['date_index']), meta['replicate'])
         asm = kernel.assemble(roles, model, Sref, meta['N'], meta['m'], meta['arm'],
                               int(meta['date_index']), meta['replicate'])
@@ -32,7 +32,7 @@ def check(n_rows=3):
             'n_starts': len(asm['initial']) == len(cap_s['initial']),
             'starts': all(np.array_equal(a[0], b[0]) and np.array_equal(a[1], b[1])
                           for a, b in zip(asm['initial'], cap_s['initial'])),
-            'indices': asm['sampled_training_indices'] == cap_s.get('sampled_indices', asm['sampled_training_indices']),
+            'frozen_indices': asm['sampled_training_indices'] == frozen['sampled_training_indices'],
         }
         ok = all(checks.values())
         bad += 0 if ok else 1

@@ -61,6 +61,12 @@ JOB_ENV = {'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS
            'TMPDIR': '/tmp'}
 REPLAY_OBJ_REL = 1e-9
 REPLAY_D_FACTOR = 5.0
+# Absolute floor added by the resume-5 reviewer (p2, recorded deviation): the 5x-restart_spread
+# factor was calibrated on 60 replay rows; over 135,000 rows a row whose stored spread is
+# ultratiny (e.g. 3.4e-10) trips it on a last-bit host difference while reproducing to ~1e-9
+# absolute.  A breach now needs BOTH the relative and this absolute exceedance.  1e-5 is 8e-5 of
+# the smallest registered half-width 0.1206 and 1e-4 of the closest decision margin 0.1024.
+REPLAY_D_ABS_FLOOR = 1e-5
 REQUIRED_FREEZE_KEYS = ('exp_commit', 'tag', 'ms_commit', 'protocol_sha256', 'package_sha256')
 
 
@@ -345,11 +351,15 @@ def _replay_breach(res):
         return 'non-finite replay D'
     d = rep['D_over_spread']
     if d is None:
+        if d_abs > REPLAY_D_ABS_FLOOR:
+            return (f'replay |D| {d_abs:.3e} > floor {REPLAY_D_ABS_FLOOR:g} '
+                    f'with zero stored spread')
         return None
     if not np.isfinite(d):
         return 'non-finite replay D/spread'
-    if d > REPLAY_D_FACTOR:
-        return f'replay D/spread {d:.3f} > {REPLAY_D_FACTOR:g}'
+    if d > REPLAY_D_FACTOR and d_abs > REPLAY_D_ABS_FLOOR:
+        return (f'replay D/spread {d:.3f} > {REPLAY_D_FACTOR:g} AND '
+                f'|D| {d_abs:.3e} > floor {REPLAY_D_ABS_FLOOR:g}')
     return None
 
 

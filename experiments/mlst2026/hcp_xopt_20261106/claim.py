@@ -124,11 +124,20 @@ def _read_claim(qdir, cid):
 
 
 def _write_claim(qdir, cid, record):
+    """Atomically write claim.json.  Returns False if the claim directory vanished first."""
     tmp = _claim_file(qdir, cid) + '.tmp.' + str(os.getpid())
-    with open(tmp, 'w') as fh:
-        json.dump(record, fh, sort_keys=True)
-        fh.write('\n')
-    os.replace(tmp, _claim_file(qdir, cid))
+    try:
+        with open(tmp, 'w') as fh:
+            json.dump(record, fh, sort_keys=True)
+            fh.write('\n')
+        os.replace(tmp, _claim_file(qdir, cid))
+        return True
+    except FileNotFoundError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return False
 
 
 def _reclaim_count(qdir, cid):
@@ -162,15 +171,22 @@ def claim(qdir, cid, host=None, pid=None, now=None):
     rec = dict(host=host, pid=pid, start=now, heartbeat=now)
     try:
         os.mkdir(cdir)
-        _write_claim(qdir, cid, rec)
-        return dict(action='claimed', owner=rec)
     except FileExistsError:
         pass
+    else:
+        if not _write_claim(qdir, cid, rec):
+            return dict(action='busy', owner=None)
+        return dict(action='claimed', owner=rec)
     if is_done(qdir, cid):
         return dict(action='done', owner=_read_claim(qdir, cid))
     old = _read_claim(qdir, cid)
-    age = None if not old else now - float(old.get('heartbeat', 0))
-    if age is None or age < STALE_SECONDS:
+    if old is None:
+        # The directory exists but claim.json has not been written yet: another process is in
+        # the atomic-creation window.  This is a live claim, never a stale one.
+        return dict(action='busy', owner=None, age_seconds=None,
+                    reason='claim creation in progress')
+    age = now - float(old.get('heartbeat', 0))
+    if age < STALE_SECONDS:
         return dict(action='busy', owner=old, age_seconds=age)
     if _reclaim_count(qdir, cid) >= MAX_RECLAIMS:
         return dict(action='exhausted', owner=old, age_seconds=age)
@@ -183,7 +199,8 @@ def claim(qdir, cid, host=None, pid=None, now=None):
         os.mkdir(cdir)
     except FileExistsError:
         return dict(action='busy', owner=_read_claim(qdir, cid))
-    _write_claim(qdir, cid, rec)
+    if not _write_claim(qdir, cid, rec):
+        return dict(action='busy', owner=None)
     _log(qdir, f'RECLAIM chunk={cid} old_host={old.get("host")} old_pid={old.get("pid")} '
                f'new_host={host} new_pid={pid} age_seconds={round(age, 1)} '
                f'reason=no_heartbeat_gt_2h_and_no_result')

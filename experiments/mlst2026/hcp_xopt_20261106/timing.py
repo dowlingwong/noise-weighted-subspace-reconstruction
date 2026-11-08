@@ -12,6 +12,7 @@ from experiments.mlst2026.t25_production_20260930 import science as t25
 
 
 def main(n_rows=20, seed=20261106):
+    output = select.ROOT + '/out/resume3/timing_full.json'
     fits = select.IN_DEFAULT + '/FITS.jsonl'
     metas = select.pick_rows(fits, seed=seed, per_date=2, max_rows=n_rows)
     rows = []
@@ -49,7 +50,7 @@ def main(n_rows=20, seed=20261106):
               f"m={str(meta['m']):4s} rep={meta['replicate']:2d} asm={t_asm:.2f} S0={t_s0:.2f} "
               f"routes={t_routes:.2f} total={total:.2f}s win={out['selected_route']}", flush=True)
     times = np.array([r['t_row'] for r in rows])
-    summary = dict(stage='0d_timing', n_rows=len(rows), seed=seed,
+    summary = dict(model='gpt-6.1-sol', stage='resume3_timing', n_rows=len(rows), seed=seed,
                    mean_row_seconds=float(times.mean()), median_row_seconds=float(np.median(times)),
                    max_row_seconds=float(times.max()), total_seconds=time.time() - t_all,
                    route_seconds_sum={k: float(sum(r['route_seconds'].get(k, 0.) for r in rows))
@@ -58,10 +59,10 @@ def main(n_rows=20, seed=20261106):
     print(json.dumps({k: summary[k] for k in ('stage', 'n_rows', 'mean_row_seconds',
                                               'median_row_seconds', 'max_row_seconds', 'route_seconds_sum')},
                      indent=2))
-    with open(select.ROOT + "/out/0d_timing.json", 'w') as fh:
+    with open(output, 'w') as fh:
         json.dump(summary, fh, indent=2, sort_keys=True)
         fh.write('\n')
-    print('wrote', select.ROOT + '/out/0d_timing.json')
+    print('wrote', output)
 
 
 if __name__ == '__main__':

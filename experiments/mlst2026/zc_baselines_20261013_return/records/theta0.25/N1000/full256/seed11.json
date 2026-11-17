@@ -1,0 +1,208 @@
+{
+ "study": "ZC",
+ "evidence_role": "CONFIRMATION",
+ "namespace": "zc-confirm-20261013",
+ "seed_index": 11,
+ "seed": 648531581149,
+ "theta": 0.25,
+ "N": 1000,
+ "metric": "full256",
+ "metric_role": "cv_select_only",
+ "clean": {
+  "U": 175.0394430619186,
+  "F": 168.49868043633478,
+  "CV": 175.0394430619186,
+  "RULE": null,
+  "SHR": null
+ },
+ "regret_vs_seed_min": {
+  "U": 6.540762625583824,
+  "F": 0.0,
+  "CV": 6.540762625583824,
+  "RULE": null,
+  "SHR": null
+ },
+ "better_class_this_seed": "F",
+ "D_F_minus_U": -6.540762625583824,
+ "risks": {
+  "U": {
+   "signal": 164.51885063092848,
+   "noise": 10.09885572507258,
+   "offset": 0.4217367059175415,
+   "clean": 175.0394430619186,
+   "euclidean_clean": 169.32345579385552,
+   "observed": 419.0394430619186
+  },
+  "F": {
+   "signal": 156.66945875406535,
+   "noise": 11.41859183330977,
+   "offset": 0.4106298489596654,
+   "clean": 168.49868043633478,
+   "euclidean_clean": 166.8302038781477,
+   "observed": 412.4986804363347
+  },
+  "CV": {
+   "signal": 164.51885063092848,
+   "noise": 10.09885572507258,
+   "offset": 0.4217367059175415,
+   "clean": 175.0394430619186,
+   "euclidean_clean": 169.32345579385552,
+   "observed": 419.0394430619186
+  }
+ },
+ "cv": {
+  "choice": "U",
+  "fold_scores": {
+   "U": [
+    640.0805674584112,
+    631.5015631097563,
+    627.3294501692203,
+    628.800913778348,
+    630.2478513870365
+   ],
+   "F": [
+    640.3256901803128,
+    634.3921740761825,
+    632.516857749951,
+    631.4755566618362,
+    634.7756746779047
+   ]
+  },
+  "mean_scores": {
+   "U": 631.5920691805545,
+   "F": 634.6971906692374
+  },
+  "fold_F": [
+   {
+    "selected": 1,
+    "selected_stationary": true,
+    "statuses": [
+     "stationary",
+     "stationary",
+     "stationary",
+     "stationary"
+    ],
+    "iterations": [
+     387,
+     296,
+     333,
+     357
+    ]
+   },
+   {
+    "selected": 2,
+    "selected_stationary": true,
+    "statuses": [
+     "stationary",
+     "stationary",
+     "stationary",
+     "stationary"
+    ],
+    "iterations": [
+     347,
+     302,
+     346,
+     323
+    ]
+   },
+   {
+    "selected": 3,
+    "selected_stationary": true,
+    "statuses": [
+     "stationary",
+     "stationary",
+     "stationary",
+     "stationary"
+    ],
+    "iterations": [
+     375,
+     320,
+     328,
+     345
+    ]
+   },
+   {
+    "selected": 2,
+    "selected_stationary": true,
+    "statuses": [
+     "stationary",
+     "stationary",
+     "stationary",
+     "stationary"
+    ],
+    "iterations": [
+     390,
+     373,
+     335,
+     325
+    ]
+   },
+   {
+    "selected": 2,
+    "selected_stationary": true,
+    "statuses": [
+     "stationary",
+     "stationary",
+     "stationary",
+     "stationary"
+    ],
+    "iterations": [
+     377,
+     284,
+     330,
+     335
+    ]
+   }
+  ],
+  "fold_F_nonstationary": 0
+ },
+ "rule": null,
+ "shr": null,
+ "optimization": {
+  "selected": 1,
+  "restarts": [
+   {
+    "objective": 107.53639419360005,
+    "gradient_norm": 9.870347703090924e-09,
+    "status": "stationary",
+    "iterations": 388,
+    "accepted_steps": 387
+   },
+   {
+    "objective": 107.53639419360077,
+    "gradient_norm": 9.561222138281183e-09,
+    "status": "stationary",
+    "iterations": 353,
+    "accepted_steps": 352
+   },
+   {
+    "objective": 107.53639419359986,
+    "gradient_norm": 9.643920258123424e-09,
+    "status": "stationary",
+    "iterations": 351,
+    "accepted_steps": 350
+   },
+   {
+    "objective": 107.53639419360066,
+    "gradient_norm": 9.825969228604038e-09,
+    "status": "stationary",
+    "iterations": 364,
+    "accepted_steps": 363
+   }
+  ],
+  "restart_clean_risks": [
+   168.49868043512967,
+   168.49868043633478,
+   168.49868090471065,
+   168.49868042362573
+  ],
+  "restart_spread": 4.81084924786046e-07,
+  "optimization_limited": false,
+  "cv_fold_F_nonstationary": 0
+ },
+ "training_sha": "fbb0906a10e6dbe9f8cec4c88dfb63a50944ebfa2705d6054c5aa1bac8d2d237",
+ "calibration_sha": "98d5d26af006f3de774ba4bb19b18a03ffdad5176da8565d396170b1fbb5f515",
+ "metric_cov_sha": "2dd8128091d843b31624f1863060f037a23aa287176d9809644d575410271a4f",
+ "folds_sha": "328a4bcf930e54ad8202ed97bc50b094180833d035db944e2315c20b88ef0e69",
+ "seconds": 50.304059982299805
+}

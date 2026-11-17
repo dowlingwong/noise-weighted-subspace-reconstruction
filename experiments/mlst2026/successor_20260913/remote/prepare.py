@@ -175,7 +175,9 @@ def preflight(ms, manifest, out):
 
 def phase_plan(selection):
     if selection == 't19s':
-        return 't19s', [('run',[]),('reduce',[])]
+        return 't19s', [('run',['--roles','algebraic','control','pilot']),
+                       ('reduce',['--allow-partial']),
+                       ('run',['--roles','confirmation']),('reduce',[])]
     if selection == 't20s':
         return 't20s', [('run',['--families','algebraic']),('run',['--families','pilot']),
                        ('reduce',['--allow-partial']),('run',['--families','confirmation']),('reduce',[])]

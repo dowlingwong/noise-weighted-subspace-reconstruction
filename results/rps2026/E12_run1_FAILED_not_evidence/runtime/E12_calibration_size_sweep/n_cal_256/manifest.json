@@ -1,0 +1,69 @@
+{
+  "analysis_label": "post_hoc_exploratory_calibration_size_sweep",
+  "calibration": {
+    "n_calibration_events": 256,
+    "regularization": "unchanged from E10/E10b",
+    "rng": "calibration_rng(seed), drawn independently per condition",
+    "scale_correction": "v_hat = sqrt(v_c*v_t) (covariance_estimation_v2)"
+  },
+  "columns": [
+    "config_hash",
+    "seed",
+    "regime",
+    "method",
+    "analysis_label",
+    "whitening",
+    "n_calibration_events",
+    "test_raw_mse",
+    "test_normalized_chi2",
+    "archived_oracle_test_raw_mse",
+    "archived_oracle_test_normalized_chi2",
+    "delta_raw_mse_estimated_minus_oracle",
+    "delta_normalized_chi2_estimated_minus_oracle",
+    "control_reproduction_rel_error_raw_mse",
+    "control_reproduction_rel_error_normalized_chi2",
+    "v_c",
+    "v_t",
+    "v_hat",
+    "product_scale_ratio_vs_oracle",
+    "channel_shape_error",
+    "temporal_shape_error",
+    "kronecker_relative_frobenius_error",
+    "oracle_whitening_residual",
+    "channel_min_eigenvalue",
+    "channel_condition_number",
+    "temporal_min_eigenvalue",
+    "temporal_condition_number",
+    "runtime_seconds"
+  ],
+  "condition": "n_cal_256",
+  "config_hash": "a85a100dc9da08b9",
+  "evidence_class": "post_hoc_exploratory_not_confirmatory",
+  "experiment": "E12_calibration_size_sweep",
+  "is_anchor": false,
+  "methods": [
+    "Iso-MPCA",
+    "NFPA"
+  ],
+  "regime": "colored",
+  "run_identity": {
+    "config_hash": "a85a100dc9da08b9",
+    "execution_content_commit": "75cbc40324293b8e7dfea65c01b0414027908997",
+    "implementation_freeze_commit": "0c5e3095aa3510367ad96efc4bcba60372d6e9a7"
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "smoke": false,
+  "started_at_utc": "2026-08-24T01:33:00Z",
+  "status": "in_progress"
+}

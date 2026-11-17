@@ -1,0 +1,73 @@
+deepthought
+Linux deepthought 4.18.0-553.156.1.el8_10.x86_64 #1 SMP Sun Aug 16 20:58:38 EDT 2026 x86_64 x86_64 x86_64 GNU/Linux
+40
+2026-08-23T20:19:01+02:00
+ 20:19:01 up 4 days, 12:38,  0 users,  load average: 0.05, 0.55, 1.52
+              total        used        free      shared  buff/cache   available
+Mem:            503          14         428           0          60         485
+Swap:             3           0           3
+Filesystem                                                          Size  Used Avail Use% Mounted on
+home:/export/home                                                   100G  202M  100G   1% /home
+[2a00:1398:5:fe01:3eec:efff:fe38:7926],[129.13.101.127]:/ceph_data  1.3P  994T  308T  77% /ceph
+=== Phase 0 reconnaissance (shared-server safety rule 1) ===
+--- who ---
+(none = no interactive users)
+--- ps -u $USER (pre-existing processes) ---
+    PID     ELAPSED %CPU %MEM CMD
+1779156       47:30  2.8  0.0 .venv/bin/python -m unittest discover -s experiment_scaffold/tests
+1803877       22:02  2.0  0.1 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node --dns-result-order=ipv4first /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+1808391       18:29  1.7  0.0 /home/dwong/.vscode-server/extensions/anthropic.claude-code-2.1.241-linux-x64/resources/native-binary/claude --output-format stream-json --verbose --input-format stream-json --max-thinking-tokens 31999 --permission-prompt-tool stdio --setting-sources=user,project,local --debug --debug-to-stderr --enable-auth-status --no-chrome --replay-user-messages
+ 932610  1-14:46:48  1.6  0.1 /home/dwong/.vscode-server/extensions/anthropic.claude-code-2.1.238-linux-x64/resources/native-binary/claude --output-format stream-json --verbose --input-format stream-json --max-thinking-tokens 31999 --permission-prompt-tool stdio --setting-sources=user,project,local --debug --debug-to-stderr --enable-auth-status --no-chrome --replay-user-messages
+1808610       18:21  0.6  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/extensions/ms-python.vscode-pylance-2026.3.1/dist/server.bundle.js --cancellationReceive=file:c07493506caceab0c253895b4223e6394838ca9f5f --node-ipc --clientProcessId=1803877
+1803899       22:01  0.4  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=fileWatcher
+ 916833  1-15:11:08  0.1  0.1 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node --dns-result-order=ipv4first /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+ 916457  1-15:11:18  0.0  0.0 /usr/lib/systemd/systemd --user
+ 916459  1-15:11:18  0.0  0.0 (sd-pam)
+ 916565  1-15:11:14  0.0  0.0 sh /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/bin/code-server --start-server --server-data-dir /home/dwong/.vscode-server --host=127.0.0.1 --accept-server-license-terms --enable-remote-auto-shutdown --port=0 --telemetry-level all --connection-token-file /home/dwong/.vscode-server/.110a328ea54b42367b803ec53ee0bf52ef26b419.token
+ 916577  1-15:11:14  0.0  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/server-main.js --start-server --server-data-dir /home/dwong/.vscode-server --host=127.0.0.1 --accept-server-license-terms --enable-remote-auto-shutdown --port=0 --telemetry-level all --connection-token-file /home/dwong/.vscode-server/.110a328ea54b42367b803ec53ee0bf52ef26b419.token
+ 916845  1-15:11:07  0.0  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=agentHost --logsPath /home/dwong/.vscode-server/data/logs/20260822T050758 --user-data-dir /home/dwong/.vscode-server/data --telemetry-level all
+ 916846  1-15:11:07  0.0  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=fileWatcher
+ 916878  1-15:11:07  0.0  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node_modules/@github/copilot-linux-x64/index.js --headless --no-auto-update --log-level info --stdio --no-auto-login
+ 917036  1-15:10:47  0.0  0.0 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=ptyHost --logsPath /home/dwong/.vscode-server/data/logs/20260822T050758
+ 917140  1-15:10:44  0.0  0.0 /home/dwong/.vscode-server/extensions/openai.chatgpt-26.818.31338-linux-x64/bin/linux-x86_64/codex -c features.code_mode_host=true app-server --analytics-default-enabled
+ 917692  1-15:10:41  0.0  0.0 /home/dwong/.vscode-server/extensions/ms-python.vscode-python-envs-1.36.0-linux-x64/python-env-tools/bin/pet server
+ 919431  1-15:08:23  0.0  0.0 /bin/bash --init-file /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh
+ 919607  1-15:08:20  0.0  0.0 /bin/bash --init-file /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/vs/workbench/contrib/terminal/common/scripts/shellIntegration-bash.sh
+--- screen -ls ---
+No Sockets found in /run/screen/S-dwong.
+
+--- nvidia-smi (E12 is CPU-only; recorded for completeness) ---
+Sun Aug 23 20:19:12 2026       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 525.147.05   Driver Version: 525.147.05   CUDA Version: 12.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  NVIDIA GeForce ...  Off  | 00000000:02:00.0 Off |                  N/A |
+|  6%   60C    P0    77W / 250W |      0MiB / 12288MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   1  NVIDIA GeForce ...  Off  | 00000000:03:00.0 Off |                  N/A |
+| 18%   49C    P0    74W / 250W |      0MiB / 12288MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   2  NVIDIA GeForce ...  Off  | 00000000:81:00.0 Off |                  N/A |
+| 19%   43C    P0    68W / 250W |      0MiB / 12288MiB |      0%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+|   3  NVIDIA GeForce ...  Off  | 00000000:82:00.0 Off |                  N/A |
+| 18%   46C    P0    63W / 250W |      0MiB / 12288MiB |      1%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
+--- top CPU consumers, all users ---
+USER         PID %CPU %MEM     ELAPSED CMD
+dwong    1779156  2.8  0.0       47:31 .venv/bin/python -m unittest discover -s experiment_scaffold/tests
+dwong    1803877  2.0  0.1       22:03 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node --dns-result-order=ipv4first /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=extensionHost --transformURIs --useHostProxy=false
+dwong    1808391  1.7  0.0       18:30 /home/dwong/.vscode-server/extensions/anthropic.claude-code-2.1.241-linux-x64/resources/native-binary/claude --output-format stream-json --verbose --input-format stream-json --max-thinking-tokens 31999 --permission-prompt-tool stdio --setting-sources=user,project,local --debug --debug-to-stderr --enable-auth-status --no-chrome --replay-user-messages
+cvmfs       9171  1.6  0.6  4-12:38:06 /usr/bin/cvmfs2 -o rw,system_mount,fsname=cvmfs2,allow_other,grab_mountpoint,uid=990,gid=989 unpacked.cern.ch /cvmfs/unpacked.cern.ch
+dwong     932610  1.6  0.1  1-14:46:49 /home/dwong/.vscode-server/extensions/anthropic.claude-code-2.1.238-linux-x64/resources/native-binary/claude --output-format stream-json --verbose --input-format stream-json --max-thinking-tokens 31999 --permission-prompt-tool stdio --setting-sources=user,project,local --debug --debug-to-stderr --enable-auth-status --no-chrome --replay-user-messages
+dwong    1808610  0.6  0.0       18:22 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/extensions/ms-python.vscode-pylance-2026.3.1/dist/server.bundle.js --cancellationReceive=file:c07493506caceab0c253895b4223e6394838ca9f5f --node-ipc --clientProcessId=1803877
+dwong    1803899  0.4  0.0       22:02 /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/node /home/dwong/.vscode-server/bin/110a328ea54b42367b803ec53ee0bf52ef26b419/out/bootstrap-fork --type=fileWatcher

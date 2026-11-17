@@ -6,6 +6,8 @@ test "$ENL_CONFIRMATION_AUTHORISED" = yes
 : "${ENL_FREEZE:?Exact candidate freeze required}"
 : "${ENL_ACCEPTANCE:?Registered independent acceptance required}"
 : "${ENL_OUTPUT:?Fresh external output required}"
+: "${ENL_CAMPAIGN_STARTED_MONOTONIC:?Shared campaign clock required}"
+: "${ENL_POST_SCIENCE_RECORD:?Shared post-science deadline record required}"
 registry=/ceph/dwong/enl_runs/registry
 mkdir -p "$registry"
 exec 9>"$registry/paper1-enl-v1-confirm.lock"
@@ -20,15 +22,4 @@ if find experiments src -type l -print -quit | read -r linked; then exit 75; fi
 if find experiments src -name '*.pyc' -print -quit | read -r cached; then exit 75; fi
 ulimit -v 8388608
 ulimit -t 259200
-started=$(date +%s)
-set +e
-timeout --kill-after=60 255600 /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.enl_20261008.workflow run --mode confirmation --out "$ENL_OUTPUT" --freeze "$ENL_FREEZE" --acceptance "$ENL_ACCEPTANCE" --ledger "$registry/paper1-enl-v1-confirm.attempt.json"
-rc=$?
-set -e
-printf '{"exit_code": %s}\n' "$rc" > "${ENL_OUTPUT}.supervisor_exit.json"
-if test -e "$ENL_OUTPUT/ATTEMPT.json"; then
- remaining=$((259200 - $(date +%s) + started))
- test "$remaining" -gt 0 || exit 124
- timeout --kill-after=60 "$remaining" /ceph/dwong/x3_env/bin/python -m experiments.mlst2026.enl_20261008.workflow seal --out "$ENL_OUTPUT" --exit-code "$rc"
-fi
-exit "$rc"
+exec /ceph/dwong/x3_env/bin/python -B -m experiments.mlst2026.enl_20261008.supervise

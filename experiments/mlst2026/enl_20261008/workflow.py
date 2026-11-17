@@ -82,7 +82,7 @@ def ancestry(c):
     parent=os.getppid();status=Path(f'/proc/{parent}/status').read_text();grand=int(next(x.split()[1] for x in status.splitlines() if x.startswith('PPid:')))
     cmd=lambda pid:[os.fsdecode(x) for x in Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0') if x]
     pc,gc=cmd(parent),cmd(grand)
-    if not any(Path(x).name=='timeout' for x in pc) or str(c['budget']['run_seconds']) not in pc or '--kill-after=60' not in pc or str(PACKAGE/'supervisor.sh') not in gc:raise ValueError('source-bound supervisor ancestry refused')
+    if not pc or Path(pc[0]).name!='timeout' or pc[1:3]!=['--kill-after=60',str(c['budget']['run_seconds']-60)] or len(gc)!=4 or gc[1:]!=['-B','-m','experiments.mlst2026.enl_20261008.supervise'] or Path(gc[0]).resolve()!=Path(sys.executable).resolve():raise ValueError('source-bound supervisor ancestry refused')
     coordinator=int(os.getenv('ENL_COORDINATOR_PID','0'))
     gstatus=Path(f'/proc/{grand}/status').read_text();actual=int(next(x.split()[1] for x in gstatus.splitlines() if x.startswith('PPid:')))
     if coordinator!=actual or 'experiments.mlst2026.enl_20261008.coordinator' not in cmd(coordinator):raise ValueError('source-bound whole-campaign coordinator required')
